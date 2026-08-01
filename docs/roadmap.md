@@ -1976,11 +1976,20 @@ Only the passing composed chain supports the full bounded claim.
 
 Disposable research spikes may look ahead but cannot freeze downstream bytes or count as later evidence.
 
+### Project-local dependency management
+
+* Python dependencies MUST be managed with `uv`, using a committed `uv.lock` and a project-local virtual environment. Project setup and checks MUST NOT require system-wide or user-wide Python package installation.
+* Rust dependencies MUST be managed with Cargo using a committed `Cargo.lock`. Project dependencies MUST NOT be installed globally with `cargo install`.
+* Repository commands MUST run through the declared environments, such as `uv run` and `cargo`.
+* The project MUST NOT depend on undeclared globally installed packages, libraries, or executables beyond the pinned Python and Rust toolchains.
+* Shared download and compilation caches MAY be used during development, but clean verification MUST succeed with ordinary global caches hidden.
+
+
 ### 11.2 M0 — Foundation and source reconnaissance
 
 **Goal**
 
-Create the smallest safe repository foundation, identify the real source shape, and establish only the inputs that actually exist at project start.
+Create the smallest safe repository foundation, identify the real source shape, and establish only the inputs that actually exist at project start
 
 **Inputs**
 
