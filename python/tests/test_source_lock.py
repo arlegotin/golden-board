@@ -230,6 +230,15 @@ class SourceLockTests(unittest.TestCase):
                     VALID.replace('path = "docs/64_games.md"', f'path = "{path}"')
                 )
 
+    def test_anthology_path_is_the_sole_authoritative_source(self):
+        bad = VALID.replace(
+            'path = "docs/64_games.md"', 'path = "docs/other-games.md"'
+        )
+        with self.assertRaisesRegex(
+            SourceLockError, "source_lock.schema: anthology.path"
+        ):
+            self.load(bad)
+
     def test_rejects_nonlowercase_or_malformed_hash(self):
         bad = VALID.replace("33d44f", "33D44f", 1)
         with self.assertRaisesRegex(SourceLockError, "source_lock.sha256"):

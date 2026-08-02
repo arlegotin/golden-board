@@ -305,8 +305,11 @@ def load_source_lock(root: Path) -> SourceLock:
     byte_length = anthology["byte_length"]
     if type(byte_length) is not int or not 0 < byte_length <= 16_777_216:
         raise SourceLockError("source_lock.schema: anthology.byte_length")
+    anthology_path = _relative(anthology["path"])
+    if anthology_path != PurePosixPath("docs/64_games.md"):
+        raise SourceLockError("source_lock.schema: anthology.path")
     anthology_value = AnthologyLock(
-        path=_relative(anthology["path"]),
+        path=anthology_path,
         file_type=_text(anthology["file_type"], "anthology.file_type"),
         byte_length=byte_length,
         sha256=_sha256(anthology["sha256"]),
