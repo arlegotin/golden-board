@@ -409,6 +409,11 @@ Allowed values are:
 - arrays; and
 - objects with ASCII keys.
 
+Host-language value encoders admit only the exact closed-model value types.
+User-defined value subclasses reject as `manifest.unsupported_type` before any
+overridable behavior is invoked; a subclass used as an object key rejects as
+`manifest.invalid_key`.
+
 Forbidden values and forms include:
 
 - null;
