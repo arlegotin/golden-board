@@ -6,12 +6,19 @@ import re
 import selectors
 import subprocess
 import time
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 from typing import cast
 
 from golden_board.manifest import decode_canonical_manifest, encode_canonical_value
+from golden_board.registry import RegistryError, _run_bounded_process
 from golden_board.source_doctor import build_source_report
-from golden_board.source_lock import SafeFileError, load_source_lock, read_regular_below
+from golden_board.source_lock import (
+    SafeFileError,
+    load_source_lock,
+    read_regular_below,
+    validate_same_mount_tree,
+)
 
 
 class ReportError(ValueError):
@@ -118,6 +125,9 @@ GIT_ENVIRONMENT_KEYS = frozenset(
     {*FIXED_GIT_ENVIRONMENT, "HOME", "PATH", "TMPDIR"}
 )
 MAX_TRACKED_PATH_BYTES = 4 * 1024 * 1024
+MAX_GIT_CONFIG_BYTES = 64 * 1024
+MAX_GIT_CONFIG_KEYS = 4_096
+MAX_GIT_TREE_ENTRIES = 200_000
 MAX_TRACKED_PATHS = 10_000
 MAX_IDENTITY_FILE_BYTES = 32 * 1024 * 1024
 MAX_REPORT_BYTES = 16 * 1024 * 1024
@@ -246,20 +256,192 @@ def _validated_git_context(
     return executable, environment
 
 
+def _git_command_prefix(root: Path, executable: str) -> tuple[str, ...]:
+    return (
+        executable,
+        "--no-pager",
+        "--no-lazy-fetch",
+        "--no-replace-objects",
+        f"--git-dir={root / '.git'}",
+        f"--work-tree={root}",
+        "-c",
+        "core.fsmonitor=false",
+        "-c",
+        "core.untrackedCache=false",
+        "-c",
+        "core.excludesFile=/dev/null",
+        "-c",
+        "core.attributesFile=/dev/null",
+        "-c",
+        "core.hooksPath=/dev/null",
+    )
+
+
+def _validated_git_tree(root: Path) -> bytes:
+    if (
+        not isinstance(root, Path)
+        or not root.is_absolute()
+        or "\0" in os.fspath(root)
+        or "\\" in os.fspath(root)
+        or ".." in root.parts
+    ):
+        raise ReportError("Git repository root is unsafe")
+    try:
+        validate_same_mount_tree(
+            root,
+            PurePosixPath(".git"),
+            max_entries=MAX_GIT_TREE_ENTRIES,
+            max_depth=64,
+        )
+        config = read_regular_below(
+            root,
+            PurePosixPath(".git/config"),
+            MAX_GIT_CONFIG_BYTES,
+        )
+        for relative in (
+            PurePosixPath(".git/commondir"),
+            PurePosixPath(".git/config.worktree"),
+            PurePosixPath(".git/info/attributes"),
+            PurePosixPath(".git/objects/info/alternates"),
+            PurePosixPath(".git/objects/info/http-alternates"),
+        ):
+            try:
+                read_regular_below(root, relative, MAX_GIT_CONFIG_BYTES)
+            except SafeFileError as error:
+                if str(error) != "safe_file.path":
+                    raise
+            else:
+                raise ReportError("Git metadata redirection is forbidden")
+        try:
+            exclude = read_regular_below(
+                root,
+                PurePosixPath(".git/info/exclude"),
+                MAX_GIT_CONFIG_BYTES,
+            )
+        except SafeFileError as error:
+            if str(error) != "safe_file.path":
+                raise
+        else:
+            try:
+                exclude_text = exclude.decode("utf-8", "strict")
+            except UnicodeDecodeError as error:
+                raise ReportError("Git metadata exclude file is unsafe") from error
+            if (
+                b"\0" in exclude
+                or b"\r" in exclude
+                or (exclude and not exclude.endswith(b"\n"))
+                or any(line and not line.startswith("#") for line in exclude_text.split("\n"))
+            ):
+                raise ReportError("Git metadata exclude file is unsafe")
+    except ReportError:
+        raise
+    except SafeFileError as error:
+        raise ReportError("Git metadata tree is unsafe") from error
+    return config
+
+
+def _validate_git_config_names(raw: bytes, stderr: bytes) -> None:
+    if (
+        type(raw) is not bytes
+        or type(stderr) is not bytes
+        or stderr
+        or not raw
+        or len(raw) > MAX_GIT_CONFIG_BYTES
+        or not raw.endswith(b"\0")
+    ):
+        raise ReportError("Git configuration audit is invalid")
+    names = raw[:-1].split(b"\0")
+    if (
+        not names
+        or len(names) > MAX_GIT_CONFIG_KEYS
+        or any(not name or len(name) > 1024 for name in names)
+    ):
+        raise ReportError("Git configuration audit is invalid")
+    for raw_name in names:
+        try:
+            name = raw_name.decode("ascii", "strict").lower()
+        except UnicodeDecodeError as error:
+            raise ReportError("Git configuration audit is invalid") from error
+        if (
+            any(ord(character) < 0x20 or ord(character) == 0x7F for character in name)
+            or name in {
+                "core.worktree",
+                "core.attributesfile",
+                "core.excludesfile",
+                "extensions.worktreeconfig",
+                "extensions.partialclone",
+                "include.path",
+            }
+            or (name.startswith("includeif.") and name.endswith(".path"))
+            or name.startswith("filter.")
+            or re.fullmatch(
+                r"remote\..+\.(?:promisor|partialclonefilter)", name
+            )
+            is not None
+        ):
+            raise ReportError("Git configuration contains an escape key")
+
+
+def git_control_preflight(
+    root: Path,
+    *,
+    git_executable: Path,
+    git_environment: dict[str, str],
+    runner: Callable[..., object] = _run_bounded_process,
+) -> tuple[str, ...]:
+    executable, environment = _validated_git_context(
+        git_executable, git_environment
+    )
+    config = _validated_git_tree(root)
+    try:
+        result = runner(
+            [
+                executable,
+                "--no-pager",
+                "config",
+                "--file",
+                str(root / ".git/config"),
+                "--no-includes",
+                "--null",
+                "--name-only",
+                "--list",
+            ],
+            b"",
+            dict(environment),
+            timeout=GIT_TIMEOUT_SECONDS,
+            output_limit=MAX_GIT_CONFIG_BYTES,
+            cwd=root,
+        )
+    except (OSError, RegistryError, ValueError) as error:
+        raise ReportError("Git configuration audit failed") from error
+    if (
+        type(result) is not tuple
+        or len(result) != 2
+        or type(result[0]) is not bytes
+        or type(result[1]) is not bytes
+    ):
+        raise ReportError("Git configuration audit is invalid")
+    _validate_git_config_names(result[0], result[1])
+    if _validated_git_tree(root) != config:
+        raise ReportError("Git configuration changed during its audit")
+    return _git_command_prefix(root, executable)
+
+
 def _bounded_git_output(
     root: Path,
     *,
     git_executable: Path,
     git_environment: dict[str, str],
 ) -> bytes:
-    executable, environment = _validated_git_context(
-        git_executable, git_environment
+    executable, environment = _validated_git_context(git_executable, git_environment)
+    prefix = git_control_preflight(
+        root,
+        git_executable=git_executable,
+        git_environment=git_environment,
     )
     process = subprocess.Popen(
         [
-            executable,
-            "-c",
-            "core.fsmonitor=false",
+            *prefix,
             "ls-files",
             "--cached",
             "--full-name",
@@ -828,6 +1010,37 @@ def native_evidence_from_summary(value: object) -> dict[str, object] | None:
         dict[str, object],
         decode_canonical_manifest(encode_canonical_value(native)),
     )
+
+
+def check_report_schemas(root: Path) -> list[str]:
+    errors: list[str] = []
+    try:
+        source = decode_canonical_manifest(
+            _read_below(
+                root,
+                PurePosixPath("reports/source-doctor.json"),
+                MAX_REPORT_BYTES,
+            )
+        )
+        if type(source) is not dict:
+            raise ReportError("source report must be an object")
+        _source_report_facts(root, source)
+        release = decode_canonical_manifest(
+            _read_below(
+                root,
+                PurePosixPath("reports/release-summary.json"),
+                MAX_REPORT_BYTES,
+            )
+        )
+        roadmap = _read_utf8_below(
+            root,
+            PurePosixPath("docs/roadmap.md"),
+            MAX_ROADMAP_BYTES,
+        )
+        errors.extend(validate_release_summary(release, roadmap))
+    except (OSError, UnicodeError, ValueError) as error:
+        errors.append(f"tracked report schema check failed: {error}")
+    return errors
 
 
 def check_tracked_reports(

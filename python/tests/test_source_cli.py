@@ -134,6 +134,98 @@ class SourceCliTests(unittest.TestCase):
             with self.assertRaises((OSError, ValueError)):
                 cli._write_source_report(root, REPORT_BYTES)
 
+    def test_writer_rejects_mounted_parent_or_existing_leaf_before_writing(self) -> None:
+        for mounted in ("reports", "source-doctor.json"):
+            with self.subTest(mounted=mounted), TemporaryDirectory() as directory:
+                root = Path(directory)
+                reports = root / "reports"
+                reports.mkdir()
+                target = reports / "source-doctor.json"
+                target.write_bytes(b"old\n")
+
+                def same_mount(_baseline, _descriptor, path: Path) -> bool:
+                    return path.name != mounted
+
+                with (
+                    patch.object(cli, "same_held_mount", side_effect=same_mount),
+                    patch.object(cli.os, "write", side_effect=AssertionError("write")),
+                    self.assertRaises((OSError, ValueError)),
+                ):
+                    cli._write_source_report(root, REPORT_BYTES)
+                self.assertEqual(b"old\n", target.read_bytes())
+                self.assertEqual(["source-doctor.json"], [path.name for path in reports.iterdir()])
+
+    def test_writer_rechecks_the_named_temporary_identity_before_replace(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            reports = root / "reports"
+            reports.mkdir()
+            target = reports / "source-doctor.json"
+            target.write_bytes(b"old\n")
+            real_stat = cli.os.stat
+
+            def changed_temporary(path: object, *args: object, **kwargs: object):
+                facts = real_stat(path, *args, **kwargs)
+                if (
+                    path == ".source-doctor.json.0.tmp"
+                    and kwargs.get("dir_fd") is not None
+                ):
+                    values = list(facts)
+                    values[1] += 1
+                    return os.stat_result(values)
+                return facts
+
+            with (
+                patch.object(cli.os, "stat", side_effect=changed_temporary),
+                patch.object(cli.os, "replace", side_effect=AssertionError("replace")),
+                self.assertRaises((OSError, ValueError)),
+            ):
+                cli._write_source_report(root, REPORT_BYTES)
+            self.assertEqual(b"old\n", target.read_bytes())
+            self.assertEqual(
+                [".source-doctor.json.0.tmp", "source-doctor.json"],
+                sorted(path.name for path in reports.iterdir()),
+            )
+
+    def test_cleanup_never_unlinks_a_mounted_same_inode_temporary(self) -> None:
+        with TemporaryDirectory() as directory:
+            reports = Path(directory)
+            temporary = reports / ".source-doctor.json.0.tmp"
+            temporary.write_bytes(b"owned\n")
+            descriptor = os.open(reports, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                facts = temporary.stat()
+                with (
+                    patch.object(cli, "same_held_mount", return_value=False),
+                    patch.object(cli.os, "unlink", side_effect=AssertionError("unlink")),
+                ):
+                    cli._safe_unlink_owned(
+                        descriptor,
+                        temporary.name,
+                        (facts.st_dev, facts.st_ino),
+                        (facts.st_dev, None),
+                        temporary,
+                    )
+            finally:
+                os.close(descriptor)
+            self.assertEqual(b"owned\n", temporary.read_bytes())
+
+    def test_pre_replace_parent_identity_recheck_rejects_an_exchange(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            reports = root / "reports"
+            reports.mkdir()
+            descriptor = cli._open_reports_directory(root)
+            mount = cli.held_mount_identity(descriptor)
+            displaced = root / "displaced-reports"
+            reports.rename(displaced)
+            reports.mkdir()
+            try:
+                with self.assertRaises(ValueError):
+                    cli._report_directory_is_current(root, descriptor, mount)
+            finally:
+                os.close(descriptor)
+
     def test_writer_uses_bounded_exclusive_temporary_names(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory)
@@ -189,7 +281,13 @@ class SourceCliTests(unittest.TestCase):
 
                     stack.append(patch.object(cli.os, "close", side_effect=first_close_fails))
                 elif failure == "verify":
-                    stack.append(patch.object(cli, "_read_regular_at", return_value=b"different\n"))
+                    stack.append(
+                        patch.object(
+                            cli,
+                            "_open_verified_report",
+                            side_effect=ValueError("fail"),
+                        )
+                    )
                 else:
                     stack.append(patch.object(cli, "decode_canonical_manifest", side_effect=ValueError("fail")))
 
@@ -212,16 +310,24 @@ class SourceCliTests(unittest.TestCase):
 
     def test_successful_replace_is_the_final_commit_point(self) -> None:
         real_close = os.close
-        calls = 0
+        real_replace = os.replace
+        published = False
+
+        def mark_published(*args: object, **kwargs: object) -> None:
+            nonlocal published
+            real_replace(*args, **kwargs)  # type: ignore[arg-type]
+            published = True
 
         def later_close_fails(descriptor: int) -> None:
-            nonlocal calls
-            calls += 1
             real_close(descriptor)
-            if calls > 2:
+            if published:
                 raise OSError("post-commit close")
 
-        with TemporaryDirectory() as directory, patch.object(cli.os, "close", side_effect=later_close_fails):
+        with (
+            TemporaryDirectory() as directory,
+            patch.object(cli.os, "replace", side_effect=mark_published),
+            patch.object(cli.os, "close", side_effect=later_close_fails),
+        ):
             root = Path(directory)
             reports = root / "reports"
             reports.mkdir()

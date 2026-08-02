@@ -77,7 +77,8 @@ def _toml(registry: dict[str, object]) -> str:
 class RegistrySchemaTests(unittest.TestCase):
     def load(self, registry: dict[str, object]) -> dict[str, object]:
         with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / "registry.toml"
+            path = Path(temporary) / "conformance/registry.toml"
+            path.parent.mkdir()
             path.write_text(_toml(registry), encoding="utf-8")
             return load_registry(path)
 
@@ -139,7 +140,8 @@ class RegistrySchemaTests(unittest.TestCase):
 
     def test_registry_read_delegates_once_to_shared_reader(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / "registry.toml"
+            path = Path(temporary) / "conformance/registry.toml"
+            path.parent.mkdir()
             path.write_text(_toml(_registry()), encoding="utf-8")
             with patch.object(
                 registry_module,
@@ -148,14 +150,30 @@ class RegistrySchemaTests(unittest.TestCase):
             ) as reader:
                 load_registry(path)
         reader.assert_called_once_with(
-            path.parent,
-            PurePosixPath(path.name),
+            path.parent.parent.resolve(),
+            PurePosixPath("conformance/registry.toml"),
             MAX_REGISTRY_BYTES,
         )
 
+    def test_registry_path_is_not_resolved_before_descriptor_traversal(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "conformance/registry.toml"
+            path.parent.mkdir()
+            path.write_text(_toml(_registry()), encoding="utf-8")
+            real_resolve = type(path).resolve
+
+            def reject_descendant_resolve(value: Path, *args: object, **kwargs: object):
+                if value == path:
+                    raise AssertionError("descendant resolve")
+                return real_resolve(value, *args, **kwargs)
+
+            with patch.object(type(path), "resolve", new=reject_descendant_resolve):
+                self.assertEqual(0, load_registry(path)["schema_version"])
+
     def test_toml_integer_digit_limit_is_a_registry_error(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / "registry.toml"
+            path = Path(temporary) / "conformance/registry.toml"
+            path.parent.mkdir()
             path.write_text(
                 "schema_version = " + "9" * 5_000 + "\ncase = []\n",
                 encoding="utf-8",
@@ -166,7 +184,8 @@ class RegistrySchemaTests(unittest.TestCase):
     def test_deep_toml_is_a_registry_error(self) -> None:
         nested = "[" * 2_000 + "0" + "]" * 2_000
         with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / "registry.toml"
+            path = Path(temporary) / "conformance/registry.toml"
+            path.parent.mkdir()
             path.write_text(
                 f"schema_version = {nested}\ncase = []\n",
                 encoding="utf-8",
@@ -179,7 +198,8 @@ class RegistrySchemaTests(unittest.TestCase):
 
     def test_reader_errors_are_not_misreported_as_toml_syntax(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / "registry.toml"
+            path = Path(temporary) / "conformance/registry.toml"
+            path.parent.mkdir()
             with self.assertRaisesRegex(RegistryError, r"^registry\.path$"):
                 load_registry(path)
             path.write_bytes(b"\xef\xbb\xbfschema_version = 0\ncase = []\n")
@@ -310,6 +330,63 @@ class RegistryFixtureTests(unittest.TestCase):
         with patch("golden_board.registry.os.scandir", side_effect=fail_hidden):
             errors = self.errors()
         self.assertTrue(any("registry.conformance" in value for value in errors))
+
+    def test_fixture_inventory_rejects_a_mounted_directory_before_scandir(self) -> None:
+        conformance = self.root / "conformance"
+
+        def same_mount(_baseline, _descriptor, path: Path) -> bool:
+            return path.name != conformance.name
+
+        with (
+            patch.object(registry_module, "same_held_mount", side_effect=same_mount),
+            patch.object(registry_module.os, "scandir", side_effect=AssertionError("scan")),
+        ):
+            errors = self.errors()
+        self.assertIn("registry.conformance", errors)
+
+    def test_fixture_inventory_rechecks_directory_identity_after_scandir(self) -> None:
+        original = registry_module._open_relative_directory
+        calls = 0
+
+        def exchange_before_reopen(*args: object, **kwargs: object) -> int:
+            nonlocal calls
+            parts = args[3]
+            if parts == ("conformance",):
+                calls += 1
+                if calls == 2:
+                    conformance = self.root / "conformance"
+                    conformance.rename(self.root / "displaced-conformance")
+                    conformance.mkdir()
+            return original(*args, **kwargs)  # type: ignore[arg-type]
+
+        with patch.object(
+            registry_module,
+            "_open_relative_directory",
+            side_effect=exchange_before_reopen,
+        ):
+            errors = self.errors()
+        self.assertIn("registry.conformance", errors)
+
+    def test_fixture_mount_is_rejected_before_hashing(self) -> None:
+        fixture = (self.root / "conformance/identity/a-empty-scalar.hex").resolve()
+        case = _case()
+
+        def same_mount(_baseline, _descriptor, path: Path) -> bool:
+            return path.resolve() != fixture
+
+        with (
+            patch(
+                "golden_board.source_lock.same_held_mount",
+                side_effect=same_mount,
+            ),
+            patch.object(
+                registry_module.hashlib,
+                "sha256",
+                side_effect=AssertionError("hash"),
+            ),
+        ):
+            errors = self.errors(case)
+        self.assertTrue(any("registry.path" in error for error in errors))
 
     def test_recipe_schema_is_closed_and_materialization_is_bounded(self) -> None:
         fixture = self.root / "conformance/identity/a-empty-scalar.hex"
@@ -516,12 +593,49 @@ class RegistryProcessTests(unittest.TestCase):
             seen.extend((argv, raw, environment, timeout, output_limit))
             return b"ok\t" + EMPTY_SCALAR.encode() + b"\n", b""
 
-        binary = Path("/checkout/artifacts/cargo-target/debug/gb-vector")
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name).resolve()
+        binary = root / "artifacts/cargo-target/debug/gb-vector"
+        binary.parent.mkdir(parents=True)
+        binary.write_bytes(b"binary")
+        binary.chmod(0o700)
         with patch("golden_board.registry._run_bounded_process", side_effect=fake):
-            result = _rust_result(binary, "identity-a-scalar", b"payload")
+            result = _rust_result(root, binary, "identity-a-scalar", b"payload")
         self.assertEqual([str(binary), "identity-a-scalar"], seen[0])
         self.assertEqual(b"payload", seen[1])
         self.assertEqual(f"ok\t{EMPTY_SCALAR}\n", result)
+
+    def test_rust_runner_drops_hostile_environment_and_requires_absolute_binary(self) -> None:
+        captured: list[object] = []
+
+        def fake(argv, raw, environment, *, timeout, output_limit):
+            captured.extend((argv, raw, environment, timeout, output_limit))
+            return b"ok\t" + EMPTY_SCALAR.encode() + b"\n", b""
+
+        hostile = {
+            "PATH": "/attacker",
+            "LD_PRELOAD": "/attacker/library",
+            "RUSTC_WRAPPER": "/attacker/wrapper",
+        }
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name).resolve()
+        binary = root / "artifacts/cargo-target/debug/gb-vector"
+        binary.parent.mkdir(parents=True)
+        binary.write_bytes(b"binary")
+        binary.chmod(0o700)
+        with (
+            patch.dict(os.environ, hostile, clear=False),
+            patch("golden_board.registry._run_bounded_process", side_effect=fake),
+        ):
+            _rust_result(root, binary, "identity-a-scalar", b"payload")
+        self.assertEqual([str(binary), "identity-a-scalar"], captured[0])
+        self.assertEqual(
+            {"LANG": "C", "LC_ALL": "C", "TZ": "UTC"}, captured[2]
+        )
+        with self.assertRaisesRegex(RegistryError, "registry.binary"):
+            _rust_result(root, Path("relative/gb-vector"), "identity-a-scalar", b"")
 
     def test_target_directory_must_be_a_real_checkout_descendant(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -535,6 +649,38 @@ class RegistryProcessTests(unittest.TestCase):
             self.addCleanup(outside.rmdir)
             errors = run_registered_vectors(root, outside)
             self.assertTrue(errors)
+
+    def test_target_mount_is_rejected_and_binary_mount_never_executes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            target = root / "artifacts/cargo-target"
+            binary = target / "debug/gb-vector"
+            binary.parent.mkdir(parents=True)
+            binary.write_bytes(b"binary")
+            binary.chmod(0o700)
+
+            def reject_target(_baseline, _descriptor, path: Path) -> bool:
+                return path != target
+
+            with (
+                patch.object(registry_module, "same_held_mount", side_effect=reject_target),
+                self.assertRaisesRegex(RegistryError, "registry.target"),
+            ):
+                _validated_target(root, target)
+
+            def reject_binary(_baseline, _descriptor, path: Path) -> bool:
+                return path != binary
+
+            with (
+                patch.object(registry_module, "same_held_mount", side_effect=reject_binary),
+                patch.object(
+                    registry_module,
+                    "_run_bounded_process",
+                    side_effect=AssertionError("process"),
+                ),
+                self.assertRaisesRegex(RegistryError, "registry.binary"),
+            ):
+                _rust_result(root, binary, "identity-a-scalar", b"payload")
 
 
 if __name__ == "__main__":

@@ -52,7 +52,10 @@ class DifferentialVectorTests(unittest.TestCase):
             with self.subTest(operation=operation, mutated=mutated):
                 expected = _python_result(operation, original)
                 self.assertNotEqual(expected, outcome(_python_result, operation, mutated))
-                self.assertNotEqual(expected, outcome(_rust_result, self.binary, operation, mutated))
+                self.assertNotEqual(
+                    expected,
+                    outcome(_rust_result, ROOT, self.binary, operation, mutated),
+                )
 
     def test_registry_contains_only_the_owned_m0_source_doctor_cases(self) -> None:
         registry = load_registry(ROOT / "conformance/registry.toml")

@@ -11,7 +11,12 @@ import subprocess
 import time
 import tomllib
 
-from golden_board.source_lock import SafeFileError, read_regular_below
+from golden_board.source_lock import (
+    SafeFileError,
+    held_mount_identity,
+    read_regular_below,
+    same_held_mount,
+)
 
 
 MAX_REGISTRY_BYTES = 1 << 20
@@ -50,6 +55,148 @@ _OWNER = re.compile(r"[A-Za-z0-9._/-]+#[A-Za-z0-9._-]+\Z")
 
 class RegistryError(ValueError):
     pass
+
+
+def _identity(value: os.stat_result) -> tuple[int, int, int]:
+    return value.st_dev, value.st_ino, stat.S_IFMT(value.st_mode)
+
+
+def _directory_flags() -> int:
+    required = ("O_CLOEXEC", "O_DIRECTORY", "O_NOFOLLOW")
+    if any(type(getattr(os, name, None)) is not int for name in required):
+        raise RegistryError("registry.platform")
+    return os.O_RDONLY | os.O_CLOEXEC | os.O_DIRECTORY | os.O_NOFOLLOW
+
+
+def _file_flags() -> int:
+    required = ("O_CLOEXEC", "O_NOFOLLOW", "O_NONBLOCK")
+    if any(type(getattr(os, name, None)) is not int for name in required):
+        raise RegistryError("registry.platform")
+    return os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK
+
+
+def _open_repository(root: Path, code: str) -> tuple[int, tuple[int, bytes | None]]:
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(root, _directory_flags())
+        held = os.fstat(descriptor)
+        named = root.lstat()
+        mount = held_mount_identity(descriptor)
+        if not stat.S_ISDIR(held.st_mode) or _identity(held) != _identity(named):
+            raise RegistryError(code)
+        return descriptor, mount
+    except RegistryError:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise
+    except (OSError, TypeError, ValueError) as error:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        raise RegistryError(code) from error
+
+
+def _open_named_directory(
+    parent: int,
+    name: str,
+    path: Path,
+    mount: tuple[int, bytes | None],
+    code: str,
+) -> int:
+    descriptor: int | None = None
+    try:
+        before = os.stat(name, dir_fd=parent, follow_symlinks=False)
+        descriptor = os.open(name, _directory_flags(), dir_fd=parent)
+        held = os.fstat(descriptor)
+        after = os.stat(name, dir_fd=parent, follow_symlinks=False)
+        path_facts = path.lstat()
+        if (
+            not stat.S_ISDIR(held.st_mode)
+            or _identity(before) != _identity(held)
+            or _identity(after) != _identity(held)
+            or _identity(path_facts) != _identity(held)
+            or not same_held_mount(mount, descriptor, path)
+        ):
+            raise RegistryError(code)
+        return descriptor
+    except RegistryError:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise
+    except (OSError, TypeError, ValueError) as error:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        raise RegistryError(code) from error
+
+
+def _open_relative_directory(
+    repository: int,
+    root: Path,
+    mount: tuple[int, bytes | None],
+    parts: tuple[str, ...],
+    code: str,
+) -> int:
+    parent = repository
+    owned: int | None = None
+    current = root
+    try:
+        for part in parts:
+            current /= part
+            child = _open_named_directory(parent, part, current, mount, code)
+            if owned is not None:
+                os.close(owned)
+            owned = child
+            parent = child
+        if owned is None:
+            raise RegistryError(code)
+        return owned
+    except BaseException:
+        if owned is not None:
+            try:
+                os.close(owned)
+            except OSError:
+                pass
+        raise
+
+
+def _open_named_regular(
+    parent: int,
+    name: str,
+    path: Path,
+    mount: tuple[int, bytes | None],
+    code: str,
+) -> int:
+    descriptor: int | None = None
+    try:
+        before = os.stat(name, dir_fd=parent, follow_symlinks=False)
+        descriptor = os.open(name, _file_flags(), dir_fd=parent)
+        held = os.fstat(descriptor)
+        after = os.stat(name, dir_fd=parent, follow_symlinks=False)
+        if (
+            not stat.S_ISREG(held.st_mode)
+            or _identity(before) != _identity(held)
+            or _identity(after) != _identity(held)
+            or _identity(path.lstat()) != _identity(held)
+            or not same_held_mount(mount, descriptor, path)
+        ):
+            raise RegistryError(code)
+        return descriptor
+    except RegistryError:
+        if descriptor is not None:
+            os.close(descriptor)
+        raise
+    except (OSError, TypeError, ValueError) as error:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        raise RegistryError(code) from error
 
 
 def _registry_file_error(error: SafeFileError) -> RegistryError:
@@ -154,10 +301,21 @@ def _schema_errors(registry: object) -> list[str]:
 
 def load_registry(path: Path) -> dict[str, object]:
     try:
+        if (
+            not isinstance(path, Path)
+            or not path.is_absolute()
+            or path.name != "registry.toml"
+            or path.parent.name != "conformance"
+            or "\0" in os.fspath(path)
+            or "\\" in os.fspath(path)
+            or ".." in path.parts
+        ):
+            raise RegistryError("registry.path")
+        root = path.parent.parent.resolve(strict=True)
         try:
             raw = read_regular_below(
-                path.parent,
-                PurePosixPath(path.name),
+                root,
+                PurePosixPath("conformance/registry.toml"),
                 MAX_REGISTRY_BYTES,
             )
         except SafeFileError as error:
@@ -284,37 +442,99 @@ def _materialize_fixture(root: Path, case: dict[str, object]) -> bytes:
 
 
 def _tracked_fixtures(root: Path) -> set[str]:
-    conformance = root / "conformance"
+    root = root.resolve(strict=True)
+    repository: int | None = None
     try:
-        mode = conformance.lstat().st_mode
-    except OSError as error:
+        repository, mount = _open_repository(root, "registry.conformance")
+        result: set[str] = set()
+        pending = [("conformance",)]
+        entries = 0
+        while pending:
+            parts = pending.pop()
+            directory = _open_relative_directory(
+                repository,
+                root,
+                mount,
+                parts,
+                "registry.conformance",
+            )
+            try:
+                with os.scandir(directory) as children:
+                    for child in children:
+                        entries += 1
+                        if entries > MAX_CONFORMANCE_ENTRIES:
+                            raise RegistryError("registry.fixture_limit")
+                        name = child.name
+                        if (
+                            type(name) is not str
+                            or not name
+                            or name in {".", ".."}
+                            or "/" in name
+                            or "\0" in name
+                        ):
+                            raise RegistryError("registry.conformance")
+                        relative_parts = parts + (name,)
+                        path = root.joinpath(*relative_parts)
+                        relative = PurePosixPath(*relative_parts).as_posix()
+                        facts = os.stat(
+                            name,
+                            dir_fd=directory,
+                            follow_symlinks=False,
+                        )
+                        if stat.S_ISLNK(facts.st_mode):
+                            result.add(relative)
+                        elif stat.S_ISDIR(facts.st_mode):
+                            child_descriptor = _open_named_directory(
+                                directory,
+                                name,
+                                path,
+                                mount,
+                                "registry.conformance",
+                            )
+                            os.close(child_descriptor)
+                            pending.append(relative_parts)
+                        elif stat.S_ISREG(facts.st_mode):
+                            child_descriptor = _open_named_regular(
+                                directory,
+                                name,
+                                path,
+                                mount,
+                                "registry.conformance",
+                            )
+                            os.close(child_descriptor)
+                            if relative != "conformance/registry.toml":
+                                result.add(relative)
+                        elif relative != "conformance/registry.toml":
+                            result.add(relative)
+                current_directory = _open_relative_directory(
+                    repository,
+                    root,
+                    mount,
+                    parts,
+                    "registry.conformance",
+                )
+                try:
+                    if _identity(os.fstat(directory)) != _identity(
+                        os.fstat(current_directory)
+                    ):
+                        raise RegistryError("registry.conformance")
+                finally:
+                    os.close(current_directory)
+            finally:
+                os.close(directory)
+        if _identity(os.fstat(repository)) != _identity(root.lstat()):
+            raise RegistryError("registry.conformance")
+        return result
+    except RegistryError:
+        raise
+    except (OSError, TypeError, ValueError) as error:
         raise RegistryError("registry.conformance") from error
-    if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
-        raise RegistryError("registry.conformance")
-    result: set[str] = set()
-    pending = [conformance]
-    entries = 0
-    while pending:
-        directory = pending.pop()
-        try:
-            with os.scandir(directory) as children:
-                for child in children:
-                    entries += 1
-                    if entries > MAX_CONFORMANCE_ENTRIES:
-                        raise RegistryError("registry.fixture_limit")
-                    path = Path(child.path)
-                    relative = path.relative_to(root).as_posix()
-                    if child.is_symlink():
-                        result.add(relative)
-                    elif child.is_dir(follow_symlinks=False):
-                        pending.append(path)
-                    elif relative != "conformance/registry.toml":
-                        result.add(relative)
-        except RegistryError:
-            raise
-        except OSError as error:
-            raise RegistryError("registry.conformance") from error
-    return result
+    finally:
+        if repository is not None:
+            try:
+                os.close(repository)
+            except OSError:
+                pass
 
 
 def validate_registry(root: Path, registry: dict[str, object]) -> list[str]:
@@ -494,16 +714,93 @@ def _minimal_environment() -> dict[str, str]:
     return {"LANG": "C", "LC_ALL": "C", "TZ": "UTC"}
 
 
-def _rust_result(binary: Path, operation: str, raw: bytes) -> str:
+def _held_binary(
+    root: Path,
+    binary: Path,
+) -> tuple[int, tuple[int, bytes | None]]:
+    root = root.resolve(strict=True)
+    if (
+        not isinstance(binary, Path)
+        or not binary.is_absolute()
+        or "\0" in os.fspath(binary)
+        or ".." in binary.parts
+    ):
+        raise RegistryError("registry.binary")
+    try:
+        relative = binary.relative_to(root)
+    except ValueError as error:
+        raise RegistryError("registry.binary") from error
+    if not relative.parts or relative.name != "gb-vector":
+        raise RegistryError("registry.binary")
+    repository: int | None = None
+    parent: int | None = None
+    descriptor: int | None = None
+    try:
+        repository, mount = _open_repository(root, "registry.binary")
+        parent = _open_relative_directory(
+            repository,
+            root,
+            mount,
+            relative.parts[:-1],
+            "registry.binary",
+        )
+        descriptor = _open_named_regular(
+            parent,
+            relative.name,
+            binary,
+            mount,
+            "registry.binary",
+        )
+        if os.fstat(descriptor).st_mode & 0o111 == 0:
+            raise RegistryError("registry.binary")
+        return descriptor, mount
+    except BaseException:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        raise
+    finally:
+        if parent is not None:
+            try:
+                os.close(parent)
+            except OSError:
+                pass
+        if repository is not None:
+            try:
+                os.close(repository)
+            except OSError:
+                pass
+
+
+def _rust_result(root: Path, binary: Path, operation: str, raw: bytes) -> str:
+    if (
+        not isinstance(root, Path)
+        or not isinstance(binary, Path)
+        or not binary.is_absolute()
+    ):
+        raise RegistryError("registry.binary")
     if operation not in _OPERATIONS["identity"] | _OPERATIONS["manifest"]:
         raise RegistryError("registry.operation")
-    stdout, stderr = _run_bounded_process(
-        [str(binary), operation],
-        raw,
-        _minimal_environment(),
-        timeout=CHILD_TIMEOUT,
-        output_limit=MAX_CHILD_OUTPUT,
-    )
+    descriptor, mount = _held_binary(root, binary)
+    try:
+        held = os.fstat(descriptor)
+        named = binary.lstat()
+        if (
+            _identity(held) != _identity(named)
+            or not same_held_mount(mount, descriptor, binary)
+        ):
+            raise RegistryError("registry.binary")
+        stdout, stderr = _run_bounded_process(
+            [str(binary), operation],
+            raw,
+            _minimal_environment(),
+            timeout=CHILD_TIMEOUT,
+            output_limit=MAX_CHILD_OUTPUT,
+        )
+    finally:
+        os.close(descriptor)
     if stderr:
         raise RegistryError("registry.rust_stderr")
     try:
@@ -520,25 +817,49 @@ def _validated_target(root: Path, target_dir: Path | None) -> Path:
     candidate = root / "target" if target_dir is None else Path(target_dir)
     candidate = candidate if candidate.is_absolute() else root / candidate
     try:
-        relative = candidate.absolute().relative_to(root)
+        absolute = candidate.absolute()
+        relative = absolute.relative_to(root)
     except ValueError as error:
         raise RegistryError("registry.target") from error
-    current = root
-    for part in relative.parts:
-        current = current / part
-        if current.exists() or current.is_symlink():
-            try:
-                mode = current.lstat().st_mode
-            except OSError as error:
-                raise RegistryError("registry.target") from error
-            if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
-                raise RegistryError("registry.target")
-    resolved = candidate.resolve(strict=False)
+    if not relative.parts or any(part in {"", ".", ".."} for part in relative.parts):
+        raise RegistryError("registry.target")
+    repository: int | None = None
+    current_descriptor: int | None = None
     try:
-        resolved.relative_to(root)
-    except ValueError as error:
-        raise RegistryError("registry.target") from error
-    return resolved
+        repository, mount = _open_repository(root, "registry.target")
+        parent = repository
+        current = root
+        for part in relative.parts:
+            current /= part
+            try:
+                os.stat(part, dir_fd=parent, follow_symlinks=False)
+            except FileNotFoundError:
+                break
+            child = _open_named_directory(
+                parent,
+                part,
+                current,
+                mount,
+                "registry.target",
+            )
+            if current_descriptor is not None:
+                os.close(current_descriptor)
+            current_descriptor = child
+            parent = child
+        if _identity(os.fstat(repository)) != _identity(root.lstat()):
+            raise RegistryError("registry.target")
+        return absolute
+    finally:
+        if current_descriptor is not None:
+            try:
+                os.close(current_descriptor)
+            except OSError:
+                pass
+        if repository is not None:
+            try:
+                os.close(repository)
+            except OSError:
+                pass
 
 
 def _rust_binary(root: Path, target_dir: Path | None = None) -> Path:
@@ -546,18 +867,9 @@ def _rust_binary(root: Path, target_dir: Path | None = None) -> Path:
     target = _validated_target(root, target_dir)
     debug = _validated_target(root, target / "debug")
     binary = debug / "gb-vector"
-    try:
-        mode = binary.lstat().st_mode
-    except OSError as error:
-        raise RegistryError("registry.binary") from error
-    if stat.S_ISLNK(mode) or not stat.S_ISREG(mode) or not os.access(binary, os.X_OK):
-        raise RegistryError("registry.binary")
-    resolved_binary = binary.resolve(strict=True)
-    try:
-        resolved_binary.relative_to(target)
-    except ValueError as error:
-        raise RegistryError("registry.binary") from error
-    return resolved_binary
+    descriptor, _mount = _held_binary(root, binary)
+    os.close(descriptor)
+    return binary
 
 
 def _expected(case: dict[str, object]) -> str:
@@ -565,8 +877,19 @@ def _expected(case: dict[str, object]) -> str:
     return f"{prefix}\t{case['expected']}\n"
 
 
-def run_registered_vectors(root: Path, target_dir: Path | None = None) -> list[str]:
+def run_registered_vectors(
+    root: Path,
+    target_dir: Path | None = None,
+    *,
+    families: set[str] | None = None,
+) -> list[str]:
     root = root.resolve()
+    if families is not None and (
+        type(families) is not set
+        or any(type(family) is not str for family in families)
+        or not families <= set(_OPERATIONS)
+    ):
+        return ["registry.family"]
     try:
         registry = load_registry(root / "conformance/registry.toml")
     except RegistryError as error:
@@ -574,11 +897,18 @@ def run_registered_vectors(root: Path, target_dir: Path | None = None) -> list[s
     errors = validate_registry(root, registry)
     if errors:
         return errors
-    try:
-        binary = _rust_binary(root, target_dir)
-    except RegistryError as error:
-        return [str(error)]
-    for case in registry["case"]:
+    cases = [
+        case
+        for case in registry["case"]
+        if families is None or case["family"] in families
+    ]
+    binary: Path | None = None
+    if any("rust" in case["implementations"] for case in cases):
+        try:
+            binary = _rust_binary(root, target_dir)
+        except RegistryError as error:
+            return [str(error)]
+    for case in cases:
         try:
             raw = _materialize_fixture(root, case)
         except RegistryError as error:
@@ -590,7 +920,12 @@ def run_registered_vectors(root: Path, target_dir: Path | None = None) -> list[s
                 actual = (
                     _python_result(case["operation"], raw)
                     if implementation == "python"
-                    else _rust_result(binary, case["operation"], raw)
+                    else _rust_result(
+                        root,
+                        binary if binary is not None else Path(),
+                        case["operation"],
+                        raw,
+                    )
                 )
             except (RegistryError, OSError, ValueError) as error:
                 errors.append(f"{case['id']}:{implementation}: {error}")

@@ -8,7 +8,7 @@ import signal
 import stat
 from urllib.request import ProxyHandler, Request, build_opener
 
-from golden_board.source_lock import DIGEST
+from golden_board.source_lock import DIGEST, held_mount_identity, same_held_mount
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -445,7 +445,84 @@ def _close_owned(descriptors: list[int]) -> OSError | None:
     return failure
 
 
-def _open_parent(relative: PurePosixPath) -> tuple[list[int], str]:
+def _identity(value: os.stat_result) -> tuple[int, int, int]:
+    return value.st_dev, value.st_ino, stat.S_IFMT(value.st_mode)
+
+
+def _facts(value: os.stat_result) -> tuple[int, int, int, int, int, int]:
+    return (
+        value.st_dev,
+        value.st_ino,
+        value.st_mode,
+        value.st_size,
+        value.st_mtime_ns,
+        value.st_ctime_ns,
+    )
+
+
+def _parents_unchanged(
+    descriptors: list[int],
+    relative: PurePosixPath,
+    mount: tuple[int, bytes | None],
+) -> None:
+    if not descriptors or _identity(os.fstat(descriptors[0])) != _identity(ROOT.lstat()):
+        raise AcquisitionError("materialization root identity changed")
+    current = ROOT
+    for index, component in enumerate(relative.parts[:-1], 1):
+        current /= component
+        held = os.fstat(descriptors[index])
+        named = os.stat(
+            component,
+            dir_fd=descriptors[index - 1],
+            follow_symlinks=False,
+        )
+        if (
+            not stat.S_ISDIR(held.st_mode)
+            or _identity(held) != _identity(named)
+            or _identity(held) != _identity(current.lstat())
+            or not same_held_mount(mount, descriptors[index], current)
+        ):
+            raise AcquisitionError("materialization parent identity changed")
+
+
+def _safe_unlink(
+    directory: int,
+    name: str,
+    identity: tuple[int, int] | None,
+    mount: tuple[int, bytes | None],
+    path: Path,
+) -> None:
+    if identity is None:
+        return
+    descriptor: int | None = None
+    try:
+        named = os.stat(name, dir_fd=directory, follow_symlinks=False)
+        descriptor = os.open(
+            name,
+            os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK,
+            dir_fd=directory,
+        )
+        held = os.fstat(descriptor)
+        if (
+            (held.st_dev, held.st_ino) == identity
+            and _identity(held) == _identity(named)
+            and _identity(held)
+            == _identity(
+                os.stat(name, dir_fd=directory, follow_symlinks=False)
+            )
+            and same_held_mount(mount, descriptor, path)
+        ):
+            os.unlink(name, dir_fd=directory)
+    except FileNotFoundError:
+        return
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
+
+def _open_parent(
+    relative: PurePosixPath,
+) -> tuple[list[int], str, tuple[int, bytes | None]]:
     if relative.is_absolute() or any(
         part in ("", ".", "..") for part in relative.parts
     ):
@@ -457,8 +534,17 @@ def _open_parent(relative: PurePosixPath) -> tuple[list[int], str]:
     descriptors: list[int] = []
     try:
         descriptors.append(os.open(ROOT, flags))
+        root_facts = os.fstat(descriptors[0])
+        mount = held_mount_identity(descriptors[0])
+        if (
+            not stat.S_ISDIR(root_facts.st_mode)
+            or _identity(root_facts) != _identity(ROOT.lstat())
+        ):
+            raise AcquisitionError("materialization root identity changed")
+        current = ROOT
         for component in relative.parts[:-1]:
             directory = descriptors[-1]
+            current /= component
             try:
                 child = os.open(component, flags, dir_fd=directory)
             except FileNotFoundError:
@@ -474,7 +560,19 @@ def _open_parent(relative: PurePosixPath) -> tuple[list[int], str]:
                     f"unsafe materialization parent: {relative}"
                 ) from error
             descriptors.append(child)
-        return descriptors, relative.name
+            held = os.fstat(child)
+            named = os.stat(component, dir_fd=directory, follow_symlinks=False)
+            if (
+                not stat.S_ISDIR(held.st_mode)
+                or _identity(held) != _identity(named)
+                or _identity(held) != _identity(current.lstat())
+                or not same_held_mount(mount, child, current)
+            ):
+                raise AcquisitionError(
+                    f"unsafe materialization parent mount: {relative}"
+                )
+        _parents_unchanged(descriptors, relative, mount)
+        return descriptors, relative.name, mount
     except BaseException as error:
         _close_owned(descriptors)
         if isinstance(error, AcquisitionError):
@@ -496,7 +594,13 @@ def _write_all(descriptor: int, raw: bytes) -> None:
         offset += written
 
 
-def _read_existing(directory: int, leaf: str, max_bytes: int) -> bytes:
+def _read_existing(
+    directory: int,
+    leaf: str,
+    max_bytes: int,
+    mount: tuple[int, bytes | None],
+    path: Path,
+) -> bytes:
     required = ("O_CLOEXEC", "O_NOFOLLOW", "O_NONBLOCK")
     if any(type(getattr(os, name, None)) is not int for name in required):
         raise AcquisitionError("safe existing-file flags are unavailable")
@@ -505,9 +609,14 @@ def _read_existing(directory: int, leaf: str, max_bytes: int) -> bytes:
     failure: AcquisitionError | None = None
     data = bytearray()
     try:
+        named = os.stat(leaf, dir_fd=directory, follow_symlinks=False)
         descriptor = os.open(leaf, flags, dir_fd=directory)
         before = os.fstat(descriptor)
-        if not stat.S_ISREG(before.st_mode):
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or _identity(before) != _identity(named)
+            or not same_held_mount(mount, descriptor, path)
+        ):
             raise AcquisitionError("existing materialization leaf is not regular")
         if before.st_size > max_bytes:
             raise AcquisitionError("existing materialization leaf exceeds expected length")
@@ -524,23 +633,13 @@ def _read_existing(directory: int, leaf: str, max_bytes: int) -> bytes:
                     "existing materialization leaf exceeds expected length"
                 )
         after = os.fstat(descriptor)
-        before_facts = (
-            before.st_dev,
-            before.st_ino,
-            before.st_mode,
-            before.st_size,
-            before.st_mtime_ns,
-            before.st_ctime_ns,
-        )
-        after_facts = (
-            after.st_dev,
-            after.st_ino,
-            after.st_mode,
-            after.st_size,
-            after.st_mtime_ns,
-            after.st_ctime_ns,
-        )
-        if before_facts != after_facts or len(data) != after.st_size:
+        final_named = os.stat(leaf, dir_fd=directory, follow_symlinks=False)
+        if (
+            _facts(before) != _facts(after)
+            or _facts(after) != _facts(final_named)
+            or len(data) != after.st_size
+            or not same_held_mount(mount, descriptor, path)
+        ):
             raise AcquisitionError("existing materialization leaf changed")
     except AcquisitionError as error:
         failure = error
@@ -576,11 +675,15 @@ def write_exact(path: Path, raw: bytes) -> None:
         or any(part in ("", ".", "..") for part in relative.parts)
     ):
         raise AcquisitionError(f"unsafe materialization path: {relative_text!r}")
-    descriptors, leaf = _open_parent(relative)
+    descriptors, leaf, mount = _open_parent(relative)
     directory = descriptors[-1]
     temporary_name: str | None = None
+    temporary_identity: tuple[int, int] | None = None
+    published_identity: tuple[int, int] | None = None
     failure: AcquisitionError | None = None
+    committed = False
     try:
+        _parents_unchanged(descriptors, relative, mount)
         try:
             facts = os.stat(leaf, dir_fd=directory, follow_symlinks=False)
         except FileNotFoundError:
@@ -588,7 +691,8 @@ def write_exact(path: Path, raw: bytes) -> None:
         if facts is not None:
             if not stat.S_ISREG(facts.st_mode):
                 raise AcquisitionError(f"refusing nonregular existing file: {path}")
-            existing = _read_existing(directory, leaf, len(raw))
+            existing = _read_existing(directory, leaf, len(raw), mount, path)
+            _parents_unchanged(descriptors, relative, mount)
             if existing != raw:
                 raise AcquisitionError(f"refusing mismatched existing file: {path}")
         else:
@@ -604,6 +708,14 @@ def write_exact(path: Path, raw: bytes) -> None:
                     continue
                 temporary_name = candidate
                 descriptors.append(descriptor)
+                held = os.fstat(descriptor)
+                temporary_identity = (held.st_dev, held.st_ino)
+                if not same_held_mount(
+                    mount,
+                    descriptor,
+                    path.parent / candidate,
+                ):
+                    raise AcquisitionError("temporary reference mount changed")
                 break
             if descriptor is None or temporary_name is None:
                 raise AcquisitionError(
@@ -624,6 +736,30 @@ def write_exact(path: Path, raw: bytes) -> None:
                     raise AcquisitionError("temporary reference exceeds expected length")
             if bytes(verified) != raw:
                 raise AcquisitionError("temporary reference verification failed")
+            expected_facts = _facts(os.fstat(descriptor))
+            _parents_unchanged(descriptors, relative, mount)
+            verification = os.open(
+                temporary_name,
+                os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK,
+                dir_fd=directory,
+            )
+            descriptors.append(verification)
+            named_temporary = os.stat(
+                temporary_name,
+                dir_fd=directory,
+                follow_symlinks=False,
+            )
+            if (
+                _facts(os.fstat(verification)) != expected_facts
+                or _facts(named_temporary) != expected_facts
+                or not same_held_mount(
+                    mount,
+                    verification,
+                    path.parent / temporary_name,
+                )
+            ):
+                raise AcquisitionError("temporary reference identity changed")
+            _parents_unchanged(descriptors, relative, mount)
             try:
                 os.link(
                     temporary_name,
@@ -636,20 +772,62 @@ def write_exact(path: Path, raw: bytes) -> None:
                 raise AcquisitionError(
                     f"materialization destination appeared concurrently: {path}"
                 ) from error
-            os.unlink(temporary_name, dir_fd=directory)
-            temporary_name = None
+            published = os.open(
+                leaf,
+                os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK,
+                dir_fd=directory,
+            )
+            descriptors.append(published)
+            published_facts = os.fstat(published)
+            named_published = os.stat(
+                leaf,
+                dir_fd=directory,
+                follow_symlinks=False,
+            )
+            if (
+                _identity(published_facts) != _identity(os.fstat(verification))
+                or _facts(published_facts) != _facts(named_published)
+                or not same_held_mount(mount, published, path)
+            ):
+                raise AcquisitionError("published reference identity changed")
+            published_identity = (published_facts.st_dev, published_facts.st_ino)
+            _parents_unchanged(descriptors, relative, mount)
             os.fsync(directory)
+            owned_temporary = temporary_name
+            temporary_name = None
+            _safe_unlink(
+                directory,
+                owned_temporary,
+                temporary_identity,
+                mount,
+                path.parent / owned_temporary,
+            )
+            os.fsync(directory)
+            committed = True
     except AcquisitionError as error:
         failure = error
     except (OSError, ValueError) as error:
         failure = AcquisitionError(f"reference materialization failed: {path}")
         failure.__cause__ = error
     finally:
+        if failure is not None and published_identity is not None:
+            try:
+                _safe_unlink(directory, leaf, published_identity, mount, path)
+            except OSError as error:
+                if failure is None:
+                    failure = AcquisitionError(
+                        f"reference materialization rollback failed: {path}"
+                    )
+                    failure.__cause__ = error
         if temporary_name is not None:
             try:
-                os.unlink(temporary_name, dir_fd=directory)
-            except FileNotFoundError:
-                pass
+                _safe_unlink(
+                    directory,
+                    temporary_name,
+                    temporary_identity,
+                    mount,
+                    path.parent / temporary_name,
+                )
             except OSError as error:
                 if failure is None:
                     failure = AcquisitionError(
@@ -657,7 +835,7 @@ def write_exact(path: Path, raw: bytes) -> None:
                     )
                     failure.__cause__ = error
         close_error = _close_owned(descriptors)
-        if close_error is not None and failure is None:
+        if close_error is not None and failure is None and not committed:
             failure = AcquisitionError(
                 f"reference materialization close failed: {path}"
             )

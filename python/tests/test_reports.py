@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from golden_board.manifest import decode_canonical_manifest, encode_canonical_value
 from golden_board import reports
+from golden_board.source_lock import SafeFileError
 
 
 ACCEPTANCE = tuple(f"Requirement {index}" for index in range(1, 19))
@@ -50,6 +51,7 @@ class ReportTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
         for directory in (
+            ".git",
             "docs",
             "docs/superpowers/plans",
             "inputs",
@@ -57,6 +59,12 @@ class ReportTests(unittest.TestCase):
             "reports",
         ):
             (self.root / directory).mkdir(parents=True, exist_ok=True)
+        (self.root / ".git/HEAD").write_text(
+            "ref: refs/heads/m0\n", encoding="ascii"
+        )
+        (self.root / ".git/config").write_text(
+            "[core]\n\trepositoryformatversion = 0\n", encoding="ascii"
+        )
 
         (self.root / "docs/roadmap.md").write_text(roadmap(), encoding="utf-8")
         anthology_bytes = b"anthology\n"
@@ -612,6 +620,13 @@ class ReportTests(unittest.TestCase):
                 },
                 clear=False,
             ),
+            patch.object(
+                reports,
+                "git_control_preflight",
+                return_value=reports._git_command_prefix(
+                    self.root, str(self.git_executable)
+                ),
+            ),
             patch.object(reports.subprocess, "Popen", side_effect=capture),
             self.assertRaises(StopSpawn),
         ):
@@ -620,6 +635,18 @@ class ReportTests(unittest.TestCase):
         argv = captured["argv"]
         kwargs = captured["kwargs"]
         self.assertEqual(str(self.git_executable), argv[0])
+        self.assertIn("--no-lazy-fetch", argv)
+        self.assertIn("--no-replace-objects", argv)
+        self.assertIn(f"--git-dir={self.root / '.git'}", argv)
+        self.assertIn(f"--work-tree={self.root}", argv)
+        for setting in (
+            "core.fsmonitor=false",
+            "core.untrackedCache=false",
+            "core.excludesFile=/dev/null",
+            "core.attributesFile=/dev/null",
+            "core.hooksPath=/dev/null",
+        ):
+            self.assertIn(setting, argv)
         self.assertEqual(self.git_environment, kwargs["env"])
         self.assertNotIn("GIT_DIR", kwargs["env"])
         self.assertNotIn("GIT_WORK_TREE", kwargs["env"])
@@ -640,6 +667,151 @@ class ReportTests(unittest.TestCase):
                 (PurePosixPath("tracked"),),
                 self.real_tracked_paths(self.root, **self.git_context),
             )
+
+    def test_git_inventory_rejects_git_tree_before_spawn(self) -> None:
+        with (
+            patch.object(
+                reports,
+                "validate_same_mount_tree",
+                side_effect=SafeFileError("safe_tree.mount"),
+                create=True,
+            ) as validate,
+            patch.object(
+                reports.subprocess,
+                "Popen",
+                side_effect=reports.ReportError("spawned before validation"),
+            ) as popen,
+            self.assertRaisesRegex(reports.ReportError, "Git metadata tree"),
+        ):
+            reports._bounded_git_output(self.root, **self.git_context)
+        validate.assert_called_once()
+        popen.assert_not_called()
+
+    def test_git_control_preflight_rejects_redirecting_metadata_before_git(self) -> None:
+        for relative in (
+            ".git/commondir",
+            ".git/config.worktree",
+            ".git/info/attributes",
+            ".git/objects/info/alternates",
+            ".git/objects/info/http-alternates",
+        ):
+            path = self.root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("outside\n", encoding="ascii")
+            with (
+                self.subTest(relative=relative),
+                self.assertRaisesRegex(reports.ReportError, "Git metadata"),
+            ):
+                reports.git_control_preflight(
+                    self.root,
+                    runner=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                        AssertionError("Git ran before metadata rejection")
+                    ),
+                    **self.git_context,
+                )
+            path.unlink()
+
+    def test_git_control_preflight_rejects_config_escape_keys(self) -> None:
+        for key in (
+            b"include.path",
+            b"includeIf.onbranch:m0.path",
+            b"core.worktree",
+            b"core.attributesFile",
+            b"core.excludesFile",
+            b"extensions.worktreeConfig",
+            b"extensions.partialClone",
+            b"filter.media.clean",
+            b"filter.media.process",
+            b"remote.origin.promisor",
+            b"remote.origin.partialCloneFilter",
+        ):
+            with (
+                self.subTest(key=key),
+                self.assertRaisesRegex(reports.ReportError, "Git configuration"),
+            ):
+                reports.git_control_preflight(
+                    self.root,
+                    runner=lambda *_args, **_kwargs: (key + b"\0", b""),
+                    **self.git_context,
+                )
+
+    def test_git_control_preflight_allows_only_inert_local_excludes(self) -> None:
+        info = self.root / ".git/info"
+        info.mkdir()
+        exclude = info / "exclude"
+        for raw, accepted in (
+            (b"", True),
+            (b"# local comments only\n\n", True),
+            (b".venv/\n", False),
+            (b" # parsed as a pattern\n", False),
+            (b"# missing final LF", False),
+            (b"# carriage return\r\n", False),
+        ):
+            exclude.write_bytes(raw)
+            runner = lambda *_args, **_kwargs: (
+                b"core.repositoryformatversion\0",
+                b"",
+            )
+            if accepted:
+                reports.git_control_preflight(
+                    self.root, runner=runner, **self.git_context
+                )
+            else:
+                with self.assertRaisesRegex(reports.ReportError, "Git metadata"):
+                    reports.git_control_preflight(
+                        self.root, runner=runner, **self.git_context
+                    )
+
+    def test_git_control_preflight_uses_bounded_no_include_audit(self) -> None:
+        calls: list[tuple[list[str], bytes, dict[str, str], dict[str, object]]] = []
+
+        def runner(argv, raw, environment, **kwargs):
+            calls.append((argv, raw, environment, kwargs))
+            return b"core.repositoryformatversion\0core.filemode\0", b""
+
+        prefix = reports.git_control_preflight(
+            self.root,
+            runner=runner,
+            **self.git_context,
+        )
+        self.assertEqual(1, len(calls))
+        argv, raw, environment, kwargs = calls[0]
+        self.assertEqual(
+            [
+                str(self.git_executable),
+                "--no-pager",
+                "config",
+                "--file",
+                str(self.root / ".git/config"),
+                "--no-includes",
+                "--null",
+                "--name-only",
+                "--list",
+            ],
+            argv,
+        )
+        self.assertEqual(b"", raw)
+        self.assertEqual(self.git_environment, environment)
+        self.assertEqual(self.root, kwargs["cwd"])
+        self.assertEqual(reports.GIT_TIMEOUT_SECONDS, kwargs["timeout"])
+        self.assertEqual(reports.MAX_GIT_CONFIG_BYTES, kwargs["output_limit"])
+        self.assertEqual(prefix, reports._git_command_prefix(self.root, str(self.git_executable)))
+
+    def test_git_control_preflight_rejects_malformed_or_oversized_audit(self) -> None:
+        for raw in (
+            b"include.path",
+            b"\0",
+            b"x" * reports.MAX_GIT_CONFIG_BYTES + b"\0",
+        ):
+            with (
+                self.subTest(raw=raw[:20]),
+                self.assertRaisesRegex(reports.ReportError, "Git configuration"),
+            ):
+                reports.git_control_preflight(
+                    self.root,
+                    runner=lambda *_args, _raw=raw, **_kwargs: (_raw, b""),
+                    **self.git_context,
+                )
 
 
 if __name__ == "__main__":

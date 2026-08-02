@@ -4,6 +4,7 @@ import os
 from pathlib import Path, PurePosixPath
 import re
 import stat
+import sys
 import tomllib
 
 
@@ -11,6 +12,9 @@ SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 MAX_SOURCE_LOCK_BYTES = 4 * 1024 * 1024
 READ_CHUNK_BYTES = 64 * 1024
+FDINFO_MAX_BYTES = 4096
+SAFE_LINK_PATH_BYTES = 4096
+SAFE_LINK_DEPTH = 64
 
 
 class SafeFileError(ValueError):
@@ -19,6 +23,396 @@ class SafeFileError(ValueError):
 
 class SourceLockError(ValueError):
     pass
+
+
+def _descriptor_identity(value: os.stat_result) -> tuple[int, int, int]:
+    return value.st_dev, value.st_ino, stat.S_IFMT(value.st_mode)
+
+
+def _parse_mount_id(raw: bytes) -> bytes:
+    if (
+        type(raw) is not bytes
+        or not raw.endswith(b"\n")
+        or len(raw) > FDINFO_MAX_BYTES
+    ):
+        raise OSError("mount identity syntax")
+    matches = [
+        line.removeprefix(b"mnt_id:\t")
+        for line in raw.splitlines()
+        if line.startswith(b"mnt_id:")
+    ]
+    if len(matches) != 1 or re.fullmatch(rb"[1-9][0-9]{0,19}", matches[0]) is None:
+        raise OSError("mount identity syntax")
+    return matches[0]
+
+
+def _linux_mount_id(descriptor: int) -> bytes:
+    required = ("O_CLOEXEC", "O_NOFOLLOW", "O_NONBLOCK")
+    if (
+        type(descriptor) is not int
+        or descriptor < 0
+        or any(type(getattr(os, name, None)) is not int for name in required)
+    ):
+        raise OSError("mount identity capability")
+    before = os.fstat(descriptor)
+    fdinfo: int | None = None
+    failure: OSError | None = None
+    raw = bytearray()
+    try:
+        fdinfo = os.open(
+            f"/proc/self/fdinfo/{descriptor}",
+            os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK,
+        )
+        while len(raw) <= FDINFO_MAX_BYTES:
+            chunk = os.read(fdinfo, min(1024, FDINFO_MAX_BYTES + 1 - len(raw)))
+            if not chunk:
+                break
+            raw.extend(chunk)
+        if len(raw) > FDINFO_MAX_BYTES:
+            raise OSError("mount identity limit")
+    except OSError as error:
+        failure = error
+    finally:
+        if fdinfo is not None:
+            try:
+                os.close(fdinfo)
+            except OSError as error:
+                if failure is None:
+                    failure = error
+    if failure is not None:
+        raise failure
+    after = os.fstat(descriptor)
+    if _descriptor_identity(before) != _descriptor_identity(after):
+        raise OSError("mount identity changed")
+    return _parse_mount_id(bytes(raw))
+
+
+def held_mount_identity(descriptor: int) -> tuple[int, bytes | None]:
+    before = os.fstat(descriptor)
+    if sys.platform == "linux":
+        mount_id: bytes | None = _linux_mount_id(descriptor)
+    elif sys.platform == "darwin":
+        mount_id = None
+    else:
+        raise OSError("unsupported mount identity platform")
+    after = os.fstat(descriptor)
+    if _descriptor_identity(before) != _descriptor_identity(after):
+        raise OSError("mount identity changed")
+    return before.st_dev, mount_id
+
+
+def same_held_mount(
+    repository: int | tuple[int, bytes | None],
+    descendant_descriptor: int,
+    descendant_path: Path,
+) -> bool:
+    try:
+        if not isinstance(descendant_path, Path):
+            return False
+        if type(repository) is int:
+            repository_identity = held_mount_identity(repository)
+        elif (
+            type(repository) is tuple
+            and len(repository) == 2
+            and type(repository[0]) is int
+            and (repository[1] is None or type(repository[1]) is bytes)
+        ):
+            repository_identity = repository
+        else:
+            return False
+        descendant_before = os.fstat(descendant_descriptor)
+        if repository_identity[0] != descendant_before.st_dev:
+            return False
+        if sys.platform == "linux":
+            same = repository_identity[1] == _linux_mount_id(descendant_descriptor)
+        elif sys.platform == "darwin":
+            same = repository_identity[1] is None and not os.path.ismount(
+                descendant_path
+            )
+        else:
+            return False
+        descendant_after = os.fstat(descendant_descriptor)
+        return bool(
+            same
+            and _descriptor_identity(descendant_before)
+            == _descriptor_identity(descendant_after)
+        )
+    except (OSError, TypeError, ValueError):
+        return False
+
+
+def resolve_same_mount_path(
+    root: Path,
+    relative: PurePosixPath,
+    *,
+    boundary: PurePosixPath,
+    max_symlinks: int,
+    source_boundary: PurePosixPath | None = None,
+) -> PurePosixPath:
+    def valid_relative(value: object) -> bool:
+        return bool(
+            isinstance(value, PurePosixPath)
+            and not value.is_absolute()
+            and value.parts
+            and not any(part in ("", ".", "..") for part in value.parts)
+            and not any(
+                character in value.as_posix() for character in ("\0", "\\")
+            )
+            and len(value.parts) <= SAFE_LINK_DEPTH
+            and len(os.fsencode(value.as_posix())) <= SAFE_LINK_PATH_BYTES
+        )
+
+    if (
+        not isinstance(root, Path)
+        or not root.is_absolute()
+        or not valid_relative(relative)
+        or not valid_relative(boundary)
+        or (
+            source_boundary is not None
+            and not valid_relative(source_boundary)
+        )
+        or not (
+            relative.is_relative_to(boundary)
+            or (
+                source_boundary is not None
+                and relative.is_relative_to(source_boundary)
+            )
+        )
+        or type(max_symlinks) is not int
+        or max_symlinks < 0
+    ):
+        raise SafeFileError("safe_link.path")
+    required = ("O_CLOEXEC", "O_DIRECTORY", "O_NOFOLLOW", "O_NONBLOCK")
+    if any(type(getattr(os, name, None)) is not int for name in required):
+        raise SafeFileError("safe_link.capability")
+    directory_flags = os.O_RDONLY | os.O_CLOEXEC | os.O_DIRECTORY | os.O_NOFOLLOW
+    file_flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK
+    repository: int | None = None
+    failure: BaseException | None = None
+
+    def close_all(descriptors: list[int]) -> OSError | None:
+        close_error: OSError | None = None
+        for descriptor in reversed(descriptors):
+            try:
+                os.close(descriptor)
+            except OSError as error:
+                if close_error is None:
+                    close_error = error
+        return close_error
+
+    def normalize_target(parent: list[str], target: str) -> list[str]:
+        if (
+            type(target) is not str
+            or not target
+            or "\0" in target
+            or "\\" in target
+            or len(os.fsencode(target)) > SAFE_LINK_PATH_BYTES
+        ):
+            raise SafeFileError("safe_link.escape")
+        target_path = PurePosixPath(target)
+        parent_path = PurePosixPath(*parent)
+        active_boundary = (
+            boundary
+            if parent_path.is_relative_to(boundary)
+            else source_boundary
+        )
+        if active_boundary is None:
+            raise SafeFileError("safe_link.escape")
+        if target_path.is_absolute():
+            try:
+                target_parts = list(
+                    target_path.relative_to(PurePosixPath(root.as_posix())).parts
+                )
+            except ValueError as error:
+                raise SafeFileError("safe_link.escape") from error
+            normalized: list[str] = []
+            allow_leading_parents = False
+        else:
+            target_parts = list(target_path.parts)
+            normalized = list(parent)
+            allow_leading_parents = True
+        target_component_seen = False
+        for part in target_parts:
+            if part in ("", "."):
+                continue
+            if part == "..":
+                if (
+                    not allow_leading_parents
+                    or target_component_seen
+                    or not normalized
+                ):
+                    raise SafeFileError("safe_link.escape")
+                normalized.pop()
+                continue
+            if "\0" in part or "\\" in part:
+                raise SafeFileError("safe_link.escape")
+            normalized.append(part)
+            target_component_seen = True
+        result = PurePosixPath(*normalized)
+        if (
+            not (
+                result.is_relative_to(boundary)
+                or (
+                    source_boundary is not None
+                    and result.is_relative_to(source_boundary)
+                )
+            )
+            or len(result.parts) > SAFE_LINK_DEPTH
+            or len(os.fsencode(result.as_posix())) > SAFE_LINK_PATH_BYTES
+        ):
+            raise SafeFileError("safe_link.escape")
+        return list(result.parts)
+
+    try:
+        repository = os.open(root, directory_flags)
+        repository_stat = os.fstat(repository)
+        root_stat = os.stat(root, follow_symlinks=False)
+        if (
+            not stat.S_ISDIR(repository_stat.st_mode)
+            or _descriptor_identity(repository_stat)
+            != _descriptor_identity(root_stat)
+        ):
+            raise SafeFileError("safe_link.root")
+        repository_mount = held_mount_identity(repository)
+
+        def open_parent(parts: list[str]) -> int:
+            assert repository is not None
+            opened: list[int] = []
+            parent = repository
+            current = root
+            try:
+                for part in parts:
+                    before = os.stat(
+                        part, dir_fd=parent, follow_symlinks=False
+                    )
+                    child = os.open(part, directory_flags, dir_fd=parent)
+                    opened.append(child)
+                    held = os.fstat(child)
+                    after = os.stat(
+                        part, dir_fd=parent, follow_symlinks=False
+                    )
+                    current /= part
+                    if (
+                        not stat.S_ISDIR(held.st_mode)
+                        or _descriptor_identity(before)
+                        != _descriptor_identity(held)
+                        or _descriptor_identity(after)
+                        != _descriptor_identity(held)
+                        or not same_held_mount(
+                            repository_mount, child, current
+                        )
+                    ):
+                        raise SafeFileError("safe_link.mount")
+                    parent = child
+            except BaseException:
+                close_all(opened)
+                raise
+            result = opened.pop() if opened else os.dup(repository)
+            close_error = close_all(opened)
+            if close_error is not None:
+                close_all([result])
+                raise SafeFileError("safe_link.changed") from close_error
+            return result
+
+        pending = list(relative.parts)
+        resolved: list[str] = []
+        symlinks = 0
+        while pending:
+            name = pending.pop(0)
+            parent = open_parent(resolved)
+            parent_failure: BaseException | None = None
+            redirected = False
+            try:
+                before = os.stat(name, dir_fd=parent, follow_symlinks=False)
+                path = root / PurePosixPath(*resolved, name).as_posix()
+                if stat.S_ISLNK(before.st_mode):
+                    if before.st_dev != repository_stat.st_dev:
+                        raise SafeFileError("safe_link.mount")
+                    target = os.readlink(name, dir_fd=parent)
+                    after = os.stat(
+                        name, dir_fd=parent, follow_symlinks=False
+                    )
+                    if (
+                        _descriptor_identity(before)
+                        != _descriptor_identity(after)
+                        or target != os.readlink(name, dir_fd=parent)
+                    ):
+                        raise SafeFileError("safe_link.changed")
+                    symlinks += 1
+                    if symlinks > max_symlinks:
+                        raise SafeFileError("safe_link.limit")
+                    pending = [*normalize_target(resolved, target), *pending]
+                    resolved = []
+                    if (
+                        len(pending) > SAFE_LINK_DEPTH
+                        or len(
+                            os.fsencode(PurePosixPath(*pending).as_posix())
+                        )
+                        > SAFE_LINK_PATH_BYTES
+                    ):
+                        raise SafeFileError("safe_link.escape")
+                    redirected = True
+                else:
+                    flags = (
+                        directory_flags if stat.S_ISDIR(before.st_mode) else file_flags
+                    )
+                    if not (
+                        stat.S_ISDIR(before.st_mode)
+                        or stat.S_ISREG(before.st_mode)
+                    ):
+                        raise SafeFileError("safe_link.type")
+                    child = os.open(name, flags, dir_fd=parent)
+                    try:
+                        held = os.fstat(child)
+                        after = os.stat(
+                            name, dir_fd=parent, follow_symlinks=False
+                        )
+                        if (
+                            _descriptor_identity(before)
+                            != _descriptor_identity(held)
+                            or _descriptor_identity(after)
+                            != _descriptor_identity(held)
+                            or not same_held_mount(repository_mount, child, path)
+                        ):
+                            raise SafeFileError("safe_link.mount")
+                    finally:
+                        os.close(child)
+                    resolved.append(name)
+                    if pending and not stat.S_ISDIR(before.st_mode):
+                        raise SafeFileError("safe_link.type")
+            except BaseException as error:
+                parent_failure = error
+            finally:
+                try:
+                    os.close(parent)
+                except OSError as error:
+                    if parent_failure is None:
+                        parent_failure = SafeFileError("safe_link.changed")
+                        parent_failure.__cause__ = error
+            if parent_failure is not None:
+                raise parent_failure
+            if redirected:
+                continue
+        result = PurePosixPath(*resolved)
+        if not result.is_relative_to(boundary):
+            raise SafeFileError("safe_link.escape")
+        return result
+    except SafeFileError as error:
+        failure = error
+    except (OSError, TypeError, ValueError) as error:
+        failure = SafeFileError("safe_link.changed")
+        failure.__cause__ = error
+    finally:
+        if repository is not None:
+            try:
+                os.close(repository)
+            except OSError as error:
+                if failure is None:
+                    failure = SafeFileError("safe_link.changed")
+                    failure.__cause__ = error
+    if failure is not None:
+        raise failure
+    raise SafeFileError("safe_link.changed")
 
 
 def read_regular_below(
@@ -50,17 +444,30 @@ def read_regular_below(
         except OSError as error:
             raise SafeFileError("safe_file.root") from error
         descriptors.append(directory)
+        repository = directory
+        try:
+            repository_mount = held_mount_identity(repository)
+        except OSError as error:
+            raise SafeFileError("safe_file.mount") from error
+        current = root
         for component in relative.parts[:-1]:
             try:
                 directory = os.open(component, directory_flags, dir_fd=directory)
             except OSError as error:
                 raise SafeFileError("safe_file.path") from error
             descriptors.append(directory)
+            current /= component
+            if not same_held_mount(repository_mount, directory, current):
+                raise SafeFileError("safe_file.mount")
         try:
             descriptor = os.open(relative.name, file_flags, dir_fd=directory)
         except OSError as error:
             raise SafeFileError("safe_file.path") from error
         descriptors.append(descriptor)
+        if not same_held_mount(
+            repository_mount, descriptor, current / relative.name
+        ):
+            raise SafeFileError("safe_file.mount")
         before = os.fstat(descriptor)
         if not stat.S_ISREG(before.st_mode):
             raise SafeFileError("safe_file.type")
@@ -111,6 +518,201 @@ def read_regular_below(
     if failure is not None:
         raise failure
     return bytes(data)
+
+
+def validate_same_mount_tree(
+    root: Path,
+    relative: PurePosixPath,
+    *,
+    max_entries: int,
+    max_depth: int,
+) -> None:
+    if (
+        not isinstance(root, Path)
+        or not isinstance(relative, PurePosixPath)
+        or any(character in relative.as_posix() for character in ("\0", "\\"))
+        or relative.is_absolute()
+        or not relative.parts
+        or any(part in ("", ".", "..") for part in relative.parts)
+        or len(os.fsencode(relative.as_posix())) > 4096
+        or type(max_entries) is not int
+        or max_entries < 1
+        or type(max_depth) is not int
+        or max_depth < 0
+    ):
+        raise SafeFileError("safe_tree.path")
+    required = ("O_CLOEXEC", "O_DIRECTORY", "O_NOFOLLOW", "O_NONBLOCK")
+    if any(type(getattr(os, name, None)) is not int for name in required):
+        raise SafeFileError("safe_tree.capability")
+    directory_flags = os.O_RDONLY | os.O_CLOEXEC | os.O_DIRECTORY | os.O_NOFOLLOW
+    file_flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK
+    repository: int | None = None
+    failure: BaseException | None = None
+    try:
+        repository = os.open(root, directory_flags)
+        repository_mount = held_mount_identity(repository)
+
+        def open_directory(path: PurePosixPath) -> int:
+            opened: list[int] = []
+            descriptor = repository
+            current = root
+            try:
+                for part in path.parts:
+                    before = os.stat(
+                        part, dir_fd=descriptor, follow_symlinks=False
+                    )
+                    child = os.open(part, directory_flags, dir_fd=descriptor)
+                    opened.append(child)
+                    current /= part
+                    held = os.fstat(child)
+                    after = os.stat(
+                        part, dir_fd=descriptor, follow_symlinks=False
+                    )
+                    if not stat.S_ISDIR(held.st_mode):
+                        raise SafeFileError("safe_tree.type")
+                    if (
+                        _descriptor_identity(before) != _descriptor_identity(held)
+                        or _descriptor_identity(after) != _descriptor_identity(held)
+                        or not same_held_mount(repository_mount, child, current)
+                    ):
+                        raise SafeFileError("safe_tree.mount")
+                    descriptor = child
+            except BaseException:
+                for owned in reversed(opened):
+                    try:
+                        os.close(owned)
+                    except OSError:
+                        pass
+                raise
+            result = opened.pop()
+            close_error: OSError | None = None
+            for owned in reversed(opened):
+                try:
+                    os.close(owned)
+                except OSError as error:
+                    if close_error is None:
+                        close_error = error
+            if close_error is not None:
+                try:
+                    os.close(result)
+                except OSError:
+                    pass
+                raise SafeFileError("safe_tree.changed") from close_error
+            return result
+
+        pending = [relative]
+        entries = 0
+        while pending:
+            current = pending.pop()
+            if len(current.parts) - len(relative.parts) > max_depth:
+                raise SafeFileError("safe_tree.depth")
+            directory = open_directory(current)
+            directory_failure: BaseException | None = None
+            try:
+                with os.scandir(directory) as iterator:
+                    names: list[str] = []
+                    for entry in iterator:
+                        entries += 1
+                        if entries > max_entries:
+                            raise SafeFileError("safe_tree.limit")
+                        name = entry.name
+                        if (
+                            type(name) is not str
+                            or name in ("", ".", "..")
+                            or any(character in name for character in ("\0", "\\"))
+                        ):
+                            raise SafeFileError("safe_tree.path")
+                        names.append(name)
+                for name in sorted(names, key=os.fsencode):
+                    child_path = current / name
+                    if (
+                        len(os.fsencode(child_path.as_posix())) > 4096
+                        or len(child_path.parts) - len(relative.parts) > max_depth
+                    ):
+                        raise SafeFileError("safe_tree.depth")
+                    before = os.stat(
+                        name, dir_fd=directory, follow_symlinks=False
+                    )
+                    if stat.S_ISDIR(before.st_mode):
+                        child = os.open(
+                            name, directory_flags, dir_fd=directory
+                        )
+                        try:
+                            held = os.fstat(child)
+                            after = os.stat(
+                                name,
+                                dir_fd=directory,
+                                follow_symlinks=False,
+                            )
+                            if (
+                                _descriptor_identity(before)
+                                != _descriptor_identity(held)
+                                or _descriptor_identity(after)
+                                != _descriptor_identity(held)
+                                or not same_held_mount(
+                                    repository_mount,
+                                    child,
+                                    root / child_path.as_posix(),
+                                )
+                            ):
+                                raise SafeFileError("safe_tree.mount")
+                        finally:
+                            os.close(child)
+                        pending.append(child_path)
+                    elif stat.S_ISREG(before.st_mode):
+                        child = os.open(name, file_flags, dir_fd=directory)
+                        try:
+                            held = os.fstat(child)
+                            after = os.stat(
+                                name,
+                                dir_fd=directory,
+                                follow_symlinks=False,
+                            )
+                            if (
+                                _descriptor_identity(before)
+                                != _descriptor_identity(held)
+                                or _descriptor_identity(after)
+                                != _descriptor_identity(held)
+                                or not same_held_mount(
+                                    repository_mount,
+                                    child,
+                                    root / child_path.as_posix(),
+                                )
+                            ):
+                                raise SafeFileError("safe_tree.mount")
+                        finally:
+                            os.close(child)
+                    else:
+                        raise SafeFileError("safe_tree.type")
+            except BaseException as error:
+                directory_failure = error
+            finally:
+                try:
+                    os.close(directory)
+                except OSError as error:
+                    if directory_failure is None:
+                        directory_failure = SafeFileError("safe_tree.changed")
+                        directory_failure.__cause__ = error
+            if directory_failure is not None:
+                raise directory_failure
+    except SafeFileError as error:
+        failure = error
+    except OSError as error:
+        failure = SafeFileError("safe_tree.changed")
+        failure.__cause__ = error
+    except (TypeError, ValueError) as error:
+        failure = SafeFileError("safe_tree.changed")
+        failure.__cause__ = error
+    finally:
+        if repository is not None:
+            try:
+                os.close(repository)
+            except OSError as error:
+                if failure is None:
+                    failure = SafeFileError("safe_tree.changed")
+                    failure.__cause__ = error
+    if failure is not None:
+        raise failure
 
 
 @dataclass(frozen=True)
@@ -389,8 +991,7 @@ def load_source_lock(root: Path) -> SourceLock:
         or DIGEST.fullmatch(platform_digest) is None
         or DIGEST.fullmatch(config_digest) is None
         or not isinstance(mounts, list)
-        or not mounts
-        or not all(isinstance(item, str) and item for item in mounts)
+        or mounts != ["checkout", "uv-tool"]
     ):
         raise SourceLockError("source_lock.clean_linux")
     state = _text(clean["state"], "clean_linux.state")
@@ -427,7 +1028,6 @@ def load_source_lock(root: Path) -> SourceLock:
         or clean_value.acquisition_protocol != "docker-acquire-v0"
         or clean_value.offline_protocol != "docker-offline-v0"
         or clean_value.deadline != "M2"
-        or len(set(clean_value.mounts)) != len(clean_value.mounts)
     ):
         raise SourceLockError("source_lock.clean_linux")
 

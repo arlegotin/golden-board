@@ -472,8 +472,11 @@ class ReferenceAcquisitionTests(unittest.TestCase):
             def exchange_parent_after_stat(path, *args, **kwargs):
                 nonlocal exchanged
                 facts = real_stat(path, *args, **kwargs)
-                if path == "reference.bin" and kwargs.get("dir_fd") is not None:
-                    self.assertFalse(exchanged)
+                if (
+                    path == "reference.bin"
+                    and kwargs.get("dir_fd") is not None
+                    and not exchanged
+                ):
                     exchanged = True
                     (root / "inputs").rename(root / "held-inputs")
                     replacement.rename(root / "inputs")
@@ -499,6 +502,166 @@ class ReferenceAcquisitionTests(unittest.TestCase):
             destination.write_bytes(b"reference bytes\n")
             with patch.object(reference_acquisition, "ROOT", root):
                 write_exact(destination, b"reference bytes\n")
+            self.assertEqual(b"reference bytes\n", destination.read_bytes())
+
+    def test_write_exact_rejects_parent_and_existing_leaf_mounts_before_io(self):
+        for mounted in ("inputs", "reference.bin"):
+            with self.subTest(mounted=mounted), TemporaryDirectory() as directory:
+                root = Path(directory)
+                destination = root / "inputs/reference.bin"
+                destination.parent.mkdir()
+                destination.write_bytes(b"reference bytes\n")
+
+                def same_mount(_baseline, _descriptor, path: Path) -> bool:
+                    return path.name != mounted
+
+                with (
+                    patch.object(reference_acquisition, "ROOT", root),
+                    patch.object(
+                        reference_acquisition,
+                        "same_held_mount",
+                        side_effect=same_mount,
+                    ),
+                    patch.object(
+                        reference_acquisition.os,
+                        "read",
+                        side_effect=AssertionError("read"),
+                    ),
+                    self.assertRaises(AcquisitionError),
+                ):
+                    write_exact(destination, b"reference bytes\n")
+                self.assertEqual(b"reference bytes\n", destination.read_bytes())
+
+    def test_write_exact_rejects_a_temporary_mount_before_publication(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            destination = root / "inputs/reference.bin"
+
+            def same_mount(_baseline, _descriptor, path: Path) -> bool:
+                return not path.name.endswith(".tmp")
+
+            with (
+                patch.object(reference_acquisition, "ROOT", root),
+                patch.object(
+                    reference_acquisition,
+                    "same_held_mount",
+                    side_effect=same_mount,
+                ),
+                patch.object(
+                    reference_acquisition.os,
+                    "link",
+                    side_effect=AssertionError("link"),
+                ),
+                self.assertRaises(AcquisitionError),
+            ):
+                write_exact(destination, b"reference bytes\n")
+            self.assertFalse(destination.exists())
+
+    def test_write_exact_rechecks_temporary_identity_before_publication(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            destination = root / "inputs/reference.bin"
+            real_stat = reference_acquisition.os.stat
+
+            def changed_temporary(path: object, *args: object, **kwargs: object):
+                facts = real_stat(path, *args, **kwargs)
+                if path == ".reference.bin.0.tmp" and kwargs.get("dir_fd") is not None:
+                    values = list(facts)
+                    values[1] += 1
+                    return os.stat_result(values)
+                return facts
+
+            with (
+                patch.object(reference_acquisition, "ROOT", root),
+                patch.object(
+                    reference_acquisition.os,
+                    "stat",
+                    side_effect=changed_temporary,
+                ),
+                patch.object(
+                    reference_acquisition.os,
+                    "link",
+                    side_effect=AssertionError("link"),
+                ),
+                self.assertRaises(AcquisitionError),
+            ):
+                write_exact(destination, b"reference bytes\n")
+            self.assertFalse(destination.exists())
+
+    def test_cleanup_never_unlinks_a_mounted_same_inode_leaf(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            leaf = root / "reference.bin"
+            leaf.write_bytes(b"owned\n")
+            descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                facts = leaf.stat()
+                with (
+                    patch.object(
+                        reference_acquisition,
+                        "same_held_mount",
+                        return_value=False,
+                    ),
+                    patch.object(
+                        reference_acquisition.os,
+                        "unlink",
+                        side_effect=AssertionError("unlink"),
+                    ),
+                ):
+                    reference_acquisition._safe_unlink(
+                        descriptor,
+                        leaf.name,
+                        (facts.st_dev, facts.st_ino),
+                        (facts.st_dev, None),
+                        leaf,
+                    )
+            finally:
+                os.close(descriptor)
+            self.assertEqual(b"owned\n", leaf.read_bytes())
+
+    def test_failed_publication_rollback_preserves_a_newly_mounted_leaf(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            destination = root / "inputs/reference.bin"
+            real_fsync = reference_acquisition.os.fsync
+            fsync_calls = 0
+            destination_mount_checks = 0
+
+            def fail_final_fsync(descriptor: int) -> None:
+                nonlocal fsync_calls
+                fsync_calls += 1
+                if fsync_calls == 3:
+                    raise OSError("final fsync")
+                real_fsync(descriptor)
+
+            def mounted_during_rollback(
+                baseline: object,
+                descriptor: int,
+                path: Path,
+            ) -> bool:
+                nonlocal destination_mount_checks
+                del baseline, descriptor
+                if path == destination:
+                    destination_mount_checks += 1
+                    return destination_mount_checks == 1
+                return True
+
+            with (
+                patch.object(reference_acquisition, "ROOT", root),
+                patch.object(
+                    reference_acquisition,
+                    "same_held_mount",
+                    side_effect=mounted_during_rollback,
+                ),
+                patch.object(
+                    reference_acquisition.os,
+                    "fsync",
+                    side_effect=fail_final_fsync,
+                ),
+                self.assertRaises(AcquisitionError),
+            ):
+                write_exact(destination, b"reference bytes\n")
+            self.assertEqual(2, destination_mount_checks)
             self.assertEqual(b"reference bytes\n", destination.read_bytes())
 
     def test_write_exact_closes_each_descriptor_once_after_close_error(self):
@@ -530,8 +693,7 @@ class ReferenceAcquisitionTests(unittest.TestCase):
                 self.assertRaises(AcquisitionError),
             ):
                 write_exact(destination, b"reference bytes\n")
-            self.assertEqual(set(opened), set(closed))
-            self.assertEqual(len(closed), len(set(closed)))
+            self.assertEqual(sorted(opened), sorted(closed))
 
     def test_write_failure_preserves_existing_or_absent_destination(self):
         with TemporaryDirectory() as directory:

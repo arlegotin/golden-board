@@ -1,11 +1,13 @@
 import os
 from hashlib import sha256
 from pathlib import Path, PurePosixPath
+import sys
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+import golden_board.source_lock as source_lock
 from golden_board.source_lock import (
     MAX_SOURCE_LOCK_BYTES,
     SafeFileError,
@@ -67,7 +69,7 @@ docker_client = "25.0.3"
 observed_daemon_state = "unavailable: permission denied for fixed unix:///var/run/docker.sock"
 acquisition_protocol = "docker-acquire-v0"
 offline_protocol = "docker-offline-v0"
-mounts = ["checkout", "uv-cache", "uv-python", "cargo-home", "cargo-target"]
+mounts = ["checkout", "uv-tool"]
 state = "planned"
 blocker = "Fixed Docker daemon socket unix:///var/run/docker.sock is not accessible on the primary host"
 deadline = "M2"
@@ -89,7 +91,7 @@ class SourceLockTests(unittest.TestCase):
         self.assertEqual("docs/64_games.md", value.anthology.path.as_posix())
         self.assertEqual(165145, value.anthology.byte_length)
         self.assertEqual(
-            ("checkout", "uv-cache", "uv-python", "cargo-home", "cargo-target"),
+            ("checkout", "uv-tool"),
             value.clean_linux.mounts,
         )
         self.assertEqual("fips-180-4", value.references[0].id)
@@ -128,6 +130,20 @@ class SourceLockTests(unittest.TestCase):
         for bad in (missing, malformed):
             with self.subTest(bad=bad), self.assertRaises(SourceLockError):
                 self.load(bad)
+
+    def test_clean_linux_mounts_are_the_exact_strict_two_mount_model(self):
+        for mounts in (
+            '["checkout"]',
+            '["checkout", "uv-cache"]',
+            '["checkout", "uv-tool", "cargo-home"]',
+        ):
+            with self.subTest(mounts=mounts), self.assertRaises(SourceLockError):
+                self.load(
+                    VALID.replace(
+                        'mounts = ["checkout", "uv-tool"]',
+                        f"mounts = {mounts}",
+                    )
+                )
 
     def test_repository_lock_freezes_all_m0_reference_hashes(self):
         from golden_board.reference_acquisition import (
@@ -320,15 +336,16 @@ class SourceLockTests(unittest.TestCase):
     def test_shared_reader_detects_ctime_change_when_mtime_is_restored(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "payload").write_bytes(b"stable size\n")
+            payload = root / "payload"
+            payload.write_bytes(b"stable size\n")
+            payload_identity = (payload.stat().st_dev, payload.stat().st_ino)
             real_fstat = os.fstat
-            calls = 0
+            real_read = os.read
+            content_read = False
 
             def changed_ctime(descriptor):
-                nonlocal calls
-                calls += 1
                 facts = real_fstat(descriptor)
-                if calls == 1:
+                if not content_read or (facts.st_dev, facts.st_ino) != payload_identity:
                     return facts
                 return SimpleNamespace(
                     st_dev=facts.st_dev,
@@ -339,9 +356,20 @@ class SourceLockTests(unittest.TestCase):
                     st_ctime_ns=facts.st_ctime_ns + 1,
                 )
 
-            with patch(
-                "golden_board.source_lock.os.fstat", side_effect=changed_ctime
-            ), self.assertRaises(SafeFileError):
+            def mark_content_read(descriptor, count):
+                nonlocal content_read
+                facts = real_fstat(descriptor)
+                if (facts.st_dev, facts.st_ino) == payload_identity:
+                    content_read = True
+                return real_read(descriptor, count)
+
+            with (
+                patch(
+                    "golden_board.source_lock.os.fstat", side_effect=changed_ctime
+                ),
+                patch("golden_board.source_lock.os.read", side_effect=mark_content_read),
+                self.assertRaises(SafeFileError),
+            ):
                 read_regular_below(root, PurePosixPath("payload"), 1024)
 
     def test_shared_reader_handles_short_reads(self):
@@ -398,6 +426,422 @@ class SourceLockTests(unittest.TestCase):
                 "golden_board.source_lock.os.O_NOFOLLOW", None
             ), self.assertRaises(SafeFileError):
                 read_regular_below(root, PurePosixPath("payload"), 1024)
+
+    def test_linux_held_mount_identity_is_exact_and_fails_closed(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            payload = root / "payload"
+            payload.write_bytes(b"payload\n")
+            root_descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
+            payload_descriptor = os.open(payload, os.O_RDONLY)
+            self.addCleanup(os.close, payload_descriptor)
+            self.addCleanup(os.close, root_descriptor)
+            same_mount = getattr(
+                source_lock, "same_held_mount", lambda *_arguments: None
+            )
+            with (
+                patch.object(
+                    source_lock,
+                    "sys",
+                    SimpleNamespace(platform="linux"),
+                    create=True,
+                ),
+                patch.object(
+                    source_lock,
+                    "_linux_mount_id",
+                    side_effect=(b"41", b"41"),
+                    create=True,
+                ),
+            ):
+                self.assertIs(
+                    same_mount(root_descriptor, payload_descriptor, payload),
+                    True,
+                )
+            with (
+                patch.object(
+                    source_lock,
+                    "sys",
+                    SimpleNamespace(platform="linux"),
+                    create=True,
+                ),
+                patch.object(
+                    source_lock,
+                    "_linux_mount_id",
+                    side_effect=(b"41", b"42"),
+                    create=True,
+                ),
+            ):
+                self.assertIs(
+                    same_mount(root_descriptor, payload_descriptor, payload),
+                    False,
+                )
+            with (
+                patch.object(
+                    source_lock,
+                    "sys",
+                    SimpleNamespace(platform="linux"),
+                    create=True,
+                ),
+                patch.object(
+                    source_lock,
+                    "_linux_mount_id",
+                    side_effect=OSError("fdinfo unavailable"),
+                    create=True,
+                ),
+            ):
+                self.assertIs(
+                    same_mount(root_descriptor, payload_descriptor, payload),
+                    False,
+                )
+
+    def test_linux_mount_id_parser_is_bounded_exact_and_complete(self):
+        parse = getattr(source_lock, "_parse_mount_id", lambda _raw: None)
+        self.assertEqual(
+            b"41",
+            parse(b"pos:\t0\nflags:\t0100000\nmnt_id:\t41\nino:\t7\n"),
+        )
+        for raw in (
+            b"mnt_id:\t41",
+            b"mnt_id:\t0\n",
+            b"mnt_id:\t41\nmnt_id:\t42\n",
+            b"mnt_id: 41\n",
+            b"x" * (source_lock.FDINFO_MAX_BYTES + 1),
+        ):
+            with self.subTest(raw=raw[:32]), self.assertRaises(OSError):
+                parse(raw)
+
+    def test_shared_reader_caches_linux_repository_mount_identity(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "nested").mkdir()
+            (root / "nested/payload").write_bytes(b"payload\n")
+            with (
+                patch.object(source_lock.sys, "platform", "linux"),
+                patch.object(
+                    source_lock,
+                    "_linux_mount_id",
+                    return_value=b"41",
+                ) as mount_id,
+            ):
+                self.assertEqual(
+                    b"payload\n",
+                    read_regular_below(
+                        root, PurePosixPath("nested/payload"), 1024
+                    ),
+                )
+            self.assertEqual(3, mount_id.call_count)
+
+    @unittest.skipUnless(sys.platform == "linux", "Linux fdinfo required")
+    def test_real_linux_fdinfo_accepts_ordinary_same_mount_descriptors(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            payload = root / "payload"
+            payload.write_bytes(b"payload\n")
+            root_descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
+            payload_descriptor = os.open(payload, os.O_RDONLY)
+            try:
+                self.assertTrue(
+                    source_lock.same_held_mount(
+                        root_descriptor, payload_descriptor, payload
+                    )
+                )
+            finally:
+                os.close(payload_descriptor)
+                os.close(root_descriptor)
+
+    def test_shared_reader_rejects_mount_identity_before_content_read(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "nested").mkdir()
+            (root / "nested/payload").write_bytes(b"must-not-read")
+            real_read = os.read
+
+            def reject_payload_read(descriptor: int, count: int) -> bytes:
+                if os.fstat(descriptor).st_size == len(b"must-not-read"):
+                    raise AssertionError("mounted payload was read")
+                return real_read(descriptor, count)
+
+            with (
+                patch.object(
+                    source_lock,
+                    "same_held_mount",
+                    return_value=False,
+                    create=True,
+                ) as mount_check,
+                patch.object(source_lock.os, "read", side_effect=reject_payload_read),
+                self.assertRaises(SafeFileError),
+            ):
+                read_regular_below(root, PurePosixPath("nested/payload"), 1024)
+            mount_check.assert_called()
+
+    def test_shared_tree_validator_rejects_mount_before_traversal(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            nested = root / ".git/objects"
+            nested.mkdir(parents=True)
+            (nested / "object").write_bytes(b"git object")
+            nested_identity = (nested.stat().st_dev, nested.stat().st_ino)
+            scandir = os.scandir
+
+            def reject_nested_scan(descriptor: int):
+                facts = os.fstat(descriptor)
+                if (facts.st_dev, facts.st_ino) == nested_identity:
+                    raise AssertionError("mounted Git directory was traversed")
+                return scandir(descriptor)
+
+            def mount_check(_repository, _descriptor, path: Path) -> bool:
+                return path != nested
+
+            validate = getattr(
+                source_lock,
+                "validate_same_mount_tree",
+                lambda *_args, **_kwargs: None,
+            )
+            with (
+                patch.object(
+                    source_lock,
+                    "same_held_mount",
+                    side_effect=mount_check,
+                ) as checked,
+                patch.object(
+                    source_lock.os,
+                    "scandir",
+                    side_effect=reject_nested_scan,
+                ),
+                self.assertRaises(SafeFileError),
+            ):
+                validate(
+                    root,
+                    PurePosixPath(".git"),
+                    max_entries=100,
+                    max_depth=8,
+                )
+            checked.assert_called()
+
+    def test_shared_tree_validator_enforces_entry_cap_lazily(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".git").mkdir()
+
+            class Entries:
+                def __init__(self) -> None:
+                    self.index = 0
+
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *_arguments):
+                    return False
+
+                def __iter__(self):
+                    return self
+
+                def __next__(self):
+                    self.index += 1
+                    if self.index == 1:
+                        return SimpleNamespace(name="first")
+                    if self.index == 2:
+                        return SimpleNamespace(name="sentinel")
+                    raise AssertionError("tree validator consumed past its cap")
+
+            entries = Entries()
+            with (
+                patch.object(source_lock.os, "scandir", return_value=entries),
+                self.assertRaisesRegex(SafeFileError, r"^safe_tree\.limit$"),
+            ):
+                source_lock.validate_same_mount_tree(
+                    root,
+                    PurePosixPath(".git"),
+                    max_entries=1,
+                    max_depth=8,
+                )
+            self.assertEqual(2, entries.index)
+
+    def test_shared_tree_validator_rejects_untrusted_paths_and_leaf_types(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".git").mkdir()
+            (root / ".git/target").write_bytes(b"target")
+            (root / ".git/link").symlink_to("target")
+            for relative in (
+                ".git",
+                PurePosixPath("git\\metadata"),
+                PurePosixPath("git\0metadata"),
+            ):
+                with (
+                    self.subTest(relative=relative),
+                    self.assertRaisesRegex(SafeFileError, r"^safe_tree\.path$"),
+                ):
+                    source_lock.validate_same_mount_tree(
+                        root,
+                        relative,
+                        max_entries=10,
+                        max_depth=8,
+                    )
+            with self.assertRaisesRegex(SafeFileError, r"^safe_tree\.type$"):
+                source_lock.validate_same_mount_tree(
+                    root,
+                    PurePosixPath(".git"),
+                    max_entries=10,
+                    max_depth=8,
+                )
+
+    def test_shared_tree_validator_fails_closed_without_double_close(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            nested = root / ".git/objects"
+            nested.mkdir(parents=True)
+            git_identity = ((root / ".git").stat().st_dev, (root / ".git").stat().st_ino)
+            real_close = os.close
+            closed: set[int] = set()
+            injected = False
+
+            def close_after_effect(descriptor: int) -> None:
+                nonlocal injected
+                if descriptor in closed:
+                    raise AssertionError("descriptor was closed twice")
+                facts = os.fstat(descriptor)
+                closed.add(descriptor)
+                real_close(descriptor)
+                if not injected and (facts.st_dev, facts.st_ino) == git_identity:
+                    injected = True
+                    raise OSError("injected close failure")
+
+            with (
+                patch.object(source_lock.os, "close", side_effect=close_after_effect),
+                self.assertRaisesRegex(SafeFileError, r"^safe_tree\.changed$"),
+            ):
+                source_lock.validate_same_mount_tree(
+                    root,
+                    PurePosixPath(".git/objects"),
+                    max_entries=10,
+                    max_depth=8,
+                )
+            self.assertTrue(injected)
+
+    @unittest.skipUnless(hasattr(os, "symlink"), "symlinks required")
+    def test_shared_link_resolver_stays_inside_same_mount_boundary(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            python_root = root / "artifacts/uv-python"
+            target = python_root / "cpython/bin/python3.14"
+            target.parent.mkdir(parents=True)
+            target.write_bytes(b"python")
+            (python_root / "python-relative").symlink_to(
+                "cpython/bin/python3.14"
+            )
+            (python_root / "python-absolute").symlink_to(target)
+            for name in ("python-relative", "python-absolute"):
+                with self.subTest(name=name):
+                    self.assertEqual(
+                        PurePosixPath(
+                            "artifacts/uv-python/cpython/bin/python3.14"
+                        ),
+                        source_lock.resolve_same_mount_path(
+                            root,
+                            PurePosixPath(f"artifacts/uv-python/{name}"),
+                            boundary=PurePosixPath("artifacts/uv-python"),
+                            max_symlinks=8,
+                        ),
+                    )
+
+            directory_alias = python_root / "cpython-current"
+            directory_alias.symlink_to(target.parents[1])
+            self.assertEqual(
+                PurePosixPath("artifacts/uv-python/cpython/bin/python3.14"),
+                source_lock.resolve_same_mount_path(
+                    root,
+                    PurePosixPath(
+                        "artifacts/uv-python/cpython-current/bin/python3.14"
+                    ),
+                    boundary=PurePosixPath("artifacts/uv-python"),
+                    max_symlinks=8,
+                ),
+            )
+
+            venv_bin = root / ".venv/bin"
+            venv_bin.mkdir(parents=True)
+            (venv_bin / "python").symlink_to(directory_alias / "bin/python3.14")
+            (venv_bin / "python3").symlink_to("python")
+            (venv_bin / "python-relative").symlink_to(
+                "../../artifacts/uv-python/cpython-current/bin/python3.14"
+            )
+            for name in ("python3", "python-relative"):
+                with self.subTest(venv_alias=name):
+                    self.assertEqual(
+                        PurePosixPath(
+                            "artifacts/uv-python/cpython/bin/python3.14"
+                        ),
+                        source_lock.resolve_same_mount_path(
+                            root,
+                            PurePosixPath(f".venv/bin/{name}"),
+                            boundary=PurePosixPath("artifacts/uv-python"),
+                            source_boundary=PurePosixPath(".venv/bin"),
+                            max_symlinks=8,
+                        ),
+                    )
+
+            outside = root / "outside"
+            outside.write_bytes(b"outside")
+            (python_root / "outside-absolute").symlink_to(outside)
+            (python_root / "outside-relative").symlink_to("../../outside")
+            for name in ("outside-absolute", "outside-relative"):
+                with (
+                    self.subTest(name=name),
+                    self.assertRaisesRegex(SafeFileError, r"^safe_link\.escape$"),
+                ):
+                    source_lock.resolve_same_mount_path(
+                        root,
+                        PurePosixPath(f"artifacts/uv-python/{name}"),
+                        boundary=PurePosixPath("artifacts/uv-python"),
+                        max_symlinks=8,
+                    )
+
+            alias = python_root / "oversized"
+            alias.symlink_to("cpython")
+            boundary_text = "artifacts/uv-python/"
+            target_text = "a" * (
+                source_lock.SAFE_LINK_PATH_BYTES - len(os.fsencode(boundary_text))
+            )
+            with (
+                patch.object(source_lock.os, "readlink", return_value=target_text),
+                self.assertRaisesRegex(SafeFileError, r"^safe_link\.escape$"),
+            ):
+                source_lock.resolve_same_mount_path(
+                    root,
+                    PurePosixPath("artifacts/uv-python/oversized/suffix"),
+                    boundary=PurePosixPath("artifacts/uv-python"),
+                    max_symlinks=8,
+                )
+
+    @unittest.skipUnless(hasattr(os, "symlink"), "symlinks required")
+    def test_shared_link_resolver_rejects_chained_mount_before_use(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            python_root = root / "artifacts/uv-python"
+            python_root.mkdir(parents=True)
+            target = python_root / "target"
+            target.write_bytes(b"python")
+            alias = python_root / "alias"
+            alias.symlink_to("target")
+
+            def mount_check(_repository, _descriptor, path: Path) -> bool:
+                return path != target
+
+            with (
+                patch.object(
+                    source_lock,
+                    "same_held_mount",
+                    side_effect=mount_check,
+                ),
+                self.assertRaisesRegex(SafeFileError, r"^safe_link\.mount$"),
+            ):
+                source_lock.resolve_same_mount_path(
+                    root,
+                    PurePosixPath("artifacts/uv-python/alias"),
+                    boundary=PurePosixPath("artifacts/uv-python"),
+                    max_symlinks=8,
+                )
 
     def test_shared_reader_rejects_non_posix_and_backslash_paths(self):
         with TemporaryDirectory() as directory:

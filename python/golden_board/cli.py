@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import os
+import re
 import stat
 import subprocess
 import sys
 from collections.abc import Sequence
 from pathlib import Path, PurePosixPath
+from types import SimpleNamespace
 from typing import cast
 
-from golden_board import source_doctor
+from golden_board import checks, source_doctor
 from golden_board.manifest import decode_canonical_manifest, encode_canonical_value
 from golden_board.reports import (
     MAX_REPORT_BYTES,
@@ -17,7 +19,14 @@ from golden_board.reports import (
     build_release_summary,
     check_tracked_reports,
 )
-from golden_board.source_lock import SourceLock, load_source_lock, read_regular_below
+from golden_board.source_lock import (
+    SourceLock,
+    held_mount_identity,
+    load_source_lock,
+    read_regular_below,
+    same_held_mount,
+)
+from golden_board.registry import RegistryError, _run_bounded_process
 
 
 SOURCE_REPORT = Path("reports/source-doctor.json")
@@ -27,6 +36,17 @@ _REPORT = PurePosixPath(SOURCE_REPORT.as_posix())
 _SOURCE_USAGE = "usage: generate source-doctor | check source-report"
 _READ_CHUNK = 64 * 1024
 _MAX_ERROR_DETAIL = 512
+_TOOL_VERSION = {
+    "cargo": re.compile(
+        rb"cargo 1\.94\.0 \((?:Homebrew|[0-9a-f]{7,40} [0-9]{4}-[0-9]{2}-[0-9]{2})\)\n\Z"
+    ),
+    "rustc": re.compile(
+        rb"rustc 1\.94\.0 \([0-9a-f]{7,40} [0-9]{4}-[0-9]{2}-[0-9]{2}\)(?: \(Homebrew\))?\n\Z"
+    ),
+    "rustfmt": re.compile(
+        rb"(?:rustfmt 1\.8\.0|rustfmt 1\.8\.0-(?:stable|nightly) \([0-9a-f]{7,40} [0-9]{4}-[0-9]{2}-[0-9]{2}\))\n\Z"
+    ),
+}
 
 
 def build_source_report(root: Path, lock: SourceLock) -> dict[str, object]:
@@ -63,6 +83,69 @@ def _same_file(before: os.stat_result, after: os.stat_result) -> bool:
         after.st_mtime_ns,
         after.st_ctime_ns,
     )
+
+
+def _same_identity(before: os.stat_result, after: os.stat_result) -> bool:
+    return (
+        before.st_dev,
+        before.st_ino,
+        stat.S_IFMT(before.st_mode),
+    ) == (
+        after.st_dev,
+        after.st_ino,
+        stat.S_IFMT(after.st_mode),
+    )
+
+
+def _held_named_directory(
+    parent: int,
+    name: str,
+    descriptor: int,
+    path: Path,
+    mount: tuple[int, bytes | None],
+) -> None:
+    held = os.fstat(descriptor)
+    named = os.stat(name, dir_fd=parent, follow_symlinks=False)
+    path_facts = os.stat(path, follow_symlinks=False)
+    if (
+        not stat.S_ISDIR(held.st_mode)
+        or not _same_identity(held, named)
+        or not _same_identity(held, path_facts)
+        or not same_held_mount(mount, descriptor, path)
+    ):
+        raise ValueError("unsafe held directory")
+
+
+def _safe_unlink_owned(
+    directory: int,
+    name: str,
+    identity: tuple[int, int] | None,
+    mount: tuple[int, bytes | None],
+    path: Path,
+) -> None:
+    if identity is None:
+        return
+    descriptor: int | None = None
+    try:
+        facts = os.stat(name, dir_fd=directory, follow_symlinks=False)
+        descriptor = os.open(name, _file_flags(), dir_fd=directory)
+        held = os.fstat(descriptor)
+    except FileNotFoundError:
+        return
+    try:
+        if (
+            (held.st_dev, held.st_ino) == identity
+            and _same_identity(held, facts)
+            and _same_identity(
+                held,
+                os.stat(name, dir_fd=directory, follow_symlinks=False),
+            )
+            and same_held_mount(mount, descriptor, path)
+        ):
+            os.unlink(name, dir_fd=directory)
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
 
 
 def _read_regular_at(directory: int, leaf: str, max_bytes: int) -> bytes:
@@ -125,14 +208,29 @@ def _canonical_object(root: Path, relative: Path) -> dict[str, object]:
 
 
 def _open_reports_directory(root: Path, *, create: bool = False) -> int:
-    if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY"):
-        raise ReportError("report writes require descriptor-relative no-follow opens")
-    flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_DIRECTORY
+    try:
+        flags = _directory_flags()
+    except ValueError as error:
+        raise ReportError(
+            "report writes require descriptor-relative no-follow opens"
+        ) from error
+    directory: int | None = None
     try:
         repository = os.open(root, flags)
     except OSError as error:
         raise ReportError("cannot open repository root descriptor") from error
     try:
+        repository_facts = os.fstat(repository)
+        root_facts = os.stat(root, follow_symlinks=False)
+        try:
+            mount = held_mount_identity(repository)
+        except OSError as error:
+            raise ReportError("repository mount identity is unavailable") from error
+        if (
+            not stat.S_ISDIR(repository_facts.st_mode)
+            or not _same_identity(repository_facts, root_facts)
+        ):
+            raise ReportError("repository root identity changed")
         try:
             directory = os.open("reports", flags, dir_fd=repository)
         except FileNotFoundError:
@@ -145,7 +243,18 @@ def _open_reports_directory(root: Path, *, create: bool = False) -> int:
                 raise ReportError("cannot create direct reports directory") from error
         except OSError as error:
             raise ReportError("cannot open direct reports directory") from error
+        try:
+            _held_named_directory(repository, "reports", directory, root / "reports", mount)
+        except (OSError, TypeError, ValueError) as error:
+            raise ReportError("reports directory identity changed") from error
+        if not _same_identity(os.fstat(repository), os.stat(root, follow_symlinks=False)):
+            raise ReportError("repository root identity changed")
     except BaseException:
+        if directory is not None:
+            try:
+                os.close(directory)
+            except OSError:
+                pass
         try:
             os.close(repository)
         except OSError:
@@ -159,16 +268,111 @@ def _open_reports_directory(root: Path, *, create: bool = False) -> int:
         except OSError:
             pass
         raise
+    if directory is None:
+        raise ReportError("reports directory is unavailable")
     return directory
 
 
-def _existing_leaf_is_regular(directory: int, name: str) -> None:
+def _existing_leaf_is_regular(
+    directory: int,
+    name: str,
+    path: Path,
+    mount: tuple[int, bytes | None],
+) -> None:
+    descriptor: int | None = None
     try:
-        facts = os.stat(name, dir_fd=directory, follow_symlinks=False)
+        named = os.stat(name, dir_fd=directory, follow_symlinks=False)
     except FileNotFoundError:
         return
-    if not stat.S_ISREG(facts.st_mode):
-        raise ReportError(f"report destination is not a regular file: reports/{name}")
+    try:
+        descriptor = os.open(name, _file_flags(), dir_fd=directory)
+        held = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(held.st_mode)
+            or not _same_identity(held, named)
+            or not same_held_mount(mount, descriptor, path)
+            or not _same_identity(
+                held,
+                os.stat(name, dir_fd=directory, follow_symlinks=False),
+            )
+        ):
+            raise ReportError(
+                f"report destination is not a safe regular file: reports/{name}"
+            )
+    except (OSError, TypeError, ValueError) as error:
+        if isinstance(error, ReportError):
+            raise
+        raise ReportError(
+            f"report destination is not a safe regular file: reports/{name}"
+        ) from error
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
+
+def _report_directory_is_current(
+    root: Path,
+    directory: int,
+    mount: tuple[int, bytes | None],
+) -> None:
+    current = _open_reports_directory(root)
+    try:
+        if (
+            not same_held_mount(mount, current, root / "reports")
+            or not _same_identity(os.fstat(directory), os.fstat(current))
+        ):
+            raise ReportError("reports directory identity changed")
+    finally:
+        os.close(current)
+
+
+def _open_verified_report(
+    directory: int,
+    directory_path: Path,
+    name: str,
+    expected: bytes,
+    mount: tuple[int, bytes | None],
+) -> int:
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(name, _file_flags(), dir_fd=directory)
+        before = os.fstat(descriptor)
+        named = os.stat(name, dir_fd=directory, follow_symlinks=False)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_size != len(expected)
+            or not _same_file(before, named)
+            or not same_held_mount(mount, descriptor, directory_path / name)
+        ):
+            raise ReportError("temporary report identity changed")
+        verified = bytearray()
+        while True:
+            chunk = os.read(
+                descriptor,
+                min(_READ_CHUNK, MAX_REPORT_BYTES + 1 - len(verified)),
+            )
+            if not chunk:
+                break
+            verified.extend(chunk)
+            if len(verified) > MAX_REPORT_BYTES:
+                raise ReportError("temporary report exceeds the M0 byte cap")
+        after = os.fstat(descriptor)
+        final_named = os.stat(name, dir_fd=directory, follow_symlinks=False)
+        if (
+            bytes(verified) != expected
+            or not _same_file(before, after)
+            or not _same_file(after, final_named)
+            or not same_held_mount(mount, descriptor, directory_path / name)
+        ):
+            raise ReportError("temporary report verification failed")
+        return descriptor
+    except BaseException:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        raise
 
 
 def _write_all(descriptor: int, raw: bytes) -> None:
@@ -185,34 +389,23 @@ def _write_source_report(root: Path, raw: bytes) -> None:
     if type(raw) is not bytes or len(raw) > MAX_REPORT_BYTES:
         raise ValueError("source report bytes")
 
-    root_descriptor: int | None = None
     reports_descriptor: int | None = None
     temporary_descriptor: int | None = None
     temporary_name: str | None = None
+    temporary_identity: tuple[int, int] | None = None
+    reports_mount: tuple[int, bytes | None] | None = None
     failure: BaseException | None = None
     committed = False
     try:
-        root_descriptor = os.open(root, _directory_flags())
-        try:
-            reports_descriptor = os.open(
-                "reports", _directory_flags(), dir_fd=root_descriptor
-            )
-        except FileNotFoundError:
-            os.mkdir("reports", 0o755, dir_fd=root_descriptor)
-            reports_descriptor = os.open(
-                "reports", _directory_flags(), dir_fd=root_descriptor
-            )
-
-        try:
-            destination = os.stat(
-                _REPORT.name,
-                dir_fd=reports_descriptor,
-                follow_symlinks=False,
-            )
-        except FileNotFoundError:
-            destination = None
-        if destination is not None and not stat.S_ISREG(destination.st_mode):
-            raise ValueError("source report destination")
+        reports_descriptor = _open_reports_directory(root, create=True)
+        reports_mount = held_mount_identity(reports_descriptor)
+        reports_path = root / "reports"
+        _existing_leaf_is_regular(
+            reports_descriptor,
+            _REPORT.name,
+            reports_path / _REPORT.name,
+            reports_mount,
+        )
 
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW
         for index in range(64):
@@ -227,6 +420,14 @@ def _write_source_report(root: Path, raw: bytes) -> None:
             except FileExistsError:
                 continue
             temporary_name = candidate
+            temporary_facts = os.fstat(temporary_descriptor)
+            temporary_identity = (temporary_facts.st_dev, temporary_facts.st_ino)
+            if not same_held_mount(
+                reports_mount,
+                temporary_descriptor,
+                reports_path / candidate,
+            ):
+                raise ValueError("source report temporary mount")
             break
         if temporary_descriptor is None or temporary_name is None:
             raise ValueError("source report temporary names")
@@ -237,25 +438,37 @@ def _write_source_report(root: Path, raw: bytes) -> None:
         temporary_descriptor = None
         os.close(closing)
 
-        verified = _read_regular_at(
+        temporary_descriptor = _open_verified_report(
             reports_descriptor,
+            reports_path,
             temporary_name,
-            MAX_REPORT_BYTES,
+            raw,
+            reports_mount,
         )
-        if verified != raw:
-            raise ValueError("source report verification")
-        decode_canonical_manifest(verified)
+        decode_canonical_manifest(raw)
 
-        try:
-            destination = os.stat(
-                _REPORT.name,
-                dir_fd=reports_descriptor,
-                follow_symlinks=False,
+        _existing_leaf_is_regular(
+            reports_descriptor,
+            _REPORT.name,
+            reports_path / _REPORT.name,
+            reports_mount,
+        )
+        temporary_facts = os.fstat(temporary_descriptor)
+        named_temporary = os.stat(
+            temporary_name,
+            dir_fd=reports_descriptor,
+            follow_symlinks=False,
+        )
+        if (
+            not _same_file(temporary_facts, named_temporary)
+            or not same_held_mount(
+                reports_mount,
+                temporary_descriptor,
+                reports_path / temporary_name,
             )
-        except FileNotFoundError:
-            destination = None
-        if destination is not None and not stat.S_ISREG(destination.st_mode):
-            raise ValueError("source report destination")
+        ):
+            raise ValueError("source report temporary identity")
+        _report_directory_is_current(root, reports_descriptor, reports_mount)
 
         os.replace(
             temporary_name,
@@ -264,6 +477,24 @@ def _write_source_report(root: Path, raw: bytes) -> None:
             dst_dir_fd=reports_descriptor,
         )
         temporary_name = None
+        published = _open_verified_report(
+            reports_descriptor,
+            reports_path,
+            _REPORT.name,
+            raw,
+            reports_mount,
+        )
+        try:
+            if not _same_identity(
+                os.fstat(temporary_descriptor),
+                os.fstat(published),
+            ):
+                raise ValueError("source report published identity")
+        finally:
+            try:
+                os.close(published)
+            except OSError:
+                pass
         committed = True
     except (OSError, TypeError, ValueError) as error:
         failure = error
@@ -274,15 +505,23 @@ def _write_source_report(root: Path, raw: bytes) -> None:
             except OSError as error:
                 if failure is None:
                     failure = error
-        if temporary_name is not None and reports_descriptor is not None:
+        if (
+            temporary_name is not None
+            and reports_descriptor is not None
+            and reports_mount is not None
+        ):
             try:
-                os.unlink(temporary_name, dir_fd=reports_descriptor)
-            except FileNotFoundError:
-                pass
+                _safe_unlink_owned(
+                    reports_descriptor,
+                    temporary_name,
+                    temporary_identity,
+                    reports_mount,
+                    root / "reports" / temporary_name,
+                )
             except OSError as error:
                 if failure is None:
                     failure = error
-        for descriptor in (reports_descriptor, root_descriptor):
+        for descriptor in (reports_descriptor,):
             if descriptor is not None:
                 try:
                     os.close(descriptor)
@@ -296,14 +535,27 @@ def _write_source_report(root: Path, raw: bytes) -> None:
     raise ValueError("source report publication")
 
 
-def _render_temporary(root: Path, destination: Path, value: object) -> tuple[int, str]:
+def _render_temporary(
+    root: Path,
+    destination: Path,
+    value: object,
+) -> tuple[int, str, int, tuple[int, bytes | None], tuple[int, int], bytes]:
     if destination != RELEASE_SUMMARY:
         raise ReportError(f"undeclared report destination: {destination}")
     raw = _canonical_bytes(value)
     directory = _open_reports_directory(root, create=True)
+    directory_path = root / "reports"
+    mount = held_mount_identity(directory)
     temporary_name: str | None = None
+    temporary_identity: tuple[int, int] | None = None
+    descriptor: int | None = None
     try:
-        _existing_leaf_is_regular(directory, destination.name)
+        _existing_leaf_is_regular(
+            directory,
+            destination.name,
+            directory_path / destination.name,
+            mount,
+        )
         flags = os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC | os.O_NOFOLLOW
         for index in range(64):
             candidate = f".{destination.name}.{index}.tmp"
@@ -312,59 +564,47 @@ def _render_temporary(root: Path, destination: Path, value: object) -> tuple[int
             except FileExistsError:
                 continue
             temporary_name = candidate
+            temporary_facts = os.fstat(descriptor)
+            temporary_identity = (temporary_facts.st_dev, temporary_facts.st_ino)
+            if not same_held_mount(mount, descriptor, directory_path / candidate):
+                raise ReportError("temporary report mount changed")
             break
-        if temporary_name is None:
+        if temporary_name is None or descriptor is None or temporary_identity is None:
             raise ReportError("no bounded temporary report name is available")
-        descriptor_open = True
         try:
             _write_all(descriptor, raw)
             os.fsync(descriptor)
             closing = descriptor
-            descriptor_open = False
+            descriptor = None
             os.close(closing)
-            read_flags = os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK
-            descriptor = os.open(temporary_name, read_flags, dir_fd=directory)
-            descriptor_open = True
-            facts = os.fstat(descriptor)
-            if not stat.S_ISREG(facts.st_mode) or facts.st_size != len(raw):
-                raise ReportError("temporary report identity changed")
-            verified = bytearray()
-            while True:
-                chunk = os.read(
-                    descriptor,
-                    min(64 * 1024, MAX_REPORT_BYTES + 1 - len(verified)),
-                )
-                if not chunk:
-                    break
-                verified.extend(chunk)
-                if len(verified) > MAX_REPORT_BYTES:
-                    raise ReportError("temporary report exceeds the M0 byte cap")
-            if bytes(verified) != raw:
-                raise ReportError(
-                    f"temporary report verification failed: {destination}"
-                )
-            parsed = decode_canonical_manifest(bytes(verified))
-            if encode_canonical_value(parsed) != bytes(verified):
+            descriptor = _open_verified_report(
+                directory,
+                directory_path,
+                temporary_name,
+                raw,
+                mount,
+            )
+            parsed = decode_canonical_manifest(raw)
+            if encode_canonical_value(parsed) != raw:
                 raise ReportError("temporary report is not canonical")
         except BaseException:
-            if descriptor_open:
-                closing = descriptor
-                descriptor_open = False
+            if descriptor is not None:
                 try:
-                    os.close(closing)
+                    os.close(descriptor)
                 except OSError:
                     pass
             raise
-        else:
-            if descriptor_open:
-                closing = descriptor
-                descriptor_open = False
-                os.close(closing)
-        return directory, temporary_name
+        return directory, temporary_name, descriptor, mount, temporary_identity, raw
     except BaseException:
         if temporary_name is not None:
             try:
-                os.unlink(temporary_name, dir_fd=directory)
+                _safe_unlink_owned(
+                    directory,
+                    temporary_name,
+                    temporary_identity,
+                    mount,
+                    directory_path / temporary_name,
+                )
             except OSError:
                 pass
         try:
@@ -375,18 +615,67 @@ def _render_temporary(root: Path, destination: Path, value: object) -> tuple[int
 
 
 def _replace_canonical(root: Path, destination: Path, value: object) -> None:
-    directory, temporary_name = _render_temporary(root, destination, value)
+    directory, temporary_name, descriptor, mount, temporary_identity, raw = (
+        _render_temporary(root, destination, value)
+    )
     try:
-        _existing_leaf_is_regular(directory, destination.name)
+        directory_path = root / "reports"
+        _existing_leaf_is_regular(
+            directory,
+            destination.name,
+            directory_path / destination.name,
+            mount,
+        )
+        held = os.fstat(descriptor)
+        named = os.stat(
+            temporary_name,
+            dir_fd=directory,
+            follow_symlinks=False,
+        )
+        if (
+            not _same_file(held, named)
+            or not same_held_mount(
+                mount,
+                descriptor,
+                directory_path / temporary_name,
+            )
+        ):
+            raise ReportError("temporary report identity changed")
+        _report_directory_is_current(root, directory, mount)
         os.replace(
             temporary_name,
             destination.name,
             src_dir_fd=directory,
             dst_dir_fd=directory,
         )
+        published = _open_verified_report(
+            directory,
+            directory_path,
+            destination.name,
+            raw,
+            mount,
+        )
+        try:
+            if not _same_identity(os.fstat(descriptor), os.fstat(published)):
+                raise ReportError("published report identity changed")
+        finally:
+            try:
+                os.close(published)
+            except OSError:
+                pass
     except BaseException:
         try:
-            os.unlink(temporary_name, dir_fd=directory)
+            _safe_unlink_owned(
+                directory,
+                temporary_name,
+                temporary_identity,
+                mount,
+                directory_path / temporary_name,
+            )
+        except OSError:
+            pass
+        try:
+            os.close(descriptor)
         except OSError:
             pass
         try:
@@ -396,6 +685,10 @@ def _replace_canonical(root: Path, destination: Path, value: object) -> None:
         raise
     # Successful replacement is the commit point. Descriptor-close failure
     # after publication cannot truthfully be reported as preservation failure.
+    try:
+        os.close(descriptor)
+    except OSError:
+        pass
     try:
         os.close(directory)
     except OSError:
@@ -434,15 +727,269 @@ def _error_detail(value: object) -> str:
     return f"{escaped[: _MAX_ERROR_DETAIL - 3]}..."
 
 
+def _git_runtime_directory(root: Path, name: str) -> Path:
+    repository = root.resolve(strict=True)
+    if repository != root or not stat.S_ISDIR(repository.lstat().st_mode):
+        raise ValueError("repository root")
+    if name not in {"check-home", "check-tmp"}:
+        raise ValueError("Git runtime directory")
+    flags = os.O_RDONLY | os.O_CLOEXEC | os.O_DIRECTORY | os.O_NOFOLLOW
+    descriptors: list[int] = []
+    try:
+        root_descriptor = os.open(repository, flags)
+        descriptors.append(root_descriptor)
+        root_facts = os.fstat(root_descriptor)
+        mount = held_mount_identity(root_descriptor)
+        if not _same_identity(root_facts, repository.lstat()):
+            raise ValueError("repository root")
+        try:
+            os.mkdir("artifacts", 0o700, dir_fd=root_descriptor)
+        except FileExistsError:
+            pass
+        artifacts_descriptor = os.open("artifacts", flags, dir_fd=root_descriptor)
+        descriptors.append(artifacts_descriptor)
+        _held_named_directory(
+            root_descriptor,
+            "artifacts",
+            artifacts_descriptor,
+            repository / "artifacts",
+            mount,
+        )
+        try:
+            os.mkdir(name, 0o700, dir_fd=artifacts_descriptor)
+        except FileExistsError:
+            pass
+        target_descriptor = os.open(name, flags, dir_fd=artifacts_descriptor)
+        descriptors.append(target_descriptor)
+        _held_named_directory(
+            artifacts_descriptor,
+            name,
+            target_descriptor,
+            repository / "artifacts" / name,
+            mount,
+        )
+        _held_named_directory(
+            root_descriptor,
+            "artifacts",
+            artifacts_descriptor,
+            repository / "artifacts",
+            mount,
+        )
+        if not _same_identity(os.fstat(root_descriptor), repository.lstat()):
+            raise ValueError("repository root")
+    except (OSError, TypeError, ValueError) as error:
+        raise ValueError("Git runtime directory") from error
+    finally:
+        while descriptors:
+            try:
+                os.close(descriptors.pop())
+            except OSError:
+                pass
+    return repository / "artifacts" / name
+
+
+def _git_version_runner(argv: list[str], **kwargs: object) -> object:
+    cwd = kwargs.get("cwd")
+    environment = kwargs.get("env")
+    if not isinstance(cwd, Path) or type(environment) is not dict:
+        raise ValueError("sealed tool version probe")
+    stdout, stderr = _run_bounded_process(
+        argv,
+        b"",
+        environment,
+        cwd=cwd,
+        timeout=10,
+        output_limit=4096,
+    )
+    return SimpleNamespace(returncode=0, stdout=stdout, stderr=stderr)
+
+
+def _projected_executable(
+    environment: dict[str, str], key: str, label: str
+) -> Path:
+    value = environment.get(key)
+    if type(value) is not str or not value or "\0" in value:
+        raise ValueError(f"sealed {label} projection")
+    supplied = Path(value)
+    if not supplied.is_absolute() or ".." in supplied.parts:
+        raise ValueError(f"sealed {label} projection")
+    try:
+        executable = supplied.resolve(strict=True)
+        mode = executable.lstat().st_mode
+    except OSError as error:
+        raise ValueError(f"sealed {label} projection") from error
+    if (
+        executable != supplied
+        or not stat.S_ISREG(mode)
+        or mode & 0o022
+        or not os.access(executable, os.X_OK)
+    ):
+        raise ValueError(f"sealed {label} projection")
+    return executable
+
+
+def _module_git_context(
+    root: Path,
+    environment: dict[str, str],
+    *,
+    runner=_git_version_runner,
+) -> tuple[Path, dict[str, str]]:
+    if type(environment) is not dict:
+        raise ValueError("sealed Git projection")
+    executable = _projected_executable(environment, "GB_BOOTSTRAP_GIT", "Git")
+    home = _git_runtime_directory(root, "check-home")
+    temporary = _git_runtime_directory(root, "check-tmp")
+    projected = {
+        "GIT_CONFIG_GLOBAL": "/dev/null",
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_OPTIONAL_LOCKS": "0",
+        "GIT_TERMINAL_PROMPT": "0",
+        "HOME": str(home),
+        "LANG": "C",
+        "LC_ALL": "C",
+        "PATH": str(executable.parent),
+        "TMPDIR": str(temporary),
+        "TZ": "UTC",
+    }
+    try:
+        result = runner(
+            [str(executable), "--version"],
+            cwd=root,
+            env=projected,
+        )
+    except (OSError, RegistryError) as error:
+        raise ValueError("sealed Git version probe") from error
+    if (
+        getattr(result, "returncode", None) != 0
+        or getattr(result, "stdout", None) != b"git version 2.49.0\n"
+        or getattr(result, "stderr", None) != b""
+    ):
+        raise ValueError("sealed Git version probe")
+    return executable, projected
+
+
+def _module_tool_context(
+    root: Path,
+    environment: dict[str, str],
+    name: str,
+    *,
+    runner=_git_version_runner,
+) -> Path:
+    if name not in _TOOL_VERSION or type(environment) is not dict:
+        raise ValueError("sealed tool projection")
+    executable = _projected_executable(
+        environment, f"GB_BOOTSTRAP_{name.upper()}", name
+    )
+    projected = {
+        "LANG": "C",
+        "LC_ALL": "C",
+        "PATH": str(executable.parent),
+        "TZ": "UTC",
+    }
+    try:
+        result = runner([str(executable), "--version"], cwd=root, env=projected)
+    except (OSError, RegistryError) as error:
+        raise ValueError("sealed tool version probe") from error
+    stdout = getattr(result, "stdout", None)
+    if (
+        getattr(result, "returncode", None) != 0
+        or type(stdout) is not bytes
+        or _TOOL_VERSION[name].fullmatch(stdout) is None
+        or getattr(result, "stderr", None) != b""
+    ):
+        raise ValueError("sealed tool version probe")
+    return executable
+
+
+def _module_python_context(root: Path, environment: dict[str, str]) -> Path:
+    if (
+        type(environment) is not dict
+        or environment.get("PYTHONDONTWRITEBYTECODE") != "1"
+    ):
+        raise ValueError("sealed Python bytecode projection")
+    value = environment.get("PYTHONPYCACHEPREFIX")
+    if type(value) is not str or not value or "\0" in value:
+        raise ValueError("sealed Python bytecode projection")
+    return checks._validated_pycache_prefix(root, Path(value))
+
+
+def _module_capability_context(
+    root: Path,
+    environment: dict[str, str],
+    *,
+    runner=_git_version_runner,
+) -> tuple[Path, dict[str, str], Path, Path, Path, Path]:
+    pycache_prefix = _module_python_context(root, environment)
+    git, git_environment = _module_git_context(root, environment, runner=runner)
+    cargo = _module_tool_context(root, environment, "cargo", runner=runner)
+    rustc = _module_tool_context(root, environment, "rustc", runner=runner)
+    rustfmt = _module_tool_context(root, environment, "rustfmt", runner=runner)
+    return git, git_environment, cargo, rustc, rustfmt, pycache_prefix
+
+
 def main(
     argv: Sequence[str] | None = None,
     root: Path = Path.cwd(),
     *,
     git_executable: Path | None = None,
     git_environment: dict[str, str] | None = None,
+    cargo_executable: Path | None = None,
+    rustc_executable: Path | None = None,
+    rustfmt_executable: Path | None = None,
+    pycache_prefix: Path | None = None,
 ) -> int:
     arguments = tuple(sys.argv[1:] if argv is None else argv)
     repository = root
+    if arguments == ("check", "release"):
+        print(
+            "release verification becomes operational at the M2 architecture freeze",
+            file=sys.stderr,
+        )
+        return 2
+    if arguments in (("check", "fast"), ("check", "full")):
+        try:
+            errors = checks.run_mode(
+                repository,
+                arguments[1],
+                git_executable=git_executable,
+                git_environment=git_environment,
+                cargo_executable=cargo_executable,
+                rustc_executable=rustc_executable,
+                rustfmt_executable=rustfmt_executable,
+                pycache_prefix=pycache_prefix,
+            )
+        except (OSError, UnicodeError, ValueError, RegistryError):
+            print("check failed", file=sys.stderr)
+            return 1
+        if errors:
+            for error in errors:
+                print(f"error: {_error_detail(error)}", file=sys.stderr)
+            return 1
+        return 0
+    if (
+        len(arguments) == 3
+        and arguments[:2] == ("check", "focused")
+        and arguments[2] in checks.FOCUS_AREAS
+    ):
+        try:
+            errors = checks.run_area(
+                repository,
+                arguments[2],
+                git_executable=git_executable,
+                git_environment=git_environment,
+                cargo_executable=cargo_executable,
+                rustc_executable=rustc_executable,
+                rustfmt_executable=rustfmt_executable,
+                pycache_prefix=pycache_prefix,
+            )
+        except (OSError, UnicodeError, ValueError, RegistryError):
+            print("check failed", file=sys.stderr)
+            return 1
+        if errors:
+            for error in errors:
+                print(f"error: {_error_detail(error)}", file=sys.stderr)
+            return 1
+        return 0
     if arguments in (
         ("generate", "source-doctor"),
         ("check", "source-report"),
@@ -504,7 +1051,13 @@ def main(
                     print(f"error: {_error_detail(error)}", file=sys.stderr)
                 return 1
             return 0
-    except (OSError, UnicodeError, ValueError, subprocess.SubprocessError) as error:
+    except (
+        OSError,
+        UnicodeError,
+        ValueError,
+        RegistryError,
+        subprocess.SubprocessError,
+    ) as error:
         print(f"error: {_error_detail(error)}", file=sys.stderr)
         return 1
 
@@ -513,4 +1066,27 @@ def main(
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        (
+            _git_executable,
+            _git_environment,
+            _cargo_executable,
+            _rustc_executable,
+            _rustfmt_executable,
+            _pycache_prefix,
+        ) = _module_capability_context(
+            Path.cwd(), dict(os.environ)
+        )
+    except (OSError, ValueError, RegistryError) as error:
+        print(f"error: {_error_detail(error)}", file=sys.stderr)
+        raise SystemExit(1)
+    raise SystemExit(
+        main(
+            git_executable=_git_executable,
+            git_environment=_git_environment,
+            cargo_executable=_cargo_executable,
+            rustc_executable=_rustc_executable,
+            rustfmt_executable=_rustfmt_executable,
+            pycache_prefix=_pycache_prefix,
+        )
+    )
