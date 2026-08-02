@@ -107,6 +107,7 @@ The following final Python names and annotations are fixed across tasks:
 - Create: <code>Cargo.lock</code>
 - Create: <code>crates/golden-board-core/Cargo.toml</code>
 - Create: <code>crates/golden-board-core/src/lib.rs</code>
+- Create: <code>python/tests/__init__.py</code> as an empty package marker
 - Create: <code>python/tests/test_foundation.py</code>
 - Modify: <code>docs/roadmap.md</code> project header and Section 13 M0 row
 
@@ -144,6 +145,7 @@ class FoundationTests(unittest.TestCase):
             "AGENTS.md", "README.md", ".gitattributes", ".gitignore",
             ".python-version", "pyproject.toml", "uv.lock",
             "rust-toolchain.toml", "Cargo.toml", "Cargo.lock",
+            "python/tests/__init__.py",
         ):
             self.assertTrue((ROOT / relative).is_file(), relative)
 
@@ -244,7 +246,7 @@ Expected: no whitespace errors.
 Commit:
 
 ~~~sh
-git add AGENTS.md README.md .gitattributes .gitignore .python-version pyproject.toml uv.lock rust-toolchain.toml Cargo.toml Cargo.lock python/tests/test_foundation.py docs/roadmap.md crates/golden-board-core/Cargo.toml crates/golden-board-core/src/lib.rs
+git add AGENTS.md README.md .gitattributes .gitignore .python-version pyproject.toml uv.lock rust-toolchain.toml Cargo.toml Cargo.lock python/tests/__init__.py python/tests/test_foundation.py docs/roadmap.md crates/golden-board-core/Cargo.toml crates/golden-board-core/src/lib.rs
 git commit -m "chore: establish M0 repository foundation"
 ~~~
 
