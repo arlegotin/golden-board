@@ -228,6 +228,32 @@ roadmap is part of the M0 design, not optional setup advice.
   host-side publication preserves the shared no-follow/same-mount writer rather
   than weakening that repository-wide trust boundary. Inventory bytes remain
   derived by the same project code from the checkout-local acquisition roots;
+- pinned uv 0.11.29 creates its `cpython-3.14-linux-aarch64-gnu` managed-Python
+  alias with the container-absolute target
+  `/workspace/artifacts/uv-python/cpython-3.14.6-linux-aarch64-gnu`. Immediately
+  after successful acquisition and correlated container cleanup, and before the
+  host inventory build,
+  the adapter descriptor-walks the exact uv-Python root and version directory,
+  accepts only that exact alias and target, holds the exact real same-mount
+  version directory across the transaction, creates one fixed-name
+  identity-proved same-directory temporary symlink, and preserves the original
+  alias inode with one no-follow hard-link backup before atomically replacing
+  the alias through dir-fd `os.replace`. The equivalent relative target is
+  `cpython-3.14.6-linux-aarch64-gnu`. It rechecks held directory, target, source,
+  temporary, and published identities, target bytes, final resolution, and mount
+  containment. Temporary/backup cleanup and rollback act only on exact
+  still-owned identities and targets and never unlink or overwrite an
+  unrecognized pathname. With continued ownership, a failed transaction leaves
+  either the exact original or exact canonical alias; on ownership loss it
+  touches no unrecognized entry and discards the fresh checkout. A mismatch,
+  collision, race, or replacement failure is a hard failure before deletion or
+  offline work.
+  Only the pinned project-local Python standard library performs this operation;
+  no shell or global executable participates. This makes the acquired link
+  valid in both producer and host namespaces without teaching the shared
+  resolver that `/workspace` is a host root or relaxing absolute-link
+  containment. The canonical relative link is included in the acquisition
+  inventory and must remain unchanged offline;
 - every Cargo child fixes `CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse` so the
   pinned Cargo release cannot drift registry/cache layout through a default or
   inherited setting;
