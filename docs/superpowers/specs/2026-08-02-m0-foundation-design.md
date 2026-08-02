@@ -109,6 +109,7 @@ Cargo.toml
 Cargo.lock
 crates/
 
+scripts/setup
 scripts/check
 
 inputs/source-lock.toml
@@ -179,12 +180,25 @@ roadmap is part of the M0 design, not optional setup advice.
 - uv.lock is committed even when the Python package has no third-party runtime
   dependency.
 - uv creates and uses repository-local .venv.
+- The final documented `scripts/setup` command shares the privileged-shell and
+  isolated-Python bootstrap with `scripts/check`. Before invoking a package
+  manager it descriptor-validates/creates only `.venv` and the checkout-local
+  uv/Cargo roots, then supplies `UV_PROJECT_ENVIRONMENT=.venv`, `--no-config`,
+  an explicit project root, and exact Cargo paths in fresh environments.
 - Repository commands invoke Python through uv run in locked/frozen mode.
+- Because the project is not installed as a package, project children rebuild
+  `PYTHONPATH` as the descriptor-validated absolute checkout `python/`
+  directory; inherited Python-path settings are never reused. The isolated
+  pre-uv bootstrap does not use `PYTHONPATH`.
 - pip, pipx, Poetry, Conda, and user-wide or system-wide installation are not
   used by project setup or checks.
-- M0 Python implementation uses only the standard library: hashlib, json,
-  tomllib, pathlib, os, stat, re, tempfile, subprocess where required by the
-  host adapter, and unittest.
+- M0 Python implementation uses only the standard library. Representative
+  production modules include ast, collections.abc, dataclasses, datetime,
+  hashlib, io, json, os, pathlib, re, selectors, shutil, stat, subprocess, sys,
+  tarfile, tempfile, time, tomllib, typing, and urllib.request; tests may
+  additionally use unittest and its helpers. This is deliberately not an
+  exhaustive module allowlist: adding a routine standard-library import is not
+  a new dependency decision.
 - No Python test, formatting, CLI, PGN, chess, schema, or parsing dependency is
   added.
 
@@ -193,7 +207,12 @@ roadmap is part of the M0 design, not optional setup advice.
 - rust-toolchain.toml pins the selected Rust 1.94 toolchain.
 - the root Cargo.toml is a minimal workspace;
 - Cargo.lock is committed;
-- all Cargo commands use --locked after lock creation;
+- every dependency-resolving build, test, fetch, check, and metadata command
+  uses --locked after lock creation where Cargo supports it; unlocked
+  `cargo generate-lockfile` is permitted only for initial creation or the
+  immediate reviewed regeneration after a committed-manifest dependency
+  change, and every following resolve/build command is locked; non-resolving
+  version and `cargo fmt` probes are the only other explicit exceptions;
 - cargo install is never part of setup or checks;
 - the Rust standard test harness is sufficient;
 - direct M0 dependencies are limited to sha2 for SHA-256 and serde plus
@@ -209,12 +228,29 @@ PGN library is added.
 
 Normal repository commands use only:
 
-- uv and its pinned Python interpreter;
+- the owner-supplied `python3.14` bootstrap interpreter pinned to 3.14.6,
+  invoked with isolated/no-site/no-bytecode flags only for pre-uv path and
+  environment validation;
+- uv and that pinned Python interpreter for project code in `.venv`;
 - Cargo and the pinned Rust toolchain;
+- the primary host's declared `/usr/bin/cc` driver and the linker/SDK that a
+  bounded driver trace proves it actually selects for Rust test/binary targets;
 - the POSIX shell needed to dispatch scripts/check; and
 - Git for fresh-checkout verification.
 
+The pinned Linux image analogously probes and records its actual Git, C
+linker driver, linker, C runtime, shell, and manifest-declared architecture
+before use. Its immutable index, platform-manifest, and config-blob digests
+jointly own those image-userland and manifest facts; acquisition verifies the
+descriptor chain and exact config bytes. The Docker daemon/VM separately owns
+the per-attempt running kernel and runtime-architecture observations. Only
+Python, uv, Rust, and Cargo are cross-platform semantic version pins.
+
 All selected versions and host facts are recorded in inputs/source-lock.toml.
+The setup/check wrappers use privileged shell startup (`#!/bin/sh -p`) and verify
+that both declared shells ignore startup-file/function variables before line
+one; its Python bootstrap uses `-I -S -B`. Project logic still runs through
+the sealed `uv run` environment.
 A development-only generic SHA-256 command may be recorded and used once to
 audit expected vector hashes, but it is not a runtime or check dependency.
 
@@ -225,7 +261,7 @@ networked step. It:
 
 1. resolves only committed lockfiles and declared reference locators;
 2. records exact downloaded identities;
-3. uses isolated temporary uv and Cargo cache roots rather than ordinary
+3. uses isolated checkout-local uv and Cargo cache roots rather than ordinary
    user-global caches; and
 4. leaves enough local material for a subsequent offline check.
 
@@ -235,8 +271,14 @@ Clean native verification then:
 2. hides ordinary global uv and Cargo caches;
 3. creates a project-local environment from uv.lock;
 4. builds Rust from Cargo.lock;
-5. disables external network access after acquisition; and
+5. sets uv and Cargo to their locked offline modes after acquisition and
+   records that M0 native evidence as resolver-offline, not as an OS-level
+   network-denial claim; and
 6. runs scripts/check full successfully.
+
+The pinned clean-Linux path supplies OS-level network denial with
+`--network none` when it becomes operational by M2. M0 does not fabricate that
+stronger evidence when the Docker prerequisite is unavailable.
 
 Shared caches may accelerate ordinary development, but they cannot be the only
 reason a check passes.
@@ -549,7 +591,8 @@ The lock and docs/sources.md cover, at minimum:
 - concrete candidate references for CRC and error-correction comparison;
 - retained self-describing-message precedents actually used by M0 design;
 - local Python, uv, Rust, Cargo, Git, shell, and host facts; and
-- the clean-Linux mechanism.
+- the clean-Linux mechanism, including immutable index, selected platform
+  manifest, and image-config identities.
 
 Each retained local snapshot or immutable reference has an exact identifier or
 SHA-256. Mutable URLs alone cannot close the lock. When redistribution is not
@@ -724,6 +767,24 @@ scripts/check full
 No argument defaults to fast. Missing required arguments, extra arguments,
 unknown modes, and unknown areas exit nonzero with concise usage.
 
+The same sealed dispatcher also admits only these explicit maintainer
+operations, which are not ordinary root checks and are not copied into the
+README command table:
+
+~~~text
+scripts/check generate source-doctor
+scripts/check generate release-summary
+scripts/check generate release-summary --native-evidence artifacts/native-verification.json
+scripts/check environment verify-native
+scripts/check environment verify-native --write-evidence
+scripts/check environment verify-linux
+~~~
+
+Generation may replace only the named fixed report destination. Environment
+verification uses the same isolated outer uv launch, while its owned adapter
+performs the explicitly reported acquisition/offline phases. No arbitrary
+module, path, command, or output destination is accepted.
+
 During M0, scripts/check release exits with status 2 and states that release
 verification becomes operational at the M2 architecture freeze. It cannot
 return a fake pass.
@@ -850,23 +911,33 @@ from a proven working daemon and image.
 Before M0 closes, inputs/source-lock.toml records:
 
 - mechanism Docker;
-- an exact Linux image name and immutable digest;
+- an exact Linux image name plus immutable OCI index, selected
+  platform-manifest, and config-blob digests;
 - target platform;
 - selected Python, uv, Rust, and Cargo versions;
-- dependency acquisition command;
-- cache-isolated offline verification command;
+- fixed dependency-acquisition protocol identifier (executable argv is
+  code-owned);
+- fixed cache-isolated offline-verification protocol identifier (executable
+  argv is code-owned);
 - expected mounts and output locations;
 - current status planned or verified; and
 - a specific blocker if the image/daemon cannot yet run.
 
 The Docker path:
 
-1. uses a fresh repository checkout or clean exported tree;
-2. hides host dependency caches;
-3. acquires only locked dependencies during the explicit networked phase;
-4. reruns scripts/check full with network disabled;
-5. writes only to an explicit temporary workspace/cache; and
-6. later compares canonical bytes when M4 introduces them.
+1. resolves and version-checks an absolute Docker client, uses a fixed daemon
+   endpoint and a fresh empty client configuration, and gives every host-side
+   Docker child a new allowlist environment;
+2. uses a fresh repository checkout or clean exported tree;
+3. hides host dependency caches;
+4. validates the pinned image's closed baked environment, then a fixed shell
+   bootstrap unsets it and constructs the exact phase environment;
+5. acquires only locked dependencies during the explicit networked phase;
+6. reruns scripts/check full with `--network none` and `--pull=never`;
+7. records image-owned userland/manifest facts separately from daemon-owned
+   runtime kernel/architecture observations;
+8. writes only to an explicit temporary workspace/cache; and
+9. later compares canonical bytes when M4 introduces them.
 
 M0 requires a concrete, pinned, executable plan. M2 requires the path to work
 before any transport or wire candidate freezes. M0 does not fabricate a Linux
