@@ -2156,6 +2156,16 @@ class LinuxProtocolTests(unittest.TestCase):
                 name = calls[0][calls[0].index("--name") + 1]
                 if suffix[1] == "inspect":
                     container_id = suffix[-1]
+                    self.assertEqual(
+                        [
+                            "container",
+                            "inspect",
+                            "--format",
+                            "{{.Id}}\t{{.Name}}",
+                            container_id,
+                        ],
+                        suffix,
+                    )
                     return f"{container_id}\t/{name}\n".encode(), b""
                 if suffix[1] == "rm":
                     container_id = suffix[-1]

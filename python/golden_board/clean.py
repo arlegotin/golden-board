@@ -1980,7 +1980,7 @@ def _cleanup_linux_container(
                 "container",
                 "inspect",
                 "--format",
-                "{{.Id}}\\t{{.Name}}",
+                "{{.Id}}\t{{.Name}}",
                 container_id,
             ],
             timeout=TOOL_TIMEOUT,

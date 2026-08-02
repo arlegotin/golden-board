@@ -1093,7 +1093,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_cleanup_linux_container",
-    ): "e6f79abe89fd8ae7239d2cd32254fa3f9593ab0250e04f81ba60a40ad6690685",
+    ): "5054da2eae70f19fd350cd2f6e8a6aa67c7a2224f9918fb1dbd6a6f73cbd70fc",
     (
         "python/golden_board/clean.py",
         "_clone_exact_head",
