@@ -218,6 +218,16 @@ roadmap is part of the M0 design, not optional setup advice.
   component are pinned to 1.8.0. Cargo children receive exact
   `RUSTC`/`RUSTDOC`/`RUSTFMT` projections. They do not depend on image-global
   rustup proxies or ordinary global Rust caches.
+- after the clean-Linux acquisition container validates its managed venv and
+  completes locked uv/Cargo acquisition and build, the host adapter immediately
+  builds and atomically publishes the bounded inventory from its
+  descriptor-revalidated fresh checkout, before deleting outputs or starting
+  the offline container.
+  Docker Desktop exposes a container-created regular output leaf under a
+  different kernel mount ID from its held bind-mounted parent directories;
+  host-side publication preserves the shared no-follow/same-mount writer rather
+  than weakening that repository-wide trust boundary. Inventory bytes remain
+  derived by the same project code from the checkout-local acquisition roots;
 - every Cargo child fixes `CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse` so the
   pinned Cargo release cannot drift registry/cache layout through a default or
   inherited setting;
