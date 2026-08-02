@@ -3,3 +3,6 @@ name = "golden-board-core"
 version = "0.0.0"
 edition = "2024"
 publish = false
+
+[dependencies]
+sha2 = { version = "0.10", default-features = false, features = ["std"] }
