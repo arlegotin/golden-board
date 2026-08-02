@@ -671,12 +671,12 @@ Expected: FAIL because registry loading is absent.
 
 - [ ] **Step 4: Implement registry loading and fixed-argv execution**
 
-Use <code>tomllib</code> for the registry. Resolve every fixture under the repository root and reject absolute paths or <code>..</code>. <code>target_dir=None</code> means exact <code>root/target</code>; an explicit target directory must resolve to a nonsymlink descendant of the same repository root (the clean harness uses <code>root/artifacts/cargo-target</code>). Build the corresponding <code>target_dir/debug/gb-vector</code> once with the locked/offline Cargo command before running cases. The Python runner calls APIs directly. The Rust runner invokes that exact validated repository-contained binary path with operation-only argv, sends materialized raw bytes on stdin, uses <code>shell=False</code>, a 10-second timeout per case, captures bounded output, supplies an explicit minimal environment, and accepts no user-controlled executable or operation. Tests cover the default and nondefault target directories and reject outside-root/symlink targets.
+Use <code>tomllib</code> for the registry. Resolve every fixture under the repository root and reject absolute paths or <code>..</code>. <code>target_dir=None</code> means exact <code>root/target</code>; an explicit target directory must resolve to a nonsymlink descendant of the same repository root (the clean harness uses <code>root/artifacts/cargo-target</code>). Before running cases, build the corresponding <code>target_dir/debug/gb-vector</code> once through the sealed locked/offline Cargo launcher. The registry never invokes Cargo or resolves a tool from inherited <code>PATH</code>; it requires that already-built binary. The Python runner calls APIs directly. The Rust runner invokes that exact validated repository-contained binary path with operation-only argv, sends materialized raw bytes on stdin, uses <code>shell=False</code>, a 10-second timeout per case, captures bounded output, supplies an explicit minimal environment, and accepts no user-controlled executable or operation. Tests cover the default and nondefault target directories and reject outside-root/symlink targets.
 
 Run:
 
 ~~~sh
-CARGO_HOME=artifacts/cargo-home cargo build --workspace --offline --locked --bin gb-vector
+m0_cargo_offline build --workspace --offline --locked --bin gb-vector
 PYTHONPATH=python UV_CACHE_DIR=artifacts/uv-cache uv run --offline --frozen python -m unittest python/tests/test_registry.py -v
 ~~~
 
@@ -691,9 +691,9 @@ Materialize the seven identity preimages plus the empty-object manifest preimage
 Run:
 
 ~~~sh
+m0_cargo_offline build --workspace --offline --locked --bin gb-vector
 PYTHONPATH=python UV_CACHE_DIR=artifacts/uv-cache uv run --offline --frozen python -m unittest python/tests/test_differential.py -v
-CARGO_HOME=artifacts/cargo-home cargo build --workspace --offline --locked --bin gb-vector
-CARGO_HOME=artifacts/cargo-home cargo test --workspace --offline --locked
+m0_cargo_offline test --workspace --offline --locked
 ~~~
 
 Expected: every registered Python/Rust result agrees and all mutations fail closed.
@@ -704,8 +704,8 @@ Run:
 
 ~~~sh
 PYTHONPATH=python UV_CACHE_DIR=artifacts/uv-cache uv run --offline --frozen python -m unittest discover -s python/tests -t python -v
-CARGO_HOME=artifacts/cargo-home cargo fmt --all -- --check
-CARGO_HOME=artifacts/cargo-home cargo test --workspace --offline --locked
+m0_cargo_offline fmt --all -- --check
+m0_cargo_offline test --workspace --offline --locked
 git diff --check
 ~~~
 
@@ -1167,7 +1167,7 @@ UV_PROJECT_ENVIRONMENT=.venv UV_CACHE_DIR=artifacts/uv-cache UV_PYTHON_INSTALL_D
 CARGO_HOME=artifacts/cargo-home cargo metadata --format-version 1 --offline --locked
 ~~~
 
-The exact setup/check wrappers and stdlib bootstrap are owned by the evidence plan's Task 12 Step 3. Both use <code>#!/bin/sh -p</code>, immediately require privileged mode, and prove hostile startup variables/exported functions cannot execute. Before deriving the root or spawning a child, the shell saves only script/PATH/marker inputs, rejects overrides, unsets shell-control and reviewed variables, and fixes locale. It derives the physical root with builtins, resolves absolute <code>python3.14</code>/uv/Cargo/Rust/Git paths through the owner-controlled bootstrap <code>PATH</code>, then runs <code>python3.14 -I -S -B</code> on <code>bootstrap.py</code>. Acquisition mode descriptor-validates/creates only declared <code>.venv</code>/artifact/cache roots and runs locked uv/Cargo acquisition in fresh environments. Check mode additionally proves the venv interpreter resolves to the exact 3.14.6 managed Python under <code>artifacts/uv-python</code> before any uv probe, then <code>os.execve</code>s absolute uv with a new exact environment, <code>PYTHONPATH</code> rebuilt as the descriptor-validated absolute <code>$repo_root/python</code>, and <code>--no-config --project "$repo_root" --offline --frozen</code>. Hostile inherited <code>PYTHONPATH</code> is replaced; the isolated bootstrap does not use it. The sealed dispatcher maps ordinary modes to CLI <code>check</code>, explicit fixed report regeneration to CLI <code>generate</code>, and, after Task 13, only the two fixed environment-verifier branches; it never admits arbitrary argv. It uses no <code>/usr/bin/env</code>, <code>eval</code>, or project-selected command. Root checks also retrofit the registry vector child to an absolute prebuilt binary with a new minimal environment.
+The exact setup/check wrappers and stdlib bootstrap are owned by the evidence plan's Task 12 Step 3. Both use <code>#!/bin/sh -p</code>, immediately require privileged mode, and prove hostile startup variables/exported functions cannot execute. Before deriving the root or spawning a child, the shell saves only script/PATH/marker inputs, rejects overrides, unsets shell-control and reviewed variables, and fixes locale. It derives the physical root with builtins, resolves absolute <code>python3.14</code>/uv/Cargo/Rust/Git paths through the owner-controlled bootstrap <code>PATH</code>, then runs <code>python3.14 -I -S -B</code> on <code>bootstrap.py</code>. Acquisition mode descriptor-validates/creates only declared <code>.venv</code>/artifact/cache roots and runs locked uv/Cargo acquisition in fresh environments. Check mode additionally proves the venv interpreter resolves to the exact 3.14.6 managed Python under <code>artifacts/uv-python</code> before any uv probe, then <code>os.execve</code>s absolute uv with a new exact environment, <code>PYTHONPATH</code> rebuilt as the descriptor-validated absolute <code>$repo_root/python</code>, and <code>--no-config --project "$repo_root" --offline --frozen</code>. Hostile inherited <code>PYTHONPATH</code> is replaced; the isolated bootstrap does not use it. The sealed dispatcher maps ordinary modes to CLI <code>check</code>, explicit fixed report regeneration to CLI <code>generate</code>, and, after Task 13, only the two fixed environment-verifier branches; it never admits arbitrary argv. It uses no <code>/usr/bin/env</code>, <code>eval</code>, or project-selected command. Root checks retain the registry's absolute prebuilt-vector boundary and centralize its preceding absolute-Cargo build.
 
 - [ ] **Step 3: Check generated reports and finish README**
 
