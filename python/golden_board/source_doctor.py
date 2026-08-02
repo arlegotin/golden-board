@@ -3,7 +3,12 @@ from hashlib import sha256
 from pathlib import Path, PurePosixPath
 import re
 
-from golden_board.source_lock import AnthologyLock, SafeFileError, read_regular_below
+from golden_board.source_lock import (
+    AnthologyLock,
+    SafeFileError,
+    SourceLock,
+    read_regular_below,
+)
 
 
 DIAGNOSTIC_PRECEDENCE = (
@@ -756,3 +761,36 @@ def inspect_source(raw: bytes) -> dict[str, object]:
         "g1_preflight": not diagnostics,
         "limitations": list(_LIMITATIONS),
     }
+
+
+def build_source_report(root: Path, lock: SourceLock) -> dict[str, object]:
+    raw = snapshot_regular_file(root, lock.anthology, MAX_SOURCE_BYTES)
+    report = inspect_source(raw)
+    module = read_regular_below(
+        root,
+        PurePosixPath("python/golden_board/source_doctor.py"),
+        1_048_576,
+    )
+
+    source = report["source"]
+    fences = report["fences"]
+    newlines = report["newlines"]
+    diagnostics = set(report["diagnostics"])
+    assert type(source) is dict
+    assert type(fences) is dict
+    assert type(newlines) is dict
+    source["path"] = lock.anthology.path.as_posix()
+    if source["byte_length"] != lock.anthology.byte_length:
+        diagnostics.add("source.lock_size")
+    if source["sha256"] != lock.anthology.sha256:
+        diagnostics.add("source.lock_hash")
+    if newlines["profile"] != lock.anthology.newlines.lower():
+        diagnostics.add("source.newline")
+
+    report["diagnostics"] = [
+        code for code in DIAGNOSTIC_PRECEDENCE if code in diagnostics
+    ]
+    report["g1_preflight"] = not report["diagnostics"]
+    report["fence_count"] = fences["recognized_count"]
+    report["raw_module_sha256"] = sha256(module).hexdigest()
+    return report

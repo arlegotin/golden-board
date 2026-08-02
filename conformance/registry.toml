@@ -428,3 +428,94 @@ expected_kind = "sha256"
 expected = "542a4d1d54f800df715b17c12322f850c02f4d8cf1a8144ddd37e77a76780489"
 implementations = ["python", "rust"]
 owner = "spec/identity-v0.md#7"
+
+[[case]]
+id = "source-doctor-boundary-input-at"
+family = "source-doctor"
+operation = "source-inspect"
+input_path = "conformance/source-doctor/boundary-input-at.toml"
+input_kind = "recipe"
+fixture_sha256 = "d06ceec2d109d4551221e5a95cb2a4e7408e2259c22850b9a8b0c67b73a238fd"
+input_sha256 = "81166e2bb7b4446233d4cf5e353d21534f01611c3c04168e136d894384ad8015"
+expected_kind = "sha256"
+expected = "a559ea0c7bfe58b7db958bcaa0f2fcb4dfda63c37560995ab59af421a88caa5d"
+implementations = ["python"]
+owner = "docs/superpowers/specs/2026-08-02-m0-foundation-design.md#11.2"
+
+[[case]]
+id = "source-doctor-boundary-input-over"
+family = "source-doctor"
+operation = "source-inspect"
+input_path = "conformance/source-doctor/boundary-input-over.toml"
+input_kind = "recipe"
+fixture_sha256 = "7fddb55f840fd112462552ee82278dc79709fb704d606254a85d4e110a6e6878"
+input_sha256 = "6d195f65d9e36681a80bd3fe9c2a6cc3a11fde88468bf02ebc8951add0783e43"
+expected_kind = "diagnostic"
+expected = "source.size_limit"
+implementations = ["python"]
+owner = "docs/superpowers/specs/2026-08-02-m0-foundation-design.md#11.2"
+
+[[case]]
+id = "source-doctor-fence-count-63"
+family = "source-doctor"
+operation = "source-inspect"
+input_path = "conformance/source-doctor/fence-count-63.hex"
+input_kind = "hex"
+fixture_sha256 = "a6adaa5819f680caf3d30b1a7e8de1acdce5f85a70f3dbf98180af0f3e3ab50d"
+input_sha256 = "33fa70f64aad4a123a45f92612582791ae09f356fc989dff13571132d41c7465"
+expected_kind = "sha256"
+expected = "6a0d5f9731eb80c3d2308d7b4a54a812b5f687ee1ec6826ac3a9292ea582995f"
+implementations = ["python"]
+owner = "docs/superpowers/specs/2026-08-02-m0-foundation-design.md#11.3"
+
+[[case]]
+id = "source-doctor-fence-count-65"
+family = "source-doctor"
+operation = "source-inspect"
+input_path = "conformance/source-doctor/fence-count-65.hex"
+input_kind = "hex"
+fixture_sha256 = "514835a5eec9bdd7b87939e4b019eb93ef4ee472ac0ab069d8c21105391a3edb"
+input_sha256 = "01fbe5806c9bb475c8649c1be9ad8e8955c34bcaa187dcd00435457de4d0be2c"
+expected_kind = "sha256"
+expected = "0307994edc44e14b8e0651ff384c06996068c4042fde5f90962be8d23660ca09"
+implementations = ["python"]
+owner = "docs/superpowers/specs/2026-08-02-m0-foundation-design.md#11.3"
+
+[[case]]
+id = "source-doctor-malformed-fences"
+family = "source-doctor"
+operation = "source-inspect"
+input_path = "conformance/source-doctor/malformed-fences.hex"
+input_kind = "hex"
+fixture_sha256 = "4826955c33c17d56d4ca84ab7adf16ab38771173dffec85f60da914d35db9491"
+input_sha256 = "8dde075fa474c33dcde7d685dbe202481fba70a036417fbb5f9b21df8c05402a"
+expected_kind = "sha256"
+expected = "d13819c1115436af55341394d2d6fc8753fbd3e0fb2c9440b84fc7e8294d3216"
+implementations = ["python"]
+owner = "docs/superpowers/specs/2026-08-02-m0-foundation-design.md#11.6"
+
+[[case]]
+id = "source-doctor-profile-errors"
+family = "source-doctor"
+operation = "source-inspect"
+input_path = "conformance/source-doctor/profile-errors.hex"
+input_kind = "hex"
+fixture_sha256 = "c3a4570a7d14b277d1375d2e9ff1c8def39c984d9ad479047a8d9df18bd07342"
+input_sha256 = "412fbdb5cd05dd591a06ce8690c660969163d97ed98f96a51973b69d43296604"
+expected_kind = "sha256"
+expected = "1902ad9045e33a309171f0d27e75577dee24b51b14708e5648fa8ad199886502"
+implementations = ["python"]
+owner = "docs/superpowers/specs/2026-08-02-m0-foundation-design.md#11.3"
+
+[[case]]
+id = "source-doctor-valid-taxonomy-64"
+family = "source-doctor"
+operation = "source-inspect"
+input_path = "conformance/source-doctor/valid-taxonomy-64.hex"
+input_kind = "hex"
+fixture_sha256 = "da059a49ee58126b0de0863990cb3ed311ffa859d1e26bf5d62a0ccb0e65120c"
+input_sha256 = "ec372f5ac7fdcc046ad87cbdf5101af7c97e1796e87d988f3f53d6a5cb5080e8"
+expected_kind = "sha256"
+expected = "dcd3a626bedf90e74b400fe160c2b64537b080b1a86a5563707eb4a94e44f57d"
+implementations = ["python"]
+owner = "docs/superpowers/specs/2026-08-02-m0-foundation-design.md#11.4"

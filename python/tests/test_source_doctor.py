@@ -1,14 +1,20 @@
+from dataclasses import replace
 from hashlib import sha256
+import os
+from pathlib import Path, PurePosixPath
+from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
 from golden_board import source_doctor
-from golden_board.manifest import encode_canonical_value
+from golden_board.manifest import decode_canonical_manifest, encode_canonical_value
 from golden_board.source_doctor import (
     DIAGNOSTIC_PRECEDENCE,
     SourceDoctorError,
+    build_source_report,
     inspect_source,
 )
+from golden_board.source_lock import SafeFileError, load_source_lock
 
 
 BLOCK = b"```pgn\n\n```\n"
@@ -27,6 +33,8 @@ TOP_LEVEL = {
     "g1_preflight",
     "limitations",
 }
+REPORT_TOP_LEVEL = TOP_LEVEL | {"fence_count", "raw_module_sha256"}
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def record(tags: bytes = b'[Event "omitted"]\n', moves: bytes = b"1. e4 e5 1-0\n") -> bytes:
@@ -312,6 +320,247 @@ class SourceDoctorTests(unittest.TestCase):
         self.assertGreater(capped["duplicates"]["raw_group_count"], 1)
         self.assertEqual(2, len(capped["duplicates"]["groups"]))
         self.assertTrue(capped["duplicates"]["groups_truncated"])
+
+
+class SourceReportTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.real_lock = load_source_lock(ROOT)
+
+    def lock_for(
+        self,
+        raw: bytes,
+        *,
+        byte_length: int | None = None,
+        digest: str | None = None,
+        newlines: str = "LF",
+    ):
+        anthology = replace(
+            self.real_lock.anthology,
+            byte_length=len(raw) if byte_length is None else byte_length,
+            sha256=sha256(raw).hexdigest() if digest is None else digest,
+            newlines=newlines,
+        )
+        return replace(self.real_lock, anthology=anthology)
+
+    def write_root(
+        self,
+        root: Path,
+        raw: bytes,
+        module: bytes = b"RAW-MODULE-SECRET\n",
+    ) -> None:
+        source = root / "docs/64_games.md"
+        source.parent.mkdir(parents=True)
+        source.write_bytes(raw)
+        module_path = root / "python/golden_board/source_doctor.py"
+        module_path.parent.mkdir(parents=True)
+        module_path.write_bytes(module)
+
+    def assert_report_diagnostics(
+        self,
+        raw: bytes,
+        expected: list[str],
+        **lock_overrides: object,
+    ) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_root(root, raw)
+            report = build_source_report(
+                root,
+                self.lock_for(raw, **lock_overrides),  # type: ignore[arg-type]
+            )
+        self.assertEqual(expected, report["diagnostics"])
+        self.assertEqual(not expected, report["g1_preflight"])
+        self.assertEqual(report, decode_canonical_manifest(encode_canonical_value(report)))
+
+    def test_real_locked_source_report_is_current_and_canonical(self) -> None:
+        first = build_source_report(ROOT, self.real_lock)
+        second = build_source_report(ROOT, self.real_lock)
+        encoded = encode_canonical_value(first)
+
+        self.assertEqual(first, second)
+        self.assertEqual(REPORT_TOP_LEVEL, set(first))
+        self.assertEqual(
+            {"path", "byte_length", "sha256"}, set(first["source"])
+        )
+        self.assertEqual("docs/64_games.md", first["source"]["path"])
+        self.assertEqual(64, first["fence_count"])
+        self.assertTrue(first["g1_preflight"])
+        self.assertEqual([], first["diagnostics"])
+        self.assertEqual(
+            sha256((ROOT / "python/golden_board/source_doctor.py").read_bytes()).hexdigest(),
+            first["raw_module_sha256"],
+        )
+        self.assertEqual(first, decode_canonical_manifest(encoded))
+        self.assertTrue(encoded.endswith(b"\n"))
+        self.assertFalse(encoded.endswith(b"\n\n"))
+
+    def test_composition_snapshots_and_inspects_once_with_fixed_module_read(self) -> None:
+        raw = BLOCK * 64
+        lock = self.lock_for(raw)
+        facts = inspect_source(raw)
+        root = Path("repository-root")
+        with (
+            patch.object(
+                source_doctor, "snapshot_regular_file", return_value=raw
+            ) as snapshot,
+            patch.object(source_doctor, "inspect_source", return_value=facts) as inspect,
+            patch.object(
+                source_doctor,
+                "read_regular_below",
+                return_value=b"module bytes\n",
+            ) as reader,
+        ):
+            report = build_source_report(root, lock)
+
+        snapshot.assert_called_once_with(root, lock.anthology, 16_777_216)
+        inspect.assert_called_once_with(raw)
+        reader.assert_called_once_with(
+            root,
+            PurePosixPath("python/golden_board/source_doctor.py"),
+            1_048_576,
+        )
+        self.assertEqual(sha256(b"module bytes\n").hexdigest(), report["raw_module_sha256"])
+
+    def test_lock_and_profile_diagnostics_are_merged_once_in_precedence(self) -> None:
+        self.assert_report_diagnostics(
+            BLOCK * 64,
+            ["source.lock_size"],
+            byte_length=len(BLOCK * 64) + 1,
+        )
+        self.assert_report_diagnostics(
+            BLOCK * 64,
+            ["source.lock_hash"],
+            digest="0" * 64,
+        )
+        self.assert_report_diagnostics(
+            BLOCK * 64,
+            ["source.newline"],
+            newlines="CRLF",
+        )
+        mixed = BLOCK * 63 + BLOCK.replace(b"\n", b"\r\n")
+        self.assert_report_diagnostics(mixed, ["source.newline"])
+        hostile = b"\xff"
+        self.assert_report_diagnostics(
+            hostile,
+            [
+                "source.lock_size",
+                "source.lock_hash",
+                "source.utf8",
+                "source.newline",
+                "source.final_lf",
+                "source.fence_count",
+            ],
+            byte_length=2,
+            digest="0" * 64,
+            newlines="CRLF",
+        )
+
+    def test_safely_readable_profile_failures_return_reports(self) -> None:
+        cases = (
+            (b"\xff\n" + BLOCK * 64, ["source.utf8"]),
+            (b"\xef\xbb\xbf" + BLOCK * 64, ["source.bom"]),
+            (b"\0\n" + BLOCK * 64, ["source.control"]),
+            (BLOCK * 63 + BLOCK[:-1], ["source.final_lf"]),
+            (BLOCK * 63, ["source.fence_count"]),
+            (BLOCK * 65, ["source.fence_count"]),
+        )
+        for raw, expected in cases:
+            with self.subTest(expected=expected):
+                self.assert_report_diagnostics(raw, expected)
+
+    def test_report_projects_no_other_lock_authority_or_hostile_values(self) -> None:
+        raw = record(b'[Event "PGN-TAG-SECRET"]\n') + BLOCK * 63
+        lock = self.lock_for(raw)
+        lock = replace(
+            lock,
+            toolchains=replace(lock.toolchains, host="HOST-SECRET"),
+            references=(replace(lock.references[0], title="REFERENCE-SECRET"),),
+            clean_linux=replace(lock.clean_linux, blocker="BLOCKER-SECRET"),
+        )
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            self.write_root(root, raw)
+            report = build_source_report(root, lock)
+
+        rendered = encode_canonical_value(report)
+        for secret in (
+            b"PGN-TAG-SECRET",
+            b"RAW-MODULE-SECRET",
+            b"HOST-SECRET",
+            b"REFERENCE-SECRET",
+            b"BLOCKER-SECRET",
+        ):
+            self.assertNotIn(secret, rendered)
+        for forbidden in (
+            "toolchains",
+            "references",
+            "clean_linux",
+            "timestamp",
+            "hostname",
+            "environment",
+            "self_hash",
+        ):
+            self.assertNotIn(forbidden, report)
+
+    def test_fatal_snapshot_and_module_reader_failures_propagate(self) -> None:
+        raw = BLOCK * 64
+        lock = self.lock_for(raw)
+        snapshot_error = SourceDoctorError("source.changed")
+        with (
+            patch.object(
+                source_doctor,
+                "snapshot_regular_file",
+                side_effect=snapshot_error,
+            ),
+            patch.object(source_doctor, "inspect_source") as inspect,
+        ):
+            with self.assertRaises(SourceDoctorError) as caught:
+                build_source_report(Path("root"), lock)
+        self.assertIs(snapshot_error, caught.exception)
+        inspect.assert_not_called()
+
+        module_error = SafeFileError("safe_file.changed")
+        with (
+            patch.object(source_doctor, "snapshot_regular_file", return_value=raw),
+            patch.object(source_doctor, "read_regular_below", side_effect=module_error),
+        ):
+            with self.assertRaises(SafeFileError) as caught:
+                build_source_report(Path("root"), lock)
+        self.assertIs(module_error, caught.exception)
+
+    def test_module_identity_path_is_safe_and_bounded(self) -> None:
+        raw = BLOCK * 64
+        lock = self.lock_for(raw)
+        for kind, expected in (
+            ("missing", "safe_file.path"),
+            ("parent-symlink", "safe_file.path"),
+            ("leaf-symlink", "safe_file.path"),
+            ("fifo", "safe_file.type"),
+            ("oversize", "safe_file.limit"),
+        ):
+            with self.subTest(kind=kind), TemporaryDirectory() as directory:
+                root = Path(directory)
+                self.write_root(root, raw)
+                module = root / "python/golden_board/source_doctor.py"
+                module.unlink()
+                if kind == "parent-symlink":
+                    parent = module.parent
+                    parent.rmdir()
+                    target = root / "real-golden-board"
+                    target.mkdir()
+                    (target / "source_doctor.py").write_bytes(b"module\n")
+                    parent.symlink_to(target, target_is_directory=True)
+                elif kind == "leaf-symlink":
+                    target = root / "module.py"
+                    target.write_bytes(b"module\n")
+                    module.symlink_to(target)
+                elif kind == "fifo":
+                    os.mkfifo(module)
+                elif kind == "oversize":
+                    module.write_bytes(b"x" * 1_048_577)
+                with self.assertRaisesRegex(SafeFileError, expected):
+                    build_source_report(root, lock)
 
 
 if __name__ == "__main__":

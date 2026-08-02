@@ -1,6 +1,8 @@
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
+from golden_board import source_doctor
 from golden_board.registry import (
     RegistryError,
     _python_result,
@@ -21,7 +23,13 @@ class DifferentialVectorTests(unittest.TestCase):
         cls.binary = _rust_binary(ROOT, TARGET)
 
     def test_every_registered_result_matches_both_implementations(self) -> None:
-        self.assertEqual([], run_registered_vectors(ROOT, TARGET))
+        with patch.object(
+            source_doctor,
+            "inspect_source",
+            wraps=source_doctor.inspect_source,
+        ) as inspect:
+            self.assertEqual([], run_registered_vectors(ROOT, TARGET))
+        self.assertEqual(7, inspect.call_count)
 
     def test_bounded_mutations_do_not_retain_the_original_result(self) -> None:
         def outcome(function, *arguments):
@@ -46,11 +54,27 @@ class DifferentialVectorTests(unittest.TestCase):
                 self.assertNotEqual(expected, outcome(_python_result, operation, mutated))
                 self.assertNotEqual(expected, outcome(_rust_result, self.binary, operation, mutated))
 
-    def test_registry_contains_no_fake_source_or_later_profile_case(self) -> None:
+    def test_registry_contains_only_the_owned_m0_source_doctor_cases(self) -> None:
         registry = load_registry(ROOT / "conformance/registry.toml")
         families = {case["family"] for case in registry["case"]}
-        self.assertNotIn("source-doctor", families)
-        self.assertEqual({"identity", "manifest"}, families)
+        source_cases = {
+            case["id"]
+            for case in registry["case"]
+            if case["family"] == "source-doctor"
+        }
+        self.assertEqual(
+            {
+                "source-doctor-boundary-input-at",
+                "source-doctor-boundary-input-over",
+                "source-doctor-fence-count-63",
+                "source-doctor-fence-count-65",
+                "source-doctor-malformed-fences",
+                "source-doctor-profile-errors",
+                "source-doctor-valid-taxonomy-64",
+            },
+            source_cases,
+        )
+        self.assertEqual({"identity", "manifest", "source-doctor"}, families)
 
 
 if __name__ == "__main__":
