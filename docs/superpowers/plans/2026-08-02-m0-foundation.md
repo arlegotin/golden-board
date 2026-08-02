@@ -6,7 +6,7 @@
 
 **Architecture:** A standard-library Python package owns host adapters, repository checks, source reconnaissance, status derivation, and report generation. An independent Rust crate owns a second identity/canonical-manifest path; the two paths meet only through hand-authored neutral constants and conformance fixtures. Locked uv and Cargo environments, a small POSIX dispatcher, and deterministic JSON reports make every M0 claim executable.
 
-**Tech Stack:** Python 3.14.6, uv 0.11.29, Rust/Cargo 1.94.0, Python standard library, Rust <code>sha2</code>/<code>serde</code>/<code>serde_json</code> with exact consumed features, POSIX shell, TOML, JSON, Git, and a pinned Docker clean-Linux plan.
+**Tech Stack:** Python 3.14.6, uv 0.11.29, Rust/Cargo 1.94.0, Python and Rust standard libraries, Rust <code>sha2</code>, POSIX shell, TOML, JSON, Git, and a pinned Docker clean-Linux plan.
 
 **Execution documents:** This file is the cross-subsystem orchestration and traceability map. High-risk literal code plus the complete TDD execution contracts are split across <code>2026-08-02-m0-core.md</code> (Tasks 1–6), <code>2026-08-02-m0-source.md</code> (Tasks 7–9), and <code>2026-08-02-m0-evidence.md</code> (Tasks 10–14). Those subsystem files are authoritative for implementation file ownership, red/green commands, task splits, review gates, and commit messages; the task bodies below are dependency/coverage summaries. Commit all four plan files before Task 1; execution checkboxes are ledger state and are not edited in the committed plans.
 
@@ -18,7 +18,7 @@
 - Python dependencies are managed only with uv, a committed <code>uv.lock</code>, repository-local <code>.venv</code>, and repository-local ignored <code>artifacts/uv-cache</code>; checks run with <code>PYTHONPATH=python UV_CACHE_DIR=artifacts/uv-cache uv run --offline --frozen</code>.
 - Rust dependencies are managed only with Cargo, a committed <code>Cargo.lock</code>, and repository-local ignored <code>artifacts/cargo-home</code>; unlocked <code>cargo generate-lockfile</code> occurs only for initial creation or immediate reviewed regeneration after a manifest dependency change, every following resolve/build command is locked, and commands use <code>CARGO_HOME=artifacts/cargo-home cargo --offline --locked</code> after acquisition. The project never uses <code>cargo install</code>.
 - Ordinary global dependency caches may accelerate development, but normal checks do not consult them and acceptance includes a clean verification with ordinary uv and Cargo caches hidden.
-- Python M0 code uses only the standard library. Rust direct dependencies are limited to <code>sha2</code>, <code>serde</code>, and <code>serde_json</code>, with only consumed features enabled.
+- Python M0 code uses only the standard library. Rust's only direct dependency is <code>sha2</code>, with only its consumed feature enabled.
 - The only normal host executables are uv, Cargo/the exact version-checked Rust toolchain, the lock-declared native C/linker/SDK surface needed by Rust binaries, POSIX shell, and Git. Network access occurs only in explicit acquisition steps. A separately declared generic SHA-256 executable is used once for vector audit and is not a check/runtime dependency.
 - Do not add chess, PGN, CLI, formatter, test-framework, TOML-parser, schema, property-test, or speculative later-milestone dependencies.
 - Do not select or require an ECC, integrity check, transport profile, carrier size, or later-milestone field during M0.
@@ -235,7 +235,7 @@ PYTHONPATH=python UV_PROJECT_ENVIRONMENT=.venv UV_CACHE_DIR=artifacts/uv-cache U
 CARGO_HOME=artifacts/cargo-home CARGO_TARGET_DIR=artifacts/cargo-target cargo check --workspace --offline --locked
 ~~~
 
-Expected: uv creates repository-local <code>.venv</code>; both lockfiles exist; Python tests pass; the dependency-free initial Rust crate compiles. Tasks 4–5 add only their used direct dependency families and regenerate <code>Cargo.lock</code>.
+Expected: uv creates repository-local <code>.venv</code>; both lockfiles exist; Python tests pass; the dependency-free initial Rust crate compiles. Task 4 adds the used SHA-256 dependency family and regenerates <code>Cargo.lock</code>; Task 5 keeps that reviewed surface frozen.
 
 - [ ] **Step 5: Review and commit**
 
@@ -485,34 +485,30 @@ git commit -m "feat: add independent Rust identity core"
 ### Task 5: Independent Rust Manifest and Vector Adapter
 
 **Files:**
-- Modify: <code>crates/golden-board-core/Cargo.toml</code>
 - Modify: <code>crates/golden-board-core/src/lib.rs</code>
 - Create: <code>crates/golden-board-core/src/manifest.rs</code>
 - Create: <code>crates/golden-board-core/src/bin/gb-vector.rs</code>
 - Create: <code>crates/golden-board-core/tests/vector_cli.rs</code>
-- Modify: <code>Cargo.lock</code>
 
 **Interfaces:**
 - Consumes: <code>spec/identity-v0.md</code>, <code>spec/constants-v0.json</code>, and Rust identity from Task 4; never consumes Python implementation code.
 - Produces: independent Rust manifest APIs and the stdin vector protocol consumed by Task 6.
 
-- [ ] **Step 1: Add only the used strict-JSON dependencies**
+- [ ] **Step 1: Keep the reviewed dependency surface frozen**
 
-Add:
+Do not add a JSON dependency. A conventional <code>deserialize_any</code>
+visitor rejects isolated UTF-16 surrogate escapes before the complete tree
+exists, while the frozen contract requires trailing-data, duplicate,
+unsupported-type, integer-range, and invalid-key phases to outrank
+<code>manifest.invalid_unicode</code>. A <code>RawValue</code> plus byte-string
+route can retain WTF-8, but still needs the same structural prepass, tagged raw
+tree, phased validation, and canonical writer, repeatedly reparses nested raw
+subtrees, and introduces ten additional locked packages. One linear project
+parser is the smaller total system. Keep the Task 4 Cargo manifest and lockfile
+unchanged, and run every Task 5 command offline and locked.
 
-~~~toml
-serde = { version = "1", default-features = false, features = ["std"] }
-serde_json = { version = "1", default-features = false, features = ["std", "arbitrary_precision", "raw_value"] }
-~~~
-
-Run the explicit networked acquisition:
-
-~~~sh
-CARGO_HOME=artifacts/cargo-home cargo generate-lockfile
-CARGO_HOME=artifacts/cargo-home cargo fetch --locked
-~~~
-
-Expected: <code>Cargo.lock</code> adds only serde/serde_json and their required transitive crates; later commands are offline.
+Expected: no dependency acquisition occurs and the audited Task 4 executable
+surface is unchanged.
 
 - [ ] **Step 2: Write failing Rust manifest tests**
 
@@ -524,7 +520,17 @@ Expected: compilation fails because the manifest API is absent.
 
 - [ ] **Step 3: Implement independent Rust canonical manifest handling**
 
-Before semantic validation, use serde seeds/visitors plus the enabled arbitrary-number/raw-value support to preserve ordered object entries, exact number spelling (including negative zero, u64-plus-one, huge integers, fractions, and exponents), null, and decoded strings in a tagged project value. Enforce input/depth/collection/node bounds before descending or growing a collection. Validate the complete value in the same fixed phases as Python so duplicate, unsupported-type, integer-range, key, Unicode, and noncanonical precedence cannot depend on visitor encounter order. Emit strings and objects with project code; sort keys by <code>as_bytes()</code>. Use <code>serde_json</code> only for strict token decoding and value visitation, not as canonical emission authority. Compare emitted bytes plus LF with input and return the fixed diagnostic code.
+Use one bounded project parser. Its raw value tree preserves object pairs in
+order, exact ASCII number lexemes (including negative zero, u64-plus-one, huge
+integers, fractions, and exponents), null, and decoded strings as Unicode code
+points that can temporarily retain an isolated surrogate code unit. Valid
+surrogate pairs combine into one scalar. Run the structural/string limit
+prepass before UTF-8 and syntax work; finish parsing the first value and its
+tail before semantic validation; then traverse the complete tree in the fixed
+duplicate, unsupported-type, integer-range, key, and Unicode phases. Convert
+only accepted strings into Rust <code>String</code>. Emit strings and objects
+with project code, sort valid keys by ASCII bytes, compare emitted bytes plus LF
+with the input, and return the fixed diagnostic code.
 
 Run:
 
@@ -576,7 +582,7 @@ Expected: all Rust tests pass.
 Commit:
 
 ~~~sh
-git add Cargo.lock crates/golden-board-core/Cargo.toml crates/golden-board-core/src/lib.rs crates/golden-board-core/src/manifest.rs crates/golden-board-core/src/bin/gb-vector.rs crates/golden-board-core/tests/vector_cli.rs
+git add crates/golden-board-core/src/lib.rs crates/golden-board-core/src/manifest.rs crates/golden-board-core/src/bin/gb-vector.rs crates/golden-board-core/tests/vector_cli.rs
 git commit -m "feat: add independent Rust manifest core"
 ~~~
 
@@ -1146,7 +1152,7 @@ Use <code>FOCUS_AREAS = ("foundation", "dependencies", "identity", "manifest", "
 The focused areas are exact:
 
 - <code>foundation</code>: required files, governance content, status derivation, report shape, and forbidden premature fields.
-- <code>dependencies</code>: exact active Python/uv/Rust/Cargo pins, committed lockfiles, declared direct dependencies, project-local command use, and absence of global-install commands. Parse complete locked Cargo metadata offline and reject undeclared registries/git/path dependencies, <code>proc-macro</code>, native/link targets, lifecycle installers, or an unreviewed <code>custom-build</code> target; the tiny exact custom-build allowlist, if the resolved lock requires one, is recorded and mutation-tested when Tasks 4–5 change the lock. Parse Python imports with <code>ast</code> and require only standard-library/project modules. Git/shell/host fields are validated as locked primary-host observations rather than required to equal an alternate clean-Linux host; the environment protocols record and check their own applicable executable facts.
+- <code>dependencies</code>: exact active Python/uv/Rust/Cargo pins, committed lockfiles, declared direct dependencies, project-local command use, and absence of global-install commands. Parse complete locked Cargo metadata offline and reject undeclared registries/git/path dependencies, <code>proc-macro</code>, native/link targets, lifecycle installers, or an unreviewed <code>custom-build</code> target; the tiny exact custom-build allowlist is recorded and mutation-tested from Task 4, the only task that changes the dependency lock. Parse Python imports with <code>ast</code> and require only standard-library/project modules. Git/shell/host fields are validated as locked primary-host observations rather than required to equal an alternate clean-Linux host; the environment protocols record and check their own applicable executable facts.
 - <code>identity</code>: Python/Rust framing and SHA-256 vectors.
 - <code>manifest</code>: Python/Rust valid, invalid, and boundary canonical-JSON fixtures.
 - <code>source</code>: source lock, doctor unit/adapter fixtures, real-source regeneration, exact report comparison, and a closed scan of README, <code>AGENTS.md</code>, <code>spec/identity-v0.md</code>, <code>spec/constants-v0.json</code>, <code>docs/sources.md</code>, <code>docs/decisions.md</code>, and generated constants. Outside the generated doctor report/tests, reject doctor-schema field names such as <code>fence_count</code>, <code>lexical_ply_total</code>, <code>record_byte_range</code>, <code>tag_inventory</code>, and <code>construct_counts</code>; <code>inputs/source-lock.toml</code> is separately allowed only its roadmap-required raw path/length/hash/profile facts. A mutation that inserts an arbitrary <code>lexical_ply_total: 1</code> into a README copy must fail without hard-coding any observed source statistic in production checks.

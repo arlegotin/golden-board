@@ -215,10 +215,10 @@ roadmap is part of the M0 design, not optional setup advice.
   version and `cargo fmt` probes are the only other explicit exceptions;
 - cargo install is never part of setup or checks;
 - the Rust standard test harness is sufficient;
-- direct M0 dependencies are limited to sha2 for SHA-256 and serde plus
-  serde_json for strict JSON decoding and value handling;
-- canonical emission, duplicate detection, type restrictions, and byte
-  equality are project code rather than delegated to a library default; and
+- the only direct M0 dependency is sha2 for SHA-256;
+- strict JSON decoding, surrogate preservation, canonical emission, duplicate
+  detection, type restrictions, and byte equality are project code so the
+  frozen whole-document diagnostic precedence is enforceable; and
 - dependency features are kept to those consumed by M0.
 
 No Rust CLI framework, property-test framework, TOML parser, chess library, or
@@ -1102,7 +1102,7 @@ This design resolves the M0 ambiguities as follows:
 - Docker is the clean-Linux mechanism with an M2 operational deadline;
 - later conformance slots are registry schema capacity, not fake fixtures;
 - Python is standard-library-only;
-- Rust has only SHA-256 and strict-JSON direct dependencies;
+- Rust has only the SHA-256 direct dependency;
 - reports are tracked deterministic evidence while raw logs remain ignored;
   and
 - scripts/check release fails explicitly until M2 rather than pretending to
