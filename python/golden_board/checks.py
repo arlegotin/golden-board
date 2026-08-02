@@ -1679,7 +1679,7 @@ _COMMAND_ASSIGNMENT_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_LINUX_PROBE_SCRIPT",
-    ): "87460c7792cce2218a085a35f2ac8e5999f141f283dd606869542cd3100ade6a",
+    ): "a0591b4fffcfa4ec4f9766eb348e280b92a9259dcf7301984412e7b09e5e44d0",
     (
         "python/golden_board/clean.py",
         "_LINUX_TOKEN",

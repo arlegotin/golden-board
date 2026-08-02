@@ -1912,6 +1912,7 @@ class LinuxProtocolTests(unittest.TestCase):
             "RUSTUP_HOME=/usr/local/rustup",
             "/usr/local/cargo/bin/rustup --version 2>/dev/null",
             "/usr/bin/cc -###",
+            'test "$driver" = /usr/bin/aarch64-linux-gnu-ld',
             "collect2",
             "ld-linux-aarch64.so.1",
             "/usr/bin/cc -Wl,-t",

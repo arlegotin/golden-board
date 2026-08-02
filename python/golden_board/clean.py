@@ -1633,7 +1633,7 @@ libc=$(/usr/bin/ldd --version | /usr/bin/head -n 1)
 arch=$(/usr/bin/uname -m)
 shell=$(/bin/sh -p -c 'printf shell-ok')
 driver=$(/usr/bin/cc -print-prog-name=ld)
-test "$driver" = /usr/bin/ld
+test "$driver" = /usr/bin/aarch64-linux-gnu-ld
 trace=$(/usr/bin/cc -### -x c - -o "$probe" </dev/null 2>&1)
 case "$trace" in *collect2*ld-linux-aarch64.so.1*) ;; *) exit 32 ;; esac
 link_trace=$(printf 'int main(void) { return 0; }\n' | /usr/bin/cc -Wl,-t -x c - -o "$probe" 2>&1)
