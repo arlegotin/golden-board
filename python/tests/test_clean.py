@@ -1873,7 +1873,7 @@ class LinuxProtocolTests(unittest.TestCase):
     ) -> None:
         probe = (
             b"linux-image-probe-v0\n"
-            b"uv 0.11.29\n"
+            b"uv 0.11.29 (aarch64-unknown-linux-gnu)\n"
             b"rustup 1.29.0 (28d1352db 2026-03-05)\n"
             b"git version 2.39.5\n"
             b"12.2.0\n"
@@ -1898,6 +1898,9 @@ class LinuxProtocolTests(unittest.TestCase):
             probe.replace(b"GLIBC 2.36-9+deb12u13", b"GLIBC 2.37-9+deb12u13"),
             probe.replace(b"aarch64", b"x86_64"),
             probe.replace(b"uv 0.11.29", b"uv 0.11.30"),
+            probe.replace(
+                b"aarch64-unknown-linux-gnu", b"x86_64-unknown-linux-gnu"
+            ),
             probe + b"extra\n",
             probe[:-1],
             probe.replace(b"\n", b"\r\n", 1),

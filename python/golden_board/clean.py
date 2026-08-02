@@ -1859,15 +1859,13 @@ def _validate_linux_probe_output(stdout: bytes, stderr: bytes) -> None:
         lines = stdout[:-1].decode("ascii").split("\n")
     except UnicodeError as error:
         raise CleanError("invalid clean-Linux image probe") from error
-    semantic = (
-        (1, r"uv 0\.11\.29"),
-        (3, r"git version 2\.[0-9]{1,3}\.[0-9]{1,3}"),
-    )
+    semantic = ((3, r"git version 2\.[0-9]{1,3}\.[0-9]{1,3}"),)
     if (
         stderr
         or len(stdout) > 4096
         or len(lines) != 9
         or lines[0] != "linux-image-probe-v0"
+        or lines[1] != "uv 0.11.29 (aarch64-unknown-linux-gnu)"
         or lines[2] != LINUX_RUSTUP_VERSION
         or any(
             re.fullmatch(pattern, lines[index]) is None for index, pattern in semantic

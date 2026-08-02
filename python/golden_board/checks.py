@@ -1337,7 +1337,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_validate_linux_probe_output",
-    ): "30acf46d732b09f329a9495af6762ff5faadbd32e19722f0ce9dd2fc0bff5864",
+    ): "a51b17d1fc484046b88d967ef1d961fc1676e6238f0e7693fc9cb8fa8661af77",
     (
         "python/golden_board/clean.py",
         "_validate_linux_rust_toolchain",
