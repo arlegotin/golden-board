@@ -11,6 +11,8 @@ import subprocess
 import time
 import tomllib
 
+from golden_board.source_lock import SafeFileError, read_regular_below
+
 
 MAX_REGISTRY_BYTES = 1 << 20
 MAX_FIXTURE_BYTES = 1 << 20
@@ -50,100 +52,23 @@ class RegistryError(ValueError):
     pass
 
 
-def _open_flags(*names: str) -> int:
-    flags = os.O_RDONLY
-    for name in names:
-        value = getattr(os, name, None)
-        if type(value) is not int:
-            raise RegistryError("registry.platform")
-        flags |= value
-    return flags
-
-
-def _file_facts(value: os.stat_result) -> tuple[int, int, int, int, int, int]:
-    return (
-        value.st_dev,
-        value.st_ino,
-        value.st_mode,
-        value.st_size,
-        value.st_mtime_ns,
-        value.st_ctime_ns,
-    )
-
-
-def _read_fd(file_descriptor: int, cap: int) -> bytes:
-    data = bytearray()
-    while len(data) <= cap:
-        chunk = os.read(file_descriptor, min(65_536, cap + 1 - len(data)))
-        if not chunk:
-            break
-        data.extend(chunk)
-    if len(data) > cap:
-        raise RegistryError("registry.fixture_limit")
-    return bytes(data)
-
-
-def _read_path(path: Path, cap: int) -> bytes:
-    descriptor: int | None = None
-    try:
-        descriptor = os.open(
-            path,
-            _open_flags("O_CLOEXEC", "O_NOFOLLOW", "O_NONBLOCK"),
-        )
-        before = os.fstat(descriptor)
-        if not stat.S_ISREG(before.st_mode):
-            raise RegistryError("registry.nonregular")
-        raw = _read_fd(descriptor, cap)
-        after = os.fstat(descriptor)
-        if _file_facts(before) != _file_facts(after):
-            raise RegistryError("registry.changed")
-        return raw
-    except RegistryError:
-        raise
-    except OSError as error:
-        raise RegistryError("registry.path") from error
-    finally:
-        if descriptor is not None:
-            os.close(descriptor)
+def _registry_file_error(error: SafeFileError) -> RegistryError:
+    code = {
+        "safe_file.capability": "registry.platform",
+        "safe_file.type": "registry.nonregular",
+        "safe_file.limit": "registry.fixture_limit",
+        "safe_file.changed": "registry.changed",
+    }.get(str(error), "registry.path")
+    return RegistryError(code)
 
 
 def _path_parts(value: object) -> tuple[str, ...]:
-    if type(value) is not str or not value or "\\" in value:
+    if type(value) is not str or not value or any(character in value for character in ("\0", "\\")):
         raise RegistryError("registry.path")
     path = PurePosixPath(value)
     if path.is_absolute() or path.as_posix() != value or any(part in {"", ".", ".."} for part in path.parts):
         raise RegistryError("registry.path")
     return path.parts
-
-
-def _read_regular_below(root: Path, relative: str, cap: int) -> bytes:
-    parts = _path_parts(relative)
-    directory_flags = _open_flags("O_CLOEXEC", "O_NOFOLLOW", "O_DIRECTORY")
-    file_flags = _open_flags("O_CLOEXEC", "O_NOFOLLOW", "O_NONBLOCK")
-    descriptors: list[int] = []
-    try:
-        descriptor = os.open(root, directory_flags)
-        descriptors.append(descriptor)
-        for part in parts[:-1]:
-            descriptor = os.open(part, directory_flags, dir_fd=descriptor)
-            descriptors.append(descriptor)
-        file_descriptor = os.open(parts[-1], file_flags, dir_fd=descriptor)
-        descriptors.append(file_descriptor)
-        before = os.fstat(file_descriptor)
-        if not stat.S_ISREG(before.st_mode):
-            raise RegistryError("registry.nonregular")
-        raw = _read_fd(file_descriptor, cap)
-        after = os.fstat(file_descriptor)
-        if _file_facts(before) != _file_facts(after):
-            raise RegistryError("registry.changed")
-        return raw
-    except (OSError, RegistryError) as error:
-        if isinstance(error, RegistryError):
-            raise
-        raise RegistryError("registry.path") from error
-    finally:
-        for descriptor in reversed(descriptors):
-            os.close(descriptor)
 
 
 def _schema_errors(registry: object) -> list[str]:
@@ -229,13 +154,25 @@ def _schema_errors(registry: object) -> list[str]:
 
 def load_registry(path: Path) -> dict[str, object]:
     try:
-        raw = _read_path(path, MAX_REGISTRY_BYTES)
+        try:
+            raw = read_regular_below(
+                path.parent,
+                PurePosixPath(path.name),
+                MAX_REGISTRY_BYTES,
+            )
+        except SafeFileError as error:
+            raise _registry_file_error(error) from error
         if raw.startswith(b"\xef\xbb\xbf"):
             raise RegistryError("registry.utf8")
         parsed = tomllib.loads(raw.decode("utf-8", "strict"))
     except RegistryError:
         raise
-    except (UnicodeDecodeError, tomllib.TOMLDecodeError, ValueError) as error:
+    except (
+        UnicodeDecodeError,
+        tomllib.TOMLDecodeError,
+        RecursionError,
+        ValueError,
+    ) as error:
         raise RegistryError("registry.syntax") from error
     errors = _schema_errors(parsed)
     if errors:
@@ -262,7 +199,12 @@ def _materialize_recipe(raw: bytes) -> bytes:
         if raw.startswith(b"\xef\xbb\xbf"):
             raise RegistryError("registry.recipe")
         recipe = tomllib.loads(raw.decode("utf-8", "strict"))
-    except (UnicodeDecodeError, tomllib.TOMLDecodeError, ValueError) as error:
+    except (
+        UnicodeDecodeError,
+        tomllib.TOMLDecodeError,
+        RecursionError,
+        ValueError,
+    ) as error:
         raise RegistryError("registry.recipe") from error
     if type(recipe) is not dict or type(recipe.get("kind")) is not str:
         raise RegistryError("registry.recipe")
@@ -315,7 +257,14 @@ def _materialize_recipe(raw: bytes) -> bytes:
 
 
 def _materialize_fixture(root: Path, case: dict[str, object]) -> bytes:
-    fixture = _read_regular_below(root, case["input_path"], MAX_FIXTURE_BYTES)
+    try:
+        fixture = read_regular_below(
+            root,
+            PurePosixPath(case["input_path"]),
+            MAX_FIXTURE_BYTES,
+        )
+    except SafeFileError as error:
+        raise _registry_file_error(error) from error
     if hashlib.sha256(fixture).hexdigest() != case["fixture_sha256"]:
         raise RegistryError("registry.fixture_hash")
     if case["input_kind"] == "hex":

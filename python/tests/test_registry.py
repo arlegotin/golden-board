@@ -2,7 +2,7 @@ import copy
 import hashlib
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import sys
 import tempfile
 import time
@@ -13,6 +13,7 @@ from unittest.mock import patch
 import golden_board.registry as registry_module
 from golden_board.registry import (
     MAX_FIXTURE_BYTES,
+    MAX_REGISTRY_BYTES,
     RegistryError,
     _materialize_fixture,
     _run_bounded_process,
@@ -97,6 +98,11 @@ class RegistrySchemaTests(unittest.TestCase):
             with self.subTest(identifier=identifier):
                 self.assert_rejected(_registry(_case(id=identifier)))
 
+    def test_toml_escaped_nul_path_rejects(self) -> None:
+        self.assert_rejected(
+            _registry(_case(input_path="conformance/identity/nul\0fixture.hex"))
+        )
+
     def test_unknown_enums_reject_but_source_inspect_is_admitted(self) -> None:
         changes = (
             {"family": "chess"},
@@ -131,6 +137,22 @@ class RegistrySchemaTests(unittest.TestCase):
             [case["id"] for case in loaded["case"]],
         )
 
+    def test_registry_read_delegates_once_to_shared_reader(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "registry.toml"
+            path.write_text(_toml(_registry()), encoding="utf-8")
+            with patch.object(
+                registry_module,
+                "read_regular_below",
+                wraps=registry_module.read_regular_below,
+            ) as reader:
+                load_registry(path)
+        reader.assert_called_once_with(
+            path.parent,
+            PurePosixPath(path.name),
+            MAX_REGISTRY_BYTES,
+        )
+
     def test_toml_integer_digit_limit_is_a_registry_error(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "registry.toml"
@@ -140,6 +162,20 @@ class RegistrySchemaTests(unittest.TestCase):
             )
             with self.assertRaises(RegistryError):
                 load_registry(path)
+
+    def test_deep_toml_is_a_registry_error(self) -> None:
+        nested = "[" * 2_000 + "0" + "]" * 2_000
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "registry.toml"
+            path.write_text(
+                f"schema_version = {nested}\ncase = []\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(RegistryError):
+                load_registry(path)
+
+        with self.assertRaises(RegistryError):
+            registry_module._materialize_recipe(f"kind = {nested}\n".encode())
 
     def test_reader_errors_are_not_misreported_as_toml_syntax(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -155,7 +191,7 @@ class RegistrySchemaTests(unittest.TestCase):
                     load_registry(path)
 
             with patch("golden_board.registry.os.read", side_effect=OSError("injected")):
-                with self.assertRaisesRegex(RegistryError, r"^registry\.path$"):
+                with self.assertRaisesRegex(RegistryError, r"^registry\.changed$"):
                     load_registry(path)
 
 
@@ -174,6 +210,19 @@ class RegistryFixtureTests(unittest.TestCase):
     def test_valid_hex_fixture_passes(self) -> None:
         self.assertEqual([], self.errors())
 
+    def test_fixture_read_delegates_once_to_shared_reader(self) -> None:
+        with patch.object(
+            registry_module,
+            "read_regular_below",
+            wraps=registry_module.read_regular_below,
+        ) as reader:
+            self.assertEqual([], self.errors())
+        reader.assert_called_once_with(
+            self.root.resolve(),
+            PurePosixPath("conformance/identity/a-empty-scalar.hex"),
+            MAX_FIXTURE_BYTES,
+        )
+
     def test_missing_extra_and_hash_mismatch_reject(self) -> None:
         fixture = self.root / "conformance/identity/a-empty-scalar.hex"
         fixture.unlink()
@@ -190,6 +239,7 @@ class RegistryFixtureTests(unittest.TestCase):
             str((self.root / "outside.hex").resolve()),
             "conformance/../outside.hex",
             "conformance\\identity\\a-empty-scalar.hex",
+            "conformance/identity/nul\0fixture.hex",
         ):
             with self.subTest(value=value):
                 self.assertTrue(self.errors(_case(input_path=value)))
