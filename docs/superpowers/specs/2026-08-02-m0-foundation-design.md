@@ -247,6 +247,10 @@ the per-attempt running kernel and runtime-architecture observations. Only
 Python, uv, Rust, and Cargo are cross-platform semantic version pins.
 
 All selected versions and host facts are recorded in inputs/source-lock.toml.
+The primary-host SDK root is fixed, trace-validated operational state rather
+than a portable source identity: M0 uses the exact Xcode SDK directory selected
+by the declared driver, passes it unchanged to every Cargo child, and records
+the selected SDK version and driver relationship in the source lock.
 The setup/check wrappers use privileged shell startup (`#!/bin/sh -p`) and verify
 that both declared shells ignore startup-file/function variables before line
 one; its Python bootstrap uses `-I -S -B`. Project logic still runs through
