@@ -210,8 +210,17 @@ roadmap is part of the M0 design, not optional setup advice.
   phase installs the declared minimal 1.94.0 aarch64 toolchain plus `rustfmt`
   into `artifacts/cargo-home/rustup`. The acquisition inventory hashes that
   checkout-local tree, and the offline phase and nested full checks use only
-  its direct `cargo`, `rustc`, and `rustfmt` binaries. They do not depend on
-  image-global rustup proxies or ordinary global Rust caches.
+  its direct `cargo`, `rustc`, `rustdoc`, `cargo-fmt`, and `rustfmt` binaries.
+  All five resolve as direct leaves of one validated Rust toolchain bin
+  directory.
+  `cargo`, `rustc`, and the minimal-toolchain `rustdoc` are pinned to 1.94.0;
+  `rustfmt` and the `cargo-fmt` dispatcher supplied by the declared rustfmt
+  component are pinned to 1.8.0. Cargo children receive exact
+  `RUSTC`/`RUSTDOC`/`RUSTFMT` projections. They do not depend on image-global
+  rustup proxies or ordinary global Rust caches.
+- every Cargo child fixes `CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse` so the
+  pinned Cargo release cannot drift registry/cache layout through a default or
+  inherited setting;
 - the root Cargo.toml is a minimal workspace;
 - Cargo.lock is committed;
 - every dependency-resolving build, test, fetch, check, and metadata command
