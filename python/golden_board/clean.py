@@ -117,15 +117,39 @@ def _explicit_git(path: Path) -> Path:
     return _probe_exact_tool(path, ("--version",), b"git version 2.49.0\n")
 
 
-def _probe_semantic_tool(path: Path, name: str, version: str) -> Path:
+def _probe_semantic_tool(
+    path: Path,
+    name: str,
+    version: str,
+    *,
+    home: Path | None = None,
+) -> Path:
     from golden_board.bootstrap import validate_semantic_tool
+
+    runner = _probe_runner
+    if home is not None:
+        if (
+            not isinstance(home, Path)
+            or not home.is_absolute()
+            or "\0" in os.fspath(home)
+            or ".." in home.parts
+        ):
+            raise CleanError("invalid pinned tool home")
+
+        def runner(argv: list[str], **kwargs: object) -> object:
+            environment = kwargs.pop("env", None)
+            if type(environment) is not dict or "HOME" in environment:
+                raise CleanError("invalid pinned tool environment")
+            projected = dict(environment)
+            projected["HOME"] = str(home)
+            return _probe_runner(argv, env=projected, **kwargs)
 
     try:
         return validate_semantic_tool(
             path,
             name,
             version,
-            runner=_probe_runner,
+            runner=runner,
         )
     except ValueError as error:
         raise CleanError("invalid pinned tool") from error
@@ -1579,7 +1603,15 @@ def _validate_linux_rust_toolchain(root: Path) -> None:
                 raise CleanError("unsafe project-local Rust toolchain")
             files.append((semantic_name, path, descriptor, held))
             validate_namespace()
-            if _probe_semantic_tool(path, semantic_name, version) != path:
+            if (
+                _probe_semantic_tool(
+                    path,
+                    semantic_name,
+                    version,
+                    home=repository / "artifacts/check-home",
+                )
+                != path
+            ):
                 raise CleanError("unsafe project-local Rust toolchain")
             validate_namespace()
 

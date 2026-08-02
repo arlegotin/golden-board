@@ -162,6 +162,58 @@ class NativeProtocolTests(unittest.TestCase):
             git=root / "tools/git",
         )
 
+    def test_semantic_tool_probe_adds_only_the_explicit_local_home(self) -> None:
+        tool = Path("/tools/cargo")
+        home = Path("/checkout/artifacts/check-home")
+        observed: dict[str, object] = {}
+
+        def probe_runner(argv, **kwargs):
+            observed["argv"] = argv
+            observed.update(kwargs)
+            return SimpleNamespace(
+                returncode=0,
+                stdout=b"cargo 1.94.0 (Homebrew)\n",
+                stderr=b"",
+            )
+
+        def validate(path, name, version, *, runner):
+            runner(
+                [str(path), "--version"],
+                cwd=None,
+                env={
+                    "LANG": "C",
+                    "LC_ALL": "C",
+                    "PATH": str(path.parent),
+                    "TZ": "UTC",
+                },
+            )
+            return path
+
+        with (
+            patch.object(clean, "_probe_runner", side_effect=probe_runner),
+            patch(
+                "golden_board.bootstrap.validate_semantic_tool",
+                side_effect=validate,
+            ),
+        ):
+            self.assertEqual(
+                tool,
+                clean._probe_semantic_tool(tool, "cargo", "1.94.0", home=home),
+            )
+
+        self.assertEqual([str(tool), "--version"], observed["argv"])
+        self.assertIsNone(observed["cwd"])
+        self.assertEqual(
+            {
+                "HOME": str(home),
+                "LANG": "C",
+                "LC_ALL": "C",
+                "PATH": str(tool.parent),
+                "TZ": "UTC",
+            },
+            observed["env"],
+        )
+
     def test_native_phase_environments_are_closed_and_checkout_local(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory).resolve() / "checkout"
@@ -1898,9 +1950,7 @@ class LinuxProtocolTests(unittest.TestCase):
             probe.replace(b"GLIBC 2.36-9+deb12u13", b"GLIBC 2.37-9+deb12u13"),
             probe.replace(b"aarch64", b"x86_64"),
             probe.replace(b"uv 0.11.29", b"uv 0.11.30"),
-            probe.replace(
-                b"aarch64-unknown-linux-gnu", b"x86_64-unknown-linux-gnu"
-            ),
+            probe.replace(b"aarch64-unknown-linux-gnu", b"x86_64-unknown-linux-gnu"),
             probe + b"extra\n",
             probe[:-1],
             probe.replace(b"\n", b"\r\n", 1),
@@ -2005,7 +2055,7 @@ class LinuxProtocolTests(unittest.TestCase):
                 patch.object(
                     clean,
                     "_probe_semantic_tool",
-                    side_effect=lambda path, _name, _version: path,
+                    side_effect=lambda path, _name, _version, **_kwargs: path,
                 ) as probe,
                 patch.object(clean, "_probe_linux_cargo_fmt") as cargo_fmt,
             ):
@@ -2020,6 +2070,12 @@ class LinuxProtocolTests(unittest.TestCase):
                     (binary / "cargo-fmt", "rustfmt", "1.8.0"),
                 ],
                 [call.args for call in probe.call_args_list],
+            )
+            self.assertTrue(
+                all(
+                    call.kwargs == {"home": root / "artifacts/check-home"}
+                    for call in probe.call_args_list
+                )
             )
             cargo_fmt.assert_called_once_with(
                 root,
@@ -2053,7 +2109,9 @@ class LinuxProtocolTests(unittest.TestCase):
                 path.chmod(0o555)
             calls = 0
 
-            def exchange(path: Path, _name: str, _version: str) -> Path:
+            def exchange(
+                path: Path, _name: str, _version: str, **_kwargs: object
+            ) -> Path:
                 nonlocal calls
                 calls += 1
                 if calls == 1:

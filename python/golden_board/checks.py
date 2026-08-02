@@ -1241,7 +1241,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_probe_semantic_tool",
-    ): "bec75e1b2b65a2c69627c785a4bbcf994d095785b05c30fc5e915d77a2603d21",
+    ): "afb32fbf8980b316c093fad7ab1ed68a5f02a2fa28e6471ec9dde9a3832bec64",
     (
         "python/golden_board/clean.py",
         "_prove_linux_container_name_absent",
@@ -1341,7 +1341,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_validate_linux_rust_toolchain",
-    ): "e425746cf0b08ca8c79528938a9f2ec7e98519c3f686bc15a8958be86eb83e9c",
+    ): "60c7e8d69725b2ab52fa6f6b02fe79274ad62f8cded224d460218d25e0cbf3dd",
     (
         "python/golden_board/clean.py",
         "_validate_linux_uv_tool",
