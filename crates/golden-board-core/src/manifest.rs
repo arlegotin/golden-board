@@ -1,3 +1,4 @@
+use crate::constants::{MANIFEST, MANIFEST_DIAGNOSTICS};
 use crate::{scalar_preimage, sha256_hex};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -8,18 +9,17 @@ const MAX_COLLECTION: usize = 65_535;
 const MAX_NODES: usize = 1_000_000;
 const MAX_STRING_BYTES: usize = 1 << 24;
 const MAX_U64_TEXT: &str = "18446744073709551615";
-const MANIFEST_PREFIX: &[u8] = b"GB-MANIFEST-v0\0";
 
-const LIMIT: &str = "manifest.limit";
-const UTF8: &str = "manifest.utf8";
-const SYNTAX: &str = "manifest.syntax";
-const TRAILING_DATA: &str = "manifest.trailing_data";
-const DUPLICATE_KEY: &str = "manifest.duplicate_key";
-const UNSUPPORTED_TYPE: &str = "manifest.unsupported_type";
-const INTEGER_RANGE: &str = "manifest.integer_range";
-const INVALID_KEY: &str = "manifest.invalid_key";
-const INVALID_UNICODE: &str = "manifest.invalid_unicode";
-const NONCANONICAL: &str = "manifest.noncanonical";
+const LIMIT: &str = MANIFEST_DIAGNOSTICS[0];
+const UTF8: &str = MANIFEST_DIAGNOSTICS[1];
+const SYNTAX: &str = MANIFEST_DIAGNOSTICS[2];
+const TRAILING_DATA: &str = MANIFEST_DIAGNOSTICS[3];
+const DUPLICATE_KEY: &str = MANIFEST_DIAGNOSTICS[4];
+const UNSUPPORTED_TYPE: &str = MANIFEST_DIAGNOSTICS[5];
+const INTEGER_RANGE: &str = MANIFEST_DIAGNOSTICS[6];
+const INVALID_KEY: &str = MANIFEST_DIAGNOSTICS[7];
+const INVALID_UNICODE: &str = MANIFEST_DIAGNOSTICS[8];
+const NONCANONICAL: &str = MANIFEST_DIAGNOSTICS[9];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ManifestError {
@@ -884,7 +884,7 @@ pub fn encode_canonical_value(value: &ManifestValue) -> Result<Vec<u8>, Manifest
 
 pub fn canonical_manifest_hash(raw: &[u8]) -> Result<String, ManifestError> {
     decode_canonical_manifest(raw)?;
-    let preimage = scalar_preimage(MANIFEST_PREFIX, raw).map_err(|_| error(LIMIT))?;
+    let preimage = scalar_preimage(MANIFEST, raw).map_err(|_| error(LIMIT))?;
     Ok(sha256_hex(&preimage))
 }
 

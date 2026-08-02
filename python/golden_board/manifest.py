@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from io import StringIO
 
+from golden_board.constants import MANIFEST as MANIFEST_PREFIX
+from golden_board.constants import MANIFEST_DIAGNOSTICS as DIAGNOSTICS
 from golden_board.identity import scalar_preimage, sha256_hex
 
 
@@ -11,19 +13,18 @@ MAX_NODES = 1_000_000
 MAX_STRING_BYTES = 1 << 24
 MAX_U64 = 2**64 - 1
 MAX_U64_TEXT = str(MAX_U64)
-MANIFEST_PREFIX = b"GB-MANIFEST-v0\x00"
-DIAGNOSTICS = (
-    "manifest.limit",
-    "manifest.utf8",
-    "manifest.syntax",
-    "manifest.trailing_data",
-    "manifest.duplicate_key",
-    "manifest.unsupported_type",
-    "manifest.integer_range",
-    "manifest.invalid_key",
-    "manifest.invalid_unicode",
-    "manifest.noncanonical",
-)
+(
+    _LIMIT,
+    _UTF8,
+    _SYNTAX,
+    _TRAILING_DATA,
+    _DUPLICATE_KEY,
+    _UNSUPPORTED_TYPE,
+    _INTEGER_RANGE,
+    _INVALID_KEY,
+    _INVALID_UNICODE,
+    _NONCANONICAL,
+) = DIAGNOSTICS
 _WHITESPACE = " \t\r\n"
 _HEX = frozenset("0123456789abcdefABCDEF")
 
@@ -95,7 +96,7 @@ def _scan_string(raw: bytes, start: int) -> int:
                     width = 1
         decoded_bytes += width
         if decoded_bytes > MAX_STRING_BYTES:
-            raise ManifestError("manifest.limit")
+            raise ManifestError(_LIMIT)
     return index
 
 
@@ -108,7 +109,7 @@ def _scan_structural_limits(raw: bytes) -> None:
         nonlocal nodes
         nodes += 1
         if nodes > MAX_NODES:
-            raise ManifestError("manifest.limit")
+            raise ManifestError(_LIMIT)
 
     while index < len(raw):
         byte = raw[index]
@@ -128,7 +129,7 @@ def _scan_structural_limits(raw: bytes) -> None:
             begin_value()
             frames.append(_ScanFrame())
             if len(frames) > MAX_DEPTH:
-                raise ManifestError("manifest.limit")
+                raise ManifestError(_LIMIT)
             index += 1
             continue
         if byte in b"]}":
@@ -141,7 +142,7 @@ def _scan_structural_limits(raw: bytes) -> None:
                 frame = frames[-1]
                 frame.commas += 1
                 if frame.commas >= MAX_COLLECTION:
-                    raise ManifestError("manifest.limit")
+                    raise ManifestError(_LIMIT)
             index += 1
             continue
         if byte == 0x3A:
@@ -164,9 +165,9 @@ class _Parser:
         value = self._parse_value(0)
         tail = self.text[self.index :]
         if any(character not in _WHITESPACE for character in tail):
-            raise ManifestError("manifest.trailing_data")
+            raise ManifestError(_TRAILING_DATA)
         if tail.startswith("\n") and tail != "\n":
-            raise ManifestError("manifest.trailing_data")
+            raise ManifestError(_TRAILING_DATA)
         return value
 
     def _skip_whitespace(self) -> None:
@@ -176,12 +177,12 @@ class _Parser:
     def _bump_node(self) -> None:
         self.nodes += 1
         if self.nodes > MAX_NODES:
-            raise ManifestError("manifest.limit")
+            raise ManifestError(_LIMIT)
 
     def _parse_value(self, depth: int) -> object:
         self._skip_whitespace()
         if self.index >= len(self.text):
-            raise ManifestError("manifest.syntax")
+            raise ManifestError(_SYNTAX)
         self._bump_node()
         character = self.text[self.index]
         if character == '"':
@@ -201,16 +202,16 @@ class _Parser:
             return None
         if character == "-" or "0" <= character <= "9":
             return _Number(self._parse_number())
-        raise ManifestError("manifest.syntax")
+        raise ManifestError(_SYNTAX)
 
     def _consume_literal(self, literal: str) -> None:
         if not self.text.startswith(literal, self.index):
-            raise ManifestError("manifest.syntax")
+            raise ManifestError(_SYNTAX)
         self.index += len(literal)
 
     def _parse_array(self, depth: int) -> _Array:
         if depth > MAX_DEPTH:
-            raise ManifestError("manifest.limit")
+            raise ManifestError(_LIMIT)
         self.index += 1
         self._skip_whitespace()
         items: list[object] = []
@@ -218,17 +219,17 @@ class _Parser:
             return _Array(items)
         while True:
             if len(items) >= MAX_COLLECTION:
-                raise ManifestError("manifest.limit")
+                raise ManifestError(_LIMIT)
             items.append(self._parse_value(depth))
             self._skip_whitespace()
             if self._take("]"):
                 return _Array(items)
             if not self._take(","):
-                raise ManifestError("manifest.syntax")
+                raise ManifestError(_SYNTAX)
 
     def _parse_object(self, depth: int) -> _Object:
         if depth > MAX_DEPTH:
-            raise ManifestError("manifest.limit")
+            raise ManifestError(_LIMIT)
         self.index += 1
         self._skip_whitespace()
         pairs: list[tuple[str, object]] = []
@@ -236,20 +237,20 @@ class _Parser:
             return _Object(pairs)
         while True:
             if len(pairs) >= MAX_COLLECTION:
-                raise ManifestError("manifest.limit")
+                raise ManifestError(_LIMIT)
             self._skip_whitespace()
             if self.index >= len(self.text) or self.text[self.index] != '"':
-                raise ManifestError("manifest.syntax")
+                raise ManifestError(_SYNTAX)
             key = self._parse_string()
             self._skip_whitespace()
             if not self._take(":"):
-                raise ManifestError("manifest.syntax")
+                raise ManifestError(_SYNTAX)
             pairs.append((key, self._parse_value(depth)))
             self._skip_whitespace()
             if self._take("}"):
                 return _Object(pairs)
             if not self._take(","):
-                raise ManifestError("manifest.syntax")
+                raise ManifestError(_SYNTAX)
 
     def _take(self, character: str) -> bool:
         if self.index < len(self.text) and self.text[self.index] == character:
@@ -266,7 +267,7 @@ class _Parser:
             nonlocal decoded_bytes
             width = _utf8_width(ord(value))
             if decoded_bytes + width > MAX_STRING_BYTES:
-                raise ManifestError("manifest.limit")
+                raise ManifestError(_LIMIT)
             decoded_bytes += width
             decoded.write(value)
 
@@ -277,7 +278,7 @@ class _Parser:
                 return decoded.getvalue()
             if character == "\\":
                 if self.index >= len(self.text):
-                    raise ManifestError("manifest.syntax")
+                    raise ManifestError(_SYNTAX)
                 escape = self.text[self.index]
                 self.index += 1
                 simple = {
@@ -294,7 +295,7 @@ class _Parser:
                     append_decoded(simple[escape])
                     continue
                 if escape != "u":
-                    raise ManifestError("manifest.syntax")
+                    raise ManifestError(_SYNTAX)
                 first = self._parse_hex_quad()
                 if 0xD800 <= first <= 0xDBFF and self.text.startswith("\\u", self.index):
                     candidate = self.text[self.index + 2 : self.index + 6]
@@ -307,38 +308,38 @@ class _Parser:
                 append_decoded(chr(first))
                 continue
             if ord(character) < 0x20:
-                raise ManifestError("manifest.syntax")
+                raise ManifestError(_SYNTAX)
             append_decoded(character)
-        raise ManifestError("manifest.syntax")
+        raise ManifestError(_SYNTAX)
 
     def _parse_hex_quad(self) -> int:
         digits = self.text[self.index : self.index + 4]
         if len(digits) != 4 or any(character not in _HEX for character in digits):
-            raise ManifestError("manifest.syntax")
+            raise ManifestError(_SYNTAX)
         self.index += 4
         return int(digits, 16)
 
     def _parse_number(self) -> str:
         start = self.index
         if self._take("-") and self.index >= len(self.text):
-            raise ManifestError("manifest.syntax")
+            raise ManifestError(_SYNTAX)
         if self.index >= len(self.text):
-            raise ManifestError("manifest.syntax")
+            raise ManifestError(_SYNTAX)
         if self.text[self.index] == "0":
             self.index += 1
             if self.index < len(self.text) and "0" <= self.text[self.index] <= "9":
-                raise ManifestError("manifest.syntax")
+                raise ManifestError(_SYNTAX)
         elif "1" <= self.text[self.index] <= "9":
             while self.index < len(self.text) and "0" <= self.text[self.index] <= "9":
                 self.index += 1
         else:
-            raise ManifestError("manifest.syntax")
+            raise ManifestError(_SYNTAX)
         if self._take("."):
             digit_start = self.index
             while self.index < len(self.text) and "0" <= self.text[self.index] <= "9":
                 self.index += 1
             if self.index == digit_start:
-                raise ManifestError("manifest.syntax")
+                raise ManifestError(_SYNTAX)
         if self.index < len(self.text) and self.text[self.index] in "eE":
             self.index += 1
             if self.index < len(self.text) and self.text[self.index] in "+-":
@@ -347,7 +348,7 @@ class _Parser:
             while self.index < len(self.text) and "0" <= self.text[self.index] <= "9":
                 self.index += 1
             if self.index == digit_start:
-                raise ManifestError("manifest.syntax")
+                raise ManifestError(_SYNTAX)
         return self.text[start : self.index]
 
 
@@ -356,7 +357,7 @@ def _decoded_utf8_size(value: str) -> int:
     for character in value:
         size += _utf8_width(ord(character))
         if size > MAX_STRING_BYTES:
-            raise ManifestError("manifest.limit")
+            raise ManifestError(_LIMIT)
     return size
 
 
@@ -376,11 +377,11 @@ def _validate_semantics(value: object) -> None:
             seen: set[str] = set()
             for key, _ in node.pairs:
                 if key in seen:
-                    raise ManifestError("manifest.duplicate_key")
+                    raise ManifestError(_DUPLICATE_KEY)
                 seen.add(key)
     for node in _walk(value):
         if node is None or isinstance(node, _Number) and any(marker in node.lexeme for marker in ".eE"):
-            raise ManifestError("manifest.unsupported_type")
+            raise ManifestError(_UNSUPPORTED_TYPE)
     for node in _walk(value):
         if isinstance(node, _Number):
             digits = node.lexeme.lstrip("-")
@@ -389,12 +390,12 @@ def _validate_semantics(value: object) -> None:
                 or len(digits) > len(MAX_U64_TEXT)
                 or len(digits) == len(MAX_U64_TEXT) and digits > MAX_U64_TEXT
             ):
-                raise ManifestError("manifest.integer_range")
+                raise ManifestError(_INTEGER_RANGE)
     for node in _walk(value):
         if isinstance(node, _Object):
             for key, _ in node.pairs:
                 if any(ord(character) > 0x7F for character in key):
-                    raise ManifestError("manifest.invalid_key")
+                    raise ManifestError(_INVALID_KEY)
     for node in _walk(value):
         strings: list[str] = []
         if isinstance(node, str):
@@ -402,7 +403,7 @@ def _validate_semantics(value: object) -> None:
         elif isinstance(node, _Object):
             strings.extend(key for key, _ in node.pairs)
         if any(0xD800 <= ord(character) <= 0xDFFF for text in strings for character in text):
-            raise ManifestError("manifest.invalid_unicode")
+            raise ManifestError(_INVALID_UNICODE)
 
 
 def _plain(value: object) -> object:
@@ -421,7 +422,7 @@ class _Writer:
 
     def add(self, chunk: bytes) -> None:
         if len(self.data) + len(chunk) > MAX_INPUT:
-            raise ManifestError("manifest.limit")
+            raise ManifestError(_LIMIT)
         self.data.extend(chunk)
 
 
@@ -440,7 +441,7 @@ def _escaped_string(value: str) -> bytes:
     for character in value:
         codepoint = ord(character)
         if 0xD800 <= codepoint <= 0xDFFF:
-            raise ManifestError("manifest.invalid_unicode")
+            raise ManifestError(_INVALID_UNICODE)
         if character in short:
             chunk = short[character]
         elif codepoint < 0x20:
@@ -448,7 +449,7 @@ def _escaped_string(value: str) -> bytes:
         else:
             chunk = character.encode("utf-8")
         if len(output) + len(chunk) + 1 > MAX_INPUT:
-            raise ManifestError("manifest.limit")
+            raise ManifestError(_LIMIT)
         output.extend(chunk)
     output.extend(b'"')
     return bytes(output)
@@ -467,7 +468,7 @@ class _Encoder:
     def _bump_node(self) -> None:
         self.nodes += 1
         if self.nodes > MAX_NODES:
-            raise ManifestError("manifest.limit")
+            raise ManifestError(_LIMIT)
 
     def _value(self, value: object, depth: int) -> None:
         self._bump_node()
@@ -477,7 +478,7 @@ class _Encoder:
             return
         if value_type is int:
             if not 0 <= value <= MAX_U64:
-                raise ManifestError("manifest.integer_range")
+                raise ManifestError(_INTEGER_RANGE)
             self.writer.add(str(value).encode("ascii"))
             return
         if value_type is str:
@@ -489,11 +490,11 @@ class _Encoder:
         if value_type is dict:
             self._object(value, depth + 1)
             return
-        raise ManifestError("manifest.unsupported_type")
+        raise ManifestError(_UNSUPPORTED_TYPE)
 
     def _array(self, value: list[object], depth: int) -> None:
         if depth > MAX_DEPTH or len(value) > MAX_COLLECTION:
-            raise ManifestError("manifest.limit")
+            raise ManifestError(_LIMIT)
         self.writer.add(b"[")
         for index, item in enumerate(value):
             if index:
@@ -503,15 +504,15 @@ class _Encoder:
 
     def _object(self, value: dict[object, object], depth: int) -> None:
         if depth > MAX_DEPTH or len(value) > MAX_COLLECTION:
-            raise ManifestError("manifest.limit")
+            raise ManifestError(_LIMIT)
         for key in value:
             if type(key) is not str:
-                raise ManifestError("manifest.invalid_key")
+                raise ManifestError(_INVALID_KEY)
             _decoded_utf8_size(key)
             if any(ord(character) > 0x7F for character in key):
-                raise ManifestError("manifest.invalid_key")
+                raise ManifestError(_INVALID_KEY)
             if any(0xD800 <= ord(character) <= 0xDFFF for character in key):
-                raise ManifestError("manifest.invalid_unicode")
+                raise ManifestError(_INVALID_UNICODE)
         self.writer.add(b"{")
         for index, key in enumerate(sorted(value)):
             if index:
@@ -524,21 +525,21 @@ class _Encoder:
 
 def decode_canonical_manifest(raw: bytes) -> object:
     if not isinstance(raw, bytes):
-        raise ManifestError("manifest.syntax")
+        raise ManifestError(_SYNTAX)
     if len(raw) > MAX_INPUT:
-        raise ManifestError("manifest.limit")
+        raise ManifestError(_LIMIT)
     _scan_structural_limits(raw)
     try:
         text = raw.decode("utf-8", "strict")
     except UnicodeDecodeError as error:
-        raise ManifestError("manifest.utf8") from error
+        raise ManifestError(_UTF8) from error
     if raw.startswith(b"\xef\xbb\xbf"):
-        raise ManifestError("manifest.utf8")
+        raise ManifestError(_UTF8)
     parsed = _Parser(text).parse()
     _validate_semantics(parsed)
     value = _plain(parsed)
     if encode_canonical_value(value) != raw:
-        raise ManifestError("manifest.noncanonical")
+        raise ManifestError(_NONCANONICAL)
     return value
 
 

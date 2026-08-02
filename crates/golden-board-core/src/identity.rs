@@ -77,9 +77,7 @@ mod tests {
         IdentityError, encode_u16, encode_u32, list_preimage, scalar_preimage, sha256_hex,
         validate_prefix,
     };
-
-    const A: &[u8] = b"GB-IDENTITY-TEST-A-v0\0";
-    const B: &[u8] = b"GB-IDENTITY-TEST-B-v0\0";
+    use crate::constants::{IDENTITY_TEST_A as A, IDENTITY_TEST_B as B};
 
     #[test]
     fn known_answers_are_independent_and_lowercase() {

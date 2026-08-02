@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 
+pub mod constants;
 mod identity;
 mod manifest;
 

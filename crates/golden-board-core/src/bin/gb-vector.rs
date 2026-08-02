@@ -1,11 +1,10 @@
 #![forbid(unsafe_code)]
 
+use golden_board_core::constants::{IDENTITY_TEST_A, IDENTITY_TEST_B};
 use golden_board_core::{canonical_manifest_hash, list_preimage, scalar_preimage, sha256_hex};
 use std::ffi::OsString;
 use std::io::{self, Read, Write};
 
-const IDENTITY_A: &[u8] = b"GB-IDENTITY-TEST-A-v0\0";
-const IDENTITY_B: &[u8] = b"GB-IDENTITY-TEST-B-v0\0";
 const MAX_INPUT: usize = 1 << 24;
 const BODY_CAP: usize = MAX_INPUT + 1;
 const MAX_OUTPUT: usize = 128;
@@ -102,8 +101,8 @@ fn read_bounded(reader: &mut impl Read, body_cap: usize) -> Result<Vec<u8>, Adap
 
 fn execute(operation: Operation, body: &[u8]) -> Result<Vec<u8>, AdapterError> {
     match operation {
-        Operation::IdentityAScalar => identity_scalar(IDENTITY_A, body),
-        Operation::IdentityBScalar => identity_scalar(IDENTITY_B, body),
+        Operation::IdentityAScalar => identity_scalar(IDENTITY_TEST_A, body),
+        Operation::IdentityBScalar => identity_scalar(IDENTITY_TEST_B, body),
         Operation::IdentityAList => identity_list(body),
         Operation::Manifest => match canonical_manifest_hash(body) {
             Ok(digest) => success(&digest),
@@ -129,7 +128,7 @@ fn identity_list(body: &[u8]) -> Result<Vec<u8>, AdapterError> {
     if !remaining.is_empty() {
         return Err(AdapterError::Framing);
     }
-    let preimage = list_preimage(IDENTITY_A, &items).map_err(|_| AdapterError::Internal)?;
+    let preimage = list_preimage(IDENTITY_TEST_A, &items).map_err(|_| AdapterError::Internal)?;
     success(&sha256_hex(&preimage))
 }
 
