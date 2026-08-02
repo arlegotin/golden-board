@@ -205,6 +205,13 @@ roadmap is part of the M0 design, not optional setup advice.
 ### 5.2 Rust
 
 - rust-toolchain.toml pins the selected Rust 1.94 toolchain.
+- For clean-Linux verification, the immutable image's rustup executable is an
+  acquisition capability, not the accepted Cargo/Rust toolchain: the networked
+  phase installs the declared minimal 1.94.0 aarch64 toolchain plus `rustfmt`
+  into `artifacts/cargo-home/rustup`. The acquisition inventory hashes that
+  checkout-local tree, and the offline phase and nested full checks use only
+  its direct `cargo`, `rustc`, and `rustfmt` binaries. They do not depend on
+  image-global rustup proxies or ordinary global Rust caches.
 - the root Cargo.toml is a minimal workspace;
 - Cargo.lock is committed;
 - every dependency-resolving build, test, fetch, check, and metadata command
@@ -941,7 +948,9 @@ The Docker path:
 3. hides host dependency caches;
 4. validates the pinned image's closed baked environment, then a fixed shell
    bootstrap unsets it and constructs the exact phase environment;
-5. acquires only locked dependencies during the explicit networked phase;
+5. acquires only locked dependencies during the explicit networked phase,
+   including the `rust-toolchain.toml`-declared toolchain and component into the
+   already inventoried checkout-local Cargo root;
 6. reruns scripts/check full with `--network none` and `--pull=never`;
 7. records image-owned userland/manifest facts separately from daemon-owned
    runtime kernel/architecture observations;
