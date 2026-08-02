@@ -1,0 +1,209 @@
+[schema]
+version = 0
+
+[anthology]
+path = "docs/64_games.md"
+file_type = "regular"
+byte_length = 165145
+sha256 = "33d44f7167ab190cc793e3fdfd8190d89ed13c1dc507c20854cf64751c7be7da"
+encoding = "UTF-8"
+bom = "absent"
+newlines = "LF"
+final_lf = "present"
+
+[toolchains]
+python = "3.14.6"
+uv = "0.11.29"
+rust = "1.94.0"
+cargo = "1.94.0"
+git = "2.49.0"
+shell = "GNU bash 3.2.57(1)-release as /bin/sh"
+host = "Darwin 25.5.0 arm64"
+generic_sha256 = "shasum 6.02"
+cc = "Apple clang 17.0.0 (clang-1700.0.13.5) at /usr/bin/cc"
+ld = "ld-1167.5 selected by /usr/bin/cc"
+sdk = "macOS SDK 15.5 selected by /usr/bin/cc"
+
+[[references.reference]]
+id = "fide-laws-2023"
+title = "FIDE Laws of Chess taking effect from 1 January 2023"
+authority = "FIDE"
+edition = "E01, effective 2023-01-01"
+locator = "https://handbook.fide.com/chapter/E012023"
+role = "normative"
+required_at_m0 = true
+immutable_id = "fide-handbook:E012023"
+acquired_sha256 = "e0c8bee28c2dee07b724357b9802fee8591e9d11efd2a910b38e9bd21d3c7643"
+
+[[references.reference]]
+id = "fide-handbook-index"
+title = "FIDE Handbook index"
+authority = "FIDE"
+edition = "acquired response identified by SHA-256"
+locator = "https://handbook.fide.com/"
+role = "background"
+required_at_m0 = true
+immutable_id = "sha256:ad9367f4bbf2c225eeabbc301a0f016710c69fd24c3cd4aac7db34c747ee8eab"
+acquired_sha256 = "ad9367f4bbf2c225eeabbc301a0f016710c69fd24c3cd4aac7db34c747ee8eab"
+
+[[references.reference]]
+id = "pgn-guide-1994"
+title = "Portable Game Notation Specification and Implementation Guide"
+authority = "Steven J. Edwards"
+edition = "revised 1994-03-12"
+locator = "https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm"
+role = "source-format"
+required_at_m0 = true
+immutable_id = "revision:1994.03.12"
+acquired_sha256 = "2c2445a8c2118a5603610364f8055b31db388e2f4cbc6bb70815bf38ee45de3f"
+
+[[references.reference]]
+id = "fips-180-4"
+title = "Secure Hash Standard (SHS)"
+authority = "NIST"
+edition = "FIPS PUB 180-4, August 2015"
+locator = "https://doi.org/10.6028/NIST.FIPS.180-4"
+role = "normative"
+required_at_m0 = true
+immutable_id = "doi:10.6028/NIST.FIPS.180-4"
+acquired_sha256 = "0455b406d89648d20cbde375561e19c245b9815e894164c2670772e3d54deb82"
+local_path = "inputs/references/fips-180-4.pdf"
+
+[[references.reference]]
+id = "nist-sha-byte-kat"
+title = "Secure Hash Algorithm Validation System byte-oriented test vectors"
+authority = "NIST"
+edition = "SHAVS byte test vector archive identified by SHA-256"
+locator = "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/shs/shabytetestvectors.zip"
+role = "normative"
+required_at_m0 = true
+immutable_id = "sha256:929ef80b7b3418aca026643f6f248815913b60e01741a44bba9e118067f4c9b8"
+acquired_sha256 = "929ef80b7b3418aca026643f6f248815913b60e01741a44bba9e118067f4c9b8"
+
+[[references.reference]]
+id = "rfc-9260"
+title = "Stream Control Transmission Protocol"
+authority = "IETF"
+edition = "RFC 9260, June 2022"
+locator = "https://www.rfc-editor.org/rfc/rfc9260.txt"
+role = "candidate"
+required_at_m0 = true
+immutable_id = "rfc:9260"
+acquired_sha256 = "04bdd3255e9e5ddf1e401e9d5d726ec2750e5269cb52485db3f7f4fe77500354"
+
+[[references.reference]]
+id = "ecma-182"
+title = "Data interchange on 12,7 mm 48-track magnetic tape cartridges – DLT1 format"
+authority = "Ecma International"
+edition = "1st edition, December 1992"
+locator = "https://ecma-international.org/wp-content/uploads/ECMA-182_1st_edition_december_1992.pdf"
+role = "candidate"
+required_at_m0 = true
+immutable_id = "ecma:182:1st:1992-12"
+acquired_sha256 = "95e5a266a0d96697a05be9b55a141180330dfe94a450b39ffb8b002fbb085366"
+
+[[references.reference]]
+id = "hamming-1950"
+title = "Error Detecting and Error Correcting Codes"
+authority = "Bell System Technical Journal"
+edition = "volume 29, issue 2, April 1950"
+locator = "https://doi.org/10.1002/j.1538-7305.1950.tb00463.x"
+role = "candidate"
+required_at_m0 = true
+immutable_id = "doi:10.1002/j.1538-7305.1950.tb00463.x"
+acquired_sha256 = "9c7456e29f9550e7e8eb52855632fecadb56506b06e59d9088d988ef75a75cb3"
+
+[[references.reference]]
+id = "reed-solomon-1960"
+title = "Polynomial Codes over Certain Finite Fields"
+authority = "Society for Industrial and Applied Mathematics"
+edition = "volume 8, issue 2, June 1960"
+locator = "https://doi.org/10.1137/0108018"
+role = "candidate"
+required_at_m0 = true
+immutable_id = "doi:10.1137/0108018"
+acquired_sha256 = "86cc4d5ca423a8fe0087446235df29e9a2b273f8488471262a0578a7b999b8c6"
+
+[[references.reference]]
+id = "voyager-cover"
+title = "Voyager Golden Record cover"
+authority = "NASA"
+edition = "NASA image 446eb9 identified by SHA-256"
+locator = "https://science.nasa.gov/wp-content/uploads/2024/03/voyager-record-cover-446eb9.jpg"
+role = "design"
+required_at_m0 = true
+immutable_id = "sha256:eac79258cc229db4de1234afa4c8d64a158d287f8c6ee59e175535f0e86b5502"
+acquired_sha256 = "eac79258cc229db4de1234afa4c8d64a158d287f8c6ee59e175535f0e86b5502"
+
+[[references.reference]]
+id = "lincos-1960"
+title = "Lincos: Design of a Language for Cosmic Intercourse"
+authority = "Library of Congress"
+edition = "1960 MARCXML catalog record"
+locator = "https://lccn.loc.gov/62053679/marcxml"
+role = "design"
+required_at_m0 = true
+immutable_id = "lccn:62053679"
+acquired_sha256 = "a023757ecf16cf41691959243201903c3a7648401896148436b4e1afd827d56d"
+
+[[references.reference]]
+id = "cosmicos-67e80da"
+title = "CosmicOS"
+authority = "Paul Fitzpatrick"
+edition = "Git commit 67e80da32383bd77ad4427455c9ae982e9c649cf"
+locator = "https://github.com/paulfitz/cosmicos/tree/67e80da32383bd77ad4427455c9ae982e9c649cf"
+role = "design"
+required_at_m0 = true
+immutable_id = "git:67e80da32383bd77ad4427455c9ae982e9c649cf"
+acquired_sha256 = "bd1b07ccb09630202e28ba99311b63befee48cfb96390f727e0eb5ae60070b43"
+
+[[references.reference]]
+id = "seti-busch-reddick"
+title = "Testing SETI Message Designs"
+authority = "arXiv"
+edition = "arXiv:0911.3976v3"
+locator = "https://arxiv.org/abs/0911.3976v3"
+role = "design"
+required_at_m0 = true
+immutable_id = "arxiv:0911.3976v3"
+acquired_sha256 = "0c462605022ee8d9246a42c74046b4760f08d69bdd16189ac85aee57f5f73a5f"
+
+[[references.reference]]
+id = "seti-heller"
+title = "Decryption of Messages from Extraterrestrial Intelligence Using the Power of Social Media – The SETI Decrypt Challenge"
+authority = "arXiv"
+edition = "arXiv:1706.00653v3"
+locator = "https://arxiv.org/abs/1706.00653v3"
+role = "design"
+required_at_m0 = true
+immutable_id = "arxiv:1706.00653v3"
+acquired_sha256 = "d86d9f4c63e36b70e1992789b58ff57a11e9132238f96fb8c94dc6ecec82b54e"
+
+[[references.reference]]
+id = "reproducible-builds-definition"
+title = "Definition of Reproducible Builds"
+authority = "Reproducible Builds"
+edition = "Git commit 1d7e9a6138117a37f207aa514b4ef396095ba7ce"
+locator = "https://salsa.debian.org/reproducible-builds/reproducible-website/-/blob/1d7e9a6138117a37f207aa514b4ef396095ba7ce/_docs/definition.md"
+role = "design"
+required_at_m0 = true
+immutable_id = "git:1d7e9a6138117a37f207aa514b4ef396095ba7ce:_docs/definition.md"
+acquired_sha256 = "f063776583fae80f7b285b8b3a40829ab25f602c25c07e28e914853f10993a66"
+
+[clean_linux]
+mechanism = "docker"
+image = "docker.io/library/rust:1.94.0-bookworm"
+digest = "sha256:365468470075493dc4583f47387001854321c5a8583ea9604b297e67f01c5a4f"
+platform_digest = "sha256:94aaa0b45f4d185294474343d9034f829969f6c9ff8101f348b526d105860818"
+config_digest = "sha256:4019a0c031b04dec0649a4e4af542125d94d2c9467e19ea6fd4d9e53510fd5e9"
+platform = "linux/arm64/v8"
+uv_archive = "https://github.com/astral-sh/uv/releases/download/0.11.29/uv-aarch64-unknown-linux-gnu.tar.gz"
+uv_archive_sha256 = "94500fb064ae3c971a873cba64d94694c50677e0a4dbf78735c80509e7429919"
+docker_client = "25.0.3"
+observed_daemon_state = "unavailable: permission denied for fixed unix:///var/run/docker.sock"
+acquisition_protocol = "docker-acquire-v0"
+offline_protocol = "docker-offline-v0"
+mounts = ["checkout", "uv-cache", "uv-python", "cargo-home", "cargo-target"]
+state = "planned"
+blocker = "Fixed Docker daemon socket unix:///var/run/docker.sock is not accessible on the primary host"
+deadline = "M2"

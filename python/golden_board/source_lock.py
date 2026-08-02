@@ -159,6 +159,8 @@ class CleanLinuxLock:
     mechanism: str
     image: str
     digest: str
+    platform_digest: str
+    config_digest: str
     platform: str
     uv_archive: str
     uv_archive_sha256: str
@@ -358,6 +360,8 @@ def load_source_lock(root: Path) -> SourceLock:
         "mechanism",
         "image",
         "digest",
+        "platform_digest",
+        "config_digest",
         "platform",
         "uv_archive",
         "uv_archive_sha256",
@@ -372,9 +376,15 @@ def load_source_lock(root: Path) -> SourceLock:
     }
     _keys(clean, clean_keys, "clean_linux")
     digest = _text(clean["digest"], "clean_linux.digest")
+    platform_digest = _text(
+        clean["platform_digest"], "clean_linux.platform_digest"
+    )
+    config_digest = _text(clean["config_digest"], "clean_linux.config_digest")
     mounts = clean["mounts"]
     if (
         DIGEST.fullmatch(digest) is None
+        or DIGEST.fullmatch(platform_digest) is None
+        or DIGEST.fullmatch(config_digest) is None
         or not isinstance(mounts, list)
         or not mounts
         or not all(isinstance(item, str) and item for item in mounts)
@@ -388,6 +398,8 @@ def load_source_lock(root: Path) -> SourceLock:
         mechanism=_text(clean["mechanism"], "clean_linux.mechanism"),
         image=_text(clean["image"], "clean_linux.image"),
         digest=digest,
+        platform_digest=platform_digest,
+        config_digest=config_digest,
         platform=_text(clean["platform"], "clean_linux.platform"),
         uv_archive=_text(clean["uv_archive"], "clean_linux.uv_archive"),
         uv_archive_sha256=_sha256(clean["uv_archive_sha256"]),

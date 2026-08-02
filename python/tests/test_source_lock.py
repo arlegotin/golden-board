@@ -1,4 +1,5 @@
 import os
+from hashlib import sha256
 from pathlib import Path, PurePosixPath
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
@@ -56,7 +57,9 @@ local_path = "inputs/references/fips-180-4.pdf"
 [clean_linux]
 mechanism = "docker"
 image = "rust:1.94.0-bookworm"
-digest = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+digest = "sha256:365468470075493dc4583f47387001854321c5a8583ea9604b297e67f01c5a4f"
+platform_digest = "sha256:94aaa0b45f4d185294474343d9034f829969f6c9ff8101f348b526d105860818"
+config_digest = "sha256:4019a0c031b04dec0649a4e4af542125d94d2c9467e19ea6fd4d9e53510fd5e9"
 platform = "linux/arm64/v8"
 uv_archive = "https://github.com/astral-sh/uv/releases/download/0.11.29/uv-aarch64-unknown-linux-gnu.tar.gz"
 uv_archive_sha256 = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
@@ -90,6 +93,124 @@ class SourceLockTests(unittest.TestCase):
             value.clean_linux.mounts,
         )
         self.assertEqual("fips-180-4", value.references[0].id)
+        self.assertEqual(
+            "sha256:94aaa0b45f4d185294474343d9034f829969f6c9ff8101f348b526d105860818",
+            value.clean_linux.platform_digest,
+        )
+        self.assertEqual(
+            "sha256:4019a0c031b04dec0649a4e4af542125d94d2c9467e19ea6fd4d9e53510fd5e9",
+            value.clean_linux.config_digest,
+        )
+
+    def test_clean_linux_requires_platform_digest(self):
+        bad = VALID.replace(
+            'platform_digest = "sha256:94aaa0b45f4d185294474343d9034f829969f6c9ff8101f348b526d105860818"\n',
+            "",
+        )
+        with self.assertRaisesRegex(SourceLockError, "source_lock.schema"):
+            self.load(bad)
+
+    def test_rejects_malformed_platform_digest(self):
+        bad = VALID.replace(
+            'platform_digest = "sha256:94', 'platform_digest = "sha256:GG', 1
+        )
+        with self.assertRaisesRegex(SourceLockError, "source_lock.clean_linux"):
+            self.load(bad)
+
+    def test_clean_linux_requires_valid_config_digest(self):
+        missing = VALID.replace(
+            'config_digest = "sha256:4019a0c031b04dec0649a4e4af542125d94d2c9467e19ea6fd4d9e53510fd5e9"\n',
+            "",
+        )
+        malformed = VALID.replace(
+            'config_digest = "sha256:40', 'config_digest = "sha256:GG', 1
+        )
+        for bad in (missing, malformed):
+            with self.subTest(bad=bad), self.assertRaises(SourceLockError):
+                self.load(bad)
+
+    def test_repository_lock_freezes_all_m0_reference_hashes(self):
+        from golden_board.reference_acquisition import (
+            ARTIFACTS,
+            RUST_CONFIG,
+            RUST_INDEX,
+            RUST_PLATFORM,
+        )
+
+        root = Path(__file__).resolve().parents[2]
+        value = load_source_lock(root)
+        expected = {
+            "fide-laws-2023": "e0c8bee28c2dee07b724357b9802fee8591e9d11efd2a910b38e9bd21d3c7643",
+            "fide-handbook-index": "ad9367f4bbf2c225eeabbc301a0f016710c69fd24c3cd4aac7db34c747ee8eab",
+            "pgn-guide-1994": "2c2445a8c2118a5603610364f8055b31db388e2f4cbc6bb70815bf38ee45de3f",
+            "fips-180-4": "0455b406d89648d20cbde375561e19c245b9815e894164c2670772e3d54deb82",
+            "nist-sha-byte-kat": "929ef80b7b3418aca026643f6f248815913b60e01741a44bba9e118067f4c9b8",
+            "rfc-9260": "04bdd3255e9e5ddf1e401e9d5d726ec2750e5269cb52485db3f7f4fe77500354",
+            "ecma-182": "95e5a266a0d96697a05be9b55a141180330dfe94a450b39ffb8b002fbb085366",
+            "hamming-1950": "9c7456e29f9550e7e8eb52855632fecadb56506b06e59d9088d988ef75a75cb3",
+            "reed-solomon-1960": "86cc4d5ca423a8fe0087446235df29e9a2b273f8488471262a0578a7b999b8c6",
+            "voyager-cover": "eac79258cc229db4de1234afa4c8d64a158d287f8c6ee59e175535f0e86b5502",
+            "lincos-1960": "a023757ecf16cf41691959243201903c3a7648401896148436b4e1afd827d56d",
+            "cosmicos-67e80da": "bd1b07ccb09630202e28ba99311b63befee48cfb96390f727e0eb5ae60070b43",
+            "seti-busch-reddick": "0c462605022ee8d9246a42c74046b4760f08d69bdd16189ac85aee57f5f73a5f",
+            "seti-heller": "d86d9f4c63e36b70e1992789b58ff57a11e9132238f96fb8c94dc6ecec82b54e",
+            "reproducible-builds-definition": "f063776583fae80f7b285b8b3a40829ab25f602c25c07e28e914853f10993a66",
+        }
+        self.assertEqual(
+            expected, {item.id: item.acquired_sha256 for item in value.references}
+        )
+        artifacts = {item.id: item for item in ARTIFACTS}
+        self.assertEqual(
+            expected,
+            {identifier: artifacts[identifier].sha256 for identifier in expected},
+        )
+        self.assertTrue(all(item.required_at_m0 for item in value.references))
+        self.assertEqual(
+            [("fips-180-4", "inputs/references/fips-180-4.pdf")],
+            [
+                (item.id, item.local_path.as_posix())
+                for item in value.references
+                if item.local_path is not None
+            ],
+        )
+        self.assertEqual(
+            "sha256:365468470075493dc4583f47387001854321c5a8583ea9604b297e67f01c5a4f",
+            value.clean_linux.digest,
+        )
+        self.assertEqual(
+            "sha256:94aaa0b45f4d185294474343d9034f829969f6c9ff8101f348b526d105860818",
+            value.clean_linux.platform_digest,
+        )
+        self.assertEqual(
+            "sha256:4019a0c031b04dec0649a4e4af542125d94d2c9467e19ea6fd4d9e53510fd5e9",
+            value.clean_linux.config_digest,
+        )
+        self.assertEqual(f"sha256:{RUST_INDEX.sha256}", value.clean_linux.digest)
+        self.assertEqual(
+            f"sha256:{RUST_PLATFORM.sha256}", value.clean_linux.platform_digest
+        )
+        self.assertEqual(
+            f"sha256:{RUST_CONFIG.sha256}", value.clean_linux.config_digest
+        )
+        self.assertEqual(
+            artifacts["uv-linux-arm64-archive"].url,
+            value.clean_linux.uv_archive,
+        )
+        self.assertEqual(
+            artifacts["uv-linux-arm64-archive"].sha256,
+            value.clean_linux.uv_archive_sha256,
+        )
+
+    def test_repository_fips_snapshot_matches_lock(self):
+        root = Path(__file__).resolve().parents[2]
+        value = load_source_lock(root)
+        reference = next(
+            item for item in value.references if item.id == "fips-180-4"
+        )
+        self.assertIsNotNone(reference.local_path)
+        raw = read_regular_below(root, reference.local_path, 1_000_000)
+        self.assertEqual(833315, len(raw))
+        self.assertEqual(reference.acquired_sha256, sha256(raw).hexdigest())
 
     def test_rejects_unknown_top_level_key(self):
         with self.assertRaisesRegex(SourceLockError, "source_lock.schema"):
