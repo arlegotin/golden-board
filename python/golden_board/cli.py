@@ -10,7 +10,7 @@ from pathlib import Path, PurePosixPath
 from types import SimpleNamespace
 from typing import cast
 
-from golden_board import checks, source_doctor
+from golden_board import checks, clean, source_doctor
 from golden_board.manifest import decode_canonical_manifest, encode_canonical_value
 from golden_board.reports import (
     MAX_REPORT_BYTES,
@@ -18,6 +18,7 @@ from golden_board.reports import (
     _read_below,
     build_release_summary,
     check_tracked_reports,
+    native_evidence_from_summary,
 )
 from golden_board.source_lock import (
     SourceLock,
@@ -40,17 +41,97 @@ _TOOL_VERSION = {
     "cargo": re.compile(
         rb"cargo 1\.94\.0 \((?:Homebrew|[0-9a-f]{7,40} [0-9]{4}-[0-9]{2}-[0-9]{2})\)\n\Z"
     ),
+    "cargo-fmt": re.compile(
+        rb"(?:rustfmt 1\.8\.0|rustfmt 1\.8\.0-(?:stable|nightly) \([0-9a-f]{7,40} [0-9]{4}-[0-9]{2}-[0-9]{2}\))\n\Z"
+    ),
     "rustc": re.compile(
         rb"rustc 1\.94\.0 \([0-9a-f]{7,40} [0-9]{4}-[0-9]{2}-[0-9]{2}\)(?: \(Homebrew\))?\n\Z"
+    ),
+    "rustdoc": re.compile(
+        rb"rustdoc 1\.94\.0 \([0-9a-f]{7,40} [0-9]{4}-[0-9]{2}-[0-9]{2}\)(?: \(Homebrew\))?\n\Z"
     ),
     "rustfmt": re.compile(
         rb"(?:rustfmt 1\.8\.0|rustfmt 1\.8\.0-(?:stable|nightly) \([0-9a-f]{7,40} [0-9]{4}-[0-9]{2}-[0-9]{2}\))\n\Z"
     ),
 }
+_DOCKER_VERSION = re.compile(
+    rb"Docker version 25\.0\.3, build [0-9A-Za-z._+-]{1,64}\n\Z"
+)
+_IMAGE_GIT_VERSION = re.compile(rb"git version 2\.[0-9]{1,3}\.[0-9]{1,3}\n\Z")
+_LINUX_AVAILABLE = re.compile(
+    r"available: Docker Engine [A-Za-z0-9._+-]{1,64} "
+    r"[A-Za-z0-9._+-]{1,64}/[A-Za-z0-9._+-]{1,64} "
+    r"kernel [A-Za-z0-9._+-]{1,64}\Z"
+)
+_LINUX_UNAVAILABLE = {
+    "unavailable: fixed_socket_inaccessible",
+    "unavailable: daemon_unreachable",
+    "unavailable: network_acquisition_unavailable",
+    "unavailable: immutable_image_unavailable",
+}
 
 
 def build_source_report(root: Path, lock: SourceLock) -> dict[str, object]:
     return source_doctor.build_source_report(root, lock)
+
+
+def _validated_linux_observation(value: object) -> dict[str, object]:
+    keys = {
+        "schema_version",
+        "protocol",
+        "state",
+        "observed_daemon_state",
+        "blocker",
+        "deadline",
+    }
+    if type(value) is not dict or set(value) != keys:
+        raise ValueError("invalid clean-Linux observation")
+    result = cast(dict[str, object], value)
+    state = result["state"]
+    observed = result["observed_daemon_state"]
+    blocker = result["blocker"]
+    if (
+        type(result["schema_version"]) is not int
+        or result["schema_version"] != 0
+        or result["protocol"] != "docker-clean-linux-v0"
+        or state not in {"planned", "verified"}
+        or type(observed) is not str
+        or not (_LINUX_AVAILABLE.fullmatch(observed) or observed in _LINUX_UNAVAILABLE)
+        or type(blocker) is not str
+        or len(blocker) > _MAX_ERROR_DETAIL
+        or any(ord(character) < 0x20 or ord(character) > 0x7E for character in blocker)
+        or result["deadline"] != "M2"
+        or (
+            state == "planned"
+            and (
+                blocker
+                not in {
+                    "fixed_socket_inaccessible",
+                    "daemon_unreachable",
+                    "network_acquisition_unavailable",
+                    "immutable_image_unavailable",
+                }
+                or (
+                    observed in _LINUX_UNAVAILABLE
+                    and observed != f"unavailable: {blocker}"
+                )
+                or (
+                    _LINUX_AVAILABLE.fullmatch(observed) is not None
+                    and blocker
+                    not in {
+                        "network_acquisition_unavailable",
+                        "immutable_image_unavailable",
+                    }
+                )
+            )
+        )
+        or (
+            state == "verified"
+            and (blocker or _LINUX_AVAILABLE.fullmatch(observed) is None)
+        )
+    ):
+        raise ValueError("invalid clean-Linux observation")
+    return dict(result)
 
 
 def _directory_flags() -> int:
@@ -226,9 +307,8 @@ def _open_reports_directory(root: Path, *, create: bool = False) -> int:
             mount = held_mount_identity(repository)
         except OSError as error:
             raise ReportError("repository mount identity is unavailable") from error
-        if (
-            not stat.S_ISDIR(repository_facts.st_mode)
-            or not _same_identity(repository_facts, root_facts)
+        if not stat.S_ISDIR(repository_facts.st_mode) or not _same_identity(
+            repository_facts, root_facts
         ):
             raise ReportError("repository root identity changed")
         try:
@@ -244,10 +324,14 @@ def _open_reports_directory(root: Path, *, create: bool = False) -> int:
         except OSError as error:
             raise ReportError("cannot open direct reports directory") from error
         try:
-            _held_named_directory(repository, "reports", directory, root / "reports", mount)
+            _held_named_directory(
+                repository, "reports", directory, root / "reports", mount
+            )
         except (OSError, TypeError, ValueError) as error:
             raise ReportError("reports directory identity changed") from error
-        if not _same_identity(os.fstat(repository), os.stat(root, follow_symlinks=False)):
+        if not _same_identity(
+            os.fstat(repository), os.stat(root, follow_symlinks=False)
+        ):
             raise ReportError("repository root identity changed")
     except BaseException:
         if directory is not None:
@@ -317,9 +401,8 @@ def _report_directory_is_current(
 ) -> None:
     current = _open_reports_directory(root)
     try:
-        if (
-            not same_held_mount(mount, current, root / "reports")
-            or not _same_identity(os.fstat(directory), os.fstat(current))
+        if not same_held_mount(mount, current, root / "reports") or not _same_identity(
+            os.fstat(directory), os.fstat(current)
         ):
             raise ReportError("reports directory identity changed")
     finally:
@@ -459,13 +542,10 @@ def _write_source_report(root: Path, raw: bytes) -> None:
             dir_fd=reports_descriptor,
             follow_symlinks=False,
         )
-        if (
-            not _same_file(temporary_facts, named_temporary)
-            or not same_held_mount(
-                reports_mount,
-                temporary_descriptor,
-                reports_path / temporary_name,
-            )
+        if not _same_file(temporary_facts, named_temporary) or not same_held_mount(
+            reports_mount,
+            temporary_descriptor,
+            reports_path / temporary_name,
         ):
             raise ValueError("source report temporary identity")
         _report_directory_is_current(root, reports_descriptor, reports_mount)
@@ -632,13 +712,10 @@ def _replace_canonical(root: Path, destination: Path, value: object) -> None:
             dir_fd=directory,
             follow_symlinks=False,
         )
-        if (
-            not _same_file(held, named)
-            or not same_held_mount(
-                mount,
-                descriptor,
-                directory_path / temporary_name,
-            )
+        if not _same_file(held, named) or not same_held_mount(
+            mount,
+            descriptor,
+            directory_path / temporary_name,
         ):
             raise ReportError("temporary report identity changed")
         _report_directory_is_current(root, directory, mount)
@@ -804,9 +881,7 @@ def _git_version_runner(argv: list[str], **kwargs: object) -> object:
     return SimpleNamespace(returncode=0, stdout=stdout, stderr=stderr)
 
 
-def _projected_executable(
-    environment: dict[str, str], key: str, label: str
-) -> Path:
+def _projected_executable(environment: dict[str, str], key: str, label: str) -> Path:
     value = environment.get(key)
     if type(value) is not str or not value or "\0" in value:
         raise ValueError(f"sealed {label} projection")
@@ -832,9 +907,10 @@ def _module_git_context(
     root: Path,
     environment: dict[str, str],
     *,
+    clean_linux: bool = False,
     runner=_git_version_runner,
 ) -> tuple[Path, dict[str, str]]:
-    if type(environment) is not dict:
+    if type(environment) is not dict or type(clean_linux) is not bool:
         raise ValueError("sealed Git projection")
     executable = _projected_executable(environment, "GB_BOOTSTRAP_GIT", "Git")
     home = _git_runtime_directory(root, "check-home")
@@ -842,6 +918,7 @@ def _module_git_context(
     projected = {
         "GIT_CONFIG_GLOBAL": "/dev/null",
         "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_NO_LAZY_FETCH": "1",
         "GIT_OPTIONAL_LOCKS": "0",
         "GIT_TERMINAL_PROMPT": "0",
         "HOME": str(home),
@@ -859,9 +936,16 @@ def _module_git_context(
         )
     except (OSError, RegistryError) as error:
         raise ValueError("sealed Git version probe") from error
+    stdout = getattr(result, "stdout", None)
     if (
         getattr(result, "returncode", None) != 0
-        or getattr(result, "stdout", None) != b"git version 2.49.0\n"
+        or type(stdout) is not bytes
+        or len(stdout) > 4096
+        or (
+            _IMAGE_GIT_VERSION.fullmatch(stdout) is None
+            if clean_linux
+            else stdout != b"git version 2.49.0\n"
+        )
         or getattr(result, "stderr", None) != b""
     ):
         raise ValueError("sealed Git version probe")
@@ -878,7 +962,9 @@ def _module_tool_context(
     if name not in _TOOL_VERSION or type(environment) is not dict:
         raise ValueError("sealed tool projection")
     executable = _projected_executable(
-        environment, f"GB_BOOTSTRAP_{name.upper()}", name
+        environment,
+        f"GB_BOOTSTRAP_{name.upper().replace('-', '_')}",
+        name,
     )
     projected = {
         "LANG": "C",
@@ -901,6 +987,36 @@ def _module_tool_context(
     return executable
 
 
+def _module_docker_context(
+    root: Path,
+    environment: dict[str, str],
+    *,
+    runner=_git_version_runner,
+) -> Path:
+    if type(environment) is not dict:
+        raise ValueError("sealed Docker projection")
+    executable = _projected_executable(environment, "GB_BOOTSTRAP_DOCKER", "Docker")
+    projected = {
+        "LANG": "C",
+        "LC_ALL": "C",
+        "PATH": str(executable.parent),
+        "TZ": "UTC",
+    }
+    try:
+        result = runner([str(executable), "--version"], cwd=root, env=projected)
+    except (OSError, RegistryError) as error:
+        raise ValueError("sealed Docker version probe") from error
+    stdout = getattr(result, "stdout", None)
+    if (
+        getattr(result, "returncode", None) != 0
+        or type(stdout) is not bytes
+        or _DOCKER_VERSION.fullmatch(stdout) is None
+        or getattr(result, "stderr", None) != b""
+    ):
+        raise ValueError("sealed Docker version probe")
+    return executable
+
+
 def _module_python_context(root: Path, environment: dict[str, str]) -> Path:
     if (
         type(environment) is not dict
@@ -913,18 +1029,71 @@ def _module_python_context(root: Path, environment: dict[str, str]) -> Path:
     return checks._validated_pycache_prefix(root, Path(value))
 
 
+def _module_linux_linker_context(
+    root: Path,
+    environment: dict[str, str],
+) -> Path | None:
+    if type(environment) is not dict:
+        raise ValueError("sealed clean-Linux projection")
+    system = os.uname().sysname
+    if system == "Darwin":
+        if (
+            environment.get("GB_CLEAN_LINUX_DIGEST")
+            or "COMPILER_PATH" in environment
+            or "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER" in environment
+        ):
+            raise ValueError("sealed clean-Linux projection")
+        return None
+    if system != "Linux":
+        raise ValueError("sealed clean-Linux projection")
+    lock = load_source_lock(root)
+    if (
+        environment.get("GB_CLEAN_LINUX_DIGEST") != lock.clean_linux.platform_digest
+        or environment.get("CC") != "/usr/bin/cc"
+        or environment.get("COMPILER_PATH") != "/usr/bin"
+        or environment.get("CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER")
+        != "/usr/bin/cc"
+    ):
+        raise ValueError("sealed clean-Linux projection")
+    return Path("/usr/bin/cc")
+
+
 def _module_capability_context(
     root: Path,
     environment: dict[str, str],
     *,
+    clean_linux: bool = False,
     runner=_git_version_runner,
-) -> tuple[Path, dict[str, str], Path, Path, Path, Path]:
+) -> tuple[Path, dict[str, str], Path, Path, Path, Path, Path, Path]:
     pycache_prefix = _module_python_context(root, environment)
-    git, git_environment = _module_git_context(root, environment, runner=runner)
+    git, git_environment = _module_git_context(
+        root,
+        environment,
+        clean_linux=clean_linux,
+        runner=runner,
+    )
     cargo = _module_tool_context(root, environment, "cargo", runner=runner)
+    cargo_fmt = _module_tool_context(root, environment, "cargo-fmt", runner=runner)
     rustc = _module_tool_context(root, environment, "rustc", runner=runner)
+    rustdoc = _module_tool_context(root, environment, "rustdoc", runner=runner)
     rustfmt = _module_tool_context(root, environment, "rustfmt", runner=runner)
-    return git, git_environment, cargo, rustc, rustfmt, pycache_prefix
+    if (
+        cargo_fmt != cargo.parent / "cargo-fmt"
+        or rustc != cargo.parent / "rustc"
+        or rustdoc != cargo.parent / "rustdoc"
+        or rustfmt != cargo.parent / "rustfmt"
+    ):
+        raise ValueError("sealed Cargo toolchain projection")
+    return (
+        git,
+        git_environment,
+        cargo,
+        cargo_fmt,
+        rustc,
+        rustdoc,
+        rustfmt,
+        pycache_prefix,
+    )
 
 
 def main(
@@ -933,10 +1102,14 @@ def main(
     *,
     git_executable: Path | None = None,
     git_environment: dict[str, str] | None = None,
+    docker_executable: Path | None = None,
     cargo_executable: Path | None = None,
+    cargo_fmt_executable: Path | None = None,
     rustc_executable: Path | None = None,
+    rustdoc_executable: Path | None = None,
     rustfmt_executable: Path | None = None,
     pycache_prefix: Path | None = None,
+    linux_linker: Path | None = None,
 ) -> int:
     arguments = tuple(sys.argv[1:] if argv is None else argv)
     repository = root
@@ -954,11 +1127,14 @@ def main(
                 git_executable=git_executable,
                 git_environment=git_environment,
                 cargo_executable=cargo_executable,
+                cargo_fmt_executable=cargo_fmt_executable,
                 rustc_executable=rustc_executable,
+                rustdoc_executable=rustdoc_executable,
                 rustfmt_executable=rustfmt_executable,
                 pycache_prefix=pycache_prefix,
+                linux_linker=linux_linker,
             )
-        except (OSError, UnicodeError, ValueError, RegistryError):
+        except OSError, UnicodeError, ValueError, RegistryError:
             print("check failed", file=sys.stderr)
             return 1
         if errors:
@@ -978,11 +1154,14 @@ def main(
                 git_executable=git_executable,
                 git_environment=git_environment,
                 cargo_executable=cargo_executable,
+                cargo_fmt_executable=cargo_fmt_executable,
                 rustc_executable=rustc_executable,
+                rustdoc_executable=rustdoc_executable,
                 rustfmt_executable=rustfmt_executable,
                 pycache_prefix=pycache_prefix,
+                linux_linker=linux_linker,
             )
-        except (OSError, UnicodeError, ValueError, RegistryError):
+        except OSError, UnicodeError, ValueError, RegistryError:
             print("check failed", file=sys.stderr)
             return 1
         if errors:
@@ -991,26 +1170,77 @@ def main(
             return 1
         return 0
     if arguments in (
+        ("environment", "verify-native"),
+        ("environment", "verify-native", "--write-evidence"),
+    ):
+        try:
+            if git_executable is None:
+                raise ValueError("sealed Git capability required")
+            native = clean.verify_isolated_native(
+                repository,
+                git_executable=git_executable,
+            )
+            if arguments[-1] == "--write-evidence":
+                clean.write_native_evidence(repository, native)
+            else:
+                tracked = native_evidence_from_summary(
+                    _canonical_object(repository, RELEASE_SUMMARY)
+                )
+                if tracked is not None and tracked != native:
+                    raise ValueError("native verification differs from tracked G1")
+            return 0
+        except OSError, TypeError, ValueError, RegistryError:
+            print("environment verification failed", file=sys.stderr)
+            return 1
+    if arguments == ("environment", "verify-linux"):
+        try:
+            if git_executable is None or docker_executable is None:
+                raise ValueError("sealed verifier capability required")
+            lock = load_source_lock(repository)
+            result = _validated_linux_observation(
+                clean.verify_linux(
+                    repository,
+                    lock,
+                    git_executable=git_executable,
+                    docker_executable=docker_executable,
+                )
+            )
+            print(encode_canonical_value(result).decode("ascii"), end="")
+            expected = {
+                "schema_version": 0,
+                "protocol": "docker-clean-linux-v0",
+                "state": lock.clean_linux.state,
+                "observed_daemon_state": lock.clean_linux.observed_daemon_state,
+                "blocker": lock.clean_linux.blocker,
+                "deadline": lock.clean_linux.deadline,
+            }
+            if result != expected:
+                raise ValueError("clean-Linux observation differs from the source lock")
+            return 0
+        except OSError, TypeError, UnicodeError, ValueError, RegistryError:
+            print("environment verification failed", file=sys.stderr)
+            return 1
+    if arguments in (
         ("generate", "source-doctor"),
         ("check", "source-report"),
     ):
         try:
             expected = _current_report(repository)
-        except (OSError, TypeError, ValueError):
+        except OSError, TypeError, ValueError:
             print("source report failed", file=sys.stderr)
             return 1
 
         if arguments == ("generate", "source-doctor"):
             try:
                 _write_source_report(repository, expected)
-            except (OSError, TypeError, ValueError):
+            except OSError, TypeError, ValueError:
                 print("source report failed", file=sys.stderr)
                 return 1
             return 0
 
         try:
             actual = read_regular_below(repository, _REPORT, MAX_REPORT_BYTES)
-        except (OSError, TypeError, ValueError):
+        except OSError, TypeError, ValueError:
             print("source report unavailable", file=sys.stderr)
             return 1
         if actual != expected:
@@ -1065,28 +1295,50 @@ def main(
     return 2
 
 
+def _module_main(
+    environment: dict[str, str],
+    arguments: tuple[str, ...],
+    root: Path,
+) -> int:
+    if type(environment) is not dict or type(arguments) is not tuple:
+        raise ValueError("sealed module invocation")
+    linux_linker = _module_linux_linker_context(root, environment)
+    git, git_environment, cargo, cargo_fmt, rustc, rustdoc, rustfmt, pycache_prefix = (
+        _module_capability_context(
+            root,
+            environment,
+            clean_linux=linux_linker is not None,
+        )
+    )
+    docker = (
+        _module_docker_context(root, environment)
+        if arguments == ("environment", "verify-linux")
+        else None
+    )
+    return main(
+        arguments,
+        root,
+        git_executable=git,
+        git_environment=git_environment,
+        docker_executable=docker,
+        cargo_executable=cargo,
+        cargo_fmt_executable=cargo_fmt,
+        rustc_executable=rustc,
+        rustdoc_executable=rustdoc,
+        rustfmt_executable=rustfmt,
+        pycache_prefix=pycache_prefix,
+        linux_linker=linux_linker,
+    )
+
+
 if __name__ == "__main__":
     try:
-        (
-            _git_executable,
-            _git_environment,
-            _cargo_executable,
-            _rustc_executable,
-            _rustfmt_executable,
-            _pycache_prefix,
-        ) = _module_capability_context(
-            Path.cwd(), dict(os.environ)
+        _exit_status = _module_main(
+            dict(os.environ),
+            tuple(sys.argv[1:]),
+            Path.cwd(),
         )
     except (OSError, ValueError, RegistryError) as error:
         print(f"error: {_error_detail(error)}", file=sys.stderr)
-        raise SystemExit(1)
-    raise SystemExit(
-        main(
-            git_executable=_git_executable,
-            git_environment=_git_environment,
-            cargo_executable=_cargo_executable,
-            rustc_executable=_rustc_executable,
-            rustfmt_executable=_rustfmt_executable,
-            pycache_prefix=_pycache_prefix,
-        )
-    )
+        _exit_status = 1
+    raise SystemExit(_exit_status)

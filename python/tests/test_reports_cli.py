@@ -19,12 +19,23 @@ from golden_board.manifest import decode_canonical_manifest, encode_canonical_va
 ACCEPTANCE = tuple(f"Requirement {index}" for index in range(1, 19))
 OWNERS = (
     "M0",
-    "M1", "M1", "M1",
-    "M2", "M2", "M2", "M2",
-    "M3", "M3",
-    "M4", "M4", "M4", "M4",
-    "M5", "M5",
-    "M6", "M6",
+    "M1",
+    "M1",
+    "M1",
+    "M2",
+    "M2",
+    "M2",
+    "M2",
+    "M3",
+    "M3",
+    "M4",
+    "M4",
+    "M4",
+    "M4",
+    "M5",
+    "M5",
+    "M6",
+    "M6",
 )
 SOURCE_SHA256 = "33d44f7167ab190cc793e3fdfd8190d89ed13c1dc507c20854cf64751c7be7da"
 
@@ -110,6 +121,7 @@ class ReportCliTests(unittest.TestCase):
         self.git_environment = {
             "GIT_CONFIG_GLOBAL": "/dev/null",
             "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_NO_LAZY_FETCH": "1",
             "GIT_OPTIONAL_LOCKS": "0",
             "GIT_TERMINAL_PROMPT": "0",
             "HOME": str(self.root / "check-home"),
@@ -124,19 +136,21 @@ class ReportCliTests(unittest.TestCase):
             patch.object(cli, "load_source_lock", return_value=self.lock),
             patch.object(cli, "build_source_report", return_value=self.source_report),
             patch.object(reports, "load_source_lock", return_value=self.lock),
-            patch.object(reports, "build_source_report", return_value=self.source_report),
+            patch.object(
+                reports, "build_source_report", return_value=self.source_report
+            ),
         )
         for active_patch in patches:
             active_patch.start()
             self.addCleanup(active_patch.stop)
 
     def generate_release(self) -> bytes:
-        self.assertEqual(
-            0, cli.main(["generate", "release-summary"], root=self.root)
-        )
+        self.assertEqual(0, cli.main(["generate", "release-summary"], root=self.root))
         return (self.root / "reports/release-summary.json").read_bytes()
 
-    def test_initial_release_summary_is_canonical_pending_and_deterministic(self) -> None:
+    def test_initial_release_summary_is_canonical_pending_and_deterministic(
+        self,
+    ) -> None:
         source_before = (self.root / "reports/source-doctor.json").read_bytes()
         first = self.generate_release()
         value = decode_canonical_manifest(first)
@@ -162,20 +176,18 @@ class ReportCliTests(unittest.TestCase):
     def test_task9_source_commands_are_retained_and_check_never_repairs(self) -> None:
         source_path = self.root / "reports/source-doctor.json"
         source_path.write_bytes(b"stale\n")
-        self.assertEqual(
-            0, cli.main(["generate", "source-doctor"], root=self.root)
-        )
+        self.assertEqual(0, cli.main(["generate", "source-doctor"], root=self.root))
         expected = encode_canonical_value(self.source_report)
         self.assertEqual(expected, source_path.read_bytes())
         self.assertEqual(0, cli.main(["check", "source-report"], root=self.root))
-        self.assertEqual(Path.cwd(), inspect.signature(cli.main).parameters["root"].default)
+        self.assertEqual(
+            Path.cwd(), inspect.signature(cli.main).parameters["root"].default
+        )
         self.assertEqual(0, cli.main(["check", "source-report"], self.root))
 
         source_path.write_bytes(b"stale\n")
         with redirect_stderr(io.StringIO()):
-            self.assertEqual(
-                1, cli.main(["check", "source-report"], root=self.root)
-            )
+            self.assertEqual(1, cli.main(["check", "source-report"], root=self.root))
         self.assertEqual(b"stale\n", source_path.read_bytes())
 
     def test_check_commands_are_offline_and_do_not_rewrite_reports(self) -> None:
@@ -191,12 +203,8 @@ class ReportCliTests(unittest.TestCase):
                 side_effect=AssertionError("network access attempted"),
             ),
         ):
-            self.assertEqual(
-                0, cli.main(["check", "source-report"], root=self.root)
-            )
-            self.assertEqual(
-                0, cli.main(["check", "release-summary"], root=self.root)
-            )
+            self.assertEqual(0, cli.main(["check", "source-report"], root=self.root))
+            self.assertEqual(0, cli.main(["check", "release-summary"], root=self.root))
 
         with patch.object(cli, "check_tracked_reports", return_value=[]) as checker:
             self.assertEqual(
@@ -223,16 +231,16 @@ class ReportCliTests(unittest.TestCase):
         )
         self.assertEqual([], list((self.root / "reports").glob(".*.tmp")))
 
-    def test_native_input_is_canonical_and_only_the_fixed_path_is_accepted(self) -> None:
+    def test_native_input_is_canonical_and_only_the_fixed_path_is_accepted(
+        self,
+    ) -> None:
         with patch.object(
             reports.subprocess,
             "Popen",
             side_effect=AssertionError("pending report path started Git"),
         ):
             before = self.generate_release()
-            self.assertEqual(
-                0, cli.main(["check", "release-summary"], root=self.root)
-            )
+            self.assertEqual(0, cli.main(["check", "release-summary"], root=self.root))
         native = {"schema_version": 0, "probe": "fixed ignored handoff"}
         native_path = self.root / "artifacts/native-verification.json"
         native_path.write_bytes(encode_canonical_value(native))
@@ -283,8 +291,12 @@ class ReportCliTests(unittest.TestCase):
                 ),
             )
         self.assertEqual(native, builder.call_args.args[2])
-        self.assertEqual(self.git_executable, builder.call_args.kwargs["git_executable"])
-        self.assertEqual(self.git_environment, builder.call_args.kwargs["git_environment"])
+        self.assertEqual(
+            self.git_executable, builder.call_args.kwargs["git_executable"]
+        )
+        self.assertEqual(
+            self.git_environment, builder.call_args.kwargs["git_environment"]
+        )
         self.assertEqual(
             encode_canonical_value(sentinel),
             (self.root / "reports/release-summary.json").read_bytes(),
@@ -304,7 +316,9 @@ class ReportCliTests(unittest.TestCase):
                     root=self.root,
                 ),
             )
-        self.assertEqual(before, (self.root / "reports/release-summary.json").read_bytes())
+        self.assertEqual(
+            before, (self.root / "reports/release-summary.json").read_bytes()
+        )
 
         before = (self.root / "reports/release-summary.json").read_bytes()
         invalid_native = (
@@ -483,20 +497,22 @@ class ReportCliTests(unittest.TestCase):
             )
 
     def test_subprocess_timeout_is_a_stable_cli_failure(self) -> None:
-        with patch.object(
-            cli,
-            "check_tracked_reports",
-            side_effect=subprocess.TimeoutExpired(["git", "ls-files"], 30),
-        ), redirect_stderr(io.StringIO()):
-            self.assertEqual(
-                1, cli.main(["check", "release-summary"], root=self.root)
-            )
+        with (
+            patch.object(
+                cli,
+                "check_tracked_reports",
+                side_effect=subprocess.TimeoutExpired(["git", "ls-files"], 30),
+            ),
+            redirect_stderr(io.StringIO()),
+        ):
+            self.assertEqual(1, cli.main(["check", "release-summary"], root=self.root))
 
         hostile = "hostile\x1b[31m\nforged\n" + "x" * 5000
         for returned in (False, True):
             stderr = io.StringIO()
-            with patch.object(cli, "check_tracked_reports") as checker, redirect_stderr(
-                stderr
+            with (
+                patch.object(cli, "check_tracked_reports") as checker,
+                redirect_stderr(stderr),
             ):
                 if returned:
                     checker.return_value = [hostile]

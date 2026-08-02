@@ -41,17 +41,40 @@ EXPECTED_NATIVE_COMMANDS: list[dict[str, object]] = [
     },
     {
         "phase": "acquisition",
-        "argv": ["cargo", "build", "--manifest-path", "Cargo.toml", "--workspace", "--locked"],
+        "argv": [
+            "cargo",
+            "build",
+            "--manifest-path",
+            "Cargo.toml",
+            "--workspace",
+            "--locked",
+        ],
         "exit_code": 0,
     },
     {
         "phase": "offline",
-        "argv": ["uv", "--no-config", "sync", "--project", ".", "--offline", "--locked"],
+        "argv": [
+            "uv",
+            "--no-config",
+            "sync",
+            "--project",
+            ".",
+            "--offline",
+            "--locked",
+        ],
         "exit_code": 0,
     },
     {
         "phase": "offline",
-        "argv": ["cargo", "build", "--manifest-path", "Cargo.toml", "--workspace", "--offline", "--locked"],
+        "argv": [
+            "cargo",
+            "build",
+            "--manifest-path",
+            "Cargo.toml",
+            "--workspace",
+            "--offline",
+            "--locked",
+        ],
         "exit_code": 0,
     },
     {
@@ -115,15 +138,14 @@ EXPECTED_G1_EVIDENCE = (
 FIXED_GIT_ENVIRONMENT = {
     "GIT_CONFIG_GLOBAL": "/dev/null",
     "GIT_CONFIG_NOSYSTEM": "1",
+    "GIT_NO_LAZY_FETCH": "1",
     "GIT_OPTIONAL_LOCKS": "0",
     "GIT_TERMINAL_PROMPT": "0",
     "LANG": "C",
     "LC_ALL": "C",
     "TZ": "UTC",
 }
-GIT_ENVIRONMENT_KEYS = frozenset(
-    {*FIXED_GIT_ENVIRONMENT, "HOME", "PATH", "TMPDIR"}
-)
+GIT_ENVIRONMENT_KEYS = frozenset({*FIXED_GIT_ENVIRONMENT, "HOME", "PATH", "TMPDIR"})
 MAX_TRACKED_PATH_BYTES = 4 * 1024 * 1024
 MAX_GIT_CONFIG_BYTES = 64 * 1024
 MAX_GIT_CONFIG_KEYS = 4_096
@@ -158,7 +180,9 @@ def _read_below(root: Path, relative: PurePosixPath, max_bytes: int) -> bytes:
     try:
         return read_regular_below(root, relative, max_bytes)
     except SafeFileError as error:
-        raise ReportError(f"unsafe or unreadable repository input: {relative}") from error
+        raise ReportError(
+            f"unsafe or unreadable repository input: {relative}"
+        ) from error
 
 
 def _sha256_below(root: Path, relative: PurePosixPath) -> str:
@@ -239,8 +263,7 @@ def _validated_git_context(
         raise ReportError("Git environment must contain exactly the reviewed keys")
     environment = dict(git_environment)
     if any(
-        environment[key] != expected
-        for key, expected in FIXED_GIT_ENVIRONMENT.items()
+        environment[key] != expected for key, expected in FIXED_GIT_ENVIRONMENT.items()
     ):
         raise ReportError("Git environment fixed values drifted")
     for key in ("HOME", "TMPDIR"):
@@ -260,7 +283,6 @@ def _git_command_prefix(root: Path, executable: str) -> tuple[str, ...]:
     return (
         executable,
         "--no-pager",
-        "--no-lazy-fetch",
         "--no-replace-objects",
         f"--git-dir={root / '.git'}",
         f"--work-tree={root}",
@@ -330,7 +352,10 @@ def _validated_git_tree(root: Path) -> bytes:
                 b"\0" in exclude
                 or b"\r" in exclude
                 or (exclude and not exclude.endswith(b"\n"))
-                or any(line and not line.startswith("#") for line in exclude_text.split("\n"))
+                or any(
+                    line and not line.startswith("#")
+                    for line in exclude_text.split("\n")
+                )
             ):
                 raise ReportError("Git metadata exclude file is unsafe")
     except ReportError:
@@ -364,7 +389,8 @@ def _validate_git_config_names(raw: bytes, stderr: bytes) -> None:
             raise ReportError("Git configuration audit is invalid") from error
         if (
             any(ord(character) < 0x20 or ord(character) == 0x7F for character in name)
-            or name in {
+            or name
+            in {
                 "core.worktree",
                 "core.attributesfile",
                 "core.excludesfile",
@@ -374,9 +400,7 @@ def _validate_git_config_names(raw: bytes, stderr: bytes) -> None:
             }
             or (name.startswith("includeif.") and name.endswith(".path"))
             or name.startswith("filter.")
-            or re.fullmatch(
-                r"remote\..+\.(?:promisor|partialclonefilter)", name
-            )
+            or re.fullmatch(r"remote\..+\.(?:promisor|partialclonefilter)", name)
             is not None
         ):
             raise ReportError("Git configuration contains an escape key")
@@ -389,9 +413,7 @@ def git_control_preflight(
     git_environment: dict[str, str],
     runner: Callable[..., object] = _run_bounded_process,
 ) -> tuple[str, ...]:
-    executable, environment = _validated_git_context(
-        git_executable, git_environment
-    )
+    executable, environment = _validated_git_context(git_executable, git_environment)
     config = _validated_git_tree(root)
     try:
         result = runner(
@@ -481,9 +503,7 @@ def _bounded_git_output(
             if len(output) > MAX_TRACKED_PATH_BYTES:
                 raise ReportError("git ls-files output exceeds its byte cap")
         try:
-            return_code = process.wait(
-                timeout=max(1, int(deadline - time.monotonic()))
-            )
+            return_code = process.wait(timeout=max(1, int(deadline - time.monotonic())))
         except subprocess.TimeoutExpired as error:
             raise ReportError("git ls-files timed out") from error
     except BaseException:
@@ -546,9 +566,7 @@ def _native_inventory(
         name = relative.as_posix()
         if name in NATIVE_EXCLUDED_PATHS or name.startswith("docs/superpowers/"):
             continue
-        records.append(
-            {"path": name, "sha256": _sha256_below(root, relative)}
-        )
+        records.append({"path": name, "sha256": _sha256_below(root, relative)})
     return records
 
 
@@ -600,7 +618,9 @@ def parse_acceptance_matrix(roadmap: str) -> list[tuple[str, str, str]]:
             raise ReportError(f"incomplete acceptance row: {line}")
         rows.append((gate_id, acceptance, owner))
     if tuple(row[0] for row in rows) != EXPECTED_GATE_IDS:
-        raise ReportError("acceptance matrix must contain exactly G1 through G18 in order")
+        raise ReportError(
+            "acceptance matrix must contain exactly G1 through G18 in order"
+        )
     return rows
 
 
@@ -633,7 +653,9 @@ def _native_shape(evidence: object) -> dict[str, object]:
     if any(type(tools[key]) is not str or not tools[key] for key in NATIVE_TOOL_KEYS):
         raise ReportError("native evidence tool versions must be nonempty strings")
     if value["isolation"] != EXPECTED_NATIVE_ISOLATION:
-        raise ReportError("native evidence isolation projection differs from native-isolated-v0")
+        raise ReportError(
+            "native evidence isolation projection differs from native-isolated-v0"
+        )
     if value["commands"] != EXPECTED_NATIVE_COMMANDS:
         raise ReportError("native evidence commands differ from native-isolated-v0")
     for index, command in enumerate(cast(list[dict[str, object]], value["commands"])):
@@ -705,11 +727,7 @@ def validate_native_evidence(
         raise ReportError("native evidence tracked-product inventory is stale")
     anthology_path = lock.anthology.path.as_posix()
     anthology_record = next(
-        (
-            record
-            for record in expected_inventory
-            if record["path"] == anthology_path
-        ),
+        (record for record in expected_inventory if record["path"] == anthology_path),
         None,
     )
     if anthology_record != {
@@ -804,9 +822,7 @@ def build_release_summary(
         {"path": lock.anthology.path.as_posix(), "sha256": lock.anthology.sha256},
         {
             "path": "inputs/source-lock.toml",
-            "sha256": _sha256_below(
-                root, PurePosixPath("inputs/source-lock.toml")
-            ),
+            "sha256": _sha256_below(root, PurePosixPath("inputs/source-lock.toml")),
         },
         {
             "path": "python/golden_board/source_doctor.py",
@@ -942,7 +958,9 @@ def _release_shape(value: object, roadmap: str) -> dict[str, object]:
                 raise ReportError("G1 protocol drifted")
             evidence = gate["evidence"]
             if type(evidence) is not list or len(evidence) != 2:
-                raise ReportError("G1 must contain exactly two source evidence identities")
+                raise ReportError(
+                    "G1 must contain exactly two source evidence identities"
+                )
             for evidence_index, item in enumerate(cast(list[object], evidence)):
                 record = _exact_dict(
                     item,

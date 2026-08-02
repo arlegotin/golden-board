@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 import shutil
@@ -41,7 +40,9 @@ class StaticDependencyPolicyTests(unittest.TestCase):
         with patch.object(
             checks, "_cargo_metadata_errors", side_effect=AssertionError("metadata")
         ):
-            self.assertTrue(checks._dependency_errors(root, cargo_executable=Path("/cargo")))
+            self.assertTrue(
+                checks._dependency_errors(root, cargo_executable=Path("/cargo"))
+            )
 
     def test_constants_source_uses_the_shared_mount_safe_reader(self) -> None:
         with patch.object(
@@ -50,9 +51,7 @@ class StaticDependencyPolicyTests(unittest.TestCase):
             wraps=checks.read_regular_below,
         ) as reader:
             checks._load_source(ROOT)
-        reader.assert_called_once_with(
-            ROOT, checks._SOURCE, checks._MAX_SOURCE_BYTES
-        )
+        reader.assert_called_once_with(ROOT, checks._SOURCE, checks._MAX_SOURCE_BYTES)
 
     def test_text_tree_rejects_mount_identity_before_scandir(self) -> None:
         temporary, root = _copy_repository()
@@ -170,7 +169,9 @@ class StaticDependencyPolicyTests(unittest.TestCase):
                 path.write_text("fn main() {}\n", encoding="utf-8")
                 self.assertTrue(checks.static_dependency_errors(root))
 
-    def test_static_policy_rejects_aliased_and_dynamic_python_process_routes(self) -> None:
+    def test_static_policy_rejects_aliased_and_dynamic_python_process_routes(
+        self,
+    ) -> None:
         mutations = (
             "\nimport subprocess as sp\nrunner = sp.run\nrunner(['/attacker'])\n",
             "\nimport asyncio as aio\naio.create_subprocess_shell('attacker')\n",
@@ -190,7 +191,9 @@ class StaticDependencyPolicyTests(unittest.TestCase):
                 root = self.mutate("python/golden_board/identity.py", addition)
                 self.assertTrue(checks.static_dependency_errors(root))
 
-    def test_static_policy_binds_reviewed_process_argv_environment_and_limits(self) -> None:
+    def test_static_policy_binds_reviewed_process_argv_environment_and_limits(
+        self,
+    ) -> None:
         mutations = (
             (
                 "python/golden_board/registry.py",
@@ -307,7 +310,7 @@ class SealedCapabilityTests(unittest.TestCase):
         self.root = Path(self.temporary.name).resolve()
         (self.root / "artifacts/check-pycache").mkdir(parents=True)
         self.tools: dict[str, Path] = {}
-        for name in ("git", "cargo", "rustc", "rustfmt"):
+        for name in ("git", "cargo", "cargo-fmt", "rustc", "rustdoc", "rustfmt"):
             path = self.root / name
             path.write_bytes(name.encode("ascii"))
             path.chmod(0o700)
@@ -318,7 +321,9 @@ class SealedCapabilityTests(unittest.TestCase):
         outputs = {
             "git": b"git version 2.49.0\n",
             "cargo": b"cargo 1.94.0 (Homebrew)\n",
+            "cargo-fmt": b"rustfmt 1.8.0\n",
             "rustc": b"rustc 1.94.0 (4a4ef493e 2026-03-02) (Homebrew)\n",
+            "rustdoc": b"rustdoc 1.94.0 (4a4ef493e 2026-03-02) (Homebrew)\n",
             "rustfmt": b"rustfmt 1.8.0\n",
         }
         return SimpleNamespace(
@@ -327,7 +332,7 @@ class SealedCapabilityTests(unittest.TestCase):
 
     def environment(self) -> dict[str, str]:
         environment = {
-            f"GB_BOOTSTRAP_{name.upper()}": str(path)
+            f"GB_BOOTSTRAP_{name.upper().replace('-', '_')}": str(path)
             for name, path in self.tools.items()
         }
         environment.update(
@@ -343,19 +348,28 @@ class SealedCapabilityTests(unittest.TestCase):
             git,
             git_environment,
             cargo,
+            cargo_fmt,
             rustc,
+            rustdoc,
             rustfmt,
             pycache_prefix,
-        ) = cli._module_capability_context(self.root, self.environment(), runner=self.runner)
+        ) = cli._module_capability_context(
+            self.root, self.environment(), runner=self.runner
+        )
         self.assertEqual(self.tools["git"], git)
         self.assertEqual(self.tools["cargo"], cargo)
+        self.assertEqual(self.tools["cargo-fmt"], cargo_fmt)
         self.assertEqual(self.tools["rustc"], rustc)
+        self.assertEqual(self.tools["rustdoc"], rustdoc)
         self.assertEqual(self.tools["rustfmt"], rustfmt)
         self.assertEqual(self.root / "artifacts/check-pycache", pycache_prefix)
         self.assertEqual("0", git_environment["GIT_OPTIONAL_LOCKS"])
+        self.assertEqual("1", git_environment["GIT_NO_LAZY_FETCH"])
         self.assertFalse(set(self.environment()) & set(git_environment))
 
-    def test_module_context_rejects_missing_and_semantically_wrong_versions(self) -> None:
+    def test_module_context_rejects_missing_and_semantically_wrong_versions(
+        self,
+    ) -> None:
         environment = self.environment()
         del environment["GB_BOOTSTRAP_RUSTC"]
         with self.assertRaises(ValueError):
@@ -391,21 +405,36 @@ class SealedCapabilityTests(unittest.TestCase):
                     ("check", "fast"),
                     self.root,
                     cargo_executable=self.tools["cargo"],
+                    cargo_fmt_executable=self.tools["cargo-fmt"],
                     rustc_executable=self.tools["rustc"],
+                    rustdoc_executable=self.tools["rustdoc"],
                     rustfmt_executable=self.tools["rustfmt"],
                     pycache_prefix=pycache_prefix,
                 ),
             )
         self.assertEqual(self.tools["cargo"], run.call_args.kwargs["cargo_executable"])
+        self.assertEqual(
+            self.tools["cargo-fmt"], run.call_args.kwargs["cargo_fmt_executable"]
+        )
         self.assertEqual(self.tools["rustc"], run.call_args.kwargs["rustc_executable"])
-        self.assertEqual(self.tools["rustfmt"], run.call_args.kwargs["rustfmt_executable"])
+        self.assertEqual(
+            self.tools["rustdoc"], run.call_args.kwargs["rustdoc_executable"]
+        )
+        self.assertEqual(
+            self.tools["rustfmt"], run.call_args.kwargs["rustfmt_executable"]
+        )
         self.assertEqual(pycache_prefix, run.call_args.kwargs["pycache_prefix"])
 
     def test_child_environment_contains_exact_git_lock_suppression(self) -> None:
         environment = checks._child_environment(
-            self.root, tuple(self.tools[name] for name in ("cargo", "rustc", "rustfmt"))
+            self.root,
+            tuple(
+                self.tools[name]
+                for name in ("cargo", "cargo-fmt", "rustc", "rustdoc", "rustfmt")
+            ),
         )
         self.assertEqual("0", environment["GIT_OPTIONAL_LOCKS"])
+        self.assertEqual("1", environment["GIT_NO_LAZY_FETCH"])
         self.assertEqual("1", environment["PYTHONDONTWRITEBYTECODE"])
         self.assertEqual(
             str(self.root / "artifacts/check-pycache"),
@@ -459,7 +488,9 @@ class SealedCapabilityTests(unittest.TestCase):
             checks._validated_pycache_prefix(self.root)
         mount_check.assert_called()
 
-    def test_nested_python_ignores_a_poisoned_source_tree_cache_by_exact_env(self) -> None:
+    def test_nested_python_ignores_a_poisoned_source_tree_cache_by_exact_env(
+        self,
+    ) -> None:
         poison = self.root / "python/golden_board/__pycache__"
         poison.mkdir(parents=True)
         (poison / "identity.cpython-314.pyc").write_bytes(b"valid-looking poison")
@@ -501,7 +532,9 @@ class SealedCapabilityTests(unittest.TestCase):
         )
         self.assertNotEqual(str(poison), environment["PYTHONPYCACHEPREFIX"])
 
-    def test_nested_python_disables_site_and_cwd_shadowing_but_uses_pythonpath(self) -> None:
+    def test_nested_python_disables_site_and_cwd_shadowing_but_uses_pythonpath(
+        self,
+    ) -> None:
         temporary, root = _copy_repository()
         self.addCleanup(temporary.cleanup)
         root = root.resolve(strict=True)

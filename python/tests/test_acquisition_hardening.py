@@ -103,7 +103,9 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
         self.assertEqual(before_bytes, destination.read_bytes())
         self.assertFalse(self._scratch())
 
-    def test_post_replace_failure_without_prior_inventory_removes_destination(self) -> None:
+    def test_post_replace_failure_without_prior_inventory_removes_destination(
+        self,
+    ) -> None:
         value = acquisition.build_inventory(self.root)
         replace = os.replace
         mutated = False
@@ -136,7 +138,9 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
         self.assertFalse((self.root / acquisition.INVENTORY_PATH).exists())
         self.assertFalse(self._scratch())
 
-    def test_rollback_refuses_to_clobber_an_atomically_substituted_destination(self) -> None:
+    def test_rollback_refuses_to_clobber_an_atomically_substituted_destination(
+        self,
+    ) -> None:
         value = acquisition.build_inventory(self.root)
         acquisition.write_inventory(self.root, value)
         destination = self.root / acquisition.INVENTORY_PATH
@@ -172,7 +176,9 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
                 )
 
         with (
-            patch.object(acquisition.os, "replace", side_effect=replace_then_substitute),
+            patch.object(
+                acquisition.os, "replace", side_effect=replace_then_substitute
+            ),
             self.assertRaisesRegex(
                 acquisition.AcquisitionError, "inventory rollback failed"
             ),
@@ -244,7 +250,9 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
 
             with (
                 self.subTest(prior=prior),
-                patch.object(acquisition.os, "fsync", side_effect=fail_publication_fsync),
+                patch.object(
+                    acquisition.os, "fsync", side_effect=fail_publication_fsync
+                ),
                 self.assertRaises(acquisition.AcquisitionError),
             ):
                 acquisition.write_inventory(root, value)
@@ -351,9 +359,7 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
             ):
                 acquisition.write_inventory(root, value)
 
-            old_artifacts = (
-                displaced / "artifacts" if exchange == "root" else displaced
-            )
+            old_artifacts = displaced / "artifacts" if exchange == "root" else displaced
             restored = old_artifacts / acquisition.INVENTORY_PATH.name
             after = restored.stat()
             self.assertEqual(
@@ -388,13 +394,78 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
             limit_name = (
                 "MAX_RELATIVE_PATH_DEPTH" if is_depth else "MAX_RELATIVE_PATH_BYTES"
             )
-            limit = len(relative.parts) - 1 if is_depth else len(os.fsencode(str(relative))) - 1
+            limit = (
+                len(relative.parts) - 1
+                if is_depth
+                else len(os.fsencode(str(relative))) - 1
+            )
             with (
                 self.subTest(case=name),
                 patch.object(acquisition, limit_name, limit),
                 self.assertRaises(acquisition.AcquisitionError),
             ):
                 acquisition.build_inventory(root)
+
+    def test_only_measured_rustup_files_receive_the_larger_cap(self) -> None:
+        self.assertEqual(64 * 1024 * 1024, acquisition.MAX_FILE_BYTES)
+        self.assertEqual(155_425_152, acquisition.MAX_RUSTUP_FILE_BYTES)
+        ordinary = self.root / "artifacts/cargo-home/ordinary"
+        rustup = self.root / acquisition.RUSTUP_INVENTORY_ROOT / "measured"
+        rustup.parent.mkdir()
+        with (
+            patch.object(acquisition, "MAX_FILE_BYTES", 64),
+            patch.object(acquisition, "MAX_RUSTUP_FILE_BYTES", 80),
+        ):
+            ordinary.write_bytes(b"x" * 64)
+            rustup.write_bytes(b"x" * 80)
+            acquisition.build_inventory(self.root)
+            ordinary.write_bytes(b"x" * 65)
+            with self.assertRaisesRegex(
+                acquisition.AcquisitionError, "unsafe inventory file"
+            ):
+                acquisition.build_inventory(self.root)
+            ordinary.write_bytes(b"x" * 64)
+            rustup.write_bytes(b"x" * 81)
+            with self.assertRaisesRegex(
+                acquisition.AcquisitionError, "unsafe inventory file"
+            ):
+                acquisition.build_inventory(self.root)
+
+    def test_inventory_document_uses_the_same_path_specific_file_cap(self) -> None:
+        roots = [path.as_posix() for path in acquisition.INVENTORY_ROOTS]
+
+        def document(path: str, size: int) -> dict[str, object]:
+            return {
+                "schema_version": 0,
+                "roots": roots,
+                "files": [{"byte_length": size, "path": path, "sha256": "0" * 64}],
+                "links": [],
+            }
+
+        cases = (
+            (
+                "artifacts/cargo-home/ordinary",
+                acquisition.MAX_FILE_BYTES,
+            ),
+            (
+                "artifacts/cargo-home/rustup/toolchains/measured",
+                acquisition.MAX_RUSTUP_FILE_BYTES,
+            ),
+        )
+        for path, maximum in cases:
+            value = document(path, maximum)
+            with (
+                self.subTest(path=path),
+                patch.object(acquisition, "build_inventory", return_value=value),
+            ):
+                self.assertEqual(
+                    value, acquisition.validate_inventory(self.root, value)
+                )
+            with (
+                self.subTest(path=path, over=True),
+                self.assertRaises(acquisition.AcquisitionError),
+            ):
+                acquisition.validate_inventory(self.root, document(path, maximum + 1))
 
     @unittest.skipUnless(hasattr(os, "symlink"), "symlinks required")
     def test_python_link_containment_never_uses_path_resolve(self) -> None:
@@ -438,7 +509,9 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
                     if kind == "file"
                     else []
                 ),
-                "links": ([{"path": path, "target": "payload"}] if kind == "link" else []),
+                "links": (
+                    [{"path": path, "target": "payload"}] if kind == "link" else []
+                ),
             }
             limits = (
                 ("MAX_RELATIVE_PATH_BYTES", len(os.fsencode(path)) - 1),
@@ -464,7 +537,9 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
             target = self.root / relative
             leaf = relative.name
 
-            def cross_device(path: object, *args: object, **kwargs: object) -> os.stat_result:
+            def cross_device(
+                path: object, *args: object, **kwargs: object
+            ) -> os.stat_result:
                 value = stat_call(path, *args, **kwargs)
                 if path == leaf and kwargs.get("dir_fd") is not None:
                     return self._other_device(value)
@@ -482,8 +557,9 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
                 patch.object(
                     acquisition.os.path,
                     "ismount",
-                    side_effect=lambda path, target=target: Path(path) == target
-                    or ismount(path),
+                    side_effect=lambda path, target=target: (
+                        Path(path) == target or ismount(path)
+                    ),
                 ),
                 self.assertRaises(acquisition.AcquisitionError),
             ):
@@ -498,7 +574,9 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
         scandir = os.scandir
         ismount = os.path.ismount
 
-        def cross_device(path: object, *args: object, **kwargs: object) -> os.stat_result:
+        def cross_device(
+            path: object, *args: object, **kwargs: object
+        ) -> os.stat_result:
             value = stat_call(path, *args, **kwargs)
             if path == "nested" and kwargs.get("dir_fd") is not None:
                 return self._other_device(value)
@@ -543,7 +621,9 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
             parent = (self.root / relative.parent).stat()
             parent_identity = (parent.st_dev, parent.st_ino)
 
-            def cross_device(path: object, *args: object, **kwargs: object) -> os.stat_result:
+            def cross_device(
+                path: object, *args: object, **kwargs: object
+            ) -> os.stat_result:
                 value = stat_call(path, *args, **kwargs)
                 descriptor = kwargs.get("dir_fd")
                 if (
@@ -664,7 +744,9 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
             acquisition.build_inventory(self.root)
         checked.assert_called()
 
-    def test_inventory_writer_rejects_artifacts_mount_before_temp_creation(self) -> None:
+    def test_inventory_writer_rejects_artifacts_mount_before_temp_creation(
+        self,
+    ) -> None:
         value = acquisition.build_inventory(self.root)
         artifacts = self.root / "artifacts"
 
@@ -686,7 +768,9 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
         self.assertFalse(self._scratch())
         self.assertFalse(self._scratch())
 
-    def test_writer_checks_existing_destination_mount_before_creating_temp(self) -> None:
+    def test_writer_checks_existing_destination_mount_before_creating_temp(
+        self,
+    ) -> None:
         value = acquisition.build_inventory(self.root)
         acquisition.write_inventory(self.root, value)
         destination = self.root / acquisition.INVENTORY_PATH
@@ -805,7 +889,9 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
         ):
             acquisition.write_inventory(self.root, value)
         replace.assert_not_called()
-        self.assertEqual(foreign_identity, (destination.stat().st_dev, destination.stat().st_ino))
+        self.assertEqual(
+            foreign_identity, (destination.stat().st_dev, destination.stat().st_ino)
+        )
         self.assertFalse(self._scratch())
 
     def test_rollback_never_restores_an_in_place_mutated_backup(self) -> None:

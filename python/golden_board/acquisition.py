@@ -30,6 +30,10 @@ INVENTORY_ROOTS = (
 MAX_FILES = 50_000
 MAX_ENTRIES = 100_000
 MAX_FILE_BYTES = 64 * 1024 * 1024
+RUSTUP_INVENTORY_ROOT = PurePosixPath("artifacts/cargo-home/rustup")
+# Largest measured file in the pinned 1.94.0 aarch64 minimal+rustfmt tree:
+# libLLVM.so.21.1-rust-1.94.0-stable.
+MAX_RUSTUP_FILE_BYTES = 155_425_152
 MAX_TOTAL_BYTES = 4 * 1024 * 1024 * 1024
 MAX_INVENTORY_BYTES = 16 * 1024 * 1024
 MAX_RELATIVE_PATH_BYTES = 4096
@@ -63,6 +67,14 @@ def _require_bounded_relative_path(relative: PurePosixPath) -> None:
         raise _error("acquisition path cap exceeded")
 
 
+def _maximum_file_bytes(relative: PurePosixPath) -> int:
+    return (
+        MAX_RUSTUP_FILE_BYTES
+        if relative.is_relative_to(RUSTUP_INVENTORY_ROOT)
+        else MAX_FILE_BYTES
+    )
+
+
 def _valid_link_target(target: str) -> bool:
     return bool(target) and "\0" not in target and len(os.fsencode(target)) <= 4096
 
@@ -91,10 +103,9 @@ def _open_directory_below(
     descriptor = os.dup(repository)
     try:
         root_path = os.stat(root, follow_symlinks=False)
-        if (
-            not stat.S_ISDIR(root_path.st_mode)
-            or _stat_identity(root_path) != _stat_identity(repository_stat)
-        ):
+        if not stat.S_ISDIR(root_path.st_mode) or _stat_identity(
+            root_path
+        ) != _stat_identity(repository_stat):
             raise _error("acquisition repository identity changed")
         current = PurePosixPath()
         for part in relative.parts:
@@ -106,9 +117,7 @@ def _open_directory_below(
                 held = os.fstat(child)
                 path = root / current.as_posix()
                 path_stat = os.stat(path, follow_symlinks=False)
-                entry_after = os.stat(
-                    part, dir_fd=descriptor, follow_symlinks=False
-                )
+                entry_after = os.stat(part, dir_fd=descriptor, follow_symlinks=False)
                 if (
                     not same_held_mount(repository_mount, child, path)
                     or not all(
@@ -194,10 +203,9 @@ def _inventory_paths(
                             )
                         except OSError as error:
                             raise _error("acquisition entry changed") from error
-                        if (
-                            before.st_dev != repository_stat.st_dev
-                            or _stat_identity(path_before) != _stat_identity(before)
-                        ):
+                        if before.st_dev != repository_stat.st_dev or _stat_identity(
+                            path_before
+                        ) != _stat_identity(before):
                             raise _error(f"unsafe acquisition entry: {relative}")
                         mode = before.st_mode
                         if stat.S_ISLNK(mode):
@@ -208,10 +216,9 @@ def _inventory_paths(
                             except OSError as error:
                                 raise _error("acquisition link changed") from error
                             link_path = root / relative.as_posix()
-                            if (
-                                not _valid_link_target(target)
-                                or not _contained_python_link(root, relative)
-                            ):
+                            if not _valid_link_target(
+                                target
+                            ) or not _contained_python_link(root, relative):
                                 raise _error(f"unsafe acquisition symlink: {relative}")
                             try:
                                 after = os.stat(
@@ -219,9 +226,7 @@ def _inventory_paths(
                                     dir_fd=descriptor,
                                     follow_symlinks=False,
                                 )
-                                path_after = os.stat(
-                                    link_path, follow_symlinks=False
-                                )
+                                path_after = os.stat(link_path, follow_symlinks=False)
                                 after_target = os.readlink(name, dir_fd=descriptor)
                             except OSError as error:
                                 raise _error("acquisition link changed") from error
@@ -251,31 +256,25 @@ def _inventory_paths(
                             or _stat_facts(before) != _stat_facts(entry_mount)
                             or _stat_identity(path_before)
                             != _stat_identity(entry_mount)
-                            or _stat_identity(path_mount)
-                            != _stat_identity(entry_mount)
+                            or _stat_identity(path_mount) != _stat_identity(entry_mount)
                         ):
                             raise _error(f"unsafe acquisition file: {relative}")
                         file_descriptor = os.open(
                             name,
-                            os.O_RDONLY
-                            | os.O_CLOEXEC
-                            | os.O_NOFOLLOW
-                            | os.O_NONBLOCK,
+                            os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK,
                             dir_fd=descriptor,
                         )
                         try:
                             held = os.fstat(file_descriptor)
-                            if (
-                                not same_held_mount(
-                                    repository_mount,
-                                    file_descriptor,
-                                    entry_path,
-                                )
-                                or _stat_identity(held) != _stat_identity(before)
-                            ):
+                            if not same_held_mount(
+                                repository_mount,
+                                file_descriptor,
+                                entry_path,
+                            ) or _stat_identity(held) != _stat_identity(before):
                                 raise _error(f"unsafe acquisition file: {relative}")
                             raw, after = _read_regular_descriptor(
-                                file_descriptor, MAX_FILE_BYTES
+                                file_descriptor,
+                                _maximum_file_bytes(relative),
                             )
                         finally:
                             os.close(file_descriptor)
@@ -292,22 +291,16 @@ def _inventory_paths(
                             raise _error("acquisition file changed")
                         current_descriptor = os.open(
                             name,
-                            os.O_RDONLY
-                            | os.O_CLOEXEC
-                            | os.O_NOFOLLOW
-                            | os.O_NONBLOCK,
+                            os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK,
                             dir_fd=descriptor,
                         )
                         try:
                             current_held = os.fstat(current_descriptor)
-                            if (
-                                not same_held_mount(
-                                    repository_mount,
-                                    current_descriptor,
-                                    entry_path,
-                                )
-                                or _stat_facts(current_held) != _stat_facts(after)
-                            ):
+                            if not same_held_mount(
+                                repository_mount,
+                                current_descriptor,
+                                entry_path,
+                            ) or _stat_facts(current_held) != _stat_facts(after):
                                 raise _error("acquisition file changed")
                         finally:
                             os.close(current_descriptor)
@@ -353,9 +346,7 @@ def _cargo_checksums(root: Path, records: list[dict[str, object]]) -> None:
     by_name = {
         cast(str, item["path"]): item
         for item in records
-        if cast(str, item["path"]).startswith(
-            "artifacts/cargo-home/registry/cache/"
-        )
+        if cast(str, item["path"]).startswith("artifacts/cargo-home/registry/cache/")
     }
     for package in packages:
         if type(package) is not dict:
@@ -442,13 +433,16 @@ def validate_inventory(root: Path, value: object) -> dict[str, object]:
             or len(os.fsencode(path)) > MAX_RELATIVE_PATH_BYTES
             or len(PurePosixPath(path).parts) > MAX_RELATIVE_PATH_DEPTH
             or type(size) is not int
-            or not 0 <= size <= MAX_FILE_BYTES
+            or not 0 <= size <= _maximum_file_bytes(PurePosixPath(path))
             or type(digest) is not str
             or len(digest) != 64
             or any(character not in "0123456789abcdef" for character in digest)
         ):
             raise _error()
-        if not any(PurePosixPath(path).is_relative_to(root_path) for root_path in INVENTORY_ROOTS):
+        if not any(
+            PurePosixPath(path).is_relative_to(root_path)
+            for root_path in INVENTORY_ROOTS
+        ):
             raise _error()
         total += size
         if total > MAX_TOTAL_BYTES:
@@ -482,7 +476,9 @@ def validate_inventory(root: Path, value: object) -> dict[str, object]:
     expected = build_inventory(root)
     if document != expected:
         raise _error("acquisition inventory is stale")
-    return cast(dict[str, object], decode_canonical_manifest(encode_canonical_value(document)))
+    return cast(
+        dict[str, object], decode_canonical_manifest(encode_canonical_value(document))
+    )
 
 
 def _write_all(descriptor: int, raw: bytes) -> None:
@@ -525,9 +521,7 @@ def _require_directory_identity(
     try:
         root_path = os.stat(root, follow_symlinks=False)
         root_descriptor = os.fstat(repository)
-        artifacts_path = os.stat(
-            "artifacts", dir_fd=repository, follow_symlinks=False
-        )
+        artifacts_path = os.stat("artifacts", dir_fd=repository, follow_symlinks=False)
         artifacts_descriptor = os.fstat(artifacts)
     except OSError as error:
         raise _error("acquisition directory identity changed") from error
@@ -543,9 +537,7 @@ def _require_directory_identity(
         )
         or _stat_identity(root_path) != _stat_identity(root_descriptor)
         or _stat_identity(artifacts_path) != _stat_identity(artifacts_descriptor)
-        or not same_held_mount(
-            repository_mount, artifacts, root / "artifacts"
-        )
+        or not same_held_mount(repository_mount, artifacts, root / "artifacts")
     ):
         raise _error("acquisition directory identity changed")
 
@@ -560,13 +552,7 @@ def _open_inventory_leaf(
     expected_facts: tuple[int, int, int, int, int, int] | None = None,
     message: str,
 ) -> tuple[int, os.stat_result]:
-    if (
-        type(name) is not str
-        or not name
-        or "/" in name
-        or "\0" in name
-        or "\\" in name
-    ):
+    if type(name) is not str or not name or "/" in name or "\0" in name or "\\" in name:
         raise _error(message)
     descriptor: int | None = None
     try:
@@ -676,9 +662,7 @@ def write_inventory(root: Path, value: object) -> None:
             raise _error("no inventory temporary name")
         created = os.fstat(descriptor)
         temporary_identity = _stat_identity(created)
-        created_path = os.stat(
-            temporary, dir_fd=artifacts, follow_symlinks=False
-        )
+        created_path = os.stat(temporary, dir_fd=artifacts, follow_symlinks=False)
         if (
             not stat.S_ISREG(created.st_mode)
             or _stat_identity(created_path) != _stat_identity(created)
@@ -828,10 +812,7 @@ def write_inventory(root: Path, value: object) -> None:
             )
         finally:
             os.close(published_descriptor)
-        if (
-            published_raw != raw
-            or _stat_identity(published_stat) != published_identity
-        ):
+        if published_raw != raw or _stat_identity(published_stat) != published_identity:
             raise _error("published inventory changed")
         try:
             published_value = decode_canonical_manifest(published_raw)
@@ -974,7 +955,7 @@ def write_inventory(root: Path, value: object) -> None:
                 )
                 os.close(cleanup_descriptor)
                 os.unlink(temporary, dir_fd=artifacts)
-            except (OSError, AcquisitionError):
+            except OSError, AcquisitionError:
                 pass
         if backup is not None and artifacts is not None and not replaced:
             try:
@@ -990,7 +971,7 @@ def write_inventory(root: Path, value: object) -> None:
                 )
                 os.close(cleanup_descriptor)
                 os.unlink(backup, dir_fd=artifacts)
-            except (OSError, AcquisitionError):
+            except OSError, AcquisitionError:
                 pass
         for opened in (artifacts, repository):
             if opened is not None:

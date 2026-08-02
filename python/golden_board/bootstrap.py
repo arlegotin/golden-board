@@ -20,15 +20,16 @@ _IMPORT_SOURCE_COUNT = 64
 _BOOTSTRAP_FDINFO_MAX_BYTES = 4096
 _TRUSTED_SOURCE_SHA256 = {
     "__init__.py": "cc4532ec9eca51ea23edb9b88fa332448cef1a6908a07f940bf52c22c123ad02",
-    "acquisition.py": "3a5a6b08a7bb55d330c3541f94ffc409821f3aa6ff433d780bd299e43fa465e6",
-    "checks.py": "43184d476d79b4ceab04ad1804c678651f6ffd99195650d223572e4c1d506434",
-    "cli.py": "f68c9e584460abca4e049e0e4e9295319a680260d290d2e0766d38edf5498a5f",
+    "acquisition.py": "779931e37c44fb41d95003e6b96b01ce76c37c79ef7feab36951b5303bcd9697",
+    "checks.py": "cbb598d30731ac3088720c193a00d96f5b185c2bb9a5300611d1c02d5b64e22b",
+    "clean.py": "8b4f7f4cf05e7b3fdf2d22e6fcf84767b80ba8394d14152724dfb9d9308f7de5",
+    "cli.py": "18dacad30886be0621b8b4ab13a1d838006035e69ab178b89b0551897db65e05",
     "constants.py": "be8d252b08478d6d72604c2b8048a68b0648f186a74dd363dceabd955a0b06c3",
     "identity.py": "93af1f118c1a339d77ed63c30d46eef70422fb6d17822f3c561e3f27b355050d",
     "manifest.py": "a433d8357ef3b5ce65866509e5dab328de786dfc5abd0a7a8aeb9052469efb07",
     "reference_acquisition.py": "690b253982beea96533b1983204ef07f398d4f418e1e1151a1af509b8597eea9",
     "registry.py": "4fabae6eca56e9193d4cfb517566ed773275932bfdf0c733be0b31c8421b27c5",
-    "reports.py": "6ce7b80dd0d5aa08f41c4d5e2648eb7b3361835d1868ddd908ec9ce71fb8ba1b",
+    "reports.py": "a2ec2f0cc564133bbdd8512772ed24a2dccf313c1f60e1fe1107750d86845095",
     "source_doctor.py": "d3c61565fe8dfd3909eb17fa46abadebac2165e60234d4c020e7a1d8d7df4f0f",
     "source_lock.py": "b360e9c3a3ab7bdc409232c48be78b75ac647a21f16ee2aa7385adc2a0d1c950",
     "status.py": "629360012eff93807dc599843132fb8e6b68f9f94223562b5293c4679198b66b",
@@ -119,9 +120,7 @@ def _bootstrap_same_held_mount(
                 descendant_descriptor
             )
         elif sys.platform == "darwin":
-            same = repository_mount[1] is None and not os.path.ismount(
-                descendant_path
-            )
+            same = repository_mount[1] is None and not os.path.ismount(descendant_path)
         else:
             return False
         return bool(
@@ -129,7 +128,7 @@ def _bootstrap_same_held_mount(
             and _identity_facts(before)
             == _identity_facts(os.fstat(descendant_descriptor))
         )
-    except (OSError, TypeError, ValueError):
+    except OSError, TypeError, ValueError:
         return False
 
 
@@ -196,9 +195,7 @@ def _validate_import_sources(
             or stat.S_ISLNK(python_directory.lstat().st_mode)
         ):
             raise OSError("unsafe Python source root")
-        repository_descriptor = os.open(
-            python_directory.parent, directory_flags
-        )
+        repository_descriptor = os.open(python_directory.parent, directory_flags)
         descriptors.append(repository_descriptor)
         repository_mount = _bootstrap_mount_identity(repository_descriptor)
         python_descriptor = os.open(
@@ -207,7 +204,6 @@ def _validate_import_sources(
             dir_fd=repository_descriptor,
         )
         descriptors.append(python_descriptor)
-        python_state = os.fstat(python_descriptor)
         if not _bootstrap_same_held_mount(
             repository_mount, python_descriptor, python_directory
         ):
@@ -270,14 +266,12 @@ def _validate_import_sources(
                 dir_fd=package_descriptor,
             )
             try:
-                if (
-                    not _bootstrap_same_held_mount(
-                        repository_mount,
-                        cache_descriptor,
-                        python_directory / "golden_board/__pycache__",
-                    )
-                    or _identity_facts(os.fstat(cache_descriptor))
-                    != _identity_facts(cache)
+                if not _bootstrap_same_held_mount(
+                    repository_mount,
+                    cache_descriptor,
+                    python_directory / "golden_board/__pycache__",
+                ) or _identity_facts(os.fstat(cache_descriptor)) != _identity_facts(
+                    cache
                 ):
                     raise OSError("changed local Python cache")
             finally:
@@ -312,12 +306,14 @@ def _validate_import_sources(
                 remaining -= len(chunk)
             after = os.fstat(descriptor)
             current = os.stat(name, dir_fd=package_descriptor, follow_symlinks=False)
-            if (
-                _file_facts(before) != _file_facts(after)
-                or _file_facts(after) != _file_facts(current)
-            ):
+            if _file_facts(before) != _file_facts(after) or _file_facts(
+                after
+            ) != _file_facts(current):
                 raise OSError("changed Python source")
-            if name != "bootstrap.py" and digest.hexdigest() != _TRUSTED_SOURCE_SHA256.get(name):
+            if (
+                name != "bootstrap.py"
+                and digest.hexdigest() != _TRUSTED_SOURCE_SHA256.get(name)
+            ):
                 raise OSError("untrusted Python source")
             sources.add(name)
             source_facts[name] = _file_facts(after)
@@ -360,7 +356,11 @@ try:
     _IMPORT_SOURCE_FACTS = _validate_import_sources(_PYTHON_DIRECTORY)
     sys.path.insert(0, str(_PYTHON_DIRECTORY))
 
-    from golden_board.acquisition import build_inventory, load_inventory, write_inventory
+    from golden_board.acquisition import (
+        build_inventory,
+        load_inventory,
+        write_inventory,
+    )
     from golden_board.reports import ReportError, git_control_preflight
     from golden_board.registry import RegistryError, _run_bounded_process
     from golden_board.source_lock import (
@@ -371,6 +371,7 @@ try:
         resolve_same_mount_path,
         same_held_mount,
     )
+
     if _validate_import_sources(_PYTHON_DIRECTORY) != _IMPORT_SOURCE_FACTS:
         raise RuntimeError("bootstrap source tree changed during import")
 finally:
@@ -445,7 +446,9 @@ def _open_runtime_below(
                     os.mkdir(part, 0o700, dir_fd=descriptor)
                     child = os.open(part, flags, dir_fd=descriptor)
                 except OSError as error:
-                    raise _fail(f"cannot create safe runtime directory: {relative}") from error
+                    raise _fail(
+                        f"cannot create safe runtime directory: {relative}"
+                    ) from error
             except OSError as error:
                 raise _fail(f"unsafe runtime directory: {relative}") from error
             current = current / part
@@ -566,12 +569,11 @@ def git_environment(root: Path, git_executable: Path) -> dict[str, str]:
     repository = _root(root)
     if not isinstance(git_executable, Path) or not git_executable.is_absolute():
         raise _fail("Git capability must be absolute")
-    path = os.pathsep.join(
-        dict.fromkeys((str(git_executable.parent), "/usr/bin"))
-    )
+    path = os.pathsep.join(dict.fromkeys((str(git_executable.parent), "/usr/bin")))
     return {
         "GIT_CONFIG_GLOBAL": "/dev/null",
         "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_NO_LAZY_FETCH": "1",
         "GIT_OPTIONAL_LOCKS": "0",
         "GIT_TERMINAL_PROMPT": "0",
         "HOME": str(repository / "artifacts/check-home"),
@@ -623,9 +625,11 @@ def _prove_venv_disposable(
                 git_environment=environment,
                 runner=runner,
             )
-            if index == 0 and read_regular_below(
-                root, PurePosixPath(".gitignore"), 64 * 1024
-            ) != ignore_bytes:
+            if (
+                index == 0
+                and read_regular_below(root, PurePosixPath(".gitignore"), 64 * 1024)
+                != ignore_bytes
+            ):
                 raise _fail("tracked root .gitignore changed")
             result = runner(
                 [*prefix, *suffix],
@@ -635,11 +639,19 @@ def _prove_venv_disposable(
                 output_limit=TOOL_OUTPUT_LIMIT,
                 cwd=root,
             )
-            if index == 0 and read_regular_below(
-                root, PurePosixPath(".gitignore"), 64 * 1024
-            ) != ignore_bytes:
+            if (
+                index == 0
+                and read_regular_below(root, PurePosixPath(".gitignore"), 64 * 1024)
+                != ignore_bytes
+            ):
                 raise _fail("tracked root .gitignore changed")
-        except (OSError, RegistryError, ReportError, SafeFileError, ValueError) as error:
+        except (
+            OSError,
+            RegistryError,
+            ReportError,
+            SafeFileError,
+            ValueError,
+        ) as error:
             raise _fail(".venv is not proven disposable") from error
         if (
             type(result) is not tuple
@@ -678,20 +690,16 @@ def _validate_venv_tree(
                 if stat.S_ISREG(mode):
                     leaf = os.open(
                         entry.name,
-                        os.O_RDONLY
-                        | os.O_CLOEXEC
-                        | os.O_NOFOLLOW
-                        | os.O_NONBLOCK,
+                        os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK,
                         dir_fd=descriptor,
                     )
                     try:
-                        if (
-                            _file_facts(os.fstat(leaf)) != _file_facts(before)
-                            or not same_held_mount(
-                                repository_mount,
-                                leaf,
-                                path / entry.name,
-                            )
+                        if _file_facts(os.fstat(leaf)) != _file_facts(
+                            before
+                        ) or not same_held_mount(
+                            repository_mount,
+                            leaf,
+                            path / entry.name,
                         ):
                             raise _fail(".venv contains a mount or changed file")
                     finally:
@@ -706,9 +714,7 @@ def _validate_venv_tree(
                     child_path = path / entry.name
                     if (
                         _file_facts(before) != _file_facts(current)
-                        or not same_held_mount(
-                            repository_mount, child, child_path
-                        )
+                        or not same_held_mount(repository_mount, child, child_path)
                         or _file_facts(child_path.lstat()) != _file_facts(current)
                     ):
                         raise _fail(".venv contains a mount or changed directory")
@@ -742,8 +748,7 @@ def _verify_directory_chain(
             try:
                 if (
                     _identity_facts(current) != _identity_facts(expected)
-                    or _identity_facts(os.fstat(child))
-                    != _identity_facts(expected)
+                    or _identity_facts(os.fstat(child)) != _identity_facts(expected)
                     or not same_held_mount(repository_mount, child, path)
                 ):
                     raise _fail(".venv directory link changed")
@@ -783,19 +788,13 @@ def _delete_venv_contents(
             if stat.S_ISREG(mode):
                 leaf = os.open(
                     name,
-                    os.O_RDONLY
-                    | os.O_CLOEXEC
-                    | os.O_NOFOLLOW
-                    | os.O_NONBLOCK,
+                    os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK,
                     dir_fd=descriptor,
                 )
                 try:
-                    if (
-                        _file_facts(os.fstat(leaf)) != _file_facts(before)
-                        or not same_held_mount(
-                            repository_mount, leaf, path / name
-                        )
-                    ):
+                    if _file_facts(os.fstat(leaf)) != _file_facts(
+                        before
+                    ) or not same_held_mount(repository_mount, leaf, path / name):
                         raise _fail(".venv leaf changed before removal")
                 finally:
                     os.close(leaf)
@@ -805,10 +804,7 @@ def _delete_venv_contents(
                 _verify_directory_chain(chain, repository_mount)
                 final_leaf = os.open(
                     name,
-                    os.O_RDONLY
-                    | os.O_CLOEXEC
-                    | os.O_NOFOLLOW
-                    | os.O_NONBLOCK,
+                    os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW | os.O_NONBLOCK,
                     dir_fd=descriptor,
                 )
                 try:
@@ -860,9 +856,7 @@ def _delete_venv_contents(
                 child_path = path / name
                 if (
                     _file_facts(opened) != _file_facts(before)
-                    or not same_held_mount(
-                        repository_mount, child, child_path
-                    )
+                    or not same_held_mount(repository_mount, child, child_path)
                     or _file_facts(child_path.lstat()) != _file_facts(opened)
                 ):
                     raise _fail(".venv contains a mount or changed directory")
@@ -929,9 +923,7 @@ def remove_venv(
         if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
             raise _fail(".venv is not a disposable real directory")
         try:
-            venv_descriptor = os.open(
-                ".venv", flags, dir_fd=descriptor
-            )
+            venv_descriptor = os.open(".venv", flags, dir_fd=descriptor)
         except OSError as error:
             raise _fail("cannot open .venv") from error
         try:
@@ -940,9 +932,8 @@ def remove_venv(
                 repository_mount = held_mount_identity(descriptor)
             except OSError as error:
                 raise _fail(".venv mount identity is unavailable") from error
-            if (
-                _file_facts(opened) != _file_facts(before)
-                or not same_held_mount(repository_mount, venv_descriptor, venv)
+            if _file_facts(opened) != _file_facts(before) or not same_held_mount(
+                repository_mount, venv_descriptor, venv
             ):
                 raise _fail(".venv changed before inspection")
             _validate_venv_tree(venv_descriptor, venv, repository_mount)
@@ -973,8 +964,10 @@ def remove_venv(
 def _default_runner(argv: list[str], **kwargs: object) -> object:
     environment = kwargs.pop("env", None)
     cwd = kwargs.pop("cwd", None)
-    if kwargs or type(environment) is not dict or (
-        cwd is not None and not isinstance(cwd, Path)
+    if (
+        kwargs
+        or type(environment) is not dict
+        or (cwd is not None and not isinstance(cwd, Path))
     ):
         raise _fail("invalid tool probe context")
     try:
@@ -1005,11 +998,7 @@ def validate_tool(
         mode = resolved.lstat().st_mode
     except OSError as error:
         raise _fail("tool path is unavailable") from error
-    if (
-        not stat.S_ISREG(mode)
-        or mode & 0o022
-        or not os.access(resolved, os.X_OK)
-    ):
+    if not stat.S_ISREG(mode) or mode & 0o022 or not os.access(resolved, os.X_OK):
         raise _fail("tool path is unsafe")
     result = runner(
         [str(resolved), *version_argv],
@@ -1068,9 +1057,95 @@ def validate_semantic_tool(
     return resolved
 
 
-def validate_platform_marker(
-    system: str, marker: str, expected: str
-) -> str | None:
+def validate_image_git(
+    path: Path,
+    *,
+    runner: Callable[..., object] = _default_runner,
+) -> Path:
+    if not isinstance(path, Path) or not path.is_absolute() or "\0" in os.fspath(path):
+        raise _fail("image Git path must be absolute")
+    try:
+        resolved = path.resolve(strict=True)
+        mode = resolved.lstat().st_mode
+    except OSError as error:
+        raise _fail("image Git path is unavailable") from error
+    if not stat.S_ISREG(mode) or mode & 0o022 or not os.access(resolved, os.X_OK):
+        raise _fail("image Git path is unsafe")
+    result = runner(
+        [str(resolved), "--version"],
+        cwd=None,
+        env={
+            "GIT_NO_LAZY_FETCH": "1",
+            "LANG": "C",
+            "LC_ALL": "C",
+            "PATH": str(resolved.parent),
+            "TZ": "UTC",
+        },
+    )
+    stdout = getattr(result, "stdout", None)
+    if (
+        getattr(result, "returncode", None) != 0
+        or type(stdout) is not bytes
+        or len(stdout) > TOOL_OUTPUT_LIMIT
+        or re.fullmatch(rb"git version 2\.[0-9]{1,3}\.[0-9]{1,3}\n", stdout) is None
+        or getattr(result, "stderr", None) != b""
+    ):
+        raise _fail("unexpected image Git version")
+    return resolved
+
+
+def validate_docker_tool(
+    path: Path,
+    *,
+    runner: Callable[..., object] = _default_runner,
+) -> Path:
+    if not isinstance(path, Path) or not path.is_absolute() or "\0" in os.fspath(path):
+        raise _fail("Docker path must be absolute")
+    try:
+        resolved = path.resolve(strict=True)
+        mode = resolved.lstat().st_mode
+    except OSError as error:
+        raise _fail("Docker path is unavailable") from error
+    if not stat.S_ISREG(mode) or mode & 0o022 or not os.access(resolved, os.X_OK):
+        raise _fail("Docker path is unsafe")
+    result = runner(
+        [str(resolved), "--version"],
+        cwd=None,
+        env={"LANG": "C", "LC_ALL": "C", "PATH": str(resolved.parent), "TZ": "UTC"},
+    )
+    stdout = getattr(result, "stdout", None)
+    if (
+        getattr(result, "returncode", None) != 0
+        or type(stdout) is not bytes
+        or len(stdout) > TOOL_OUTPUT_LIMIT
+        or re.fullmatch(
+            rb"Docker version 25\.0\.3, build [0-9A-Za-z._+-]{1,64}\n",
+            stdout,
+        )
+        is None
+        or getattr(result, "stderr", None) != b""
+    ):
+        raise _fail("unexpected Docker version")
+    return resolved
+
+
+def docker_capability(
+    command: tuple[str, ...],
+    environment: dict[str, str],
+    *,
+    runner: Callable[..., object] = _default_runner,
+) -> Path | None:
+    if type(command) is not tuple or type(environment) is not dict:
+        raise _fail("invalid Docker projection")
+    if command != ("environment", "verify-linux"):
+        return None
+    value = environment.get("GB_BOOTSTRAP_DOCKER")
+    if type(value) is not str or not value or "\0" in value:
+        raise _fail("missing Docker projection")
+    return validate_docker_tool(Path(value), runner=runner)
+
+
+def validate_platform_marker(system: str, marker: str, expected: str) -> str | None:
     if system == "Darwin":
         if marker:
             raise _fail("clean-Linux marker is not valid on Darwin")
@@ -1169,12 +1244,7 @@ def validate_venv(
     python_relative = resolved[0]
     python = repository / python_relative.as_posix()
     home = values.get("home")
-    if (
-        type(home) is not str
-        or not home
-        or "\0" in home
-        or "\\" in home
-    ):
+    if type(home) is not str or not home or "\0" in home or "\\" in home:
         raise _fail("managed virtual-environment home is invalid")
     try:
         configured_home = PurePosixPath(home)
@@ -1257,9 +1327,7 @@ def validate_venv(
             if (
                 _file_facts(os.fstat(executable)) != _file_facts(held)
                 or _file_facts(current) != _file_facts(held)
-                or not same_held_mount(
-                    repository_mount, current_descriptor, python
-                )
+                or not same_held_mount(repository_mount, current_descriptor, python)
             ):
                 raise _fail("managed Python executable changed")
         finally:
@@ -1291,6 +1359,7 @@ def project_environment(
     tool_directories: tuple[Path, ...],
     offline: bool,
     sdkroot: Path | None = None,
+    clean_linux: bool = False,
 ) -> dict[str, str]:
     repository = _root(root)
     if not python_path.is_absolute():
@@ -1321,11 +1390,14 @@ def project_environment(
     pycache_prefix = _validate_empty_project_pycache(repository)
     path_entries = list(dict.fromkeys(str(directory) for directory in tool_directories))
     environment = {
+        "CARGO_CACHE_AUTO_CLEAN_FREQUENCY": "never",
         "CARGO_HOME": str(repository / "artifacts/cargo-home"),
+        "CARGO_REGISTRIES_CRATES_IO_PROTOCOL": "sparse",
         "CARGO_TARGET_DIR": str(repository / "artifacts/cargo-target"),
         "CARGO_TERM_COLOR": "never",
         "GIT_CONFIG_GLOBAL": "/dev/null",
         "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_NO_LAZY_FETCH": "1",
         "GIT_OPTIONAL_LOCKS": "0",
         "GIT_TERMINAL_PROMPT": "0",
         "HOME": str(repository / "artifacts/check-home"),
@@ -1343,6 +1415,8 @@ def project_environment(
         "UV_PYTHON_INSTALL_DIR": str(repository / "artifacts/uv-python"),
         "UV_PROJECT_ENVIRONMENT": ".venv",
     }
+    if type(clean_linux) is not bool or (sdkroot is not None and clean_linux):
+        raise _fail("invalid platform environment")
     if sdkroot is not None:
         environment.update(
             {
@@ -1350,6 +1424,14 @@ def project_environment(
                 "CARGO_TARGET_AARCH64_APPLE_DARWIN_LINKER": "/usr/bin/cc",
                 "CC": "/usr/bin/cc",
                 "SDKROOT": str(sdkroot),
+            }
+        )
+    if clean_linux:
+        environment.update(
+            {
+                "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER": "/usr/bin/cc",
+                "CC": "/usr/bin/cc",
+                "COMPILER_PATH": "/usr/bin",
             }
         )
     if offline:
@@ -1369,12 +1451,17 @@ def check_command(arguments: Sequence[str]) -> tuple[str, ...]:
         return ("check", "fast")
     if values in (("fast",), ("full",), ("release",)):
         return ("check", values[0])
-    if len(values) == 2 and values[0] == "focused" and values[1] in (
-        "foundation",
-        "dependencies",
-        "identity",
-        "manifest",
-        "source",
+    if (
+        len(values) == 2
+        and values[0] == "focused"
+        and values[1]
+        in (
+            "foundation",
+            "dependencies",
+            "identity",
+            "manifest",
+            "source",
+        )
     ):
         return ("check", *values)
     if values in (
@@ -1386,6 +1473,9 @@ def check_command(arguments: Sequence[str]) -> tuple[str, ...]:
             "--native-evidence",
             "artifacts/native-verification.json",
         ),
+        ("environment", "verify-native"),
+        ("environment", "verify-native", "--write-evidence"),
+        ("environment", "verify-linux"),
     ):
         return values
     raise _fail("unsupported scripts/check arguments")
@@ -1440,9 +1530,15 @@ def _run_command(argv: list[str], environment: dict[str, str], root: Path) -> No
 def _validate_sdk() -> Path:
     try:
         mode = SDKROOT.lstat().st_mode
-        if SDKROOT.resolve(strict=True) != SDKROOT or not stat.S_ISDIR(mode) or mode & 0o022:
+        if (
+            SDKROOT.resolve(strict=True) != SDKROOT
+            or not stat.S_ISDIR(mode)
+            or mode & 0o022
+        ):
             raise _fail("unsafe SDK root")
-        settings = read_regular_below(SDKROOT, PurePosixPath("SDKSettings.json"), 65_536)
+        settings = read_regular_below(
+            SDKROOT, PurePosixPath("SDKSettings.json"), 65_536
+        )
         document = json.loads(settings.decode("utf-8", "strict"))
     except (OSError, SafeFileError, UnicodeError, json.JSONDecodeError) as error:
         raise _fail("invalid SDK root") from error
@@ -1461,7 +1557,10 @@ def _probe_compiler(root: Path, environment: dict[str, str]) -> None:
             output_limit=OUTPUT_LIMIT,
             cwd=root,
         )
-        if not version.startswith(b"Apple clang version 17.0.0 (clang-1700.0.13.5)\n") or version_error:
+        if (
+            not version.startswith(b"Apple clang version 17.0.0 (clang-1700.0.13.5)\n")
+            or version_error
+        ):
             raise _fail("unexpected compiler")
         with tempfile.TemporaryDirectory(dir=root / "artifacts/check-tmp") as temporary:
             output = Path(temporary) / "probe"
@@ -1490,7 +1589,12 @@ def _probe_compiler(root: Path, environment: dict[str, str]) -> None:
                 output_limit=OUTPUT_LIMIT,
                 cwd=root,
             )
-            if linked_out or linked_error or not output.is_file() or output.stat().st_size == 0:
+            if (
+                linked_out
+                or linked_error
+                or not output.is_file()
+                or output.stat().st_size == 0
+            ):
                 raise _fail("compiler link probe failed")
     except (RegistryError, UnicodeError) as error:
         if isinstance(error, BootstrapError):
@@ -1498,17 +1602,44 @@ def _probe_compiler(root: Path, environment: dict[str, str]) -> None:
         raise _fail("compiler probe failed") from error
 
 
-def _tools(arguments: Sequence[str]) -> tuple[Path, Path, Path, Path, Path, Path]:
-    if len(arguments) != 6:
+def _tools(
+    arguments: Sequence[str],
+    *,
+    clean_linux: bool = False,
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path]:
+    if len(arguments) != 6 or type(clean_linux) is not bool:
         raise _fail("bootstrap requires six tool paths")
     python, uv, cargo, rustc, rustfmt, git = (Path(value) for value in arguments)
+    validated_cargo = validate_semantic_tool(cargo, "cargo", "1.94.0")
+    validated_cargo_fmt = validate_semantic_tool(
+        validated_cargo.parent / "cargo-fmt", "rustfmt", "1.8.0"
+    )
+    if validated_cargo_fmt != validated_cargo.parent / "cargo-fmt":
+        raise _fail("cargo-fmt must be the validated cargo sibling")
+    validated_rustdoc = validate_semantic_tool(
+        validated_cargo.parent / "rustdoc", "rustdoc", "1.94.0"
+    )
+    if validated_rustdoc != validated_cargo.parent / "rustdoc":
+        raise _fail("rustdoc must be the validated cargo sibling")
+    validated_rustc = validate_semantic_tool(rustc, "rustc", "1.94.0")
+    if validated_rustc != validated_cargo.parent / "rustc":
+        raise _fail("rustc must be the validated cargo sibling")
+    validated_rustfmt = validate_semantic_tool(rustfmt, "rustfmt", "1.8.0")
+    if validated_rustfmt != validated_cargo.parent / "rustfmt":
+        raise _fail("rustfmt must be the validated cargo sibling")
     return (
         validate_tool(python, ("--version",), b"Python 3.14.6\n"),
         validate_semantic_tool(uv, "uv", "0.11.29"),
-        validate_semantic_tool(cargo, "cargo", "1.94.0"),
-        validate_semantic_tool(rustc, "rustc", "1.94.0"),
-        validate_semantic_tool(rustfmt, "rustfmt", "1.8.0"),
-        validate_tool(git, ("--version",), b"git version 2.49.0\n"),
+        validated_cargo,
+        validated_cargo_fmt,
+        validated_rustc,
+        validated_rustdoc,
+        validated_rustfmt,
+        (
+            validate_image_git(git)
+            if clean_linux
+            else validate_tool(git, ("--version",), b"git version 2.49.0\n")
+        ),
     )
 
 
@@ -1564,39 +1695,53 @@ def main(argv: Sequence[str] | None = None) -> int:
         accepted_marker = validate_platform_marker(
             os.uname().sysname, marker, lock.clean_linux.platform_digest
         )
-        python, uv, cargo, rustc, rustfmt, git = _tools(arguments[2:8])
+        python, uv, cargo, cargo_fmt, rustc, rustdoc, rustfmt, git = _tools(
+            arguments[2:8], clean_linux=accepted_marker is not None
+        )
+        docker = (
+            docker_capability(command, dict(os.environ))
+            if command is not None
+            else None
+        )
         prepare_directories(root, acquisition=mode == "acquire")
         sdkroot = _validate_sdk() if os.uname().sysname == "Darwin" else None
         tool_directories = tuple(
             dict.fromkeys(
                 (
+                    cargo.parent,
                     python.parent,
                     uv.parent,
-                    cargo.parent,
-                    rustc.parent,
-                    rustfmt.parent,
                     git.parent,
                     Path("/usr/bin"),
                     Path("/bin"),
                 )
             )
         )
+        if docker is not None and docker.parent not in tool_directories:
+            tool_directories += (docker.parent,)
         environment = project_environment(
             root,
             python_path=root / "python",
             tool_directories=tool_directories,
             offline=mode == "check",
             sdkroot=sdkroot,
+            clean_linux=accepted_marker is not None,
         )
         environment.update(
             {
                 "GB_BOOTSTRAP_CARGO": str(cargo),
+                "GB_BOOTSTRAP_CARGO_FMT": str(cargo_fmt),
                 "GB_BOOTSTRAP_GIT": str(git),
                 "GB_BOOTSTRAP_RUSTC": str(rustc),
+                "GB_BOOTSTRAP_RUSTDOC": str(rustdoc),
                 "GB_BOOTSTRAP_RUSTFMT": str(rustfmt),
                 "RUSTC": str(rustc),
+                "RUSTDOC": str(rustdoc),
+                "RUSTFMT": str(rustfmt),
             }
         )
+        if docker is not None:
+            environment["GB_BOOTSTRAP_DOCKER"] = str(docker)
         if accepted_marker is not None:
             environment["GB_CLEAN_LINUX_DIGEST"] = accepted_marker
         if sdkroot is not None:

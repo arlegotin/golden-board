@@ -10,7 +10,11 @@ import sys
 import tomllib
 
 from golden_board.manifest import decode_canonical_manifest, encode_canonical_value
-from golden_board.registry import RegistryError, _run_bounded_process, run_registered_vectors
+from golden_board.registry import (
+    RegistryError,
+    _run_bounded_process,
+    run_registered_vectors,
+)
 from golden_board.reports import check_report_schemas, check_tracked_reports
 from golden_board.source_doctor import build_source_report
 from golden_board.source_lock import (
@@ -26,9 +30,7 @@ from golden_board.status import parse_status, validate_header_status
 _SOURCE = Path("spec/constants-v0.json")
 _MAX_SOURCE_BYTES = 65_536
 _DOMAIN_NAME = re.compile(r"[a-z][a-z0-9]*(?:_[a-z0-9]+)*\Z")
-_DIAGNOSTIC = re.compile(
-    r"[a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*(?:_[a-z0-9]+)*)+\Z"
-)
+_DIAGNOSTIC = re.compile(r"[a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*(?:_[a-z0-9]+)*)+\Z")
 
 
 def _invalid() -> ValueError:
@@ -72,7 +74,9 @@ def _load_source(root: Path) -> tuple[bytes, dict[str, object]]:
     return raw, document
 
 
-def _validate(document: dict[str, object]) -> tuple[list[tuple[str, bytes]], tuple[str, ...]]:
+def _validate(
+    document: dict[str, object],
+) -> tuple[list[tuple[str, bytes]], tuple[str, ...]]:
     if set(document) != {"diagnostics", "domains", "schema_version"}:
         raise _invalid()
     if type(document["schema_version"]) is not int or document["schema_version"] != 0:
@@ -164,7 +168,9 @@ def _rust_output(
         "// Do not edit by hand.",
         "",
     ]
-    lines.extend(f"pub const {name}: &[u8] = {_rust_bytes(value)};" for name, value in domains)
+    lines.extend(
+        f"pub const {name}: &[u8] = {_rust_bytes(value)};" for name, value in domains
+    )
     lines.extend(("", "pub const MANIFEST_DIAGNOSTICS: &[&str] = &["))
     lines.extend(f'    "{value}",' for value in diagnostics)
     lines.extend(("];", ""))
@@ -214,10 +220,12 @@ _REQUIRED_FILES = (
     "python/golden_board/acquisition.py",
     "python/golden_board/bootstrap.py",
     "python/golden_board/checks.py",
+    "python/golden_board/clean.py",
     "python/golden_board/cli.py",
     "python/golden_board/registry.py",
     "reports/release-summary.json",
     "reports/source-doctor.json",
+    "rustfmt.toml",
     "rust-toolchain.toml",
     "scripts/check",
     "scripts/setup",
@@ -234,6 +242,7 @@ _TEXT_ROOT_FILES = (
     "Cargo.toml",
     "README.md",
     "pyproject.toml",
+    "rustfmt.toml",
     "rust-toolchain.toml",
     "uv.lock",
 )
@@ -272,6 +281,7 @@ _PYTHON_TESTS = (
     "tests.test_acquisition_hardening",
     "tests.test_bootstrap_hardening",
     "tests.test_check_hardening",
+    "tests.test_clean",
     "tests.test_constants",
     "tests.test_checks",
     "tests.test_differential",
@@ -297,6 +307,7 @@ _DEPENDENCY_PYTHON_TESTS = (
     "tests.test_acquisition_hardening",
     "tests.test_bootstrap_hardening",
     "tests.test_check_hardening",
+    "tests.test_clean",
 )
 _FAST_PYTHON_TESTS = (
     "tests.test_constants",
@@ -311,14 +322,22 @@ _MAX_CHILD_OUTPUT = 256 * 1024
 _CHILD_TIMEOUT = 300.0
 _MAX_TEXT_ENTRIES = 20_000
 _WRAPPER_SHA256 = {
-    "scripts/setup": "446e0dde13f256bba7b65a67a9c8dc6cef6de27ddbcad94dddf26b073cc7528e",
-    "scripts/check": "60ef6b9836f7942ee0dd42ddb9a80fb684d5ad83757d99ca9a22e5511d31f3fa",
+    "scripts/setup": "08c2ef73e96b883285a66d992580124b0168ade48ec70ff2ec9a5e6cde59b8a2",
+    "scripts/check": "4347eddf0962c243279aefc9081775dc74eb8023186d29d3c91d96e9d4ab5d6c",
 }
 _PROCESS_CALLS = Counter(
     {
         ("python/golden_board/bootstrap.py", "main", "os.execve"): 1,
-        ("python/golden_board/registry.py", "_run_bounded_process", "subprocess.Popen"): 1,
-        ("python/golden_board/reports.py", "_bounded_git_output", "subprocess.Popen"): 1,
+        (
+            "python/golden_board/registry.py",
+            "_run_bounded_process",
+            "subprocess.Popen",
+        ): 1,
+        (
+            "python/golden_board/reports.py",
+            "_bounded_git_output",
+            "subprocess.Popen",
+        ): 1,
         (
             "python/tests/test_checks.py",
             "test_wrapper_privileged_startup_ignores_hostile_shell_hooks",
@@ -338,6 +357,7 @@ _PROCESS_CALLS = Counter(
 )
 _BOUNDED_PROCESS_CALLS = Counter(
     {
+        ("python/golden_board/clean.py", "_run"): 1,
         ("python/golden_board/bootstrap.py", "_default_runner"): 1,
         ("python/golden_board/bootstrap.py", "_run_command"): 1,
         ("python/golden_board/bootstrap.py", "_probe_compiler"): 3,
@@ -398,6 +418,11 @@ _PROCESS_CALL_AST = Counter(
 )
 _BOUNDED_PROCESS_CALL_AST = Counter(
     {
+        (
+            "python/golden_board/clean.py",
+            "_run",
+            "8596885017ce6c7c67d3455ecb85e6de57f180987c4653efe11df505fc8e5e9a",
+        ): 1,
         (
             "python/golden_board/bootstrap.py",
             "_default_runner",
@@ -471,50 +496,218 @@ _BOUNDED_PROCESS_CALL_AST = Counter(
     }
 )
 _COMMAND_FUNCTION_TARGETS = {
+    "python/golden_board/acquisition.py": {
+        "_cargo_checksums",
+        "_contained_python_link",
+        "_error",
+        "_inventory_paths",
+        "_maximum_file_bytes",
+        "_open_directory_below",
+        "_open_inventory_leaf",
+        "_read_regular_descriptor",
+        "_require_bounded_relative_path",
+        "_require_directory_identity",
+        "_stat_facts",
+        "_stat_identity",
+        "_valid_link_target",
+        "_write_all",
+        "build_inventory",
+        "load_inventory",
+        "validate_inventory",
+        "write_inventory",
+    },
     "python/golden_board/bootstrap.py": {
+        "_bootstrap_linux_mount_id",
+        "_bootstrap_mount_identity",
+        "_bootstrap_same_held_mount",
+        "_default_runner",
+        "_delete_venv_contents",
+        "_discard_import_cache",
+        "_fail",
+        "_file_facts",
+        "_identity_facts",
         "_mkdir_below",
         "_open_runtime_below",
+        "_prepare_import_cache",
+        "_probe_compiler",
+        "_prove_venv_disposable",
+        "_real_file",
+        "_root",
         "_run_command",
+        "_safe_error_detail",
+        "_static_dependency_preflight",
         "_tools",
         "_validate_empty_project_pycache",
+        "_validate_import_sources",
+        "_validate_sdk",
+        "_validate_venv_tree",
+        "_verify_directory_chain",
         "check_command",
+        "docker_capability",
+        "git_environment",
         "main",
         "prepare_directories",
         "project_argv",
         "project_environment",
+        "remove_venv",
+        "validate_cargo_configuration",
+        "validate_docker_tool",
+        "validate_image_git",
+        "validate_platform_marker",
         "validate_semantic_tool",
         "validate_tool",
+        "validate_venv",
+    },
+    "python/golden_board/clean.py": {
+        "_acquire_linux_inputs",
+        "_available_daemon_tokens",
+        "_build_native_evidence",
+        "_checkout_git_environment",
+        "_cleanup_linux_container",
+        "_clone_exact_head",
+        "_consume_native_link_probe",
+        "_delete_directory_contents",
+        "_directory_current",
+        "_docker_call",
+        "_empty_docker_config",
+        "_explicit_docker",
+        "_explicit_git",
+        "_extract_linux_uv",
+        "_facts",
+        "_fixed_socket_available",
+        "_full_environment",
+        "_git_environment",
+        "_git_operation",
+        "_git_runner",
+        "_held_leaf",
+        "_identity",
+        "_invoke",
+        "_linux_container_argv",
+        "_linux_container_identity",
+        "_linux_image_reference",
+        "_linux_network_get",
+        "_linux_observation",
+        "_linux_phase_environment",
+        "_materialize_linux_uv",
+        "_native_environment",
+        "_native_sdk",
+        "_new_temporary_root",
+        "_prepare_checkout_directories",
+        "_prepare_docker_client",
+        "_probe_docker_daemon",
+        "_probe_docker_tool",
+        "_probe_exact_tool",
+        "_probe_linux_cargo_fmt",
+        "_probe_native_platform",
+        "_probe_runner",
+        "_probe_semantic_tool",
+        "_prove_linux_container_name_absent",
+        "_prove_venv_ignore",
+        "_pull_linux_image",
+        "_read_exact",
+        "_recheck_exact_head",
+        "_recreate_cargo_target_root",
+        "_remove_cargo_target",
+        "_remove_disposable_outputs",
+        "_remove_temporary_root",
+        "_repository",
+        "_repository_executable",
+        "_resolve_native_tools",
+        "_run",
+        "_run_linux_container",
+        "_run_linux_phases",
+        "_run_native_phases",
+        "_safe_executable",
+        "_static_dependency_preflight",
+        "_unlink_owned",
+        "_validate_cargo_target_root",
+        "_validate_fresh_venv",
+        "_validate_linux_checkout_mount",
+        "_validate_linux_lock",
+        "_validate_linux_probe_output",
+        "_validate_linux_rust_toolchain",
+        "_validate_linux_uv_tool",
+        "_validate_local_linux_image",
+        "_validate_offline_disposable_state",
+        "_validate_runtime_roots",
+        "_validate_sealed_path",
+        "_verified_linux_download",
+        "_write_all",
+        "verify_isolated_native",
+        "verify_linux",
+        "write_native_evidence",
     },
     "python/golden_board/checks.py": {
+        "_canonical_repository",
         "_cargo_and_vectors",
         "_cargo_metadata_errors",
+        "_check_read",
         "_child_environment",
         "_command",
+        "_dependency_errors",
+        "_directory_entries",
         "_fixed_tool",
+        "_foundation_errors",
+        "_generated_errors",
+        "_imports_and_processes",
         "_python_tests",
+        "_source_errors",
+        "_text_paths",
+        "_tool",
         "_validated_pycache_prefix",
         "run_area",
         "run_mode",
+        "static_dependency_errors",
     },
     "python/golden_board/cli.py": {
+        "_git_runtime_directory",
         "_git_version_runner",
         "_module_capability_context",
+        "_module_docker_context",
         "_module_git_context",
+        "_module_linux_linker_context",
+        "_module_main",
         "_module_python_context",
         "_module_tool_context",
+        "_projected_executable",
+        "_validated_linux_observation",
         "main",
     },
 }
 _COMMAND_ASSIGNMENT_TARGETS = {
+    "python/golden_board/acquisition.py": {
+        "INVENTORY_PATH",
+        "INVENTORY_ROOTS",
+        "MAX_ENTRIES",
+        "MAX_FILES",
+        "MAX_FILE_BYTES",
+        "MAX_INVENTORY_BYTES",
+        "MAX_RELATIVE_PATH_BYTES",
+        "MAX_RELATIVE_PATH_DEPTH",
+        "MAX_RUSTUP_FILE_BYTES",
+        "MAX_TOTAL_BYTES",
+        "RUSTUP_INVENTORY_ROOT",
+    },
+    # `_TRUSTED_SOURCE_SHA256` hashes this file, so recursively sealing that table
+    # here would create an unsatisfiable cross-file byte-hash cycle.
     "python/golden_board/bootstrap.py": {
         "COMMAND_TIMEOUT",
+        "MAX_VENV_DEPTH",
+        "MAX_VENV_ENTRIES",
         "OUTPUT_LIMIT",
         "RUNTIME_DIRECTORIES",
         "SDKROOT",
         "TOOL_OUTPUT_LIMIT",
         "TOOL_TIMEOUT",
+        "_BOOTSTRAP_FDINFO_MAX_BYTES",
+        "_BOOTSTRAP_FILE",
+        "_DIGEST",
+        "_DIR_FD_REMOVAL",
+        "_IMPORT_CACHE",
         "_IMPORT_SOURCE_COUNT",
         "_IMPORT_SOURCE_LIMIT",
+        "_PACKAGE_DIRECTORY",
+        "_PYTHON_DIRECTORY",
     },
     "python/golden_board/checks.py": {
         "FOCUS_AREAS",
@@ -526,10 +719,42 @@ _COMMAND_ASSIGNMENT_TARGETS = {
         "_FOUNDATION_PYTHON_TESTS",
         "_MAX_CHILD_OUTPUT",
         "_PYTHON_TESTS",
+        "_REQUIRED_FILES",
         "_RUST_SOURCE_SHA256",
+        "_TEXT_ROOT_FILES",
         "_WRAPPER_SHA256",
     },
+    "python/golden_board/clean.py": {
+        "COMMAND_TIMEOUT",
+        "DOCKER_HOST",
+        "DOCKER_SOCKET",
+        "LINUX_CC_VERSION",
+        "LINUX_IMAGE",
+        "LINUX_LD_VERSION",
+        "LINUX_LIBC_VERSION",
+        "LINUX_PLATFORM",
+        "LINUX_PROTOCOL",
+        "LINUX_RUSTUP",
+        "LINUX_RUSTUP_HOME",
+        "LINUX_RUSTUP_VERSION",
+        "LINUX_RUST_BIN",
+        "LINUX_RUST_SYSROOT",
+        "OID",
+        "OUTPUT_LIMIT",
+        "SDKROOT",
+        "TOOL_TIMEOUT",
+        "_LINUX_ACQUIRE_SCRIPT",
+        "_LINUX_OFFLINE_SCRIPT",
+        "_LINUX_PROBE_SCRIPT",
+        "_LINUX_TOKEN",
+    },
     "python/golden_board/cli.py": {
+        "_DOCKER_VERSION",
+        "_IMAGE_GIT_VERSION",
+        "_LINUX_AVAILABLE",
+        "_LINUX_UNAVAILABLE",
+        "_MAX_ERROR_DETAIL",
+        "_SOURCE_USAGE",
         "NATIVE_EVIDENCE",
         "RELEASE_SUMMARY",
         "SOURCE_REPORT",
@@ -537,58 +762,968 @@ _COMMAND_ASSIGNMENT_TARGETS = {
     },
 }
 _COMMAND_FUNCTION_AST_SHA256 = {
-    ("python/golden_board/bootstrap.py", "_mkdir_below"): "06bb34ed37c70a11092fa4a3af1d1cd100444a8b8ce96f929dc970da819b6e75",
-    ("python/golden_board/bootstrap.py", "_open_runtime_below"): "6c13a3e588e40c2aa52dd902486b96aa7f3021753283093db5ed3bc37cf4ddd4",
-    ("python/golden_board/bootstrap.py", "_run_command"): "e7f3b4b5c3dc99431ff737f8347f1ce62ccd519e344577df4d1cb14395fefce8",
-    ("python/golden_board/bootstrap.py", "_tools"): "d7c3b3dfad44e801379a87ad27675974152cedaad15a8a6dff4a2948fabf003a",
-    ("python/golden_board/bootstrap.py", "_validate_empty_project_pycache"): "e1062bad5b6b0d2674f896438afefb23739f190c1de351884940ae76158fdcbe",
-    ("python/golden_board/bootstrap.py", "check_command"): "28603cad3c03091c53ed49396546a6c8a7e5258ff2d8d54145600a7d729594ca",
-    ("python/golden_board/bootstrap.py", "main"): "754ac8f7aadc5993bf485126fb12042f608b1b2d18c66172b9448a28467f6644",
-    ("python/golden_board/bootstrap.py", "prepare_directories"): "b32c221463f3df91932e41ea131715fef2978512865c303beb7a3c7f2e7c2b09",
-    ("python/golden_board/bootstrap.py", "project_argv"): "d5e7dd48046e43436a6834d3f45c59688ebe83696324889f3e89e5cbd3f69bd5",
-    ("python/golden_board/bootstrap.py", "project_environment"): "c7b310288112308425b37af5f6534cdc89510e56ae9b3ec906d3067ed545fd9e",
-    ("python/golden_board/bootstrap.py", "validate_semantic_tool"): "cc1cf0d5c6a7c3c3cd8d370614bf8ae4fbae29b4441f202a4d392ce16f663ba2",
-    ("python/golden_board/bootstrap.py", "validate_tool"): "804e33905559ebe85418a576838b01e2bc4b6e45564f68343bee092831a8a16e",
-    ("python/golden_board/checks.py", "_cargo_and_vectors"): "9b98ab9dd93ea3a3bad26df7ce806b6df2d961172ba3ce06847df814119251f7",
-    ("python/golden_board/checks.py", "_cargo_metadata_errors"): "1d2a3c84f2d4a5ae2eaf218ddf4956fe01c479151718d371dd9d917b06ece48c",
-    ("python/golden_board/checks.py", "_child_environment"): "8d6c08baf0f3406e5782f3b2f0e6502fd4fd94dd5da500ef2466b489e85215a1",
-    ("python/golden_board/checks.py", "_command"): "34870819a50c3f16fe9cc8012294b38348d5d130ec12983f3aa3eaded91a5060",
-    ("python/golden_board/checks.py", "_fixed_tool"): "e8d97c14e8491bcd4eb52ba8dffb4d7fd198a82845a8d7a19677a3da4fdd99f9",
-    ("python/golden_board/checks.py", "_python_tests"): "fd5ce024bc19cce618793d60463cb1ff344c1493240b1f9cd54f9633adfeee0a",
-    ("python/golden_board/checks.py", "_validated_pycache_prefix"): "a55528ec2e9d400b8886ff3823aa5896c1a3ffd1e46301191789c8a3e3f70a44",
-    ("python/golden_board/checks.py", "run_area"): "0a5652b821b95c9a8ee7385970ccaaaa8d78a4231ce34dc45dd3a11d807f2a92",
-    ("python/golden_board/checks.py", "run_mode"): "220bfb4cb95b3da50fdfaec6b28c654f51ecebe909a715ddc111bd78644e673c",
-    ("python/golden_board/cli.py", "_git_version_runner"): "dbf8125f68392d95314fdfa39dd85445f440584f795ea6223267ad5414712522",
-    ("python/golden_board/cli.py", "_module_capability_context"): "d88525ec2f0942d3574425eaa201bff2308578796e3914df695697f106f7a067",
-    ("python/golden_board/cli.py", "_module_git_context"): "6438be13d9cbdb0353b2e1bda1868da2638644938fa3f577a686d07490647359",
-    ("python/golden_board/cli.py", "_module_python_context"): "b6eb91c494a547fa455ca04eb4d6ff87e0665d432f19472bb0a4797db63cc1d3",
-    ("python/golden_board/cli.py", "_module_tool_context"): "cc5e8bfb46b2a2d8ce56c14c0de5a51b90c94d31e1aa9046800776be436711fb",
-    ("python/golden_board/cli.py", "main"): "51709e9c5ad67acd173ef227bb114ca9c84a367bc02a75363f65ef89e28a3f75",
+    (
+        "python/golden_board/acquisition.py",
+        "_cargo_checksums",
+    ): "e3523df364b00b6dcccc5bd6b6f27bd8e7060270be42b89238f15c1541b66072",
+    (
+        "python/golden_board/acquisition.py",
+        "_contained_python_link",
+    ): "16a9d782c5b8b117c3c14c7b1a96e5d2dcd6b1777291b26a75fa805a5643084e",
+    (
+        "python/golden_board/acquisition.py",
+        "_error",
+    ): "754e9776586106efd9a90e8ec12e5d1183fb2b9011d680916a957b65d46ff06c",
+    (
+        "python/golden_board/acquisition.py",
+        "_inventory_paths",
+    ): "39640b6ceb617c016a53b74868f1447235b701756d953043bfa21f440a46d01d",
+    (
+        "python/golden_board/acquisition.py",
+        "_maximum_file_bytes",
+    ): "28b2bf8c9e3fa2924caaa3753a5e8f3662536522901bb61c6f77dc002fcdbb34",
+    (
+        "python/golden_board/acquisition.py",
+        "_open_directory_below",
+    ): "698ce29ec348bcac41a9e1389cf022eb03e73bf2e2d9bec6f9a0c4eadfdb1da5",
+    (
+        "python/golden_board/acquisition.py",
+        "_open_inventory_leaf",
+    ): "28ba69a3943409fc9c4274982ff4906f3316d7734d6353ea16e02d793d8a4470",
+    (
+        "python/golden_board/acquisition.py",
+        "_read_regular_descriptor",
+    ): "88ebcca02550c7be7a3e7e5a384d2a9ec4f4e74b6d000179cf82480c30b855dc",
+    (
+        "python/golden_board/acquisition.py",
+        "_require_bounded_relative_path",
+    ): "6dd853d305c1ff06d9949b29e948dff92ebe4d90e79f99f314fc92805f5f858e",
+    (
+        "python/golden_board/acquisition.py",
+        "_require_directory_identity",
+    ): "75ecdf96342737a5dad13c3d5a156564779b6d431be2de6d0f37ef3597e6fbca",
+    (
+        "python/golden_board/acquisition.py",
+        "_stat_facts",
+    ): "ac01124511fea74bf826d3a589a719e00e6a06bac83d3e6388dab974dd86f044",
+    (
+        "python/golden_board/acquisition.py",
+        "_stat_identity",
+    ): "4a279facad4821177405467ad7f1831cb6a65e772d76ac2eb91ee391b67b9fa8",
+    (
+        "python/golden_board/acquisition.py",
+        "_valid_link_target",
+    ): "ec5ed425e0f3e5d7cab15de65ac655ff3218f20cb0f9cbb4147301a0ee0adba6",
+    (
+        "python/golden_board/acquisition.py",
+        "_write_all",
+    ): "8b69b11d6e22d300a574e7802df4041b6c228c85df429a3696baa79e4830aa65",
+    (
+        "python/golden_board/acquisition.py",
+        "build_inventory",
+    ): "1e9123321a101a7228ce95b89bd5d50db342abf0b520880b72704a490a1e8cd3",
+    (
+        "python/golden_board/acquisition.py",
+        "load_inventory",
+    ): "43bf8fb95e2ca593a0c5c7ce4821794ec3de3dc1be96160dfa24436fbbb39a1c",
+    (
+        "python/golden_board/acquisition.py",
+        "validate_inventory",
+    ): "017fdcfe00d67c8f2dd106b99c85fcdfc8025e0c07df048437af64a5d9382e2c",
+    (
+        "python/golden_board/acquisition.py",
+        "write_inventory",
+    ): "01f40c1fdbb959ae97078e4ebb17137ad48fd020389c423679f6231917333811",
+    (
+        "python/golden_board/bootstrap.py",
+        "_bootstrap_linux_mount_id",
+    ): "654061a1bfd8bbf2d42a8f4dc6ffbfba1b04ffe32d3f82a49a30b84a85c2e391",
+    (
+        "python/golden_board/bootstrap.py",
+        "_bootstrap_mount_identity",
+    ): "8bb91252bc9b8c7dbe1675f0d8887870fabe089750d7bac3908392bc49879094",
+    (
+        "python/golden_board/bootstrap.py",
+        "_bootstrap_same_held_mount",
+    ): "068882c4419b889e25666f9f9447f922e876158b4fb9c336a03f683318b849b7",
+    (
+        "python/golden_board/bootstrap.py",
+        "_default_runner",
+    ): "9e573cad581b44ba76cf0b66648b7ad6cd88d2b0778fa67881c2533d86e6c115",
+    (
+        "python/golden_board/bootstrap.py",
+        "_delete_venv_contents",
+    ): "cfd54c31bbb631caef37cf792eb21fbf0b95cc3ab1c3d3effe881df73eac3227",
+    (
+        "python/golden_board/bootstrap.py",
+        "_discard_import_cache",
+    ): "6bf7cdcdc0cdcb69caa30adf2cf7b01de2f0b246ca5838d70a376b5084d5d1af",
+    (
+        "python/golden_board/bootstrap.py",
+        "_fail",
+    ): "807ae8d47241f46f89bf6040332bcb089b123058b4cceec3bd08fcf9fc45514d",
+    (
+        "python/golden_board/bootstrap.py",
+        "_file_facts",
+    ): "d8d55837fdad069bd40f3766fb505a54de46a98cc44f77ef4ae7755518150c03",
+    (
+        "python/golden_board/bootstrap.py",
+        "_identity_facts",
+    ): "dcf83d89b6aedb978013f138390e1fb1a78f83d77918e6609430dca424143cad",
+    (
+        "python/golden_board/bootstrap.py",
+        "_mkdir_below",
+    ): "06bb34ed37c70a11092fa4a3af1d1cd100444a8b8ce96f929dc970da819b6e75",
+    (
+        "python/golden_board/bootstrap.py",
+        "_open_runtime_below",
+    ): "6c13a3e588e40c2aa52dd902486b96aa7f3021753283093db5ed3bc37cf4ddd4",
+    (
+        "python/golden_board/bootstrap.py",
+        "_prepare_import_cache",
+    ): "d01310acaef0ab3acb50c4ec7c0481ea021bb1aaddb0f3dae43f6b956ac2b473",
+    (
+        "python/golden_board/bootstrap.py",
+        "_probe_compiler",
+    ): "0f0984b436a013d9e2d7e54541ae4b48e50462819e7df14d8c68ca89cb7fc63d",
+    (
+        "python/golden_board/bootstrap.py",
+        "_prove_venv_disposable",
+    ): "7a0d33b618df3609a408711ac701693c4aef3d833f4c48471b53efc69548e66a",
+    (
+        "python/golden_board/bootstrap.py",
+        "_real_file",
+    ): "d2f2ff7729adc1a5905df576e43c9a44e750e5f0c530cbddb30547850fdfe694",
+    (
+        "python/golden_board/bootstrap.py",
+        "_root",
+    ): "baff60d0a0c8338b38ff91e6fd1a49e403bf65b6d975a6b10ac8e3ef5334e1cd",
+    (
+        "python/golden_board/bootstrap.py",
+        "_run_command",
+    ): "e7f3b4b5c3dc99431ff737f8347f1ce62ccd519e344577df4d1cb14395fefce8",
+    (
+        "python/golden_board/bootstrap.py",
+        "_safe_error_detail",
+    ): "3acb831ee4444501ff2810e534a27721d7d736a7ce83e013fb7b4fcd92e8ebe7",
+    (
+        "python/golden_board/bootstrap.py",
+        "_static_dependency_preflight",
+    ): "d2f6eae6d6f7968e831d55fa071f7c03a45391ac1fb4f2240fcfd83fecd2a881",
+    (
+        "python/golden_board/bootstrap.py",
+        "_tools",
+    ): "24ea703a0775410378772e22bf0c158bd77054d7a5609acac103153a992cba58",
+    (
+        "python/golden_board/bootstrap.py",
+        "_validate_empty_project_pycache",
+    ): "e1062bad5b6b0d2674f896438afefb23739f190c1de351884940ae76158fdcbe",
+    (
+        "python/golden_board/bootstrap.py",
+        "_validate_import_sources",
+    ): "836ebf7bb78555cc8a812db67651ce2f37d99bd282600094a96d2661f830f8fe",
+    (
+        "python/golden_board/bootstrap.py",
+        "_validate_sdk",
+    ): "afb456aaa61a25e727ff296cabc7b60c8f897912567118cf41764da29520ae6c",
+    (
+        "python/golden_board/bootstrap.py",
+        "_validate_venv_tree",
+    ): "e8c25a7ec61a838b753c204470965c2546c7b4d37c7ae9c100556e4e101437c5",
+    (
+        "python/golden_board/bootstrap.py",
+        "_verify_directory_chain",
+    ): "048b5f052bb70c0da3792637055a51cc6435f23f1d10e5019e8abb4c31b4272f",
+    (
+        "python/golden_board/bootstrap.py",
+        "check_command",
+    ): "c0e4af04bc693d6ea580dbf808a7102ec8b2b452bc72415b97e34edd0d119af9",
+    (
+        "python/golden_board/bootstrap.py",
+        "docker_capability",
+    ): "ee095625cd046d5fcb72b2a2f08dca94f09a1c01c2449bf244f4877bd1bd1cbd",
+    (
+        "python/golden_board/bootstrap.py",
+        "git_environment",
+    ): "17e88fedc76fa95bcffb9e56ee4f72eb4ac1ca6665593e194c3307ac11011181",
+    (
+        "python/golden_board/bootstrap.py",
+        "main",
+    ): "b0058a711e2225eb1f63a925791a397606184175c87bdfe28e119b8a1ce582ef",
+    (
+        "python/golden_board/bootstrap.py",
+        "prepare_directories",
+    ): "b32c221463f3df91932e41ea131715fef2978512865c303beb7a3c7f2e7c2b09",
+    (
+        "python/golden_board/bootstrap.py",
+        "project_argv",
+    ): "d5e7dd48046e43436a6834d3f45c59688ebe83696324889f3e89e5cbd3f69bd5",
+    (
+        "python/golden_board/bootstrap.py",
+        "project_environment",
+    ): "8014722e4ff5555cf196f481f0e83114afd0b066145614345b031fee7f41e6b5",
+    (
+        "python/golden_board/bootstrap.py",
+        "remove_venv",
+    ): "8783998632f943fc6701518a9985416909229ec95352227d4caf7b957341e725",
+    (
+        "python/golden_board/bootstrap.py",
+        "validate_cargo_configuration",
+    ): "e4bde483712001f57d02d89abc49acd167bec3b1453979ee7b14f59f12d882ca",
+    (
+        "python/golden_board/bootstrap.py",
+        "validate_docker_tool",
+    ): "8e14e08b75e33df3422c1dc385b4b9e8053fd6d64f71a05ccad8c2bc13ea6599",
+    (
+        "python/golden_board/bootstrap.py",
+        "validate_image_git",
+    ): "574ab238d136ea222d67d810f8a7df7a1db1d64282e45f72e9a2d5e72a520b52",
+    (
+        "python/golden_board/bootstrap.py",
+        "validate_platform_marker",
+    ): "20e22aac186fcebccdb8fbeb1ff59b320f68b69952db0e4e1eec687cc80df50c",
+    (
+        "python/golden_board/bootstrap.py",
+        "validate_semantic_tool",
+    ): "cc1cf0d5c6a7c3c3cd8d370614bf8ae4fbae29b4441f202a4d392ce16f663ba2",
+    (
+        "python/golden_board/bootstrap.py",
+        "validate_tool",
+    ): "804e33905559ebe85418a576838b01e2bc4b6e45564f68343bee092831a8a16e",
+    (
+        "python/golden_board/bootstrap.py",
+        "validate_venv",
+    ): "67a34c31c786e0d738a0e2ae41a9a11e9d7a2540ef06003f333d7bf88e4a95ed",
+    (
+        "python/golden_board/checks.py",
+        "_canonical_repository",
+    ): "da9c3c12fede704ec0537c7ad99b7b5d2e34fc9c8b3491f78a15ee8e6774a684",
+    (
+        "python/golden_board/checks.py",
+        "_cargo_and_vectors",
+    ): "fcbc655e1389a00902355026be702faabaca79cdc1eb06e8106845cf26065cb5",
+    (
+        "python/golden_board/checks.py",
+        "_cargo_metadata_errors",
+    ): "6b59feb83e61bec8e03a50fc3bf0aa9695bdcb5302c2ce03171b33fd3f122e0b",
+    (
+        "python/golden_board/checks.py",
+        "_check_read",
+    ): "4f2e2a245d0d7d053d896895a8695226ac1c55d7839d983423f85d3620be3a30",
+    (
+        "python/golden_board/checks.py",
+        "_child_environment",
+    ): "92c26830745162f2f09ad6de80acf700300be2a5c6665b24bbb3e01ee98dd6af",
+    (
+        "python/golden_board/checks.py",
+        "_command",
+    ): "34870819a50c3f16fe9cc8012294b38348d5d130ec12983f3aa3eaded91a5060",
+    (
+        "python/golden_board/checks.py",
+        "_dependency_errors",
+    ): "ab55c9ec89f894a919f0e76fb48bd64e17372af23fd4f0f6794bce52f61b9c40",
+    (
+        "python/golden_board/checks.py",
+        "_directory_entries",
+    ): "e0bd84800394a171bcc7d5a4a038137c95ec1e9e24ff31ba8a6faa5a9a90347e",
+    (
+        "python/golden_board/checks.py",
+        "_fixed_tool",
+    ): "e8d97c14e8491bcd4eb52ba8dffb4d7fd198a82845a8d7a19677a3da4fdd99f9",
+    (
+        "python/golden_board/checks.py",
+        "_foundation_errors",
+    ): "21e3b54999a5d3bdfd5010dbec787dd6eedfdbc84e64a1fed88ace928ab14e79",
+    (
+        "python/golden_board/checks.py",
+        "_generated_errors",
+    ): "253d0330a6768a4a9d98baf2dc8eda802f0a4684e43a67042e10f36bc4fde2ae",
+    (
+        "python/golden_board/checks.py",
+        "_imports_and_processes",
+    ): "54890be37dabc969f0ee3de3101c9e5146706796c5e04478ed3457225fafec2a",
+    (
+        "python/golden_board/checks.py",
+        "_python_tests",
+    ): "c71007da1030c87c899a2985d304fed6a30ae460145c69b4ec9af5d3494f1c6f",
+    (
+        "python/golden_board/checks.py",
+        "_source_errors",
+    ): "e2da38f3a5e2a5aee7380e39e8f73252863a1a373737ca72e7773cbf37d2b6c9",
+    (
+        "python/golden_board/checks.py",
+        "_text_paths",
+    ): "08f74a5303c39f55ce2483ddb1a5ecaad480a98dc3ef238041b2295b6617bf7f",
+    (
+        "python/golden_board/checks.py",
+        "_tool",
+    ): "4fb4c30e8098443d32b661f50f22c4635fe682324c221941bd8b9f9b899ee836",
+    (
+        "python/golden_board/checks.py",
+        "_validated_pycache_prefix",
+    ): "d9e164ba1c7981196c73691facd4b9adc9f315820a7b961fb57634f19d4f0a1d",
+    (
+        "python/golden_board/checks.py",
+        "run_area",
+    ): "7e9689abf38f38995ea11fcf0e37531f82cd60abba850b58d645dd0d41c74075",
+    (
+        "python/golden_board/checks.py",
+        "run_mode",
+    ): "3829ce7acb9f3f92a546d7eaa9e6f783189456ecb7a5b8b0910f13853547da0d",
+    (
+        "python/golden_board/checks.py",
+        "static_dependency_errors",
+    ): "ce74b47d65083ab9e8d5b37bcb965cf9c2404d70f2e299b955fb11c98faeced3",
+    (
+        "python/golden_board/clean.py",
+        "_acquire_linux_inputs",
+    ): "401a72841b49da2c1a6990ff6ebf3d58d9ad06146ebfc7cd8971a3bc5e2d8cdf",
+    (
+        "python/golden_board/clean.py",
+        "_available_daemon_tokens",
+    ): "2d781ea2d39849401c998a9f6e8132a0cd1ec796b3e93be9ae86d52f5316f1c9",
+    (
+        "python/golden_board/clean.py",
+        "_build_native_evidence",
+    ): "08e41f9052b37b060c5e39d8380f400d6806c8f5c9b64f72ba9fcf603b075b06",
+    (
+        "python/golden_board/clean.py",
+        "_checkout_git_environment",
+    ): "134d2a1910a73fffdf81a459162ff5b34170f4abd11f98be4a60747b9d1c6a19",
+    (
+        "python/golden_board/clean.py",
+        "_cleanup_linux_container",
+    ): "e6f79abe89fd8ae7239d2cd32254fa3f9593ab0250e04f81ba60a40ad6690685",
+    (
+        "python/golden_board/clean.py",
+        "_clone_exact_head",
+    ): "a594dc0dec1439cb35f7a5131f9e9b20cab489f5ed03d35cc645bfafc44fb551",
+    (
+        "python/golden_board/clean.py",
+        "_consume_native_link_probe",
+    ): "460acdb03fe9c03c2d778a9f6b198327dfc8faa5a9dbd655ea9003c3247f20da",
+    (
+        "python/golden_board/clean.py",
+        "_delete_directory_contents",
+    ): "2e7e67f8ac67e20f3bd02f8c392c457357b34d18c23d3625c67082c23ef7f24a",
+    (
+        "python/golden_board/clean.py",
+        "_directory_current",
+    ): "b69407a70759280d19931d06e69843cf3760b0486195bc3ef3af01d1038db49f",
+    (
+        "python/golden_board/clean.py",
+        "_docker_call",
+    ): "374b2aefbe996e04ddb597ea03dafe6cac9fa96a04d2a7bab50b236331f8a6bf",
+    (
+        "python/golden_board/clean.py",
+        "_empty_docker_config",
+    ): "1c5f57f7620bf9e3b0207f6a5d6a54fef827fe40fbf0e06f26d50ee31f1c38e1",
+    (
+        "python/golden_board/clean.py",
+        "_explicit_docker",
+    ): "af230317fda02b2fefb55fda941bf506939e84c562439430742d6e546be67f8a",
+    (
+        "python/golden_board/clean.py",
+        "_explicit_git",
+    ): "1485242f26df66c2ae6a5f51ef30cf258352741536fc3110d20a4a526591dcfb",
+    (
+        "python/golden_board/clean.py",
+        "_extract_linux_uv",
+    ): "b9b10aacef4b90e5bba77fc7588f7d82ec46df94536ea06ac794f264e1c6e555",
+    (
+        "python/golden_board/clean.py",
+        "_facts",
+    ): "93a52b88fb848397f2f0f7b61008e20adbf6598f56e944d8306dc679c52d625f",
+    (
+        "python/golden_board/clean.py",
+        "_fixed_socket_available",
+    ): "27a35585d43afccc09a98ad2d07be0c3508b4dde8da94d959c68f0ea75ecc127",
+    (
+        "python/golden_board/clean.py",
+        "_full_environment",
+    ): "2efdfc11bed1a3892afb42c3606040fa277fe716eacb8632a300f2db2c6026eb",
+    (
+        "python/golden_board/clean.py",
+        "_git_environment",
+    ): "38a40b60e708e33d8c95205d330f376696dfb29dde9947c8e79659c97d664206",
+    (
+        "python/golden_board/clean.py",
+        "_git_operation",
+    ): "82aa394f83915ed3c3dca1046f30dd899f76fb534b1cea782c1d2c65ac80463c",
+    (
+        "python/golden_board/clean.py",
+        "_git_runner",
+    ): "fbd9a178abdaa2bc9e4cbfa736e85251fd218b9d70f0d1fe1ab8ff3619d23ea5",
+    (
+        "python/golden_board/clean.py",
+        "_held_leaf",
+    ): "198c7fba13130b8d95053d87d56805a2740f7b6486f23994a93e59cb9c46eee0",
+    (
+        "python/golden_board/clean.py",
+        "_identity",
+    ): "343ec67a70211b8714116096e6324f18fb6b6f8b851a4ad457c7dd482aa38c8d",
+    (
+        "python/golden_board/clean.py",
+        "_invoke",
+    ): "7bfc35a46f1f924699f232016950f779737519987ca241fe4524b40b69cab940",
+    (
+        "python/golden_board/clean.py",
+        "_linux_container_argv",
+    ): "f285a4b76e5518560178d1d0955287901e87d78a7b4b042fc8143b83f99e13dd",
+    (
+        "python/golden_board/clean.py",
+        "_linux_container_identity",
+    ): "b5999005b2ad144a5727e197fe48587b1b7646bb6f873780a162b3f008f3fb3e",
+    (
+        "python/golden_board/clean.py",
+        "_linux_image_reference",
+    ): "26ba6a9505fa9e921970a9515e34fbf1a2cad64e51c26ced1b0652f276813f6e",
+    (
+        "python/golden_board/clean.py",
+        "_linux_network_get",
+    ): "ccf2ab333f4aab3c6c4a440e1763df40248529c1a50d20e6e1ed818ced9f7a27",
+    (
+        "python/golden_board/clean.py",
+        "_linux_observation",
+    ): "b0c5eb96ce54cfd3a5904368ed23848d68ffa095a8a0ed28f33f00a05485f96f",
+    (
+        "python/golden_board/clean.py",
+        "_linux_phase_environment",
+    ): "aac05586ce9da7806d5a730f52de898aa1781411a775b7184fad11f063ff342d",
+    (
+        "python/golden_board/clean.py",
+        "_materialize_linux_uv",
+    ): "34b373916e91be2024707e81b506d78fb353c2dd55113d60ad703fdb60900c84",
+    (
+        "python/golden_board/clean.py",
+        "_native_environment",
+    ): "9e9d4e981a52c4216e179ef9d31c22a80782f421b33a00a6d588f1e1f8c002dd",
+    (
+        "python/golden_board/clean.py",
+        "_native_sdk",
+    ): "edf29eaf9170617bf01873ccf40544d68c703baf8f1c6d504a86a00a059147f9",
+    (
+        "python/golden_board/clean.py",
+        "_new_temporary_root",
+    ): "436ab20813afe006d43c2463cf3285f8d5a9174f4fedc5caf4a1c9fae8daeb77",
+    (
+        "python/golden_board/clean.py",
+        "_prepare_checkout_directories",
+    ): "a749e732621c11e4fab4d0950437119ada84eea0bc39c2429ffd83dc1f5e2d31",
+    (
+        "python/golden_board/clean.py",
+        "_prepare_docker_client",
+    ): "6d9fbfff9e18e9935f093137904b42a0858f76d51fd6831644c53ad4d1e9f3e0",
+    (
+        "python/golden_board/clean.py",
+        "_probe_docker_daemon",
+    ): "bd5d83a529bdb2c4fdaa3fc58fd435683b5228176b0ef05db7f739d8f2a4c940",
+    (
+        "python/golden_board/clean.py",
+        "_probe_docker_tool",
+    ): "b9136ee86ce6b32a4be15f3e4b3820cddace233b1e9a1972ffd916583438b68e",
+    (
+        "python/golden_board/clean.py",
+        "_probe_exact_tool",
+    ): "6d51cc9ddfa432bfa75a9b7800b2a80d8e85148b145921c2c5913c1b9394da16",
+    (
+        "python/golden_board/clean.py",
+        "_probe_linux_cargo_fmt",
+    ): "6a94b344a74e8204fc80e3660e4237029c970197a23770f6a2f36b113c407ce5",
+    (
+        "python/golden_board/clean.py",
+        "_probe_native_platform",
+    ): "b7b6bcd9e5ed86155f1c22a52bd7745444316d050193416630f408f42f4c4dbc",
+    (
+        "python/golden_board/clean.py",
+        "_probe_runner",
+    ): "77560fda8c02d8f3811ec78b40c715669e38f00379d996f143f8fcd3acc4f7e3",
+    (
+        "python/golden_board/clean.py",
+        "_probe_semantic_tool",
+    ): "bec75e1b2b65a2c69627c785a4bbcf994d095785b05c30fc5e915d77a2603d21",
+    (
+        "python/golden_board/clean.py",
+        "_prove_linux_container_name_absent",
+    ): "ddfa5984373a08b1a768bc2981ce6262298766a6e5ba53927641b11e17881a9e",
+    (
+        "python/golden_board/clean.py",
+        "_prove_venv_ignore",
+    ): "bd64a1ee22750bc18c5df9871220da4a572fd18af40d222b015f68cc594da5e1",
+    (
+        "python/golden_board/clean.py",
+        "_pull_linux_image",
+    ): "31a50b8343f36af066ea856ef129cb12ad5b8d267ccba4683c7a4255da9f2aa2",
+    (
+        "python/golden_board/clean.py",
+        "_read_exact",
+    ): "19bc5e2138c2d417325daf46a785ef7318368c3a8afbbc6c33d63aad4da44d8a",
+    (
+        "python/golden_board/clean.py",
+        "_recheck_exact_head",
+    ): "1ca7b51687761739a94191c8afb84774bb835e9a3aa830f04ff94133e9b20e8b",
+    (
+        "python/golden_board/clean.py",
+        "_recreate_cargo_target_root",
+    ): "a3ad0d2d1572095430bb614432c26b8375de61b7a1fcefa660135e06f3ba4bdb",
+    (
+        "python/golden_board/clean.py",
+        "_remove_cargo_target",
+    ): "75ff3272b9e9e65f297e2b1d3b4dd5e8c0ed91e6286dbf25c4e24e319d60a7b6",
+    (
+        "python/golden_board/clean.py",
+        "_remove_disposable_outputs",
+    ): "5a6a07aaa6fbc154c375beaf00837b5c308b521f55a40c9b1453daa53f3ac354",
+    (
+        "python/golden_board/clean.py",
+        "_remove_temporary_root",
+    ): "24da34a77901ec1b5bf5b799b1593ea9667aab83321fd942cbfad80950143ad8",
+    (
+        "python/golden_board/clean.py",
+        "_repository",
+    ): "8c8ab13aa578514dec1bb91ff35a979924c778beecf6548c5440fa0bba85f8d9",
+    (
+        "python/golden_board/clean.py",
+        "_repository_executable",
+    ): "bd66ddd79f91c8ade15a4d1c7ae1ecb3714d5acf05b571a6c6763a25a4d56d42",
+    (
+        "python/golden_board/clean.py",
+        "_resolve_native_tools",
+    ): "be7cbcbd2b83bf89f6a04f4d4ffffed4ba0d4bce145f7a517dec50f4d35735cc",
+    (
+        "python/golden_board/clean.py",
+        "_run",
+    ): "3aae2fe8d6b0bd3891748e2014ffc82b484205f6dc15beea714c32b7fb88c029",
+    (
+        "python/golden_board/clean.py",
+        "_run_linux_container",
+    ): "cc9383f12c393bb032984325e2b83a5d2e60271354a7dcdb7495fcce5d8604b8",
+    (
+        "python/golden_board/clean.py",
+        "_run_linux_phases",
+    ): "5c1a33b1211d6bdafc22d2399b710f8c44de740278247f697124fc02e63bda6b",
+    (
+        "python/golden_board/clean.py",
+        "_run_native_phases",
+    ): "ccc135bb86887ca0f41fe24a84e40814354ef99c27b7df8ed059230ca8454760",
+    (
+        "python/golden_board/clean.py",
+        "_safe_executable",
+    ): "2f3fca4121129ffcbb1e35c1f4058789ff139e50d55e79d9b4e48dc18a04c15e",
+    (
+        "python/golden_board/clean.py",
+        "_static_dependency_preflight",
+    ): "d46d838ee4522133a3ec9a04e0f9965332dd255ea4d1bd658471e15d194167c3",
+    (
+        "python/golden_board/clean.py",
+        "_unlink_owned",
+    ): "5c366c6ae5aa37247e3290a3680c73fe3c3f0f2a12a88f5bf580748d5284b6fa",
+    (
+        "python/golden_board/clean.py",
+        "_validate_cargo_target_root",
+    ): "027fe3071f7fca58331862671a17178b400c745d3a7c308144b7a68dc3084459",
+    (
+        "python/golden_board/clean.py",
+        "_validate_fresh_venv",
+    ): "01403817c4e7d08a49e01f35e681e8e94384d3890d4474d1eddd721cba225526",
+    (
+        "python/golden_board/clean.py",
+        "_validate_linux_checkout_mount",
+    ): "93dbde6de4ac7f4658387484e23370e3a1adbddafec681b826c502d5a05f4327",
+    (
+        "python/golden_board/clean.py",
+        "_validate_linux_lock",
+    ): "f64aeb318ba1b43c345bdec70f4a4371754ff901e5715bd6b7665f8cd3607a06",
+    (
+        "python/golden_board/clean.py",
+        "_validate_linux_probe_output",
+    ): "30acf46d732b09f329a9495af6762ff5faadbd32e19722f0ce9dd2fc0bff5864",
+    (
+        "python/golden_board/clean.py",
+        "_validate_linux_rust_toolchain",
+    ): "e425746cf0b08ca8c79528938a9f2ec7e98519c3f686bc15a8958be86eb83e9c",
+    (
+        "python/golden_board/clean.py",
+        "_validate_linux_uv_tool",
+    ): "70e62786068261d6440cf269f96642c7f47bffc11bba966ae3d76d4903e284ab",
+    (
+        "python/golden_board/clean.py",
+        "_validate_local_linux_image",
+    ): "8f6f827bdbee93efe2b132c729049427cfe3f64cb02300389751348e74d989d5",
+    (
+        "python/golden_board/clean.py",
+        "_validate_offline_disposable_state",
+    ): "12e9a6ed174d72f9a0587274c7e5ab230264d0e342b984641a75a83ec32fd2c9",
+    (
+        "python/golden_board/clean.py",
+        "_validate_runtime_roots",
+    ): "ff92bbb92671bfe238e9ca6f8486150704364ce1c65d161fac71ce87bdde2cc6",
+    (
+        "python/golden_board/clean.py",
+        "_validate_sealed_path",
+    ): "eb0cff142dae401144ada1c57af2cab128bf1733408575b94baf9ed271f0c261",
+    (
+        "python/golden_board/clean.py",
+        "_verified_linux_download",
+    ): "9911b6ad07036b50a77529e160df3df54442d8734c780a223691f2fb70a20a83",
+    (
+        "python/golden_board/clean.py",
+        "_write_all",
+    ): "50d0900740f455396e21927a39ab4e6409078b8fc923ca126d8c70c77e9d9595",
+    (
+        "python/golden_board/clean.py",
+        "verify_isolated_native",
+    ): "9c746a50e86c325ffc8e7e754f1ea4eeb882c261130294fd91ba052e944e3ee5",
+    (
+        "python/golden_board/clean.py",
+        "verify_linux",
+    ): "8e236266e8e46c2bad66fdb65fecaa47bd819731a0e713908debf88e8bdbcffe",
+    (
+        "python/golden_board/clean.py",
+        "write_native_evidence",
+    ): "731df4b4d4fd88856e3a2924bd751fa2bc808dc0b230baf291ba55a5bac9240a",
+    (
+        "python/golden_board/cli.py",
+        "_git_runtime_directory",
+    ): "8e600c3d23a4a8a1edc2b86740e81816a89613208b7b6d98d7f7409492578f82",
+    (
+        "python/golden_board/cli.py",
+        "_git_version_runner",
+    ): "dbf8125f68392d95314fdfa39dd85445f440584f795ea6223267ad5414712522",
+    (
+        "python/golden_board/cli.py",
+        "_module_capability_context",
+    ): "7e14d91bdb84e5ebf5654c301315c7b3bb4c4d0271b9d9abcfd84c3d7190b53d",
+    (
+        "python/golden_board/cli.py",
+        "_module_docker_context",
+    ): "69a191603c661c4c76fb564d99cf09c6dd5af5a8a9e3069f38d8397f04d61357",
+    (
+        "python/golden_board/cli.py",
+        "_module_git_context",
+    ): "63722a2fa3d8b274a0b37441d4bc6e13c6e139409474fa80601928610faf8b49",
+    (
+        "python/golden_board/cli.py",
+        "_module_linux_linker_context",
+    ): "ea16f832583575e44afdc55d3349c33bf114ceccbb4817e047f94d71de6e18f9",
+    (
+        "python/golden_board/cli.py",
+        "_module_main",
+    ): "b28938fef995c8095303c64e088902da21e8beed715d2ec878e8507eb218b2cf",
+    (
+        "python/golden_board/cli.py",
+        "_module_python_context",
+    ): "b6eb91c494a547fa455ca04eb4d6ff87e0665d432f19472bb0a4797db63cc1d3",
+    (
+        "python/golden_board/cli.py",
+        "_module_tool_context",
+    ): "c58d2d1e92e131d22d23379f486fbfd5f1619633fd58e7e669e61c24095841b8",
+    (
+        "python/golden_board/cli.py",
+        "_projected_executable",
+    ): "639108715503e48e67dd640c453493bd67940546dd39cc5a910796c59a8e5389",
+    (
+        "python/golden_board/cli.py",
+        "_validated_linux_observation",
+    ): "277f915dc3d93dfd1797eb33b397a6b74cdd7c63969bc7bced60e3b2d8e495e7",
+    (
+        "python/golden_board/cli.py",
+        "main",
+    ): "208b9c8d55d487ae7712b2851a21181e90999cd30d620657d419ce4badf331b4",
 }
 _COMMAND_ASSIGNMENT_AST_SHA256 = {
-    ("python/golden_board/bootstrap.py", "COMMAND_TIMEOUT"): "553f5820f6f29c461a01f1c5099072d5a3f261c041e5750788b1b78603ddb5e3",
-    ("python/golden_board/bootstrap.py", "OUTPUT_LIMIT"): "62e0a37c58273c9cb237b59a1d013c75dbdb103983e98f92422a742dafb3be53",
-    ("python/golden_board/bootstrap.py", "RUNTIME_DIRECTORIES"): "cbb97a775ea268f1305020fbe4e8e9c3eb8afa9da8ec51ec3e362c185941ad82",
-    ("python/golden_board/bootstrap.py", "SDKROOT"): "a934a181c6ee6a100d6660b6f112c8471fec8a884f4893856cbb966d787e0ad4",
-    ("python/golden_board/bootstrap.py", "TOOL_OUTPUT_LIMIT"): "e9eef12c88ec0056926a7e95b7b8b5e82e6638eca127438e8f024b71a70f48de",
-    ("python/golden_board/bootstrap.py", "TOOL_TIMEOUT"): "8e4cf832cce7cc42fc258974747213af3fef401f7088cb851874053cda071f59",
-    ("python/golden_board/bootstrap.py", "_IMPORT_SOURCE_COUNT"): "7ec2190e73460435e4c29aaaccd5bebc9b0854f2d59480f37dc7c9421a44ed98",
-    ("python/golden_board/bootstrap.py", "_IMPORT_SOURCE_LIMIT"): "da470766f01f95135026df24bdaf7773678481575944db2bce5124455cfe2ceb",
-    ("python/golden_board/checks.py", "FOCUS_AREAS"): "60082b641e3b7e9b93430c1e20fd7caa15e99187a9ccbddbea0404b69cc99fdd",
-    ("python/golden_board/checks.py", "_CARGO_LOCK_SHA256"): "6e640fd85999fb44afc44561942f36caf9ac501da283d9f58e6fc9eec8b55cb8",
-    ("python/golden_board/checks.py", "_CARGO_PACKAGES"): "06009d9882f6da4f8fafc4873c2cbc06fcda1dede06efa77bccf6f8ff2259e2a",
-    ("python/golden_board/checks.py", "_CHILD_TIMEOUT"): "5218e6d4aa6e3b20f52692d476d19eb7197a17afbcb90d77aa31ff55e6731761",
-    ("python/golden_board/checks.py", "_DEPENDENCY_PYTHON_TESTS"): "03dfa88a6be41bd242ea904aaebfaf176f173fdbe544b0927397ac90450cd61d",
-    ("python/golden_board/checks.py", "_FAST_PYTHON_TESTS"): "6322a06d0be3f9359e7c4c068e44069ae64e0c42c2a2551344d87dbb43839c3c",
-    ("python/golden_board/checks.py", "_FOUNDATION_PYTHON_TESTS"): "42c27fbd8aaeab162c2da9929e3a5d8000f2cde0c25d97189e62dc6da78df106",
-    ("python/golden_board/checks.py", "_MAX_CHILD_OUTPUT"): "bf67d5e771fb401e1cca387d8b9a18d71a0e11252a4385dc9114dbdb7ccbd9ff",
-    ("python/golden_board/checks.py", "_PYTHON_TESTS"): "d4e06ade0c2a5640d5cc6575f7eaa927b7439c4c1b4d064db124822160a92e7d",
-    ("python/golden_board/checks.py", "_RUST_SOURCE_SHA256"): "dcf406206a1593d67016acee3ffe74f4b97a62631ac3649d8ed1bf16595cfe80",
-    ("python/golden_board/checks.py", "_WRAPPER_SHA256"): "fd11bc0adfa36983f21d6cbcac7d4ef8c09454338b5e84cb4d9c6e874bf84463",
-    ("python/golden_board/cli.py", "NATIVE_EVIDENCE"): "96fb70c272ad4ff56d90d31cca4e9031dbb2ef304f4f46cfe778232251d27bc2",
-    ("python/golden_board/cli.py", "RELEASE_SUMMARY"): "75ca903b8c18410d3768de1455a5fdfcb641c3d58421b70ba5edeb4f72b1e785",
-    ("python/golden_board/cli.py", "SOURCE_REPORT"): "86f26988478e0935614636958b8b6d0e900c719d231121f6299d3efc89ab5500",
-    ("python/golden_board/cli.py", "_TOOL_VERSION"): "b22430b3d874a9d753f9d3f4b22147dc40adccacf655dfdd49e5123ccdff72ce",
+    (
+        "python/golden_board/acquisition.py",
+        "INVENTORY_PATH",
+    ): "4f9b1501cb752ee90810b57ab73a85d92314400a9cbf0bfa8dd24243d2375250",
+    (
+        "python/golden_board/acquisition.py",
+        "INVENTORY_ROOTS",
+    ): "ad7ab56ba082b472d6f0262685e6b768d82e5515e181633d83af6f8f0b59c3c7",
+    (
+        "python/golden_board/acquisition.py",
+        "MAX_ENTRIES",
+    ): "904d775a68ff6113cbdbdfa6a2133e666ae7236359b50c5a2345d03dd4ab2868",
+    (
+        "python/golden_board/acquisition.py",
+        "MAX_FILES",
+    ): "429ad8079e9d887c0d4978f64add8c2ac5e739c1c79355f3c74a8468b05cc063",
+    (
+        "python/golden_board/acquisition.py",
+        "MAX_FILE_BYTES",
+    ): "3a7f167e2574292b3c435bbc60b777a0e4014906cb0aff7e9821cb008210944c",
+    (
+        "python/golden_board/acquisition.py",
+        "MAX_INVENTORY_BYTES",
+    ): "23c2f962a18d7e597e1ed1553f558e0f5a724fe8b07bee6647a0bafc1c91a4c1",
+    (
+        "python/golden_board/acquisition.py",
+        "MAX_RELATIVE_PATH_BYTES",
+    ): "7caf20086767853ee44281fbe44df90bb401aea91d0a80d7a9fd5594dbb0363b",
+    (
+        "python/golden_board/acquisition.py",
+        "MAX_RELATIVE_PATH_DEPTH",
+    ): "6cf38edef81e69b426847eea0bc89e50d87d2d11fa9fab1b52e03a4d5113a229",
+    (
+        "python/golden_board/acquisition.py",
+        "MAX_RUSTUP_FILE_BYTES",
+    ): "2c594346cdb2f92b26f69a4bd035bd663341b7836342226542607bf05dab3eb9",
+    (
+        "python/golden_board/acquisition.py",
+        "MAX_TOTAL_BYTES",
+    ): "6ef8d4bb9f88b3b78619ca858a02b85f295ad2a4f9fea5dfd0a1f5709ef85d32",
+    (
+        "python/golden_board/acquisition.py",
+        "RUSTUP_INVENTORY_ROOT",
+    ): "47e9b63bc1feb3a7f42bb22817b77f77a5d1e49769c26a5f8addd88701ad8f81",
+    (
+        "python/golden_board/bootstrap.py",
+        "COMMAND_TIMEOUT",
+    ): "553f5820f6f29c461a01f1c5099072d5a3f261c041e5750788b1b78603ddb5e3",
+    (
+        "python/golden_board/bootstrap.py",
+        "MAX_VENV_DEPTH",
+    ): "92fcb34aed921ef6be4515ea91fc37681712676e375a7d1d232d2bed663f9a7e",
+    (
+        "python/golden_board/bootstrap.py",
+        "MAX_VENV_ENTRIES",
+    ): "b20cb848a525b7b3cab847b5055447c0d8e7d6ce1801c0fe10674db65b80c4b0",
+    (
+        "python/golden_board/bootstrap.py",
+        "OUTPUT_LIMIT",
+    ): "62e0a37c58273c9cb237b59a1d013c75dbdb103983e98f92422a742dafb3be53",
+    (
+        "python/golden_board/bootstrap.py",
+        "RUNTIME_DIRECTORIES",
+    ): "cbb97a775ea268f1305020fbe4e8e9c3eb8afa9da8ec51ec3e362c185941ad82",
+    (
+        "python/golden_board/bootstrap.py",
+        "SDKROOT",
+    ): "a934a181c6ee6a100d6660b6f112c8471fec8a884f4893856cbb966d787e0ad4",
+    (
+        "python/golden_board/bootstrap.py",
+        "TOOL_OUTPUT_LIMIT",
+    ): "e9eef12c88ec0056926a7e95b7b8b5e82e6638eca127438e8f024b71a70f48de",
+    (
+        "python/golden_board/bootstrap.py",
+        "TOOL_TIMEOUT",
+    ): "8e4cf832cce7cc42fc258974747213af3fef401f7088cb851874053cda071f59",
+    (
+        "python/golden_board/bootstrap.py",
+        "_BOOTSTRAP_FDINFO_MAX_BYTES",
+    ): "a10e818baafe0de4e9e8d1d2409a483478b6bddfe6b029507d4dec12e12a31e6",
+    (
+        "python/golden_board/bootstrap.py",
+        "_BOOTSTRAP_FILE",
+    ): "27e25b3ef4fb831ab711f3e828deec5810f351093756fa233a630fbfe4576d24",
+    (
+        "python/golden_board/bootstrap.py",
+        "_DIGEST",
+    ): "1edf0d3343531cfe7de8598eb12b2310e15167bf84b41ebb501563e6edd847bc",
+    (
+        "python/golden_board/bootstrap.py",
+        "_DIR_FD_REMOVAL",
+    ): "8297c380856bdf57b41b1b29639f31e3fb21bb7ebfaac2dccf790089d81bc64e",
+    (
+        "python/golden_board/bootstrap.py",
+        "_IMPORT_CACHE",
+    ): "04c9b65256b0944f98463ae0512a2456d7285d1e77b70e24e9bac33d48bed757",
+    (
+        "python/golden_board/bootstrap.py",
+        "_IMPORT_SOURCE_COUNT",
+    ): "7ec2190e73460435e4c29aaaccd5bebc9b0854f2d59480f37dc7c9421a44ed98",
+    (
+        "python/golden_board/bootstrap.py",
+        "_IMPORT_SOURCE_LIMIT",
+    ): "da470766f01f95135026df24bdaf7773678481575944db2bce5124455cfe2ceb",
+    (
+        "python/golden_board/bootstrap.py",
+        "_PACKAGE_DIRECTORY",
+    ): "53f6bb54961bde25a606ea710504796192c9ad90d06a7e3224fa215d9692451f",
+    (
+        "python/golden_board/bootstrap.py",
+        "_PYTHON_DIRECTORY",
+    ): "5091614ec3e0cbcd2528103a0ac3e42dd5621dd668c8672a70cf823fb7b5d55c",
+    (
+        "python/golden_board/checks.py",
+        "FOCUS_AREAS",
+    ): "60082b641e3b7e9b93430c1e20fd7caa15e99187a9ccbddbea0404b69cc99fdd",
+    (
+        "python/golden_board/checks.py",
+        "_CARGO_LOCK_SHA256",
+    ): "6e640fd85999fb44afc44561942f36caf9ac501da283d9f58e6fc9eec8b55cb8",
+    (
+        "python/golden_board/checks.py",
+        "_CARGO_PACKAGES",
+    ): "06009d9882f6da4f8fafc4873c2cbc06fcda1dede06efa77bccf6f8ff2259e2a",
+    (
+        "python/golden_board/checks.py",
+        "_CHILD_TIMEOUT",
+    ): "5218e6d4aa6e3b20f52692d476d19eb7197a17afbcb90d77aa31ff55e6731761",
+    (
+        "python/golden_board/checks.py",
+        "_DEPENDENCY_PYTHON_TESTS",
+    ): "193868378f10a20bc9916eaabeacf87ab6a23eceaf1f30165b6e4f5d4dc9910b",
+    (
+        "python/golden_board/checks.py",
+        "_FAST_PYTHON_TESTS",
+    ): "6322a06d0be3f9359e7c4c068e44069ae64e0c42c2a2551344d87dbb43839c3c",
+    (
+        "python/golden_board/checks.py",
+        "_FOUNDATION_PYTHON_TESTS",
+    ): "42c27fbd8aaeab162c2da9929e3a5d8000f2cde0c25d97189e62dc6da78df106",
+    (
+        "python/golden_board/checks.py",
+        "_MAX_CHILD_OUTPUT",
+    ): "bf67d5e771fb401e1cca387d8b9a18d71a0e11252a4385dc9114dbdb7ccbd9ff",
+    (
+        "python/golden_board/checks.py",
+        "_PYTHON_TESTS",
+    ): "22f7b632875f8efdedcc4c942b7607043a4739e847b5bc13fbbb961f61575ab0",
+    (
+        "python/golden_board/checks.py",
+        "_REQUIRED_FILES",
+    ): "a00bc7bafe9630b70f098741417e8e3310513487aad5450ea59fe3fb9943659f",
+    (
+        "python/golden_board/checks.py",
+        "_RUST_SOURCE_SHA256",
+    ): "dcf406206a1593d67016acee3ffe74f4b97a62631ac3649d8ed1bf16595cfe80",
+    (
+        "python/golden_board/checks.py",
+        "_TEXT_ROOT_FILES",
+    ): "50c9829455e504b5a68f51c4fbe37be726377a6e23a21895cde9f684b3689dfc",
+    (
+        "python/golden_board/checks.py",
+        "_WRAPPER_SHA256",
+    ): "2527299246447cd0f76abbf4a4346cc0a02aed35c403e27618d7af2cd33fb490",
+    (
+        "python/golden_board/clean.py",
+        "COMMAND_TIMEOUT",
+    ): "cc275216c7c118e35c544724cab0c52a1850eda3c43d78a73856480a38a2b92a",
+    (
+        "python/golden_board/clean.py",
+        "DOCKER_HOST",
+    ): "c01187787cae5c9be369a2cf2c8edb77f55e3a4e68d525392d3ac798b616cd06",
+    (
+        "python/golden_board/clean.py",
+        "DOCKER_SOCKET",
+    ): "4a234982f43d25114d7dcee531e273dcf711db8a86052fa5c4aab1f3d42cc57e",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_CC_VERSION",
+    ): "49931f1c7677cbacccc0cb9e753c951648472c12582f88205737c84975c04de8",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_IMAGE",
+    ): "764ba2d70d5fbcdfca6fba38b1dd7174b74d2a651a609b9329fdaf6112be2f57",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_LD_VERSION",
+    ): "67a25df31ef9037bbb5ec03ac68cd8a2e2388e26b715ae98fb29f58784fec56f",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_LIBC_VERSION",
+    ): "089618bef237a7cac102e44c200ae98b03ebd719ba888f7e2d8829e1ac075c6e",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_PLATFORM",
+    ): "9dd3a325570d114da7170cbd64622892340523a0cc9435ff21cda02fa845256e",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_PROTOCOL",
+    ): "6879d6fa6f80588715d5f2c0bf0516248c0385cd83e0226a252b6874ed9097e6",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_RUSTUP",
+    ): "b04f5516a2dd91a9fe4f6a01ce9737c8775af92a42a9a6771a6c1bc42475b8cb",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_RUSTUP_HOME",
+    ): "7e80b5742da1d3a047bb8b0efd56667c59413a9c59de4cd4fb91e207b91072cb",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_RUSTUP_VERSION",
+    ): "6dbf3b7f296e15975a07b6bffdf72db20c82fa991f4f13fa0abe30d94d2f678c",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_RUST_BIN",
+    ): "8ebd63670594c776244a05474b10e21d265492256857b72f5789ddd375c1bda2",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_RUST_SYSROOT",
+    ): "3321ae6498b13fe2534f0eb342d86ca0e26a8c5ec5a755b9eb527953ede0fc23",
+    (
+        "python/golden_board/clean.py",
+        "OID",
+    ): "7cbea73bdc04569de84708ed5479abf82ab1e6b859e168de6a63c9b58a1b2a36",
+    (
+        "python/golden_board/clean.py",
+        "OUTPUT_LIMIT",
+    ): "7fbaf153a294c11bcefc876640d668b13a3779d04647076e0e0781d862d82f5f",
+    (
+        "python/golden_board/clean.py",
+        "SDKROOT",
+    ): "a934a181c6ee6a100d6660b6f112c8471fec8a884f4893856cbb966d787e0ad4",
+    (
+        "python/golden_board/clean.py",
+        "TOOL_TIMEOUT",
+    ): "8e4cf832cce7cc42fc258974747213af3fef401f7088cb851874053cda071f59",
+    (
+        "python/golden_board/clean.py",
+        "_LINUX_ACQUIRE_SCRIPT",
+    ): "e22e20085deca4d27f03b9ae75f2394fab5202a8efdac4100c52132677eec163",
+    (
+        "python/golden_board/clean.py",
+        "_LINUX_OFFLINE_SCRIPT",
+    ): "3dc7da04a54884f38efe577f147367b1511bff5f55c889f73bc631969a9f6172",
+    (
+        "python/golden_board/clean.py",
+        "_LINUX_PROBE_SCRIPT",
+    ): "87460c7792cce2218a085a35f2ac8e5999f141f283dd606869542cd3100ade6a",
+    (
+        "python/golden_board/clean.py",
+        "_LINUX_TOKEN",
+    ): "baea33231d077f12fa9e8122c9c7be10bf79a386939ac84cfb5630893f8f4836",
+    (
+        "python/golden_board/cli.py",
+        "NATIVE_EVIDENCE",
+    ): "96fb70c272ad4ff56d90d31cca4e9031dbb2ef304f4f46cfe778232251d27bc2",
+    (
+        "python/golden_board/cli.py",
+        "RELEASE_SUMMARY",
+    ): "75ca903b8c18410d3768de1455a5fdfcb641c3d58421b70ba5edeb4f72b1e785",
+    (
+        "python/golden_board/cli.py",
+        "SOURCE_REPORT",
+    ): "86f26988478e0935614636958b8b6d0e900c719d231121f6299d3efc89ab5500",
+    (
+        "python/golden_board/cli.py",
+        "_DOCKER_VERSION",
+    ): "22d685b7443ad95aed450ac743bc9528f87abfc173f6ff177bb3d96bd56ba353",
+    (
+        "python/golden_board/cli.py",
+        "_IMAGE_GIT_VERSION",
+    ): "eac2ca170f2df0c65a1e44e06b7e45bb262d05b922fc039ff5d7ad4a4d370d2b",
+    (
+        "python/golden_board/cli.py",
+        "_LINUX_AVAILABLE",
+    ): "14765ccc51a3c8f7f8e91b974eeab9376f3aa3f6e68d890528aeb893eb879248",
+    (
+        "python/golden_board/cli.py",
+        "_LINUX_UNAVAILABLE",
+    ): "52e09c64f7d3083c2bcbd8d4c367fd3727724932769e888743059eb567e524ab",
+    (
+        "python/golden_board/cli.py",
+        "_MAX_ERROR_DETAIL",
+    ): "0b9b6cc9720eacd2b8481f80a56f588143a6cc7a73c3573bd594af3d557538ca",
+    (
+        "python/golden_board/cli.py",
+        "_SOURCE_USAGE",
+    ): "b77faee7dd65c995e525c6e80dd866a087e7cca6d613127a2f35e7dcc3f8ea4c",
+    (
+        "python/golden_board/cli.py",
+        "_TOOL_VERSION",
+    ): "b1e80b03e688f577eda3daf6b1c2e47b8fd2ba5f1250146608789a3e7ef44641",
 }
 _CARGO_LOCK_SHA256 = "ca1c99a41a2e5b931ac9c06bad81cc33e7b39a18b1eac1142fa03ee11d388266"
 _RUST_SOURCE_SHA256 = {
@@ -691,9 +1826,7 @@ def _text_paths(root: Path) -> list[str]:
                         for entry in iterator:
                             entry_count += 1
                             if entry_count > _MAX_TEXT_ENTRIES:
-                                raise ValueError(
-                                    "repository text-entry limit exceeded"
-                                )
+                                raise ValueError("repository text-entry limit exceeded")
                             if type(entry.name) is not str:
                                 raise ValueError("repository text path is invalid")
                             names.append(entry.name)
@@ -710,9 +1843,7 @@ def _text_paths(root: Path) -> list[str]:
                         if stat.S_ISLNK(mode):
                             raise ValueError(f"text path is a symlink: {relative}")
                         if stat.S_ISDIR(mode):
-                            child = os.open(
-                                entry_name, flags, dir_fd=descriptor
-                            )
+                            child = os.open(entry_name, flags, dir_fd=descriptor)
                             try:
                                 held = os.fstat(child)
                                 after = os.stat(
@@ -750,9 +1881,7 @@ def _text_paths(root: Path) -> list[str]:
                             ):
                                 pending.append(relative_path)
                         elif stat.S_ISREG(mode):
-                            child = os.open(
-                                entry_name, file_flags, dir_fd=descriptor
-                            )
+                            child = os.open(entry_name, file_flags, dir_fd=descriptor)
                             try:
                                 held = os.fstat(child)
                                 after = os.stat(
@@ -841,9 +1970,7 @@ def _directory_entries(
                 child = os.open(name, child_flags, dir_fd=descriptor)
                 try:
                     held = os.fstat(child)
-                    after = os.stat(
-                        name, dir_fd=descriptor, follow_symlinks=False
-                    )
+                    after = os.stat(name, dir_fd=descriptor, follow_symlinks=False)
                     held_identity = (
                         held.st_dev,
                         held.st_ino,
@@ -896,21 +2023,13 @@ def _foundation_errors(
                 errors.append(f"text is not UTF-8: {relative}")
         for script in ("scripts/setup", "scripts/check"):
             mode = (repository / script).lstat().st_mode
-            if (
-                not stat.S_ISREG(mode)
-                or not mode & stat.S_IXUSR
-                or mode & 0o022
-            ):
+            if not stat.S_ISREG(mode) or not mode & stat.S_IXUSR or mode & 0o022:
                 errors.append(f"script is not an executable regular file: {script}")
         spec_entries = _directory_entries(repository, PurePosixPath("spec"))
-        if (
-            [name for name, _facts in spec_entries]
-            != ["constants-v0.json", "identity-v0.md"]
-            or any(
-                not stat.S_ISREG(facts.st_mode)
-                for _name, facts in spec_entries
-            )
-        ):
+        if [name for name, _facts in spec_entries] != [
+            "constants-v0.json",
+            "identity-v0.md",
+        ] or any(not stat.S_ISREG(facts.st_mode) for _name, facts in spec_entries):
             errors.append("spec directory contains an unreviewed M0 selection")
         if _check_read(repository, "AGENTS.md") != _AGENTS:
             errors.append("AGENTS.md differs from the exact six-rule contract")
@@ -957,28 +2076,24 @@ def _foundation_errors(
         for text in required_readme:
             if text not in readme:
                 errors.append(f"README contract is missing: {text}")
-        if re.search(r"(?:Current milestone|Project state)\s*[:|]", readme, re.IGNORECASE):
+        if re.search(
+            r"(?:Current milestone|Project state)\s*[:|]", readme, re.IGNORECASE
+        ):
             errors.append("README copies mutable roadmap status")
         for field in _DOCTOR_FIELDS:
             if field in readme:
                 errors.append(f"README copies doctor-owned field: {field}")
-        roadmap = _check_read(repository, "docs/roadmap.md", 4 << 20).decode("utf-8", "strict")
+        roadmap = _check_read(repository, "docs/roadmap.md", 4 << 20).decode(
+            "utf-8", "strict"
+        )
         errors.extend(validate_header_status(roadmap))
-        report_entries = _directory_entries(
-            repository, PurePosixPath("reports")
-        )
-        if (
-            [name for name, _facts in report_entries]
-            != ["release-summary.json", "source-doctor.json"]
-            or any(
-                not stat.S_ISREG(facts.st_mode)
-                for _name, facts in report_entries
-            )
-        ):
+        report_entries = _directory_entries(repository, PurePosixPath("reports"))
+        if [name for name, _facts in report_entries] != [
+            "release-summary.json",
+            "source-doctor.json",
+        ] or any(not stat.S_ISREG(facts.st_mode) for _name, facts in report_entries):
             errors.append("reports directory must contain exactly two tracked reports")
-        errors.extend(
-            check_report_schemas(repository)
-        )
+        errors.extend(check_report_schemas(repository))
         rows = parse_status(roadmap)
         if rows[0][1].startswith("Complete —"):
             if rows[0][2] != "reports/source-doctor.json":
@@ -986,7 +2101,9 @@ def _foundation_errors(
             source_raw = _check_read(repository, "reports/source-doctor.json")
             digest = hashlib.sha256(source_raw).hexdigest()
             if digest not in rows[0][1]:
-                errors.append("completed M0 status carries a stale source-report digest")
+                errors.append(
+                    "completed M0 status carries a stale source-report digest"
+                )
             release = decode_canonical_manifest(
                 _check_read(repository, "reports/release-summary.json")
             )
@@ -1000,9 +2117,9 @@ def _foundation_errors(
                 else:
                     evidence = g1.get("evidence")
                     expected_identity = {
-                    "kind": "source_doctor_report_raw_sha256",
-                    "path": "reports/source-doctor.json",
-                    "sha256": digest,
+                        "kind": "source_doctor_report_raw_sha256",
+                        "path": "reports/source-doctor.json",
+                        "sha256": digest,
                     }
                     if (
                         type(evidence) is not list
@@ -1107,13 +2224,13 @@ def _imports_and_processes(
         if any(
             name == base or name.startswith(f"{base}.")
             for base in {
-            "subprocess.Popen",
-            "subprocess.call",
-            "subprocess.check_call",
-            "subprocess.check_output",
-            "subprocess.getoutput",
-            "subprocess.getstatusoutput",
-            "subprocess.run",
+                "subprocess.Popen",
+                "subprocess.call",
+                "subprocess.check_call",
+                "subprocess.check_output",
+                "subprocess.getoutput",
+                "subprocess.getstatusoutput",
+                "subprocess.run",
             }
         ):
             return True
@@ -1140,9 +2257,13 @@ def _imports_and_processes(
             return True
         if name.startswith("os."):
             attribute = name.removeprefix("os.").split(".", 1)[0]
-            return attribute in {"fork", "forkpty", "popen", "startfile", "system"} or attribute.startswith(
-                ("exec", "spawn", "posix_spawn")
-            )
+            return attribute in {
+                "fork",
+                "forkpty",
+                "popen",
+                "startfile",
+                "system",
+            } or attribute.startswith(("exec", "spawn", "posix_spawn"))
         return False
 
     for relative in python_relatives:
@@ -1196,7 +2317,10 @@ def _imports_and_processes(
                     symbols[alias.asname or name] = alias.name
             elif isinstance(node, ast.ImportFrom) and node.module:
                 imported = node.module.split(".", 1)[0]
-                if imported not in sys.stdlib_module_names and imported != "golden_board":
+                if (
+                    imported not in sys.stdlib_module_names
+                    and imported != "golden_board"
+                ):
                     errors.append(f"undeclared Python import: {node.module}")
                 for alias in node.names:
                     symbols[alias.asname or alias.name] = f"{node.module}.{alias.name}"
@@ -1208,7 +2332,9 @@ def _imports_and_processes(
                 node.value, (ast.Name, ast.Attribute, ast.Subscript)
             ):
                 value = resolved_name(node.value, symbols)
-                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                targets = (
+                    node.targets if isinstance(node, ast.Assign) else [node.target]
+                )
                 for target in targets:
                     if isinstance(target, ast.Name) and value:
                         symbols[target.id] = value
@@ -1225,7 +2351,9 @@ def _imports_and_processes(
                     "vars",
                 }:
                     value = resolved_name(node.value, symbols)
-                    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                    targets = (
+                        node.targets if isinstance(node, ast.Assign) else [node.target]
+                    )
                     for target in targets:
                         if isinstance(target, ast.Name) and value:
                             symbols[target.id] = value
@@ -1258,10 +2386,17 @@ def _imports_and_processes(
                     keywords = {keyword.arg: keyword.value for keyword in node.keywords}
                     if name.startswith("subprocess."):
                         shell = keywords.get("shell")
-                        if not isinstance(shell, ast.Constant) or shell.value is not False:
-                            errors.append(f"reviewed Python process call lacks shell=False: {location}")
+                        if (
+                            not isinstance(shell, ast.Constant)
+                            or shell.value is not False
+                        ):
+                            errors.append(
+                                f"reviewed Python process call lacks shell=False: {location}"
+                            )
                         if name == "subprocess.run" and "timeout" not in keywords:
-                            errors.append(f"reviewed Python process call lacks timeout: {location}")
+                            errors.append(
+                                f"reviewed Python process call lacks timeout: {location}"
+                            )
                 if name == "golden_board.registry._run_bounded_process" or (
                     isinstance(node.func, ast.Name) and node.func.id in bounded_aliases
                 ):
@@ -1288,23 +2423,33 @@ def _imports_and_processes(
         missing = _BOUNDED_PROCESS_CALLS - bounded_calls
         extra = bounded_calls - _BOUNDED_PROCESS_CALLS
         for location, count in sorted(missing.items()):
-            errors.append(f"missing reviewed bounded process call ({count}): {location}")
+            errors.append(
+                f"missing reviewed bounded process call ({count}): {location}"
+            )
         for location, count in sorted(extra.items()):
             errors.append(f"undeclared bounded process call ({count}): {location}")
     if process_call_ast != _PROCESS_CALL_AST:
         missing = _PROCESS_CALL_AST - process_call_ast
         extra = process_call_ast - _PROCESS_CALL_AST
         for location, count in sorted(missing.items()):
-            errors.append(f"reviewed Python process call AST drifted ({count} missing): {location}")
+            errors.append(
+                f"reviewed Python process call AST drifted ({count} missing): {location}"
+            )
         for location, count in sorted(extra.items()):
-            errors.append(f"reviewed Python process call AST drifted ({count} extra): {location}")
+            errors.append(
+                f"reviewed Python process call AST drifted ({count} extra): {location}"
+            )
     if bounded_call_ast != _BOUNDED_PROCESS_CALL_AST:
         missing = _BOUNDED_PROCESS_CALL_AST - bounded_call_ast
         extra = bounded_call_ast - _BOUNDED_PROCESS_CALL_AST
         for location, count in sorted(missing.items()):
-            errors.append(f"reviewed bounded process call AST drifted ({count} missing): {location}")
+            errors.append(
+                f"reviewed bounded process call AST drifted ({count} missing): {location}"
+            )
         for location, count in sorted(extra.items()):
-            errors.append(f"reviewed bounded process call AST drifted ({count} extra): {location}")
+            errors.append(
+                f"reviewed bounded process call AST drifted ({count} extra): {location}"
+            )
     expected_function_keys = {
         (relative, name)
         for relative, names in _COMMAND_FUNCTION_TARGETS.items()
@@ -1354,14 +2499,38 @@ def _cargo_metadata_errors(
     root: Path,
     cargo_executable: Path,
     *,
+    cargo_fmt_executable: Path | None = None,
+    rustc_executable: Path | None = None,
+    rustdoc_executable: Path | None = None,
+    rustfmt_executable: Path | None = None,
     pycache_prefix: Path | None = None,
+    linux_linker: Path | None = None,
 ) -> list[str]:
     errors: list[str] = []
     try:
         cargo = _fixed_tool(cargo_executable, "cargo")
+        cargo_fmt = _fixed_tool(cargo_fmt_executable, "cargo-fmt")
+        rustc = _fixed_tool(rustc_executable, "rustc")
+        rustdoc = _fixed_tool(rustdoc_executable, "rustdoc")
+        rustfmt = _fixed_tool(rustfmt_executable, "rustfmt")
+        if cargo_fmt != cargo.parent / "cargo-fmt":
+            raise ValueError("unsafe Cargo metadata cargo-fmt capability")
+        if rustc != cargo.parent / "rustc":
+            raise ValueError("unsafe Cargo metadata rustc capability")
+        if rustdoc != cargo.parent / "rustdoc":
+            raise ValueError("unsafe Cargo metadata rustdoc capability")
+        if rustfmt != cargo.parent / "rustfmt":
+            raise ValueError("unsafe Cargo metadata rustfmt capability")
+        metadata_tools = (cargo, cargo_fmt, rustc, rustdoc, rustfmt)
         environment = _child_environment(
-            root, (cargo,), pycache_prefix=pycache_prefix
+            root,
+            metadata_tools,
+            pycache_prefix=pycache_prefix,
+            linux_linker=linux_linker,
         )
+        environment["RUSTC"] = str(rustc)
+        environment["RUSTDOC"] = str(rustdoc)
+        environment["RUSTFMT"] = str(rustfmt)
         stdout, stderr = _run_bounded_process(
             [
                 str(cargo),
@@ -1393,7 +2562,9 @@ def _cargo_metadata_errors(
         if len(actual) != len(packages) or actual != _CARGO_PACKAGES:
             errors.append("Cargo metadata package graph drifted")
         reviewed_builds: set[str] = set()
-        workspace_targets: set[tuple[tuple[str, ...], tuple[str, ...], str, str]] = set()
+        workspace_targets: set[tuple[tuple[str, ...], tuple[str, ...], str, str]] = (
+            set()
+        )
         for package in packages:
             if type(package) is not dict:
                 errors.append("Cargo metadata package is malformed")
@@ -1417,14 +2588,18 @@ def _cargo_metadata_errors(
                         or dependency.get("source")
                         != "registry+https://github.com/rust-lang/crates.io-index"
                     ):
-                        errors.append(f"Cargo metadata dependency has an unsafe source: {name}")
+                        errors.append(
+                            f"Cargo metadata dependency has an unsafe source: {name}"
+                        )
             targets = package.get("targets")
             if type(targets) is not list:
                 errors.append(f"Cargo metadata targets are malformed: {name}")
                 continue
             for target in targets:
                 kinds = target.get("kind") if type(target) is dict else None
-                crate_types = target.get("crate_types") if type(target) is dict else None
+                crate_types = (
+                    target.get("crate_types") if type(target) is dict else None
+                )
                 if (
                     type(kinds) is not list
                     or any(type(kind) is not str for kind in kinds)
@@ -1444,8 +2619,13 @@ def _cargo_metadata_errors(
                         errors.append("workspace Cargo target is malformed")
                         continue
                     try:
-                        relative = Path(source).resolve(strict=True).relative_to(root).as_posix()
-                    except (OSError, ValueError):
+                        relative = (
+                            Path(source)
+                            .resolve(strict=True)
+                            .relative_to(root)
+                            .as_posix()
+                        )
+                    except OSError, ValueError:
                         errors.append("workspace Cargo target escaped the checkout")
                         continue
                     workspace_targets.add(
@@ -1454,9 +2634,24 @@ def _cargo_metadata_errors(
         if reviewed_builds != {"generic-array", "libc"}:
             errors.append("Cargo custom-build surface drifted")
         expected_targets = {
-            (("lib",), ("lib",), "golden_board_core", "crates/golden-board-core/src/lib.rs"),
-            (("bin",), ("bin",), "gb-vector", "crates/golden-board-core/src/bin/gb-vector.rs"),
-            (("test",), ("bin",), "vector_cli", "crates/golden-board-core/tests/vector_cli.rs"),
+            (
+                ("lib",),
+                ("lib",),
+                "golden_board_core",
+                "crates/golden-board-core/src/lib.rs",
+            ),
+            (
+                ("bin",),
+                ("bin",),
+                "gb-vector",
+                "crates/golden-board-core/src/bin/gb-vector.rs",
+            ),
+            (
+                ("test",),
+                ("bin",),
+                "vector_cli",
+                "crates/golden-board-core/tests/vector_cli.rs",
+            ),
         }
         if workspace_targets != expected_targets:
             errors.append("workspace Cargo target surface drifted")
@@ -1504,9 +2699,28 @@ def static_dependency_errors(root: Path) -> list[str]:
         }:
             errors.append("uv.lock differs from the frozen dependency-free lock")
         if _check_read(repository, "rust-toolchain.toml") != (
-            b"[toolchain]\nchannel = \"1.94.0\"\nprofile = \"minimal\"\ncomponents = [\"rustfmt\"]\n"
+            b'[toolchain]\nchannel = "1.94.0"\nprofile = "minimal"\ncomponents = ["rustfmt"]\n'
         ):
             errors.append("Rust toolchain pin differs from 1.94.0")
+        root_rustfmt_configs = {
+            name
+            for name, _facts in _directory_entries(repository, PurePosixPath("."))
+            if name in {"rustfmt.toml", ".rustfmt.toml"}
+        }
+        try:
+            rustfmt_configuration = _check_read(repository, "rustfmt.toml")
+        except OSError, ValueError:
+            rustfmt_configuration = None
+        if rustfmt_configuration != b'edition = "2024"\n':
+            errors.append("rustfmt configuration differs from the root M0 pin")
+        nested_rustfmt_configs = {
+            relative
+            for relative in text_paths
+            if "/" in relative
+            if PurePosixPath(relative).name in {"rustfmt.toml", ".rustfmt.toml"}
+        }
+        if root_rustfmt_configs != {"rustfmt.toml"} or nested_rustfmt_configs:
+            errors.append("rustfmt configuration surface escaped the root M0 pin")
         workspace = tomllib.loads(_check_read(repository, "Cargo.toml").decode())
         if workspace != {
             "workspace": {
@@ -1563,7 +2777,9 @@ def static_dependency_errors(root: Path) -> list[str]:
                     or type(package.get("checksum")) is not str
                     or re.fullmatch(r"[0-9a-f]{64}", package["checksum"]) is None
                 ):
-                    errors.append(f"non-registry or unhashed Cargo package: {package.get('name')}")
+                    errors.append(
+                        f"non-registry or unhashed Cargo package: {package.get('name')}"
+                    )
         gitignore = _check_read(repository, ".gitignore")
         if (
             b".venv/\n" not in gitignore
@@ -1586,7 +2802,7 @@ def static_dependency_errors(root: Path) -> list[str]:
         for relative, expected_hash in _RUST_SOURCE_SHA256.items():
             try:
                 raw = _check_read(repository, relative)
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 continue
             if hashlib.sha256(raw).hexdigest() != expected_hash:
                 errors.append(f"reviewed Rust executable source drifted: {relative}")
@@ -1597,10 +2813,9 @@ def static_dependency_errors(root: Path) -> list[str]:
             errors.append("shell executable surface drifted")
         for script in ("scripts/setup", "scripts/check"):
             raw = _check_read(repository, script, 1 << 20)
-            if (
-                hashlib.sha256(raw).hexdigest() != _WRAPPER_SHA256[script]
-                or not raw.startswith(b"#!/bin/sh -p\ncase $- in\n")
-            ):
+            if hashlib.sha256(raw).hexdigest() != _WRAPPER_SHA256[
+                script
+            ] or not raw.startswith(b"#!/bin/sh -p\ncase $- in\n"):
                 errors.append(f"sealed wrapper drifted: {script}")
     except (OSError, UnicodeError, tomllib.TOMLDecodeError, ValueError) as error:
         errors.append(f"dependency check failed: {error}")
@@ -1611,13 +2826,25 @@ def _dependency_errors(
     root: Path,
     *,
     cargo_executable: Path | None = None,
+    cargo_fmt_executable: Path | None = None,
+    rustc_executable: Path | None = None,
+    rustdoc_executable: Path | None = None,
+    rustfmt_executable: Path | None = None,
     pycache_prefix: Path | None = None,
+    linux_linker: Path | None = None,
 ) -> list[str]:
     errors = static_dependency_errors(root)
     if errors or cargo_executable is None:
         return errors
     return _cargo_metadata_errors(
-        root, cargo_executable, pycache_prefix=pycache_prefix
+        root,
+        cargo_executable,
+        cargo_fmt_executable=cargo_fmt_executable,
+        rustc_executable=rustc_executable,
+        rustdoc_executable=rustdoc_executable,
+        rustfmt_executable=rustfmt_executable,
+        pycache_prefix=pycache_prefix,
+        linux_linker=linux_linker,
     )
 
 
@@ -1639,7 +2866,9 @@ def _source_errors(root: Path, *, check_report: bool = True) -> list[str]:
             text = _check_read(repository, relative, 1 << 20).decode("utf-8", "strict")
             for field in _DOCTOR_FIELDS:
                 if field in text:
-                    errors.append(f"doctor-owned field copied outside its owner: {relative}:{field}")
+                    errors.append(
+                        f"doctor-owned field copied outside its owner: {relative}:{field}"
+                    )
     except (OSError, UnicodeError, ValueError) as error:
         errors.append(f"source check failed: {error}")
     return errors
@@ -1661,9 +2890,7 @@ def _tool(name: str, prefix: bytes) -> Path:
     raise ValueError(f"explicit sealed tool capability required: {name}")
 
 
-def _validated_pycache_prefix(
-    root: Path, supplied: Path | None = None
-) -> Path:
+def _validated_pycache_prefix(root: Path, supplied: Path | None = None) -> Path:
     repository = _canonical_repository(root)
     expected = repository / "artifacts/check-pycache"
     if supplied is not None and (
@@ -1682,9 +2909,7 @@ def _validated_pycache_prefix(
         descriptors.append(root_descriptor)
         artifacts_descriptor = os.open("artifacts", flags, dir_fd=root_descriptor)
         descriptors.append(artifacts_descriptor)
-        prefix_descriptor = os.open(
-            "check-pycache", flags, dir_fd=artifacts_descriptor
-        )
+        prefix_descriptor = os.open("check-pycache", flags, dir_fd=artifacts_descriptor)
         descriptors.append(prefix_descriptor)
         artifacts_before = os.fstat(artifacts_descriptor)
         before = os.fstat(prefix_descriptor)
@@ -1715,13 +2940,16 @@ def _validated_pycache_prefix(
             dir_fd=artifacts_descriptor,
             follow_symlinks=False,
         )
-        facts = lambda value: (
-            value.st_dev,
-            value.st_ino,
-            value.st_mode,
-            value.st_mtime_ns,
-            value.st_ctime_ns,
-        )
+
+        def facts(value: os.stat_result) -> tuple[int, int, int, int, int]:
+            return (
+                value.st_dev,
+                value.st_ino,
+                value.st_mode,
+                value.st_mtime_ns,
+                value.st_ctime_ns,
+            )
+
         if (
             facts(artifacts_before) != facts(artifacts_after)
             or facts(artifacts_after) != facts(named_artifacts)
@@ -1744,15 +2972,19 @@ def _child_environment(
     tools: tuple[Path, ...],
     *,
     pycache_prefix: Path | None = None,
+    linux_linker: Path | None = None,
 ) -> dict[str, str]:
     bytecode_prefix = _validated_pycache_prefix(root, pycache_prefix)
     environment = {
+        "CARGO_CACHE_AUTO_CLEAN_FREQUENCY": "never",
         "CARGO_HOME": str(root / "artifacts/cargo-home"),
         "CARGO_NET_OFFLINE": "true",
+        "CARGO_REGISTRIES_CRATES_IO_PROTOCOL": "sparse",
         "CARGO_TARGET_DIR": str(root / "artifacts/cargo-target"),
         "CARGO_TERM_COLOR": "never",
         "GIT_CONFIG_GLOBAL": "/dev/null",
         "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_NO_LAZY_FETCH": "1",
         "GIT_OPTIONAL_LOCKS": "0",
         "GIT_TERMINAL_PROMPT": "0",
         "HOME": str(root / "artifacts/check-home"),
@@ -1797,6 +3029,16 @@ def _child_environment(
                 "SDKROOT": str(sdkroot),
             }
         )
+    if linux_linker is not None:
+        if linux_linker != Path("/usr/bin/cc"):
+            raise ValueError("unsafe Linux compiler environment")
+        environment.update(
+            {
+                "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER": "/usr/bin/cc",
+                "CC": "/usr/bin/cc",
+                "COMPILER_PATH": "/usr/bin",
+            }
+        )
     return environment
 
 
@@ -1822,9 +3064,12 @@ def _cargo_and_vectors(
     families: set[str] | None,
     run_vectors: bool = True,
     cargo_executable: Path | None = None,
+    cargo_fmt_executable: Path | None = None,
     rustc_executable: Path | None = None,
+    rustdoc_executable: Path | None = None,
     rustfmt_executable: Path | None = None,
     pycache_prefix: Path | None = None,
+    linux_linker: Path | None = None,
 ) -> list[str]:
     errors: list[str] = []
     try:
@@ -1833,28 +3078,62 @@ def _cargo_and_vectors(
             if cargo_executable is not None
             else _tool("cargo", b"cargo 1.94.0 ")
         )
+        cargo_fmt = (
+            _fixed_tool(cargo_fmt_executable, "cargo-fmt")
+            if cargo_fmt_executable is not None
+            else _tool("cargo-fmt", b"rustfmt 1.8.0")
+        )
+        if cargo_fmt != cargo.parent / "cargo-fmt":
+            raise ValueError("unsafe cargo-fmt capability")
         rustc = (
             _fixed_tool(rustc_executable, "rustc")
             if rustc_executable is not None
             else _tool("rustc", b"rustc 1.94.0 ")
         )
+        if rustc != cargo.parent / "rustc":
+            raise ValueError("unsafe rustc capability")
+        rustdoc = (
+            _fixed_tool(rustdoc_executable, "rustdoc")
+            if rustdoc_executable is not None
+            else _tool("rustdoc", b"rustdoc 1.94.0 ")
+        )
+        if rustdoc != cargo.parent / "rustdoc":
+            raise ValueError("unsafe rustdoc capability")
         rustfmt = (
             _fixed_tool(rustfmt_executable, "rustfmt")
             if rustfmt_executable is not None
             else _tool("rustfmt", b"rustfmt 1.8.0")
         )
-        tools = (cargo, rustc, rustfmt, Path("/bin/sh"))
+        if rustfmt != cargo.parent / "rustfmt":
+            raise ValueError("unsafe rustfmt capability")
+        tools = (cargo, cargo_fmt, rustc, rustdoc, rustfmt, Path("/bin/sh"))
         environment = (
-            _child_environment(root, tools)
+            _child_environment(root, tools, linux_linker=linux_linker)
             if pycache_prefix is None
             else _child_environment(
-                root, tools, pycache_prefix=pycache_prefix
+                root,
+                tools,
+                pycache_prefix=pycache_prefix,
+                linux_linker=linux_linker,
             )
         )
         environment["RUSTC"] = str(rustc)
+        environment["RUSTDOC"] = str(rustdoc)
         environment["RUSTFMT"] = str(rustfmt)
         errors.extend(
-            _command([str(cargo), "fmt", "--all", "--", "--check"], root, environment)
+            _command(
+                [
+                    str(cargo),
+                    "fmt",
+                    "--all",
+                    "--",
+                    "--check",
+                    "--config-path",
+                    str(root),
+                ],
+                root,
+                environment,
+            )
         )
         cargo_arguments = [
             str(cargo),
@@ -1903,6 +3182,7 @@ def _python_tests(
     *,
     cargo_executable: Path | None = None,
     pycache_prefix: Path | None = None,
+    linux_linker: Path | None = None,
 ) -> list[str]:
     try:
         python = Path(sys.executable).resolve(strict=True)
@@ -1914,10 +3194,17 @@ def _python_tests(
                 else _tool("cargo", b"cargo 1.94.0 ")
             )
         environment = (
-            _child_environment(root, tuple(tools))
+            _child_environment(
+                root,
+                tuple(tools),
+                linux_linker=linux_linker,
+            )
             if pycache_prefix is None
             else _child_environment(
-                root, tuple(tools), pycache_prefix=pycache_prefix
+                root,
+                tuple(tools),
+                pycache_prefix=pycache_prefix,
+                linux_linker=linux_linker,
             )
         )
         return _command(
@@ -1936,9 +3223,12 @@ def run_area(
     git_executable: Path | None = None,
     git_environment: dict[str, str] | None = None,
     cargo_executable: Path | None = None,
+    cargo_fmt_executable: Path | None = None,
     rustc_executable: Path | None = None,
+    rustdoc_executable: Path | None = None,
     rustfmt_executable: Path | None = None,
     pycache_prefix: Path | None = None,
+    linux_linker: Path | None = None,
 ) -> list[str]:
     if area not in FOCUS_AREAS:
         return [f"unknown focus area: {area}"]
@@ -1959,6 +3249,7 @@ def run_area(
                     _FOUNDATION_PYTHON_TESTS,
                     cargo_executable=cargo_executable,
                     pycache_prefix=pycache_prefix,
+                    linux_linker=linux_linker,
                 )
             )
         return errors
@@ -1966,7 +3257,12 @@ def run_area(
         errors = _dependency_errors(
             repository,
             cargo_executable=cargo_executable,
+            cargo_fmt_executable=cargo_fmt_executable,
+            rustc_executable=rustc_executable,
+            rustdoc_executable=rustdoc_executable,
+            rustfmt_executable=rustfmt_executable,
             pycache_prefix=pycache_prefix,
+            linux_linker=linux_linker,
         )
         if not errors and cargo_executable is not None:
             errors.extend(
@@ -1975,6 +3271,7 @@ def run_area(
                     _DEPENDENCY_PYTHON_TESTS,
                     cargo_executable=cargo_executable,
                     pycache_prefix=pycache_prefix,
+                    linux_linker=linux_linker,
                 )
             )
         return errors
@@ -1992,6 +3289,7 @@ def run_area(
                 ),
                 cargo_executable=cargo_executable,
                 pycache_prefix=pycache_prefix,
+                linux_linker=linux_linker,
             )
         )
         if not errors:
@@ -2010,21 +3308,21 @@ def run_area(
                 full=False,
                 families={area},
                 cargo_executable=cargo_executable,
+                cargo_fmt_executable=cargo_fmt_executable,
                 rustc_executable=rustc_executable,
+                rustdoc_executable=rustdoc_executable,
                 rustfmt_executable=rustfmt_executable,
                 pycache_prefix=pycache_prefix,
+                linux_linker=linux_linker,
             )
         )
     errors.extend(
         _python_tests(
             repository,
-            (
-                "tests.test_identity"
-                if area == "identity"
-                else "tests.test_manifest",
-            ),
+            ("tests.test_identity" if area == "identity" else "tests.test_manifest",),
             cargo_executable=cargo_executable,
             pycache_prefix=pycache_prefix,
+            linux_linker=linux_linker,
         )
     )
     return errors
@@ -2037,9 +3335,12 @@ def run_mode(
     git_executable: Path | None = None,
     git_environment: dict[str, str] | None = None,
     cargo_executable: Path | None = None,
+    cargo_fmt_executable: Path | None = None,
     rustc_executable: Path | None = None,
+    rustdoc_executable: Path | None = None,
     rustfmt_executable: Path | None = None,
     pycache_prefix: Path | None = None,
+    linux_linker: Path | None = None,
 ) -> list[str]:
     if mode not in {"fast", "full"}:
         return [f"unknown check mode: {mode}"]
@@ -2059,7 +3360,12 @@ def run_mode(
         _dependency_errors(
             repository,
             cargo_executable=cargo_executable,
+            cargo_fmt_executable=cargo_fmt_executable,
+            rustc_executable=rustc_executable,
+            rustdoc_executable=rustdoc_executable,
+            rustfmt_executable=rustfmt_executable,
             pycache_prefix=pycache_prefix,
+            linux_linker=linux_linker,
         )
     )
     errors.extend(_generated_errors(repository))
@@ -2081,9 +3387,12 @@ def run_mode(
             families={"identity", "manifest"} if mode == "fast" else None,
             run_vectors=mode != "full",
             cargo_executable=cargo_executable,
+            cargo_fmt_executable=cargo_fmt_executable,
             rustc_executable=rustc_executable,
+            rustdoc_executable=rustdoc_executable,
             rustfmt_executable=rustfmt_executable,
             pycache_prefix=pycache_prefix,
+            linux_linker=linux_linker,
         )
     )
     if errors:
@@ -2094,6 +3403,7 @@ def run_mode(
             _PYTHON_TESTS if mode == "full" else _FAST_PYTHON_TESTS,
             cargo_executable=cargo_executable,
             pycache_prefix=pycache_prefix,
+            linux_linker=linux_linker,
         )
     )
     return errors

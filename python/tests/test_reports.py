@@ -16,13 +16,26 @@ from golden_board.source_lock import SafeFileError
 ACCEPTANCE = tuple(f"Requirement {index}" for index in range(1, 19))
 OWNERS = (
     "M0",
-    "M1", "M1", "M1",
-    "M2", "M2", "M2", "M2",
-    "M3", "M3",
-    "M4", "M4", "M4", "M4",
-    "M5", "M5",
-    "M6", "M6",
+    "M1",
+    "M1",
+    "M1",
+    "M2",
+    "M2",
+    "M2",
+    "M2",
+    "M3",
+    "M3",
+    "M4",
+    "M4",
+    "M4",
+    "M4",
+    "M5",
+    "M5",
+    "M6",
+    "M6",
 )
+
+
 def roadmap() -> str:
     rows = "\n".join(
         f"| G{index} | {ACCEPTANCE[index - 1]} | {OWNERS[index - 1]} | Evidence {index} |"
@@ -59,9 +72,7 @@ class ReportTests(unittest.TestCase):
             "reports",
         ):
             (self.root / directory).mkdir(parents=True, exist_ok=True)
-        (self.root / ".git/HEAD").write_text(
-            "ref: refs/heads/m0\n", encoding="ascii"
-        )
+        (self.root / ".git/HEAD").write_text("ref: refs/heads/m0\n", encoding="ascii")
         (self.root / ".git/config").write_text(
             "[core]\n\trepositoryformatversion = 0\n", encoding="ascii"
         )
@@ -119,6 +130,7 @@ class ReportTests(unittest.TestCase):
         self.git_environment = {
             "GIT_CONFIG_GLOBAL": "/dev/null",
             "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_NO_LAZY_FETCH": "1",
             "GIT_OPTIONAL_LOCKS": "0",
             "GIT_TERMINAL_PROMPT": "0",
             "HOME": str(self.root / "check-home"),
@@ -143,7 +155,9 @@ class ReportTests(unittest.TestCase):
         )
         lock_patch = patch.object(reports, "load_source_lock", return_value=self.lock)
         self.real_tracked_paths = reports._tracked_paths
-        tracked_patch = patch.object(reports, "_tracked_paths", return_value=self.tracked)
+        tracked_patch = patch.object(
+            reports, "_tracked_paths", return_value=self.tracked
+        )
         lock_patch.start()
         tracked_patch.start()
         self.addCleanup(lock_patch.stop)
@@ -213,24 +227,50 @@ class ReportTests(unittest.TestCase):
                 },
                 {
                     "phase": "acquisition",
-                    "argv": ["cargo", "fetch", "--manifest-path", "Cargo.toml", "--locked"],
+                    "argv": [
+                        "cargo",
+                        "fetch",
+                        "--manifest-path",
+                        "Cargo.toml",
+                        "--locked",
+                    ],
                     "exit_code": 0,
                 },
                 {
                     "phase": "acquisition",
-                    "argv": ["cargo", "build", "--manifest-path", "Cargo.toml", "--workspace", "--locked"],
-                    "exit_code": 0,
-                },
-                {
-                    "phase": "offline",
-                    "argv": ["uv", "--no-config", "sync", "--project", ".", "--offline", "--locked"],
+                    "argv": [
+                        "cargo",
+                        "build",
+                        "--manifest-path",
+                        "Cargo.toml",
+                        "--workspace",
+                        "--locked",
+                    ],
                     "exit_code": 0,
                 },
                 {
                     "phase": "offline",
                     "argv": [
-                        "cargo", "build", "--manifest-path", "Cargo.toml",
-                        "--workspace", "--offline", "--locked"
+                        "uv",
+                        "--no-config",
+                        "sync",
+                        "--project",
+                        ".",
+                        "--offline",
+                        "--locked",
+                    ],
+                    "exit_code": 0,
+                },
+                {
+                    "phase": "offline",
+                    "argv": [
+                        "cargo",
+                        "build",
+                        "--manifest-path",
+                        "Cargo.toml",
+                        "--workspace",
+                        "--offline",
+                        "--locked",
                     ],
                     "exit_code": 0,
                 },
@@ -240,9 +280,7 @@ class ReportTests(unittest.TestCase):
                     "exit_code": 0,
                 },
             ],
-            "source_report_sha256": sha256(
-                self.root / "reports/source-doctor.json"
-            ),
+            "source_report_sha256": sha256(self.root / "reports/source-doctor.json"),
             "inputs": self.inventory(),
         }
 
@@ -344,9 +382,7 @@ class ReportTests(unittest.TestCase):
                 **self.git_context,
             ),
         }
-        with patch.object(
-            reports, "load_source_lock", return_value=inconsistent_lock
-        ):
+        with patch.object(reports, "load_source_lock", return_value=inconsistent_lock):
             for operation_name, operation in operations.items():
                 with self.subTest(operation=operation_name):
                     with self.assertRaises(reports.ReportError):
@@ -494,7 +530,9 @@ class ReportTests(unittest.TestCase):
         }
         self.assertNotIn("docs/roadmap.md", native_paths)
         self.assertNotIn("reports/release-summary.json", native_paths)
-        self.assertFalse(any(path.startswith("docs/superpowers/") for path in native_paths))
+        self.assertFalse(
+            any(path.startswith("docs/superpowers/") for path in native_paths)
+        )
 
     def test_check_tracked_reports_regenerates_both_approved_reports(self) -> None:
         value = reports.build_release_summary(
@@ -577,9 +615,7 @@ class ReportTests(unittest.TestCase):
 
         for mutation in mutations:
             with self.subTest(mutation=mutation):
-                self.assertTrue(
-                    reports.validate_release_summary(mutation, roadmap())
-                )
+                self.assertTrue(reports.validate_release_summary(mutation, roadmap()))
 
     def test_git_inventory_uses_only_absolute_injected_git_and_closed_env(self) -> None:
         with patch.object(
@@ -635,7 +671,7 @@ class ReportTests(unittest.TestCase):
         argv = captured["argv"]
         kwargs = captured["kwargs"]
         self.assertEqual(str(self.git_executable), argv[0])
-        self.assertIn("--no-lazy-fetch", argv)
+        self.assertNotIn("--no-lazy-fetch", argv)
         self.assertIn("--no-replace-objects", argv)
         self.assertIn(f"--git-dir={self.root / '.git'}", argv)
         self.assertIn(f"--work-tree={self.root}", argv)
@@ -660,9 +696,7 @@ class ReportTests(unittest.TestCase):
                 self.assertRaises(reports.ReportError),
             ):
                 self.real_tracked_paths(self.root, **self.git_context)
-        with patch.object(
-            reports, "_bounded_git_output", return_value=b"tracked\0"
-        ):
+        with patch.object(reports, "_bounded_git_output", return_value=b"tracked\0"):
             self.assertEqual(
                 (PurePosixPath("tracked"),),
                 self.real_tracked_paths(self.root, **self.git_context),
@@ -687,7 +721,9 @@ class ReportTests(unittest.TestCase):
         validate.assert_called_once()
         popen.assert_not_called()
 
-    def test_git_control_preflight_rejects_redirecting_metadata_before_git(self) -> None:
+    def test_git_control_preflight_rejects_redirecting_metadata_before_git(
+        self,
+    ) -> None:
         for relative in (
             ".git/commondir",
             ".git/config.worktree",
@@ -739,6 +775,10 @@ class ReportTests(unittest.TestCase):
         info = self.root / ".git/info"
         info.mkdir()
         exclude = info / "exclude"
+
+        def runner(*_args, **_kwargs):
+            return b"core.repositoryformatversion\0", b""
+
         for raw, accepted in (
             (b"", True),
             (b"# local comments only\n\n", True),
@@ -748,10 +788,6 @@ class ReportTests(unittest.TestCase):
             (b"# carriage return\r\n", False),
         ):
             exclude.write_bytes(raw)
-            runner = lambda *_args, **_kwargs: (
-                b"core.repositoryformatversion\0",
-                b"",
-            )
             if accepted:
                 reports.git_control_preflight(
                     self.root, runner=runner, **self.git_context
@@ -795,7 +831,9 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(self.root, kwargs["cwd"])
         self.assertEqual(reports.GIT_TIMEOUT_SECONDS, kwargs["timeout"])
         self.assertEqual(reports.MAX_GIT_CONFIG_BYTES, kwargs["output_limit"])
-        self.assertEqual(prefix, reports._git_command_prefix(self.root, str(self.git_executable)))
+        self.assertEqual(
+            prefix, reports._git_command_prefix(self.root, str(self.git_executable))
+        )
 
     def test_git_control_preflight_rejects_malformed_or_oversized_audit(self) -> None:
         for raw in (

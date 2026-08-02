@@ -18,7 +18,6 @@ from unittest.mock import patch
 from golden_board import bootstrap
 from golden_board.bootstrap import BootstrapError
 from golden_board.registry import RegistryError
-from golden_board.source_lock import SafeFileError
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -37,9 +36,7 @@ class BootstrapHardeningTests(unittest.TestCase):
         git.write_bytes(b"git")
         git.chmod(0o700)
         (self.root / ".git").mkdir(exist_ok=True)
-        (self.root / ".git/HEAD").write_text(
-            "ref: refs/heads/m0\n", encoding="ascii"
-        )
+        (self.root / ".git/HEAD").write_text("ref: refs/heads/m0\n", encoding="ascii")
         (self.root / ".git/config").write_text(
             "[core]\n\trepositoryformatversion = 0\n", encoding="ascii"
         )
@@ -57,7 +54,9 @@ class BootstrapHardeningTests(unittest.TestCase):
             return b".gitignore\x001\x00.venv/\x00" + raw, b""
         raise AssertionError(argv)
 
-    def test_static_dependency_failure_precedes_tools_directories_and_removal(self) -> None:
+    def test_static_dependency_failure_precedes_tools_directories_and_removal(
+        self,
+    ) -> None:
         arguments = (
             "acquire",
             str(ROOT),
@@ -78,6 +77,60 @@ class BootstrapHardeningTests(unittest.TestCase):
         tools.assert_not_called()
         prepare.assert_not_called()
         remove.assert_not_called()
+
+    def test_acquisition_overwrites_hostile_rustfmt_with_the_validated_sibling(
+        self,
+    ) -> None:
+        tools = tuple(
+            Path("/tools") / name
+            for name in (
+                "python3.14",
+                "uv",
+                "cargo",
+                "cargo-fmt",
+                "rustc",
+                "rustdoc",
+                "rustfmt",
+                "git",
+            )
+        )
+        children: list[tuple[list[str], dict[str, str]]] = []
+
+        def project_environment(*_args, **_kwargs):
+            return {"RUSTFMT": os.environ["RUSTFMT"]}
+
+        def run_command(argv, environment, _root):
+            children.append((argv, dict(environment)))
+            return b"", b""
+
+        lock = SimpleNamespace(
+            clean_linux=SimpleNamespace(platform_digest="sha256:" + "0" * 64)
+        )
+        arguments = ("acquire", str(ROOT), *("/unused",) * 6)
+        with (
+            patch.dict(os.environ, {"RUSTFMT": "/attacker/rustfmt"}, clear=False),
+            patch.object(bootstrap.sys, "version_info", (3, 14, 6)),
+            patch.object(bootstrap, "_static_dependency_preflight"),
+            patch.object(bootstrap, "validate_cargo_configuration"),
+            patch.object(bootstrap, "load_source_lock", return_value=lock),
+            patch.object(bootstrap, "validate_platform_marker", return_value=None),
+            patch.object(bootstrap, "_tools", return_value=tools),
+            patch.object(bootstrap, "prepare_directories"),
+            patch.object(bootstrap, "_validate_sdk", return_value=None),
+            patch.object(
+                bootstrap, "project_environment", side_effect=project_environment
+            ),
+            patch.object(bootstrap, "remove_venv"),
+            patch.object(bootstrap, "git_environment", return_value={}),
+            patch.object(bootstrap, "_run_command", side_effect=run_command),
+            patch.object(bootstrap, "validate_venv"),
+            patch.object(bootstrap, "build_inventory", return_value=object()),
+            patch.object(bootstrap, "write_inventory"),
+        ):
+            self.assertEqual(0, bootstrap.main(arguments))
+        cargo_fetch = next(child for child in children if child[0][0] == "/tools/cargo")
+        self.assertEqual("/tools/rustfmt", cargo_fetch[1]["RUSTFMT"])
+        self.assertNotIn("/attacker/rustfmt", cargo_fetch[1].values())
 
     def test_unignored_or_tracked_venv_is_preserved(self) -> None:
         git, environment = self._git_context()
@@ -260,28 +313,165 @@ class BootstrapHardeningTests(unittest.TestCase):
             )
         self.assertEqual({"one", "two"}, {path.name for path in venv.iterdir()})
 
-    def test_default_tool_probe_is_bounded_and_semantic_versions_are_closed(self) -> None:
+    def test_default_tool_probe_is_bounded_and_semantic_versions_are_closed(
+        self,
+    ) -> None:
         tool = self.root / "tool"
         tool.write_text(
-            "#!/bin/sh\ni=0; while [ \"$i\" -lt 5000 ]; do printf x; i=$((i + 1)); done\n",
+            '#!/bin/sh\ni=0; while [ "$i" -lt 5000 ]; do printf x; i=$((i + 1)); done\n',
             encoding="utf-8",
         )
         tool.chmod(0o700)
         with self.assertRaises(BootstrapError):
-            bootstrap.validate_tool(tool, (), b"never", runner=bootstrap._default_runner)
+            bootstrap.validate_tool(
+                tool, (), b"never", runner=bootstrap._default_runner
+            )
 
-        valid = lambda argv, **kwargs: SimpleNamespace(
-            returncode=0, stdout=b"cargo 1.94.0 (Homebrew)\n", stderr=b""
-        )
-        junk = lambda argv, **kwargs: SimpleNamespace(
-            returncode=0, stdout=b"cargo 1.94.0 attacker-junk\n", stderr=b""
-        )
+        def valid(_argv, **_kwargs):
+            return SimpleNamespace(
+                returncode=0, stdout=b"cargo 1.94.0 (Homebrew)\n", stderr=b""
+            )
+
+        def junk(_argv, **_kwargs):
+            return SimpleNamespace(
+                returncode=0, stdout=b"cargo 1.94.0 attacker-junk\n", stderr=b""
+            )
+
         self.assertEqual(
             tool,
             bootstrap.validate_semantic_tool(tool, "cargo", "1.94.0", runner=valid),
         )
         with self.assertRaises(BootstrapError):
             bootstrap.validate_semantic_tool(tool, "cargo", "1.94.0", runner=junk)
+        with self.assertRaises(BootstrapError):
+            bootstrap.validate_semantic_tool(
+                self.root / "missing-rustdoc", "rustdoc", "1.94.0", runner=valid
+            )
+
+        if hasattr(os, "symlink"):
+            tool_directory = self.root / "tools"
+            tool_directory.mkdir()
+            cargo_fmt = tool_directory / "cargo-fmt"
+            cargo_fmt.symlink_to(tool)
+
+            def rustfmt(argv, **kwargs):
+                del argv, kwargs
+                return SimpleNamespace(
+                    returncode=0, stdout=b"rustfmt 1.8.0\n", stderr=b""
+                )
+
+            self.assertEqual(
+                tool,
+                bootstrap.validate_semantic_tool(
+                    cargo_fmt, "rustfmt", "1.8.0", runner=rustfmt
+                ),
+            )
+
+    def test_image_git_probe_accepts_only_the_closed_git_2_grammar(self) -> None:
+        tool = self.root / "git"
+        tool.write_bytes(b"git")
+        tool.chmod(0o700)
+        projected: list[dict[str, str]] = []
+
+        def result(stdout: bytes):
+            def runner(_argv, **kwargs):
+                projected.append(dict(kwargs["env"]))
+                return SimpleNamespace(returncode=0, stdout=stdout, stderr=b"")
+
+            return runner
+
+        for stdout in (b"git version 2.0.0\n", b"git version 2.39.5\n"):
+            with self.subTest(stdout=stdout):
+                self.assertEqual(
+                    tool,
+                    bootstrap.validate_image_git(tool, runner=result(stdout)),
+                )
+        for stdout in (
+            b"git version 1.99.9\n",
+            b"git version 3.0.0\n",
+            b"git version 2.39\n",
+            b"git version 2.39.5 attacker\n",
+            b"git version 2.39.5\r\n",
+            b"git version 2.1000.0\n",
+            b"x" * (bootstrap.TOOL_OUTPUT_LIMIT + 1),
+        ):
+            with self.subTest(stdout=stdout), self.assertRaises(BootstrapError):
+                bootstrap.validate_image_git(tool, runner=result(stdout))
+        self.assertTrue(projected)
+        self.assertTrue(
+            all(environment["GIT_NO_LAZY_FETCH"] == "1" for environment in projected)
+        )
+
+    def test_tool_bundle_uses_image_git_only_for_validated_clean_linux(self) -> None:
+        arguments = tuple(
+            f"/tools/{name}"
+            for name in ("python3.14", "uv", "cargo", "rustc", "rustfmt", "git")
+        )
+        with (
+            patch.object(
+                bootstrap, "validate_tool", side_effect=lambda path, *_args: path
+            ) as exact,
+            patch.object(
+                bootstrap,
+                "validate_semantic_tool",
+                side_effect=lambda path, *_args: path,
+            ) as semantic,
+            patch.object(
+                bootstrap, "validate_image_git", side_effect=lambda path: path
+            ) as image_git,
+        ):
+            tools = bootstrap._tools(arguments, clean_linux=True)
+            self.assertEqual(Path("/tools/cargo-fmt"), tools[3])
+            image_git.assert_called_once_with(Path("/tools/git"))
+            self.assertFalse(
+                any(call.args[0] == Path("/tools/git") for call in exact.call_args_list)
+            )
+            self.assertIn(
+                (Path("/tools/cargo-fmt"), "rustfmt", "1.8.0"),
+                tuple(call.args for call in semantic.call_args_list),
+            )
+            self.assertIn(
+                (Path("/tools/rustdoc"), "rustdoc", "1.94.0"),
+                tuple(call.args for call in semantic.call_args_list),
+            )
+            self.assertEqual(Path("/tools/rustdoc"), tools[5])
+
+            exact.reset_mock()
+            image_git.reset_mock()
+            bootstrap._tools(arguments, clean_linux=False)
+            image_git.assert_not_called()
+            self.assertIn(
+                (Path("/tools/git"), ("--version",), b"git version 2.49.0\n"),
+                tuple(call.args for call in exact.call_args_list),
+            )
+
+    def test_tool_bundle_rejects_sibling_tool_resolving_outside_cargo_directory(
+        self,
+    ) -> None:
+        arguments = tuple(
+            f"/tools/{name}"
+            for name in ("python3.14", "uv", "cargo", "rustc", "rustfmt", "git")
+        )
+
+        for sibling in ("cargo-fmt", "rustc", "rustdoc", "rustfmt"):
+
+            def semantic(path: Path, *_args: str, sibling: str = sibling) -> Path:
+                if path == Path("/tools") / sibling:
+                    return Path("/attacker") / sibling
+                return path
+
+            with (
+                self.subTest(sibling=sibling),
+                patch.object(
+                    bootstrap, "validate_tool", side_effect=lambda path, *_args: path
+                ),
+                patch.object(bootstrap, "validate_semantic_tool", side_effect=semantic),
+                self.assertRaisesRegex(
+                    BootstrapError,
+                    rf"{sibling} must be the validated cargo sibling",
+                ),
+            ):
+                bootstrap._tools(arguments)
 
     @unittest.skipUnless(hasattr(os, "symlink"), "symlinks required")
     def test_import_source_validation_rejects_a_python_leaf_symlink(self) -> None:
@@ -439,7 +629,9 @@ class BootstrapHardeningTests(unittest.TestCase):
         venv = self.root / ".venv"
         venv.mkdir()
         (venv / "leaf").write_bytes(b"remove")
-        with patch.object(shutil, "rmtree", side_effect=AssertionError("rmtree reopen")):
+        with patch.object(
+            shutil, "rmtree", side_effect=AssertionError("rmtree reopen")
+        ):
             bootstrap.remove_venv(
                 self.root,
                 git_executable=git,
@@ -492,6 +684,7 @@ class BootstrapHardeningTests(unittest.TestCase):
             offline=True,
         )
         self.assertEqual("0", environment["GIT_OPTIONAL_LOCKS"])
+        self.assertEqual("1", environment["GIT_NO_LAZY_FETCH"])
         self.assertEqual("/tools:/usr/bin", environment["PATH"])
         self.assertEqual("1", environment["PYTHONDONTWRITEBYTECODE"])
         self.assertEqual(
@@ -506,6 +699,7 @@ class BootstrapHardeningTests(unittest.TestCase):
                 "GIT_CONFIG_GLOBAL",
                 "GIT_CONFIG_NOSYSTEM",
                 "GIT_OPTIONAL_LOCKS",
+                "GIT_NO_LAZY_FETCH",
                 "GIT_TERMINAL_PROMPT",
                 "HOME",
                 "LANG",
@@ -582,7 +776,9 @@ class BootstrapHardeningTests(unittest.TestCase):
         self.assertEqual(poisoned, pyc.read_bytes())
         self.assertEqual([], list((checkout / "artifacts/check-pycache").iterdir()))
 
-    def test_exact_project_child_argv_disables_sitecustomize_and_cwd_shadow(self) -> None:
+    def test_exact_project_child_argv_disables_sitecustomize_and_cwd_shadow(
+        self,
+    ) -> None:
         checkout = self.root / "site-checkout"
         shutil.copytree(
             ROOT / "python",
@@ -614,7 +810,9 @@ class BootstrapHardeningTests(unittest.TestCase):
             python,
             ("check", "fast"),
         )
-        start = max(index for index, value in enumerate(complete) if value == str(python))
+        start = max(
+            index for index, value in enumerate(complete) if value == str(python)
+        )
         child = complete[start:]
         self.assertEqual(
             [str(python), "-P", "-B", "-S", "-m"],
@@ -652,7 +850,9 @@ class BootstrapHardeningTests(unittest.TestCase):
                 offline=True,
             )
 
-    def test_runtime_directories_reject_mounts_and_cross_device_descriptors(self) -> None:
+    def test_runtime_directories_reject_mounts_and_cross_device_descriptors(
+        self,
+    ) -> None:
         artifacts = self.root / "artifacts"
         real_ismount = os.path.ismount
         with (
