@@ -21,8 +21,8 @@ _BOOTSTRAP_FDINFO_MAX_BYTES = 4096
 _TRUSTED_SOURCE_SHA256 = {
     "__init__.py": "cc4532ec9eca51ea23edb9b88fa332448cef1a6908a07f940bf52c22c123ad02",
     "acquisition.py": "779931e37c44fb41d95003e6b96b01ce76c37c79ef7feab36951b5303bcd9697",
-    "checks.py": "9312aabf0314b1b8f1b786768cd1a06362713943a2fb6784218ff5728d273a23",
-    "clean.py": "1f7db7262d493bb94231f5434652e86e6c9878d9550963c99f4eccf03413e099",
+    "checks.py": "adb44a7fe9ccb0c6133d49eed9b1a979fa0fbdc7e599c6e8e560c40bc1c7a8d2",
+    "clean.py": "ddee6110b4820b8b4ba51029010a4561ff952d5291ba1592d0d4f9d3cd5f3800",
     "cli.py": "18dacad30886be0621b8b4ab13a1d838006035e69ab178b89b0551897db65e05",
     "constants.py": "be8d252b08478d6d72604c2b8048a68b0648f186a74dd363dceabd955a0b06c3",
     "identity.py": "93af1f118c1a339d77ed63c30d46eef70422fb6d17822f3c561e3f27b355050d",

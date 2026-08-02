@@ -1035,7 +1035,7 @@ class CheckBehaviorTests(unittest.TestCase):
             ),
             (
                 "python/golden_board/clean.py",
-                "if build_inventory(root) != inventory:",
+                "if load_inventory(root) != inventory or build_inventory(root) != inventory:",
                 "if False:",
                 "function",
                 "_run_linux_phases",

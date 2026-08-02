@@ -1693,7 +1693,7 @@ test "$(command -v python3)" = /workspace/.venv/bin/python3
 test "$(command -v python3.14)" = /workspace/.venv/bin/python3.14
 "$local/bin/cargo" fetch --manifest-path Cargo.toml --locked >/dev/null 2>&1
 "$local/bin/cargo" build --manifest-path Cargo.toml --workspace --locked >/dev/null 2>&1
-PYTHONPATH=/workspace/python /workspace/.venv/bin/python -P -B -S -c 'from pathlib import Path; from golden_board.bootstrap import validate_venv; from golden_board.acquisition import build_inventory, load_inventory, write_inventory; root=Path("/workspace"); validate_venv(root); value=build_inventory(root); write_inventory(root,value); assert load_inventory(root)==value'
+PYTHONPATH=/workspace/python /workspace/.venv/bin/python -P -B -S -c 'from pathlib import Path; from golden_board.bootstrap import validate_venv; validate_venv(Path("/workspace"))'
 printf 'docker-acquire-v0\n'
 """
 
@@ -2215,8 +2215,9 @@ def _run_linux_phases(
     _validate_runtime_roots(root)
     _run_linux_container(client, root, uv, clean_lock, image, "probe")
     _run_linux_container(client, root, uv, clean_lock, image, "acquire")
-    inventory = load_inventory(root)
-    if build_inventory(root) != inventory:
+    inventory = build_inventory(root)
+    write_inventory(root, inventory)
+    if load_inventory(root) != inventory:
         raise CleanError("clean-Linux acquisition inventory differs")
     _remove_disposable_outputs(root, git)
     _recreate_cargo_target_root(root)

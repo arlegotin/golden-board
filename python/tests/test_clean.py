@@ -2017,6 +2017,10 @@ class LinuxProtocolTests(unittest.TestCase):
         )
         self.assertIn('"$local/bin/cargo" fetch', script)
         self.assertIn('"$local/bin/cargo" build', script)
+        self.assertIn("validate_venv", script)
+        self.assertNotIn("build_inventory", script)
+        self.assertNotIn("write_inventory", script)
+        self.assertNotIn("load_inventory", script)
         self.assertNotIn("cargo_version=", script)
         self.assertNotIn('case "$cargo_version"', script)
         self.assertNotIn("/usr/local/rustup", script)
@@ -2388,8 +2392,27 @@ class LinuxProtocolTests(unittest.TestCase):
                         events.append(_args[-1]),
                     ),
                 ),
-                patch.object(clean, "load_inventory", return_value=inventory) as load,
-                patch.object(clean, "build_inventory", return_value=inventory) as build,
+                patch.object(
+                    clean,
+                    "load_inventory",
+                    side_effect=lambda *_args: (
+                        events.append("reload"),
+                        inventory,
+                    )[1],
+                ) as load,
+                patch.object(
+                    clean,
+                    "build_inventory",
+                    side_effect=lambda *_args: (
+                        events.append("build"),
+                        inventory,
+                    )[1],
+                ) as build,
+                patch.object(
+                    clean,
+                    "write_inventory",
+                    side_effect=lambda *_args: events.append("publish"),
+                ) as write,
                 patch.object(
                     clean,
                     "_remove_disposable_outputs",
@@ -2424,15 +2447,84 @@ class LinuxProtocolTests(unittest.TestCase):
         state.assert_called_once_with(checkout)
         target.assert_called_once_with(checkout)
         self.assertEqual(
-            ["probe", "acquire", "remove", "recreate", "state", "offline"],
+            [
+                "probe",
+                "acquire",
+                "build",
+                "publish",
+                "reload",
+                "remove",
+                "recreate",
+                "state",
+                "offline",
+                "reload",
+                "build",
+            ],
             events,
         )
+        write.assert_called_once_with(checkout, inventory)
         self.assertEqual(2, load.call_count)
         self.assertEqual(2, build.call_count)
         self.assertIn(
             "rust_tools\nfull\ninventory\nrust_tools\nfull\ninventory",
             clean._LINUX_OFFLINE_SCRIPT,
         )
+
+    def test_linux_host_inventory_failure_starts_neither_deletion_nor_offline(
+        self,
+    ) -> None:
+        inventory = {"schema_version": 0, "roots": [], "files": [], "links": []}
+        for failure in ("acquire", "build", "write", "reload", "reload_error"):
+            events: list[str] = []
+
+            def run(*_args):
+                phase = _args[-1]
+                events.append(phase)
+                if failure == "acquire" and phase == "acquire":
+                    raise CleanError("acquisition or cleanup failed")
+
+            def build(_root):
+                events.append("build")
+                if failure == "build":
+                    raise CleanError("inventory build failed")
+                return inventory
+
+            def write(_root, _inventory):
+                events.append("write")
+                if failure == "write":
+                    raise CleanError("inventory write failed")
+
+            def load(_root):
+                events.append("reload")
+                if failure == "reload_error":
+                    raise CleanError("inventory reload failed")
+                return {} if failure == "reload" else inventory
+
+            with (
+                self.subTest(failure=failure),
+                patch.object(clean, "_validate_runtime_roots"),
+                patch.object(clean, "_run_linux_container", side_effect=run),
+                patch.object(clean, "build_inventory", side_effect=build),
+                patch.object(clean, "write_inventory", side_effect=write),
+                patch.object(clean, "load_inventory", side_effect=load),
+                patch.object(
+                    clean,
+                    "_remove_disposable_outputs",
+                    side_effect=lambda *_args: events.append("remove"),
+                ),
+                self.assertRaises(CleanError),
+            ):
+                clean._run_linux_phases(
+                    SimpleNamespace(),
+                    Path("/checkout"),
+                    SimpleNamespace(),
+                    clean._validate_linux_lock(linux_source_lock()),
+                    "docker.io/library/rust@sha256:" + "a" * 64,
+                    Path("/git"),
+                )
+
+            self.assertNotIn("remove", events)
+            self.assertNotIn("offline", events)
 
     def test_offline_phase_requires_absent_venv_and_exact_empty_target(self) -> None:
         with TemporaryDirectory() as directory:

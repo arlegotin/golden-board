@@ -1301,7 +1301,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_run_linux_phases",
-    ): "5c1a33b1211d6bdafc22d2399b710f8c44de740278247f697124fc02e63bda6b",
+    ): "02bb7254d0d6545317609c01ea3f30cb580445bba20077b013ea16a5aec50423",
     (
         "python/golden_board/clean.py",
         "_run_native_phases",
@@ -1671,7 +1671,7 @@ _COMMAND_ASSIGNMENT_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_LINUX_ACQUIRE_SCRIPT",
-    ): "e22e20085deca4d27f03b9ae75f2394fab5202a8efdac4100c52132677eec163",
+    ): "6e69b289441acdcf9891c7a748299483c1a43da6365eea6eb7cd070d5b2bd945",
     (
         "python/golden_board/clean.py",
         "_LINUX_OFFLINE_SCRIPT",
