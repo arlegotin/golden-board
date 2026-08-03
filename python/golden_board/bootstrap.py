@@ -21,15 +21,15 @@ _BOOTSTRAP_FDINFO_MAX_BYTES = 4096
 _TRUSTED_SOURCE_SHA256 = {
     "__init__.py": "cc4532ec9eca51ea23edb9b88fa332448cef1a6908a07f940bf52c22c123ad02",
     "acquisition.py": "779931e37c44fb41d95003e6b96b01ce76c37c79ef7feab36951b5303bcd9697",
-    "checks.py": "7473e9e3354de5b6f60fee0ec92936efadc99aaa3157e982a068604ad5ee0665",
-    "clean.py": "10632c6f541994a3166efea25b7fded769d518bf9a606a4b0abd441e70e3326e",
-    "cli.py": "18dacad30886be0621b8b4ab13a1d838006035e69ab178b89b0551897db65e05",
+    "checks.py": "c2f928f74cdb2e2be4db70bd3f89b096dcd48e80528a335a269dc78a2ca54c14",
+    "clean.py": "4775661a6c32945ae76ce0034db4f7df250157eaef93f7c2f73331a1bd2c2e25",
+    "cli.py": "11f71475f0b6e87e17fbb5f582b6d9fa498d159330acdc1663072f898c1d7a94",
     "constants.py": "be8d252b08478d6d72604c2b8048a68b0648f186a74dd363dceabd955a0b06c3",
     "identity.py": "93af1f118c1a339d77ed63c30d46eef70422fb6d17822f3c561e3f27b355050d",
     "manifest.py": "a433d8357ef3b5ce65866509e5dab328de786dfc5abd0a7a8aeb9052469efb07",
     "reference_acquisition.py": "690b253982beea96533b1983204ef07f398d4f418e1e1151a1af509b8597eea9",
     "registry.py": "4fabae6eca56e9193d4cfb517566ed773275932bfdf0c733be0b31c8421b27c5",
-    "reports.py": "a2ec2f0cc564133bbdd8512772ed24a2dccf313c1f60e1fe1107750d86845095",
+    "reports.py": "cdba7e8852035e3f152617a269bb54c1c42cd14b5186feba815d291ea2f3d65c",
     "source_doctor.py": "d3c61565fe8dfd3909eb17fa46abadebac2165e60234d4c020e7a1d8d7df4f0f",
     "source_lock.py": "b360e9c3a3ab7bdc409232c48be78b75ac647a21f16ee2aa7385adc2a0d1c950",
     "status.py": "629360012eff93807dc599843132fb8e6b68f9f94223562b5293c4679198b66b",
@@ -1094,6 +1094,14 @@ def validate_image_git(
     return resolved
 
 
+def validate_host_git(
+    path: Path,
+    *,
+    runner: Callable[..., object] = _default_runner,
+) -> Path:
+    return validate_image_git(path, runner=runner)
+
+
 def validate_docker_tool(
     path: Path,
     *,
@@ -1639,11 +1647,7 @@ def _tools(
         validated_rustc,
         validated_rustdoc,
         validated_rustfmt,
-        (
-            validate_image_git(git)
-            if clean_linux
-            else validate_tool(git, ("--version",), b"git version 2.49.0\n")
-        ),
+        (validate_image_git(git) if clean_linux else validate_host_git(git)),
     )
 
 

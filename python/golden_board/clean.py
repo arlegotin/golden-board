@@ -117,7 +117,14 @@ def _probe_exact_tool(
 
 def _explicit_git(path: Path) -> Path:
     _safe_executable(path)
-    return _probe_exact_tool(path, ("--version",), b"git version 2.49.0\n")
+    try:
+        from golden_board.bootstrap import validate_image_git
+    except ModuleNotFoundError as error:
+        raise CleanError("invalid pinned tool") from error
+    try:
+        return validate_image_git(path, runner=_probe_runner)
+    except ValueError as error:
+        raise CleanError("invalid pinned tool") from error
 
 
 def _probe_semantic_tool(

@@ -417,8 +417,13 @@ class BootstrapHardeningTests(unittest.TestCase):
                 side_effect=lambda path, *_args: path,
             ) as semantic,
             patch.object(
-                bootstrap, "validate_image_git", side_effect=lambda path: path
+                bootstrap, "validate_image_git", side_effect=lambda path, **_kwargs: path
             ) as image_git,
+            patch.object(
+                bootstrap,
+                "validate_host_git",
+                side_effect=lambda path, **_kwargs: path,
+            ) as host_git,
         ):
             tools = bootstrap._tools(arguments, clean_linux=True)
             self.assertEqual(Path("/tools/cargo-fmt"), tools[3])
@@ -438,12 +443,10 @@ class BootstrapHardeningTests(unittest.TestCase):
 
             exact.reset_mock()
             image_git.reset_mock()
+            host_git.reset_mock()
             bootstrap._tools(arguments, clean_linux=False)
             image_git.assert_not_called()
-            self.assertIn(
-                (Path("/tools/git"), ("--version",), b"git version 2.49.0\n"),
-                tuple(call.args for call in exact.call_args_list),
-            )
+            host_git.assert_called_once_with(Path("/tools/git"))
 
     def test_tool_bundle_rejects_sibling_tool_resolving_outside_cargo_directory(
         self,

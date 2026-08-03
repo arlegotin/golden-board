@@ -1089,6 +1089,27 @@ def check_tracked_reports(
             return errors
 
         native = native_evidence_from_summary(tracked_release)
+        if (
+            native is not None
+            and (git_executable is None or git_environment is None)
+        ):
+            expected_release = build_release_summary(root, expected_source)
+            expected_gates = cast(list[object], expected_release["gates"])
+            expected_first_gate = cast(dict[str, object], expected_gates[0])
+            tracked_without_native = [
+                dict(gate) for gate in cast(list[object], tracked_release["gates"])
+            ]
+            if len(tracked_without_native) > 0:
+                tracked_gate_zero = dict(cast(dict[str, object], tracked_without_native[0]))
+                tracked_gate_zero.pop("native_verification", None)
+                tracked_gate_zero["result"] = expected_first_gate["result"]
+                tracked_gate_zero["limitations"] = expected_first_gate["limitations"]
+                tracked_without_native[0] = tracked_gate_zero
+            projected = dict(tracked_release)
+            projected["gates"] = tracked_without_native
+            if encode_canonical_value(projected) != encode_canonical_value(expected_release):
+                errors.append("reports/release-summary.json is stale")
+            return errors
         expected_release = build_release_summary(
             root,
             expected_source,

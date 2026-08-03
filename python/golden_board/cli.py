@@ -941,11 +941,7 @@ def _module_git_context(
         getattr(result, "returncode", None) != 0
         or type(stdout) is not bytes
         or len(stdout) > 4096
-        or (
-            _IMAGE_GIT_VERSION.fullmatch(stdout) is None
-            if clean_linux
-            else stdout != b"git version 2.49.0\n"
-        )
+        or _IMAGE_GIT_VERSION.fullmatch(stdout) is None
         or getattr(result, "stderr", None) != b""
     ):
         raise ValueError("sealed Git version probe")

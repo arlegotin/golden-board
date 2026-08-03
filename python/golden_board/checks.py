@@ -15,7 +15,11 @@ from golden_board.registry import (
     _run_bounded_process,
     run_registered_vectors,
 )
-from golden_board.reports import check_report_schemas, check_tracked_reports
+from golden_board.reports import (
+    GIT_ENVIRONMENT_KEYS,
+    check_report_schemas,
+    check_tracked_reports,
+)
 from golden_board.source_doctor import build_source_report
 from golden_board.source_lock import (
     SafeFileError,
@@ -31,10 +35,56 @@ _SOURCE = Path("spec/constants-v0.json")
 _MAX_SOURCE_BYTES = 65_536
 _DOMAIN_NAME = re.compile(r"[a-z][a-z0-9]*(?:_[a-z0-9]+)*\Z")
 _DIAGNOSTIC = re.compile(r"[a-z][a-z0-9]*(?:\.[a-z][a-z0-9]*(?:_[a-z0-9]+)*)+\Z")
+_GIT_CONTEXT_ENVIRONMENT = "GB_BOOTSTRAP_GIT_CONTEXT"
 
 
 def _invalid() -> ValueError:
     return ValueError("invalid constants source")
+
+
+def _resolve_git_context(
+    git_executable: Path | None,
+    git_environment: dict[str, str] | None,
+) -> tuple[Path | None, dict[str, str] | None]:
+    if git_executable is not None or git_environment is not None:
+        return git_executable, git_environment
+    raw = os.environ.get(_GIT_CONTEXT_ENVIRONMENT)
+    if raw is None:
+        return None, None
+    try:
+        value = json.loads(raw)
+    except ValueError as error:
+        raise ValueError("malformed Git context projection") from error
+    if (
+        type(value) is not dict
+        or type(value.get("git_executable")) is not str
+        or type(value.get("git_environment")) is not dict
+    ):
+        raise ValueError("malformed Git context projection")
+    executable = Path(value["git_executable"])
+    environment = value["git_environment"]
+    if (
+        not executable.is_absolute()
+        or "\\"
+        in str(executable)
+        or ".." in executable.parts
+        or str(executable) != os.fspath(executable)
+        or "\0" in str(executable)
+    ):
+        raise ValueError("malformed Git executable")
+    if set(environment) != GIT_ENVIRONMENT_KEYS:
+        raise ValueError("malformed git environment")
+    validated: dict[str, str] = {}
+    for key, item in environment.items():
+        if (
+            type(key) is not str
+            or type(item) is not str
+            or "\0" in key
+            or "\0" in item
+        ):
+            raise ValueError("malformed git environment")
+        validated[key] = item
+    return executable, validated
 
 
 def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -918,7 +968,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/bootstrap.py",
         "_tools",
-    ): "24ea703a0775410378772e22bf0c158bd77054d7a5609acac103153a992cba58",
+    ): "d105db769f107c1ba3b13269a16c2240441da1e012632d913fe02154ab6c48f3",
     (
         "python/golden_board/bootstrap.py",
         "_validate_empty_project_pycache",
@@ -1038,7 +1088,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/checks.py",
         "_foundation_errors",
-    ): "21e3b54999a5d3bdfd5010dbec787dd6eedfdbc84e64a1fed88ace928ab14e79",
+    ): "7e8880d0978273b9d4604a578620aa2b6eb4e0866fbd9f165451cf00314b7e52",
     (
         "python/golden_board/checks.py",
         "_generated_errors",
@@ -1050,7 +1100,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/checks.py",
         "_python_tests",
-    ): "c71007da1030c87c899a2985d304fed6a30ae460145c69b4ec9af5d3494f1c6f",
+    ): "37a0096cf3157560987205cbf4d9bee0aa55751ca4df64e240154bd4c2a6ad65",
     (
         "python/golden_board/checks.py",
         "_source_errors",
@@ -1074,7 +1124,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/checks.py",
         "run_mode",
-    ): "3829ce7acb9f3f92a546d7eaa9e6f783189456ecb7a5b8b0910f13853547da0d",
+    ): "0db6d0098722246bdba94ede4f4a2bbe8a35a160ce315af249d835b89b2f281f",
     (
         "python/golden_board/checks.py",
         "static_dependency_errors",
@@ -1130,7 +1180,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_explicit_git",
-    ): "1485242f26df66c2ae6a5f51ef30cf258352741536fc3110d20a4a526591dcfb",
+    ): "1d06aa97dbb5fd3db68273c5b6d5d9b389bd948a1ffa8c8e00e34c1992399c53",
     (
         "python/golden_board/clean.py",
         "_extract_linux_uv",
@@ -1410,7 +1460,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/cli.py",
         "_module_git_context",
-    ): "63722a2fa3d8b274a0b37441d4bc6e13c6e139409474fa80601928610faf8b49",
+    ): "04ee72e235be83805035444da1a7c15e3d996d267136f1bb0f62f482716ef65f",
     (
         "python/golden_board/cli.py",
         "_module_linux_linker_context",
@@ -2121,8 +2171,13 @@ def _foundation_errors(
         errors.extend(check_report_schemas(repository))
         rows = parse_status(roadmap)
         if rows[0][1].startswith("Complete —"):
-            if rows[0][2] != "reports/source-doctor.json":
-                errors.append("completed M0 evidence path is not the source report")
+            if rows[0][2] not in (
+                "reports/source-doctor.json",
+                "reports/release-summary.json",
+            ):
+                errors.append(
+                    "completed M0 evidence path is not an accepted tracked report"
+                )
             source_raw = _check_read(repository, "reports/source-doctor.json")
             digest = hashlib.sha256(source_raw).hexdigest()
             if digest not in rows[0][1]:
@@ -3206,6 +3261,8 @@ def _python_tests(
     modules: tuple[str, ...],
     *,
     cargo_executable: Path | None = None,
+    git_executable: Path | None = None,
+    git_environment: dict[str, str] | None = None,
     pycache_prefix: Path | None = None,
     linux_linker: Path | None = None,
 ) -> list[str]:
@@ -3232,6 +3289,20 @@ def _python_tests(
                 linux_linker=linux_linker,
             )
         )
+        if git_executable is not None and git_environment is not None:
+            merged_path = tuple(
+                path
+                for path in (
+                    git_environment["PATH"],
+                    str(git_executable.parent),
+                    environment["PATH"],
+                )
+                if path
+            )
+            environment["PATH"] = os.pathsep.join(dict.fromkeys(merged_path))
+            for key, value in git_environment.items():
+                if key != "PATH":
+                    environment[key] = value
         return _command(
             [str(python), "-P", "-B", "-S", "-m", "unittest", "-q", *modules],
             root,
@@ -3373,6 +3444,13 @@ def run_mode(
         repository = _canonical_repository(root)
     except ValueError as error:
         return [f"unsafe repository root: {error}"]
+    if mode == "full":
+        try:
+            git_executable, git_environment = _resolve_git_context(
+                git_executable, git_environment
+            )
+        except ValueError as error:
+            return [f"git context resolution failed: {error}"]
     errors: list[str] = []
     errors.extend(
         _foundation_errors(
@@ -3420,15 +3498,16 @@ def run_mode(
             linux_linker=linux_linker,
         )
     )
-    if errors:
-        return errors
-    errors.extend(
-        _python_tests(
-            repository,
-            _PYTHON_TESTS if mode == "full" else _FAST_PYTHON_TESTS,
-            cargo_executable=cargo_executable,
-            pycache_prefix=pycache_prefix,
-            linux_linker=linux_linker,
+    if not errors:
+        errors.extend(
+            _python_tests(
+                repository,
+                _PYTHON_TESTS if mode == "full" else _FAST_PYTHON_TESTS,
+                cargo_executable=cargo_executable,
+                git_executable=git_executable,
+                git_environment=git_environment,
+                pycache_prefix=pycache_prefix,
+                linux_linker=linux_linker,
+            )
         )
-    )
     return errors
