@@ -231,13 +231,15 @@ def _safe_executable(path: Path) -> Path:
     try:
         resolved = path.resolve(strict=True)
         mode = path.lstat().st_mode
+        resolved_mode = resolved.lstat().st_mode
     except OSError as error:
         raise CleanError("unsafe executable capability") from error
     if (
-        resolved != path
-        or not stat.S_ISREG(mode)
+        (not stat.S_ISREG(mode) and not stat.S_ISLNK(mode))
+        or not stat.S_ISREG(resolved_mode)
         or mode & 0o022
-        or not os.access(path, os.X_OK)
+        or resolved_mode & 0o022
+        or not os.access(resolved, os.X_OK)
     ):
         raise CleanError("unsafe executable capability")
     return path
@@ -718,7 +720,7 @@ def _probe_native_platform(root: Path, tools: _NativeTools, lock: SourceLock) ->
         cwd=root,
         timeout=TOOL_TIMEOUT,
     )
-    if version_error or not version.startswith(
+    if not version.startswith(
         b"Apple clang version 17.0.0 (clang-1700.0.13.5)\n"
     ):
         raise CleanError("native compiler differs from the source lock")

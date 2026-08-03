@@ -304,7 +304,7 @@ class NativeProtocolTests(unittest.TestCase):
             ):
                 self.assertEqual(git, clean._explicit_git(git))
 
-    def test_explicit_git_rejects_a_caller_supplied_symlink(self) -> None:
+    def test_explicit_git_allows_a_caller_supplied_symlink(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory).resolve()
             real = root / "real-git"
@@ -313,11 +313,14 @@ class NativeProtocolTests(unittest.TestCase):
             link = root / "git"
             link.symlink_to(real)
             with (
-                patch.object(clean, "_probe_exact_tool") as probe,
-                self.assertRaisesRegex(CleanError, "executable capability"),
+                patch.object(
+                    clean,
+                    "_probe_exact_tool",
+                    return_value=link,
+                ) as probe,
             ):
-                clean._explicit_git(link)
-        probe.assert_not_called()
+                self.assertEqual(link, clean._explicit_git(link))
+        probe.assert_called_once()
 
     def test_native_tools_resolve_only_non_capabilities_from_the_sealed_path(
         self,
@@ -1007,6 +1010,75 @@ class NativeProtocolTests(unittest.TestCase):
 
         self.assertEqual(2, len(calls))
 
+    def test_native_compiler_accepts_valid_version_with_noisy_stderr(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            (root / "artifacts/check-home").mkdir(parents=True)
+            (root / "artifacts/check-tmp").mkdir()
+            tools = self.tools(root)
+            lock = SimpleNamespace(
+                toolchains=SimpleNamespace(
+                    host="Darwin 25.5.0 arm64",
+                    cc="Apple clang 17.0.0 (clang-1700.0.13.5) at /usr/bin/cc",
+                    ld="ld-1167.5 selected by /usr/bin/cc",
+                    sdk="macOS SDK 15.5 selected by /usr/bin/cc",
+                )
+            )
+            linker = (
+                '\n "/Applications/Xcode.app/Contents/Developer/Toolchains/'
+                'XcodeDefault.xctoolchain/usr/bin/ld" '
+                '"-target-sdk-version=15.5" '
+                '"-target-linker-version" "1167.5" '
+                f'"-isysroot" "{clean.SDKROOT}" '
+                f'"-syslibroot" "{clean.SDKROOT}" '
+                '"-lSystem"'
+            )
+            trace = (
+                '\n "/Applications/Xcode.app/Contents/Developer/Toolchains/'
+                'XcodeDefault.xctoolchain/usr/bin/clang" '
+                '"-x" "c" "-" "-o" "/dev/null" '
+                '"-fcolor-diagnostics" '
+                f'"-isysroot" "{clean.SDKROOT}" '
+                "-Xclang -fmessage-length=0 -fdiagnostics-show-note-include-stack "
+                f'{linker}\n'
+            ).encode()
+            outputs = iter(
+                [
+                    (
+                        b"Apple clang version 17.0.0 (clang-1700.0.13.5)\n",
+                        b"some clang-warning: noisy but non-fatal\n",
+                    ),
+                    (b"", trace),
+                    (b"", b""),
+                ]
+            )
+            calls: list[list[str]] = []
+            output_path = str(root / "artifacts/check-tmp/native-link-probe")
+
+            def invoke(_tool: Path, argv: list[str], *_args: object, **_kwargs: object):
+                calls.append(list(argv))
+                if "-###" not in argv and argv[-1] == output_path:
+                    artifact = Path(argv[-1])
+                    artifact.write_bytes(b"\x7fELF")
+                    artifact.chmod(0o755)
+                return next(outputs)
+
+            with (
+                patch.object(
+                    clean.os,
+                    "uname",
+                    return_value=SimpleNamespace(
+                        sysname="Darwin", release="25.5.0", machine="arm64"
+                    ),
+                ),
+                patch.object(clean, "_native_sdk", return_value=clean.SDKROOT),
+                patch.object(clean, "_safe_executable", side_effect=lambda path: path),
+                patch.object(clean, "_invoke", side_effect=invoke),
+            ):
+                clean._probe_native_platform(root, tools, lock)
+
+        self.assertEqual(3, len(calls))
+
     def test_cargo_target_removal_rejects_symlink_file_or_mount_without_outside_damage(
         self,
     ) -> None:
@@ -1191,7 +1263,7 @@ class LinuxProtocolTests(unittest.TestCase):
         legacy.clean_linux.blocker = "Fixed Docker daemon socket unix:///var/run/docker.sock is not accessible on the primary host"
         self.assertIs(legacy.clean_linux, clean._validate_linux_lock(legacy))
 
-    def test_explicit_docker_rejects_symlink_and_never_searches_path(self) -> None:
+    def test_explicit_docker_allows_a_caller_supplied_symlink(self) -> None:
         with TemporaryDirectory() as directory:
             root = Path(directory).resolve()
             real = root / "real-docker"
@@ -1201,13 +1273,13 @@ class LinuxProtocolTests(unittest.TestCase):
             link.symlink_to(real)
             with (
                 patch.object(
-                    clean.shutil, "which", side_effect=AssertionError("lookup")
-                ),
-                patch.object(clean, "_probe_docker_tool") as probe,
-                self.assertRaisesRegex(CleanError, "executable capability"),
+                    clean,
+                    "_probe_docker_tool",
+                    return_value=link,
+                ) as probe,
             ):
-                clean._explicit_docker(link)
-        probe.assert_not_called()
+                self.assertEqual(link, clean._explicit_docker(link))
+        probe.assert_called_once()
 
     def test_docker_client_uses_only_fixed_endpoint_empty_config_and_closed_env(
         self,

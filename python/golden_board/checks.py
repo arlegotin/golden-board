@@ -1242,7 +1242,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_probe_native_platform",
-    ): "b7b6bcd9e5ed86155f1c22a52bd7745444316d050193416630f408f42f4c4dbc",
+    ): "f06396bcd022fdabba2633711eb5dc0ac2b5884d289ca872fd00e831beb5ecd4",
     (
         "python/golden_board/clean.py",
         "_probe_runner",
@@ -1318,7 +1318,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_safe_executable",
-    ): "2f3fca4121129ffcbb1e35c1f4058789ff139e50d55e79d9b4e48dc18a04c15e",
+    ): "a4ca6acdb3fed1c3d6aab511bfda537d41a9e7433aae3b41d4ab214a1e870c3a",
     (
         "python/golden_board/clean.py",
         "_static_dependency_preflight",
