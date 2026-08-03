@@ -21,7 +21,7 @@ _BOOTSTRAP_FDINFO_MAX_BYTES = 4096
 _TRUSTED_SOURCE_SHA256 = {
     "__init__.py": "cc4532ec9eca51ea23edb9b88fa332448cef1a6908a07f940bf52c22c123ad02",
     "acquisition.py": "779931e37c44fb41d95003e6b96b01ce76c37c79ef7feab36951b5303bcd9697",
-    "checks.py": "a2afb23d14d8fa05533035ae165581b7759568399e145da52760ca98b7820717",
+    "checks.py": "7473e9e3354de5b6f60fee0ec92936efadc99aaa3157e982a068604ad5ee0665",
     "clean.py": "10632c6f541994a3166efea25b7fded769d518bf9a606a4b0abd441e70e3326e",
     "cli.py": "18dacad30886be0621b8b4ab13a1d838006035e69ab178b89b0551897db65e05",
     "constants.py": "be8d252b08478d6d72604c2b8048a68b0648f186a74dd363dceabd955a0b06c3",
@@ -1195,7 +1195,11 @@ def validate_venv(
         }
         or values.get("implementation") != "CPython"
         or values.get("uv") != "0.11.29"
-        or values.get("version_info") != "3.14"
+            or not (
+            isinstance(values.get("version_info"), str)
+            and re.fullmatch(r"3\.14(?:\.\d+)?", values["version_info"])
+            is not None
+        )
         or values.get("include-system-site-packages") != "false"
         or values.get("prompt") != "golden-board"
     ):

@@ -1730,7 +1730,20 @@ class BootstrapSafetyTests(unittest.TestCase):
         )
         with self.assertRaises(BootstrapError):
             bootstrap.validate_venv(self.root, runner=runner)
+        config.write_text(
+            config_text.replace("version_info = 3.14\n", "version_info = 3.14.6.1\n"),
+            encoding="utf-8",
+        )
+        with self.assertRaises(BootstrapError):
+            bootstrap.validate_venv(self.root, runner=runner)
+        config.write_text(
+            config_text.replace("version_info = 3.14\n", "version_info = 3.13\n"),
+            encoding="utf-8",
+        )
+        with self.assertRaises(BootstrapError):
+            bootstrap.validate_venv(self.root, runner=runner)
         config.write_text(config_text, encoding="utf-8")
+        self.assertEqual(managed, bootstrap.validate_venv(self.root, runner=runner))
         (binary / "python3.14").unlink()
         (binary / "python3.14").symlink_to(Path("/usr/bin/python3"))
         with self.assertRaises(BootstrapError):
