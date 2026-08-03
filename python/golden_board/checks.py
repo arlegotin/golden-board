@@ -1100,7 +1100,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/checks.py",
         "_python_tests",
-    ): "37a0096cf3157560987205cbf4d9bee0aa55751ca4df64e240154bd4c2a6ad65",
+    ): "17a7c18023eb24fc40d64135f570a972da606b319ab3d7a8da8c7093a643896d",
     (
         "python/golden_board/checks.py",
         "_source_errors",
@@ -3303,6 +3303,8 @@ def _python_tests(
             for key, value in git_environment.items():
                 if key != "PATH":
                     environment[key] = value
+        if linux_linker is not None:
+            environment["TMPDIR"] = "/tmp"
         return _command(
             [str(python), "-P", "-B", "-S", "-m", "unittest", "-q", *modules],
             root,

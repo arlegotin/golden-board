@@ -2400,6 +2400,83 @@ class StaticTestQualityTests(unittest.TestCase):
             )
         self.assertIn(Path("/tools/cargo"), captured[0])
 
+    def test_python_test_child_uses_system_tmp_only_for_validated_linux_linker(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            captured: list[dict[str, str]] = []
+            git_environment = {
+                "GIT_CONFIG_GLOBAL": "/dev/null",
+                "GIT_CONFIG_NOSYSTEM": "1",
+                "GIT_NO_LAZY_FETCH": "1",
+                "GIT_OPTIONAL_LOCKS": "0",
+                "GIT_TERMINAL_PROMPT": "0",
+                "HOME": str(root / "artifacts/check-home"),
+                "LANG": "C",
+                "LC_ALL": "C",
+                "PATH": "/tools/git",
+                "TMPDIR": "/attacker/tmp",
+                "TZ": "UTC",
+            }
+
+            def command(_argv, command_root, environment):
+                self.assertEqual(root, command_root)
+                captured.append(dict(environment))
+                return []
+
+            with (
+                patch.object(
+                    checks,
+                    "_validated_pycache_prefix",
+                    return_value=root / "artifacts/check-pycache",
+                ),
+                patch.object(
+                    checks.os,
+                    "uname",
+                    return_value=SimpleNamespace(sysname="Linux"),
+                ),
+                patch.object(checks, "_command", side_effect=command),
+            ):
+                self.assertEqual(
+                    [], checks._python_tests(root, ("tests.test_identity",))
+                )
+                self.assertEqual(
+                    [],
+                    checks._python_tests(
+                        root,
+                        ("tests.test_identity",),
+                        git_executable=Path("/tools/git"),
+                        git_environment=git_environment,
+                        linux_linker=Path("/usr/bin/cc"),
+                    ),
+                )
+
+            normal, clean_linux = captured
+            self.assertEqual(str(root / "artifacts/check-tmp"), normal["TMPDIR"])
+            self.assertEqual("/tmp", clean_linux["TMPDIR"])
+            self.assertEqual(
+                {
+                    "HOME": str(root / "artifacts/check-home"),
+                    "CARGO_HOME": str(root / "artifacts/cargo-home"),
+                    "CARGO_TARGET_DIR": str(root / "artifacts/cargo-target"),
+                    "UV_CACHE_DIR": str(root / "artifacts/uv-cache"),
+                    "PYTHONPYCACHEPREFIX": str(
+                        root / "artifacts/check-pycache"
+                    ),
+                },
+                {
+                    key: clean_linux[key]
+                    for key in (
+                        "HOME",
+                        "CARGO_HOME",
+                        "CARGO_TARGET_DIR",
+                        "UV_CACHE_DIR",
+                        "PYTHONPYCACHEPREFIX",
+                    )
+                },
+            )
+
     def test_cli_maps_unexpected_check_errors_to_status_one(self) -> None:
         with (
             patch.object(checks, "run_mode", side_effect=ValueError("injected")),
