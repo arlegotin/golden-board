@@ -25,7 +25,7 @@ from golden_board.acquisition import (
 )
 from golden_board.bootstrap import BootstrapError
 from golden_board.checks import FOCUS_AREAS, run_area, run_mode
-from golden_board.manifest import encode_canonical_value
+from golden_board.manifest import decode_canonical_manifest, encode_canonical_value
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -1233,14 +1233,24 @@ class CheckBehaviorTests(unittest.TestCase):
             source_report_sha256=digest,
         )
         (root / "docs/roadmap.md").write_text(completed, encoding="utf-8")
+        release_path = root / "reports/release-summary.json"
+        release = decode_canonical_manifest(release_path.read_bytes())
+        release["gates"][0].pop("native_verification", None)
+        release["gates"][0]["result"] = "pending_m0_verification"
+        release_path.write_bytes(encode_canonical_value(release))
         self.assertTrue(run_area(root, "foundation"))
-        (root / "docs/roadmap.md").write_text(
-            completed.replace(
-                "reports/source-doctor.json", "reports/release-summary.json", 1
-            ),
-            encoding="utf-8",
-        )
-        self.assertTrue(run_area(root, "foundation"))
+
+        release["gates"][0]["result"] = "pass"
+        release_path.write_bytes(encode_canonical_value(release))
+        with patch.object(checks, "check_report_schemas", return_value=[]):
+            self.assertEqual([], run_area(root, "foundation"))
+            (root / "docs/roadmap.md").write_text(
+                completed.replace(
+                    "reports/source-doctor.json", "reports/release-summary.json", 1
+                ),
+                encoding="utf-8",
+            )
+            self.assertEqual([], run_area(root, "foundation"))
 
     def test_dependencies_require_project_local_environment_and_exact_tool_pins(
         self,
