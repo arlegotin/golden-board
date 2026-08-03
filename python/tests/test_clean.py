@@ -2845,6 +2845,12 @@ class LinuxProtocolTests(unittest.TestCase):
             try:
                 with (
                     patch.object(
+                        clean,
+                        "held_mount_identity",
+                        return_value=(root.stat().st_dev, None),
+                    ),
+                    patch.object(clean, "same_held_mount", return_value=True),
+                    patch.object(
                         clean.os, "fsync", side_effect=remember_python_descriptor
                     ),
                     patch.object(clean.os, "close", side_effect=fail_python_close),

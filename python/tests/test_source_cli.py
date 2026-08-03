@@ -1,4 +1,4 @@
-from contextlib import redirect_stderr
+from contextlib import ExitStack, redirect_stderr
 from io import StringIO
 import os
 from pathlib import Path
@@ -279,7 +279,21 @@ class SourceCliTests(unittest.TestCase):
                         if calls == 1:
                             raise OSError("fail")
 
-                    stack.append(patch.object(cli.os, "close", side_effect=first_close_fails))
+                    stack.extend(
+                        (
+                            patch.object(
+                                cli,
+                                "held_mount_identity",
+                                return_value=(root.stat().st_dev, None),
+                            ),
+                            patch.object(cli, "same_held_mount", return_value=True),
+                            patch.object(
+                                cli.os,
+                                "close",
+                                side_effect=first_close_fails,
+                            ),
+                        )
+                    )
                 elif failure == "verify":
                     stack.append(
                         patch.object(
@@ -291,7 +305,9 @@ class SourceCliTests(unittest.TestCase):
                 else:
                     stack.append(patch.object(cli, "decode_canonical_manifest", side_effect=ValueError("fail")))
 
-                with stack[0], self.assertRaises((OSError, ValueError)):
+                with ExitStack() as effects, self.assertRaises((OSError, ValueError)):
+                    for effect in stack:
+                        effects.enter_context(effect)
                     cli._write_source_report(root, REPORT_BYTES)
                 self.assertEqual(b"old\n", target.read_bytes())
                 self.assertEqual(["source-doctor.json"], sorted(path.name for path in reports.iterdir()))
@@ -325,6 +341,12 @@ class SourceCliTests(unittest.TestCase):
 
         with (
             TemporaryDirectory() as directory,
+            patch.object(
+                cli,
+                "held_mount_identity",
+                return_value=(Path(directory).stat().st_dev, None),
+            ),
+            patch.object(cli, "same_held_mount", return_value=True),
             patch.object(cli.os, "replace", side_effect=mark_published),
             patch.object(cli.os, "close", side_effect=later_close_fails),
         ):

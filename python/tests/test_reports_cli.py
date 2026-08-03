@@ -387,6 +387,12 @@ class ReportCliTests(unittest.TestCase):
                 raise OSError("root close failed")
 
         with (
+            patch.object(
+                cli,
+                "held_mount_identity",
+                return_value=(self.root.stat().st_dev, None),
+            ),
+            patch.object(cli, "same_held_mount", return_value=True),
             patch.object(cli.os, "open", side_effect=tracking_open),
             patch.object(cli.os, "close", side_effect=fail_root_close),
             self.assertRaisesRegex(OSError, "root close failed"),
@@ -456,6 +462,12 @@ class ReportCliTests(unittest.TestCase):
                 raise OSError("post-commit close")
 
         with (
+            patch.object(
+                cli,
+                "held_mount_identity",
+                return_value=(self.root.stat().st_dev, None),
+            ),
+            patch.object(cli, "same_held_mount", return_value=True),
             patch.object(
                 cli,
                 "_open_reports_directory",

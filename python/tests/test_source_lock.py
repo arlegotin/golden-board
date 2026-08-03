@@ -364,6 +364,12 @@ class SourceLockTests(unittest.TestCase):
                 return real_read(descriptor, count)
 
             with (
+                patch.object(
+                    source_lock,
+                    "held_mount_identity",
+                    return_value=(root.stat().st_dev, None),
+                ),
+                patch.object(source_lock, "same_held_mount", return_value=True),
                 patch(
                     "golden_board.source_lock.os.fstat", side_effect=changed_ctime
                 ),
@@ -382,7 +388,15 @@ class SourceLockTests(unittest.TestCase):
             def one_byte(descriptor, count):
                 return real_read(descriptor, min(count, 1))
 
-            with patch("golden_board.source_lock.os.read", side_effect=one_byte):
+            with (
+                patch.object(
+                    source_lock,
+                    "held_mount_identity",
+                    return_value=(root.stat().st_dev, None),
+                ),
+                patch.object(source_lock, "same_held_mount", return_value=True),
+                patch("golden_board.source_lock.os.read", side_effect=one_byte),
+            ):
                 self.assertEqual(
                     expected,
                     read_regular_below(root, PurePosixPath("payload"), 1024),
@@ -410,9 +424,16 @@ class SourceLockTests(unittest.TestCase):
                     st_ctime_ns=facts.st_ctime_ns,
                 )
 
-            with patch(
-                "golden_board.source_lock.os.fstat", side_effect=changed_inode
-            ), self.assertRaises(SafeFileError):
+            with (
+                patch.object(
+                    source_lock,
+                    "held_mount_identity",
+                    return_value=(root.stat().st_dev, None),
+                ),
+                patch.object(source_lock, "same_held_mount", return_value=True),
+                patch("golden_board.source_lock.os.fstat", side_effect=changed_inode),
+                self.assertRaises(SafeFileError),
+            ):
                 read_regular_below(root, PurePosixPath("payload"), 1024)
 
     def test_shared_reader_rejects_directory_and_missing_capability(self):
@@ -564,6 +585,11 @@ class SourceLockTests(unittest.TestCase):
             with (
                 patch.object(
                     source_lock,
+                    "held_mount_identity",
+                    return_value=(root.stat().st_dev, None),
+                ),
+                patch.object(
+                    source_lock,
                     "same_held_mount",
                     return_value=False,
                     create=True,
@@ -708,6 +734,12 @@ class SourceLockTests(unittest.TestCase):
                     raise OSError("injected close failure")
 
             with (
+                patch.object(
+                    source_lock,
+                    "held_mount_identity",
+                    return_value=(root.stat().st_dev, None),
+                ),
+                patch.object(source_lock, "same_held_mount", return_value=True),
                 patch.object(source_lock.os, "close", side_effect=close_after_effect),
                 self.assertRaisesRegex(SafeFileError, r"^safe_tree\.changed$"),
             ):
@@ -876,6 +908,12 @@ class SourceLockTests(unittest.TestCase):
                     raise OSError("injected close failure")
 
             with (
+                patch.object(
+                    source_lock,
+                    "held_mount_identity",
+                    return_value=(root.stat().st_dev, None),
+                ),
+                patch.object(source_lock, "same_held_mount", return_value=True),
                 patch("golden_board.source_lock.os.open", side_effect=record_open),
                 patch("golden_board.source_lock.os.close", side_effect=fail_first_close),
                 self.assertRaises(SafeFileError),
@@ -903,6 +941,12 @@ class SourceLockTests(unittest.TestCase):
                 return real_close(descriptor)
 
             with (
+                patch.object(
+                    source_lock,
+                    "held_mount_identity",
+                    return_value=(root.stat().st_dev, None),
+                ),
+                patch.object(source_lock, "same_held_mount", return_value=True),
                 patch("golden_board.source_lock.os.open", side_effect=record_open),
                 patch("golden_board.source_lock.os.close", side_effect=record_close),
                 patch(

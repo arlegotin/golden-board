@@ -10,6 +10,7 @@ import threading
 import unittest
 from unittest.mock import patch
 
+from golden_board import source_lock
 import golden_board.registry as registry_module
 from golden_board.registry import (
     MAX_FIXTURE_BYTES,
@@ -210,7 +211,15 @@ class RegistrySchemaTests(unittest.TestCase):
                 with self.assertRaisesRegex(RegistryError, r"^registry\.platform$"):
                     load_registry(path)
 
-            with patch("golden_board.registry.os.read", side_effect=OSError("injected")):
+            with (
+                patch.object(
+                    source_lock,
+                    "held_mount_identity",
+                    return_value=(path.parent.parent.stat().st_dev, None),
+                ),
+                patch.object(source_lock, "same_held_mount", return_value=True),
+                patch("golden_board.registry.os.read", side_effect=OSError("injected")),
+            ):
                 with self.assertRaisesRegex(RegistryError, r"^registry\.changed$"):
                     load_registry(path)
 
@@ -582,6 +591,18 @@ class RegistryProcessTests(unittest.TestCase):
                     os.kill(descendant, 0)
                 except ProcessLookupError:
                     break
+                if sys.platform == "linux":
+                    try:
+                        state = (
+                            Path(f"/proc/{descendant}/stat")
+                            .read_text(encoding="ascii")
+                            .rsplit(")", 1)[1]
+                            .lstrip()[:1]
+                        )
+                    except FileNotFoundError:
+                        break
+                    if state == "Z":
+                        break
                 time.sleep(0.01)
             else:
                 self.fail(f"descendant process survived timeout: {descendant}")
