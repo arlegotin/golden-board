@@ -494,7 +494,7 @@ class NativeProtocolTests(unittest.TestCase):
             "GIT_TERMINAL_PROMPT": "0",
             "LANG": "C",
             "LC_ALL": "C",
-            "PATH": str(git.parent),
+            "PATH": os.pathsep.join(dict.fromkeys((str(git.parent), "/usr/bin"))),
             "TZ": "UTC",
         }
         for _, environment, cwd in calls:

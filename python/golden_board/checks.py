@@ -1150,7 +1150,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_git_environment",
-    ): "38a40b60e708e33d8c95205d330f376696dfb29dde9947c8e79659c97d664206",
+    ): "b2a92cc52ea5696a31f606eb305ec6d3cd2f4764625d8ac70a4594e26794d87f",
     (
         "python/golden_board/clean.py",
         "_git_operation",

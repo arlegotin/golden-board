@@ -286,6 +286,14 @@ def _invoke(
 
 
 def _git_environment(temporary: Path, git: Path) -> dict[str, str]:
+    path = os.pathsep.join(
+        dict.fromkeys(
+            (
+                str(git.parent),
+                "/usr/bin",
+            )
+        )
+    )
     return {
         "GIT_CONFIG_GLOBAL": "/dev/null",
         "GIT_CONFIG_NOSYSTEM": "1",
@@ -295,7 +303,7 @@ def _git_environment(temporary: Path, git: Path) -> dict[str, str]:
         "HOME": str(temporary / "bootstrap-home"),
         "LANG": "C",
         "LC_ALL": "C",
-        "PATH": str(git.parent),
+        "PATH": path,
         "TMPDIR": str(temporary / "bootstrap-tmp"),
         "TZ": "UTC",
     }
