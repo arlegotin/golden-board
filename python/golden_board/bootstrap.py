@@ -1195,7 +1195,7 @@ def validate_venv(
         }
         or values.get("implementation") != "CPython"
         or values.get("uv") != "0.11.29"
-        or values.get("version_info") not in {"3.14", "3.14.6"}
+        or values.get("version_info") != "3.14"
         or values.get("include-system-site-packages") != "false"
         or values.get("prompt") != "golden-board"
     ):
