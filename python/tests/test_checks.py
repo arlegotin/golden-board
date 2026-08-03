@@ -1728,8 +1728,7 @@ class BootstrapSafetyTests(unittest.TestCase):
             config_text.replace("version_info = 3.14\n", "version_info = 3.14.6\n"),
             encoding="utf-8",
         )
-        with self.assertRaises(BootstrapError):
-            bootstrap.validate_venv(self.root, runner=runner)
+        self.assertEqual(managed, bootstrap.validate_venv(self.root, runner=runner))
         config.write_text(
             config_text.replace("version_info = 3.14\n", "version_info = 3.14.6.1\n"),
             encoding="utf-8",
