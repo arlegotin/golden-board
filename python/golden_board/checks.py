@@ -968,7 +968,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/bootstrap.py",
         "_tools",
-    ): "d105db769f107c1ba3b13269a16c2240441da1e012632d913fe02154ab6c48f3",
+    ): "a9d8b33253523d8895dc7e061ce8e4a897ba2926f26fa69d36a806bc44d662bd",
     (
         "python/golden_board/bootstrap.py",
         "_validate_empty_project_pycache",

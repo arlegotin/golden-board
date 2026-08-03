@@ -19,6 +19,7 @@ from golden_board.source_lock import (
     read_regular_below,
     validate_same_mount_tree,
 )
+from golden_board.status import parse_status
 
 
 class ReportError(ValueError):
@@ -1088,6 +1089,12 @@ def check_tracked_reports(
         if errors:
             return errors
 
+        def m0_complete() -> bool:
+            try:
+                return parse_status(roadmap)[0][1].startswith("Complete —")
+            except ValueError:
+                return False
+
         native = native_evidence_from_summary(tracked_release)
         def pending_projection() -> tuple[dict[str, object], bytes]:
             expected_release = build_release_summary(root, expected_source)
@@ -1110,6 +1117,9 @@ def check_tracked_reports(
         if native is not None and (
             git_executable is None or git_environment is None
         ):
+            if m0_complete():
+                errors.append("reports/release-summary.json is stale")
+                return errors
             expected_release, projected_raw = pending_projection()
         else:
             try:
@@ -1123,6 +1133,9 @@ def check_tracked_reports(
             except ReportError as error:
                 if str(error) != "native evidence tracked-product inventory is stale":
                     raise
+                if m0_complete():
+                    errors.append("reports/release-summary.json is stale")
+                    return errors
                 expected_release, projected_raw = pending_projection()
         if encode_canonical_value(expected_release) != projected_raw:
             errors.append("reports/release-summary.json is stale")

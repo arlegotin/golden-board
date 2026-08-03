@@ -367,6 +367,38 @@ class BootstrapHardeningTests(unittest.TestCase):
                 ),
             )
 
+    def test_clean_linux_semantic_probe_uses_only_fixed_rustup_home(self) -> None:
+        tool = self.root / "cargo"
+        tool.write_bytes(b"cargo")
+        tool.chmod(0o700)
+        environments: list[dict[str, str]] = []
+
+        def runner(_argv, **kwargs):
+            environments.append(dict(kwargs["env"]))
+            return SimpleNamespace(
+                returncode=0, stdout=b"cargo 1.94.0\n", stderr=b""
+            )
+
+        with patch.dict(os.environ, {"RUSTUP_HOME": "/attacker/rustup"}, clear=False):
+            self.assertEqual(
+                tool,
+                bootstrap._validate_clean_linux_semantic_tool(
+                    tool, "cargo", "1.94.0", runner=runner
+                ),
+            )
+        self.assertEqual(
+            [
+                {
+                    "LANG": "C",
+                    "LC_ALL": "C",
+                    "PATH": str(tool.parent),
+                    "RUSTUP_HOME": "/workspace/artifacts/cargo-home/rustup",
+                    "TZ": "UTC",
+                }
+            ],
+            environments,
+        )
+
     def test_image_git_probe_accepts_only_the_closed_git_2_grammar(self) -> None:
         tool = self.root / "git"
         tool.write_bytes(b"git")
@@ -414,7 +446,7 @@ class BootstrapHardeningTests(unittest.TestCase):
             patch.object(
                 bootstrap,
                 "validate_semantic_tool",
-                side_effect=lambda path, *_args: path,
+                side_effect=lambda path, *_args, **_kwargs: path,
             ) as semantic,
             patch.object(
                 bootstrap, "validate_image_git", side_effect=lambda path, **_kwargs: path

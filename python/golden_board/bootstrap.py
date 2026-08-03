@@ -21,7 +21,7 @@ _BOOTSTRAP_FDINFO_MAX_BYTES = 4096
 _TRUSTED_SOURCE_SHA256 = {
     "__init__.py": "cc4532ec9eca51ea23edb9b88fa332448cef1a6908a07f940bf52c22c123ad02",
     "acquisition.py": "779931e37c44fb41d95003e6b96b01ce76c37c79ef7feab36951b5303bcd9697",
-    "checks.py": "c2f928f74cdb2e2be4db70bd3f89b096dcd48e80528a335a269dc78a2ca54c14",
+    "checks.py": "657e19feead41908a141aba73dad930e3ca43e0746f929d31db09e9713e91089",
     "clean.py": "4775661a6c32945ae76ce0034db4f7df250157eaef93f7c2f73331a1bd2c2e25",
     "cli.py": "11f71475f0b6e87e17fbb5f582b6d9fa498d159330acdc1663072f898c1d7a94",
     "constants.py": "be8d252b08478d6d72604c2b8048a68b0648f186a74dd363dceabd955a0b06c3",
@@ -29,7 +29,7 @@ _TRUSTED_SOURCE_SHA256 = {
     "manifest.py": "a433d8357ef3b5ce65866509e5dab328de786dfc5abd0a7a8aeb9052469efb07",
     "reference_acquisition.py": "690b253982beea96533b1983204ef07f398d4f418e1e1151a1af509b8597eea9",
     "registry.py": "4fabae6eca56e9193d4cfb517566ed773275932bfdf0c733be0b31c8421b27c5",
-    "reports.py": "f65dfe7349c47e0bc8723d435d117eda85cf7b976829052bb0ca13b1a1dc0583",
+    "reports.py": "17a61c28d6faa9a3a1d234cb6e099efc29a61e50a521492b2dd1fceded16b1aa",
     "source_doctor.py": "d3c61565fe8dfd3909eb17fa46abadebac2165e60234d4c020e7a1d8d7df4f0f",
     "source_lock.py": "b360e9c3a3ab7bdc409232c48be78b75ac647a21f16ee2aa7385adc2a0d1c950",
     "status.py": "629360012eff93807dc599843132fb8e6b68f9f94223562b5293c4679198b66b",
@@ -1057,6 +1057,32 @@ def validate_semantic_tool(
     return resolved
 
 
+def _validate_clean_linux_semantic_tool(
+    path: Path,
+    name: str,
+    version: str,
+    *,
+    runner: Callable[..., object] = _default_runner,
+) -> Path:
+    def closed_runner(argv: list[str], **kwargs: object) -> object:
+        environment = kwargs.get("env")
+        if kwargs.get("cwd") is not None or type(environment) is not dict:
+            raise _fail("invalid clean-Linux tool probe")
+        return runner(
+            argv,
+            cwd=None,
+            env={
+                "LANG": "C",
+                "LC_ALL": "C",
+                "PATH": environment.get("PATH", ""),
+                "RUSTUP_HOME": "/workspace/artifacts/cargo-home/rustup",
+                "TZ": "UTC",
+            },
+        )
+
+    return validate_semantic_tool(path, name, version, runner=closed_runner)
+
+
 def validate_image_git(
     path: Path,
     *,
@@ -1622,21 +1648,24 @@ def _tools(
     if len(arguments) != 6 or type(clean_linux) is not bool:
         raise _fail("bootstrap requires six tool paths")
     python, uv, cargo, rustc, rustfmt, git = (Path(value) for value in arguments)
-    validated_cargo = validate_semantic_tool(cargo, "cargo", "1.94.0")
-    validated_cargo_fmt = validate_semantic_tool(
+    semantic_tool = (
+        _validate_clean_linux_semantic_tool if clean_linux else validate_semantic_tool
+    )
+    validated_cargo = semantic_tool(cargo, "cargo", "1.94.0")
+    validated_cargo_fmt = semantic_tool(
         validated_cargo.parent / "cargo-fmt", "rustfmt", "1.8.0"
     )
     if validated_cargo_fmt != validated_cargo.parent / "cargo-fmt":
         raise _fail("cargo-fmt must be the validated cargo sibling")
-    validated_rustdoc = validate_semantic_tool(
+    validated_rustdoc = semantic_tool(
         validated_cargo.parent / "rustdoc", "rustdoc", "1.94.0"
     )
     if validated_rustdoc != validated_cargo.parent / "rustdoc":
         raise _fail("rustdoc must be the validated cargo sibling")
-    validated_rustc = validate_semantic_tool(rustc, "rustc", "1.94.0")
+    validated_rustc = semantic_tool(rustc, "rustc", "1.94.0")
     if validated_rustc != validated_cargo.parent / "rustc":
         raise _fail("rustc must be the validated cargo sibling")
-    validated_rustfmt = validate_semantic_tool(rustfmt, "rustfmt", "1.8.0")
+    validated_rustfmt = semantic_tool(rustfmt, "rustfmt", "1.8.0")
     if validated_rustfmt != validated_cargo.parent / "rustfmt":
         raise _fail("rustfmt must be the validated cargo sibling")
     return (

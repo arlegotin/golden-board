@@ -11,6 +11,7 @@ from unittest.mock import patch
 from golden_board.manifest import decode_canonical_manifest, encode_canonical_value
 from golden_board import reports
 from golden_board.source_lock import SafeFileError
+from golden_board.status import MILESTONES, render_m0_completion
 
 
 ACCEPTANCE = tuple(f"Requirement {index}" for index in range(1, 19))
@@ -45,12 +46,21 @@ def roadmap() -> str:
         "# Roadmap\n\n"
         "| Field | Value |\n"
         "|---|---|\n"
-        "| Roadmap revision | 1 |\n\n"
+        "| Roadmap revision | 1 |\n"
+        "| Project state | In progress |\n"
+        f"| Current milestone | {MILESTONES[0]} |\n\n"
         "## 12. Final acceptance matrix\n\n"
         "| ID | Acceptance requirement | Owning milestone | Required evidence |\n"
         "|---|---|---|---|\n"
         f"{rows}\n\n---\n\n"
-        "## 13. Project status — sole mutable authority\n"
+        "## 13. Project status — sole mutable authority\n\n"
+        "| Milestone | Status | Completion evidence or blocker |\n"
+        "|---|---|---|\n"
+        f"| {MILESTONES[0]} | In progress | — |\n"
+        + "\n".join(
+            f"| {milestone} | Not started | — |" for milestone in MILESTONES[1:]
+        )
+        + "\n\nAllowed states are:\n"
     )
 
 
@@ -583,6 +593,24 @@ class ReportTests(unittest.TestCase):
         ):
             self.assertEqual(
                 [], reports.check_tracked_reports(self.root, **self.git_context)
+            )
+            (self.root / "docs/roadmap.md").write_text(
+                render_m0_completion(
+                    roadmap(),
+                    completed_on="2026-08-03",
+                    source_report_sha256=sha256(
+                        self.root / "reports/source-doctor.json"
+                    ),
+                ),
+                encoding="utf-8",
+            )
+            self.assertIn(
+                "reports/release-summary.json is stale",
+                reports.check_tracked_reports(self.root, **self.git_context),
+            )
+            self.assertIn(
+                "reports/release-summary.json is stale",
+                reports.check_tracked_reports(self.root),
             )
 
     def test_report_encoding_is_canonical_and_final_lf_terminated(self) -> None:
