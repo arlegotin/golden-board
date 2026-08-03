@@ -998,7 +998,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/bootstrap.py",
         "validate_venv",
-    ): "67a34c31c786e0d738a0e2ae41a9a11e9d7a2540ef06003f333d7bf88e4a95ed",
+    ): "f02757cb53c8d8a4037a102734e2823dda6dba8dbd22a790834c463dbae6361e",
     (
         "python/golden_board/checks.py",
         "_canonical_repository",
@@ -1370,7 +1370,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_validate_sealed_path",
-    ): "eb0cff142dae401144ada1c57af2cab128bf1733408575b94baf9ed271f0c261",
+    ): "7d07c9e17c0e291778e7168bd2107a5a53659eff1f640b0ca2551cbd29da4566",
     (
         "python/golden_board/clean.py",
         "_verified_linux_download",

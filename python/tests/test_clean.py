@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import io
@@ -379,6 +380,22 @@ class NativeProtocolTests(unittest.TestCase):
         for value in ("relative", "/ok::/also", "/ok:\n/bad"):
             with self.subTest(value=value), self.assertRaises(CleanError):
                 clean._validate_sealed_path(value)
+
+    def test_sealed_path_normalizes_duplicate_entries(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            first = root / "first"
+            second = root / "second"
+            first.mkdir(parents=True)
+            second.mkdir(parents=True)
+            self.assertEqual(
+                os.pathsep.join([str(first), str(second)]),
+                clean._validate_sealed_path(
+                    os.pathsep.join(
+                        [str(first), str(first), str(second), str(second)]
+                    )
+                ),
+            )
 
     def test_exact_head_clone_uses_closed_git_and_rechecks_both_trees(self) -> None:
         with TemporaryDirectory() as directory:

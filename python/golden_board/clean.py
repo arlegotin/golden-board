@@ -185,9 +185,11 @@ def _validate_sealed_path(value: str) -> str:
         or ".." in Path(entry).parts
         or os.fspath(Path(entry)) != entry
         for entry in entries
-    ) or len(entries) != len(set(entries)):
+    ):
         raise CleanError("invalid sealed tool path")
-    return value
+    if len(entries) != len(set(entries)):
+        entries = list(dict.fromkeys(entries))
+    return os.pathsep.join(entries)
 
 
 def _resolve_native_tools(
