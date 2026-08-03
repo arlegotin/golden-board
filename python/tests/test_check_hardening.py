@@ -484,21 +484,26 @@ class SealedCapabilityTests(unittest.TestCase):
             checks._validated_pycache_prefix(self.root)
         (prefix / "poison.pyc").unlink()
         real_fstat = os.fstat
-        calls = 0
+        prefix_identity = (prefix.stat().st_dev, prefix.stat().st_ino)
+        checked_prefix = False
 
         def other_device(descriptor: int) -> os.stat_result:
-            nonlocal calls
-            calls += 1
+            nonlocal checked_prefix
             facts = real_fstat(descriptor)
-            if calls > 1:
+            if (facts.st_dev, facts.st_ino) == prefix_identity:
+                checked_prefix = True
                 values = list(facts)
                 values[2] += 1
                 return os.stat_result(values)
             return facts
 
-        with patch.object(checks.os, "fstat", side_effect=other_device):
+        with (
+            patch.object(checks.os, "fstat", side_effect=other_device),
+            patch.object(checks, "same_held_mount", return_value=True),
+        ):
             with self.assertRaises(ValueError):
                 checks._validated_pycache_prefix(self.root)
+        self.assertTrue(checked_prefix)
         with patch.object(checks, "same_held_mount", return_value=False):
             with self.assertRaises(ValueError):
                 checks._validated_pycache_prefix(self.root)

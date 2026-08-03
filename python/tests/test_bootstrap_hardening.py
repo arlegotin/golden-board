@@ -908,16 +908,15 @@ class BootstrapHardeningTests(unittest.TestCase):
         ):
             bootstrap.prepare_directories(self.root, acquisition=False)
 
-        if artifacts.exists():
-            artifacts.rmdir()
         real_fstat = os.fstat
-        calls = 0
+        artifacts_identity = (artifacts.stat().st_dev, artifacts.stat().st_ino)
+        checked_artifacts = False
 
         def cross_device(descriptor):
-            nonlocal calls
+            nonlocal checked_artifacts
             value = real_fstat(descriptor)
-            calls += 1
-            if calls == 2:
+            if (value.st_dev, value.st_ino) == artifacts_identity:
+                checked_artifacts = True
                 return SimpleNamespace(
                     st_ctime_ns=value.st_ctime_ns,
                     st_dev=value.st_dev + 1,
@@ -930,9 +929,16 @@ class BootstrapHardeningTests(unittest.TestCase):
 
         with (
             patch.object(bootstrap.os, "fstat", side_effect=cross_device),
+            patch.object(
+                bootstrap,
+                "held_mount_identity",
+                return_value=(self.root.stat().st_dev, None),
+            ),
+            patch.object(bootstrap, "same_held_mount", return_value=True),
             self.assertRaises(BootstrapError),
         ):
             bootstrap.prepare_directories(self.root, acquisition=False)
+        self.assertTrue(checked_artifacts)
 
     def test_runtime_directories_reject_linux_mount_identity(self) -> None:
         with (

@@ -780,6 +780,11 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
             return path != destination
 
         with (
+            patch.object(
+                acquisition,
+                "held_mount_identity",
+                return_value=(self.root.stat().st_dev, None),
+            ),
             patch.object(acquisition, "same_held_mount", side_effect=mount_check),
             patch.object(acquisition.os, "open", side_effect=reject_temp_open),
             self.assertRaises(acquisition.AcquisitionError),
