@@ -266,12 +266,11 @@ class BootstrapHardeningTests(unittest.TestCase):
         nested.mkdir(parents=True)
         marker = nested / "marker"
         marker.write_bytes(b"keep")
-        real_ismount = os.path.ismount
         with (
             patch.object(
-                bootstrap.os.path,
-                "ismount",
-                side_effect=lambda path: Path(path) == nested or real_ismount(path),
+                bootstrap,
+                "same_held_mount",
+                side_effect=lambda _root, _descriptor, path: path != nested,
             ),
             self.assertRaises(BootstrapError),
         ):
@@ -899,12 +898,11 @@ class BootstrapHardeningTests(unittest.TestCase):
         self,
     ) -> None:
         artifacts = self.root / "artifacts"
-        real_ismount = os.path.ismount
         with (
             patch.object(
-                bootstrap.os.path,
-                "ismount",
-                side_effect=lambda path: Path(path) == artifacts or real_ismount(path),
+                bootstrap,
+                "same_held_mount",
+                side_effect=lambda _root, _descriptor, path: path != artifacts,
             ),
             self.assertRaises(BootstrapError),
         ):

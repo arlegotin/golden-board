@@ -499,7 +499,7 @@ class SealedCapabilityTests(unittest.TestCase):
         with patch.object(checks.os, "fstat", side_effect=other_device):
             with self.assertRaises(ValueError):
                 checks._validated_pycache_prefix(self.root)
-        with patch.object(checks.os.path, "ismount", return_value=True):
+        with patch.object(checks, "same_held_mount", return_value=False):
             with self.assertRaises(ValueError):
                 checks._validated_pycache_prefix(self.root)
         prefix.rmdir()

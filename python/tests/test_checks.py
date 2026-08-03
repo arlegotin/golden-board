@@ -1880,7 +1880,7 @@ class BootstrapSafetyTests(unittest.TestCase):
         context = self._venv_removal_context()
         (self.root / ".venv").mkdir()
         with (
-            patch("golden_board.bootstrap.os.path.ismount", return_value=True),
+            patch("golden_board.bootstrap.same_held_mount", return_value=False),
             self.assertRaises(BootstrapError),
         ):
             bootstrap.remove_venv(self.root, **context)

@@ -519,6 +519,11 @@ class ReferenceAcquisitionTests(unittest.TestCase):
                     patch.object(reference_acquisition, "ROOT", root),
                     patch.object(
                         reference_acquisition,
+                        "held_mount_identity",
+                        return_value=(root.stat().st_dev, None),
+                    ),
+                    patch.object(
+                        reference_acquisition,
                         "same_held_mount",
                         side_effect=same_mount,
                     ),
@@ -686,6 +691,12 @@ class ReferenceAcquisitionTests(unittest.TestCase):
 
             with (
                 patch.object(reference_acquisition, "ROOT", root),
+                patch.object(
+                    reference_acquisition,
+                    "held_mount_identity",
+                    return_value=(root.stat().st_dev, None),
+                ),
+                patch.object(reference_acquisition, "same_held_mount", return_value=True),
                 patch.object(reference_acquisition.os, "open", side_effect=record_open),
                 patch.object(
                     reference_acquisition.os, "close", side_effect=fail_first_close

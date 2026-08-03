@@ -532,7 +532,6 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
 
     def test_each_acquisition_root_rejects_mount_and_device_escape(self) -> None:
         stat_call = os.stat
-        ismount = os.path.ismount
         for relative in acquisition.INVENTORY_ROOTS:
             target = self.root / relative
             leaf = relative.name
@@ -555,11 +554,10 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
             with (
                 self.subTest(root=relative, rejection="mount"),
                 patch.object(
-                    acquisition.os.path,
-                    "ismount",
-                    side_effect=lambda path, target=target: (
-                        Path(path) == target or ismount(path)
-                    ),
+                    acquisition,
+                    "same_held_mount",
+                    side_effect=lambda _root, _descriptor, path, target=target: path
+                    != target,
                 ),
                 self.assertRaises(acquisition.AcquisitionError),
             ):
@@ -572,7 +570,6 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
         nested_identity = (nested.stat().st_dev, nested.stat().st_ino)
         stat_call = os.stat
         scandir = os.scandir
-        ismount = os.path.ismount
 
         def cross_device(
             path: object, *args: object, **kwargs: object
@@ -597,9 +594,9 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
 
         with (
             patch.object(
-                acquisition.os.path,
-                "ismount",
-                side_effect=lambda path: Path(path) == nested or ismount(path),
+                acquisition,
+                "same_held_mount",
+                side_effect=lambda _root, _descriptor, path: path != nested,
             ),
             patch.object(acquisition.os, "scandir", side_effect=reject_nested_scan),
             self.assertRaises(acquisition.AcquisitionError),
@@ -645,12 +642,11 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
     def test_containment_failure_cannot_publish_inventory(self) -> None:
         value = acquisition.build_inventory(self.root)
         target = self.root / acquisition.INVENTORY_ROOTS[0]
-        ismount = os.path.ismount
         with (
             patch.object(
-                acquisition.os.path,
-                "ismount",
-                side_effect=lambda path: Path(path) == target or ismount(path),
+                acquisition,
+                "same_held_mount",
+                side_effect=lambda _root, _descriptor, path: path != target,
             ),
             self.assertRaises(acquisition.AcquisitionError),
         ):
@@ -662,7 +658,6 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
         target = self.root / "artifacts/uv-cache/payload"
         target.write_bytes(b"must-not-hash-mounted-file")
         value = acquisition.build_inventory(self.root)
-        ismount = os.path.ismount
         sha256 = acquisition.hashlib.sha256
 
         def reject_target_hash(raw: bytes = b"") -> object:
@@ -670,18 +665,18 @@ class AcquisitionPublicationHardeningTests(unittest.TestCase):
                 raise AssertionError("mounted file was hashed")
             return sha256(raw)
 
-        def mounted(path: object) -> bool:
-            return Path(path) == target or ismount(path)
+        def mounted(_root: object, _descriptor: int, path: Path) -> bool:
+            return path != target
 
         with (
-            patch.object(acquisition.os.path, "ismount", side_effect=mounted),
+            patch.object(acquisition, "same_held_mount", side_effect=mounted),
             patch.object(acquisition.hashlib, "sha256", side_effect=reject_target_hash),
             self.assertRaises(acquisition.AcquisitionError),
         ):
             acquisition.build_inventory(self.root)
 
         with (
-            patch.object(acquisition.os.path, "ismount", side_effect=mounted),
+            patch.object(acquisition, "same_held_mount", side_effect=mounted),
             patch.object(acquisition.hashlib, "sha256", side_effect=reject_target_hash),
             self.assertRaises(acquisition.AcquisitionError),
         ):
