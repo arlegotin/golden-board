@@ -1089,10 +1089,7 @@ def check_tracked_reports(
             return errors
 
         native = native_evidence_from_summary(tracked_release)
-        if (
-            native is not None
-            and (git_executable is None or git_environment is None)
-        ):
+        def pending_projection() -> tuple[dict[str, object], bytes]:
             expected_release = build_release_summary(root, expected_source)
             expected_gates = cast(list[object], expected_release["gates"])
             expected_first_gate = cast(dict[str, object], expected_gates[0])
@@ -1107,17 +1104,27 @@ def check_tracked_reports(
                 tracked_without_native[0] = tracked_gate_zero
             projected = dict(tracked_release)
             projected["gates"] = tracked_without_native
-            if encode_canonical_value(projected) != encode_canonical_value(expected_release):
-                errors.append("reports/release-summary.json is stale")
-            return errors
-        expected_release = build_release_summary(
-            root,
-            expected_source,
-            native,
-            git_executable=git_executable,
-            git_environment=git_environment,
-        )
-        if encode_canonical_value(expected_release) != tracked_release_raw:
+            return expected_release, encode_canonical_value(projected)
+
+        projected_raw = tracked_release_raw
+        if native is not None and (
+            git_executable is None or git_environment is None
+        ):
+            expected_release, projected_raw = pending_projection()
+        else:
+            try:
+                expected_release = build_release_summary(
+                    root,
+                    expected_source,
+                    native,
+                    git_executable=git_executable,
+                    git_environment=git_environment,
+                )
+            except ReportError as error:
+                if str(error) != "native evidence tracked-product inventory is stale":
+                    raise
+                expected_release, projected_raw = pending_projection()
+        if encode_canonical_value(expected_release) != projected_raw:
             errors.append("reports/release-summary.json is stale")
     except (OSError, UnicodeError, ValueError, subprocess.SubprocessError) as error:
         errors.append(f"tracked report check failed: {error}")

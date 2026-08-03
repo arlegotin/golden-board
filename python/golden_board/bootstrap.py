@@ -29,7 +29,7 @@ _TRUSTED_SOURCE_SHA256 = {
     "manifest.py": "a433d8357ef3b5ce65866509e5dab328de786dfc5abd0a7a8aeb9052469efb07",
     "reference_acquisition.py": "690b253982beea96533b1983204ef07f398d4f418e1e1151a1af509b8597eea9",
     "registry.py": "4fabae6eca56e9193d4cfb517566ed773275932bfdf0c733be0b31c8421b27c5",
-    "reports.py": "cdba7e8852035e3f152617a269bb54c1c42cd14b5186feba815d291ea2f3d65c",
+    "reports.py": "f65dfe7349c47e0bc8723d435d117eda85cf7b976829052bb0ca13b1a1dc0583",
     "source_doctor.py": "d3c61565fe8dfd3909eb17fa46abadebac2165e60234d4c020e7a1d8d7df4f0f",
     "source_lock.py": "b360e9c3a3ab7bdc409232c48be78b75ac647a21f16ee2aa7385adc2a0d1c950",
     "status.py": "629360012eff93807dc599843132fb8e6b68f9f94223562b5293c4679198b66b",

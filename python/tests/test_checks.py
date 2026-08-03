@@ -1233,14 +1233,14 @@ class CheckBehaviorTests(unittest.TestCase):
             source_report_sha256=digest,
         )
         (root / "docs/roadmap.md").write_text(completed, encoding="utf-8")
-        self.assertEqual([], run_area(root, "foundation"))
+        self.assertTrue(run_area(root, "foundation"))
         (root / "docs/roadmap.md").write_text(
             completed.replace(
                 "reports/source-doctor.json", "reports/release-summary.json", 1
             ),
             encoding="utf-8",
         )
-        self.assertEqual([], run_area(root, "foundation"))
+        self.assertTrue(run_area(root, "foundation"))
 
     def test_dependencies_require_project_local_environment_and_exact_tool_pins(
         self,

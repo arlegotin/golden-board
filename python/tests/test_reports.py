@@ -558,6 +558,33 @@ class ReportTests(unittest.TestCase):
             errors = reports.check_tracked_reports(self.root, **self.git_context)
         self.assertTrue(errors)
 
+    def test_stale_native_inventory_remains_refreshable_when_pending_summary_is_current(
+        self,
+    ) -> None:
+        value = reports.build_release_summary(
+            self.root,
+            self.source_report,
+            self.native_evidence(),
+            **self.git_context,
+        )
+        (self.root / "reports/release-summary.json").write_bytes(
+            encode_canonical_value(value)
+        )
+        (self.root / "README.md").write_bytes(b"new tracked product\n")
+        tracked = self.tracked[:-1] + (
+            PurePosixPath("README.md"),
+            self.tracked[-1],
+        )
+        with (
+            patch.object(reports, "_tracked_paths", return_value=tracked),
+            patch.object(
+                reports, "build_source_report", return_value=self.source_report
+            ),
+        ):
+            self.assertEqual(
+                [], reports.check_tracked_reports(self.root, **self.git_context)
+            )
+
     def test_report_encoding_is_canonical_and_final_lf_terminated(self) -> None:
         value = reports.build_release_summary(self.root, self.source_report)
         raw = encode_canonical_value(value)
