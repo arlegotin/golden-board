@@ -301,7 +301,10 @@ class NativeProtocolTests(unittest.TestCase):
                 patch.object(
                     clean.shutil, "which", side_effect=AssertionError("PATH lookup")
                 ),
-                patch.object(clean, "_probe_exact_tool", return_value=git),
+                patch(
+                    "golden_board.bootstrap.validate_image_git",
+                    return_value=git,
+                ),
             ):
                 self.assertEqual(git, clean._explicit_git(git))
 
@@ -314,14 +317,13 @@ class NativeProtocolTests(unittest.TestCase):
             link = root / "git"
             link.symlink_to(real)
             with (
-                patch.object(
-                    clean,
-                    "_probe_exact_tool",
-                    return_value=link,
+                patch(
+                    "golden_board.bootstrap.validate_image_git",
+                    return_value=real,
                 ) as probe,
             ):
-                self.assertEqual(link, clean._explicit_git(link))
-        probe.assert_called_once()
+                self.assertEqual(real, clean._explicit_git(link))
+        probe.assert_called_once_with(link, runner=clean._probe_runner)
 
     def test_native_tools_resolve_only_non_capabilities_from_the_sealed_path(
         self,
@@ -351,6 +353,10 @@ class NativeProtocolTests(unittest.TestCase):
                 patch.object(clean.shutil, "which", side_effect=which),
                 patch.object(clean, "_probe_exact_tool", side_effect=exact),
                 patch.object(clean, "_probe_semantic_tool", side_effect=semantic),
+                patch(
+                    "golden_board.bootstrap.validate_image_git",
+                    return_value=git,
+                ),
             ):
                 tools = clean._resolve_native_tools(git, sealed_path="/sealed/bin")
 
