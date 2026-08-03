@@ -379,7 +379,15 @@ class BootstrapHardeningTests(unittest.TestCase):
                 returncode=0, stdout=b"cargo 1.94.0\n", stderr=b""
             )
 
-        with patch.dict(os.environ, {"RUSTUP_HOME": "/attacker/rustup"}, clear=False):
+        with patch.dict(
+            os.environ,
+            {
+                "CARGO_HOME": "/attacker/cargo",
+                "HOME": "/attacker/home",
+                "RUSTUP_HOME": "/attacker/rustup",
+            },
+            clear=False,
+        ):
             self.assertEqual(
                 tool,
                 bootstrap._validate_clean_linux_semantic_tool(
@@ -389,6 +397,8 @@ class BootstrapHardeningTests(unittest.TestCase):
         self.assertEqual(
             [
                 {
+                    "CARGO_HOME": "/workspace/artifacts/cargo-home",
+                    "HOME": "/workspace/artifacts/check-home",
                     "LANG": "C",
                     "LC_ALL": "C",
                     "PATH": str(tool.parent),

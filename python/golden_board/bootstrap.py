@@ -1072,6 +1072,8 @@ def _validate_clean_linux_semantic_tool(
             argv,
             cwd=None,
             env={
+                "CARGO_HOME": "/workspace/artifacts/cargo-home",
+                "HOME": "/workspace/artifacts/check-home",
                 "LANG": "C",
                 "LC_ALL": "C",
                 "PATH": environment.get("PATH", ""),
