@@ -8,7 +8,7 @@ import json
 import sys
 import tarfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import golden_board.clean as clean
 from golden_board.manifest import decode_canonical_manifest, encode_canonical_value
@@ -1117,6 +1117,28 @@ def linux_source_lock() -> SimpleNamespace:
 
 
 class LinuxProtocolTests(unittest.TestCase):
+    _PYTHON_ALIAS = "cpython-3.14-linux-aarch64-gnu"
+    _PYTHON_VERSION = "cpython-3.14.6-linux-aarch64-gnu"
+    _PYTHON_CONTAINER_TARGET = (
+        "/workspace/artifacts/uv-python/cpython-3.14.6-linux-aarch64-gnu"
+    )
+    _PYTHON_NORMALIZE_TEMPORARY = ".cpython-3.14-linux-aarch64-gnu.normalize.tmp"
+
+    @classmethod
+    def _python_alias_checkout(cls, root: Path) -> tuple[Path, Path]:
+        (root / "Cargo.lock").write_text("version = 4\n", encoding="ascii")
+        for relative in (
+            "artifacts/cargo-home",
+            "artifacts/uv-cache",
+            "artifacts/uv-python",
+        ):
+            (root / relative).mkdir(parents=True, exist_ok=True)
+        python_root = root / "artifacts/uv-python"
+        (python_root / cls._PYTHON_VERSION).mkdir()
+        alias = python_root / cls._PYTHON_ALIAS
+        alias.symlink_to(cls._PYTHON_CONTAINER_TARGET)
+        return python_root, alias
+
     @staticmethod
     def uv_tar(
         *,
@@ -1427,6 +1449,44 @@ class LinuxProtocolTests(unittest.TestCase):
         )
         clone.assert_not_called()
 
+    def test_linux_workspace_cleanup_failure_remains_hard(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            temporary = root / "owned"
+            temporary.mkdir()
+            git = root / "git"
+            docker = root / "docker"
+            with (
+                patch.object(
+                    clean,
+                    "_validate_linux_lock",
+                    side_effect=lambda value: value.clean_linux,
+                ),
+                patch.object(clean, "_explicit_git", return_value=git),
+                patch.object(clean, "_explicit_docker", return_value=docker),
+                patch.object(clean, "_new_temporary_root", return_value=temporary),
+                patch.object(
+                    clean, "_prepare_docker_client", return_value=SimpleNamespace()
+                ),
+                patch.object(
+                    clean,
+                    "_probe_docker_daemon",
+                    side_effect=clean._LinuxPrerequisite("daemon_unreachable"),
+                ),
+                patch.object(
+                    clean,
+                    "_remove_temporary_root",
+                    side_effect=CleanError("injected workspace cleanup failure"),
+                ),
+                self.assertRaisesRegex(CleanError, "workspace cleanup failure"),
+            ):
+                clean.verify_linux(
+                    root,
+                    linux_source_lock(),
+                    git_executable=git,
+                    docker_executable=docker,
+                )
+
     def test_linux_public_verifier_runs_the_exact_checkout_protocol_and_rechecks_head(
         self,
     ) -> None:
@@ -1520,6 +1580,68 @@ class LinuxProtocolTests(unittest.TestCase):
         )
         phases.assert_called_once_with(client, checkout, uv, clean_lock, image, git)
         recheck.assert_called_once_with(root, checkout, temporary, git, "e" * 40)
+
+    def test_linux_protocol_failure_discards_workspace_without_rechecking(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            temporary = root / "owned"
+            checkout = temporary / "checkout"
+            checkout.mkdir(parents=True)
+            (checkout / "normalizer-residue").symlink_to("discarded")
+            source_lock = linux_source_lock()
+            clean_lock = source_lock.clean_linux
+            git = root / "git"
+            docker = root / "docker"
+            client = SimpleNamespace()
+            acquired = SimpleNamespace(uv_archive=b"archive")
+            uv = SimpleNamespace()
+            image = f"docker.io/library/rust@{clean_lock.platform_digest}"
+            with (
+                patch.object(
+                    clean, "_validate_linux_lock", return_value=clean_lock
+                ),
+                patch.object(clean, "_explicit_git", return_value=git),
+                patch.object(clean, "_explicit_docker", return_value=docker),
+                patch.object(clean, "_new_temporary_root", return_value=temporary),
+                patch.object(clean, "_prepare_docker_client", return_value=client),
+                patch.object(
+                    clean,
+                    "_probe_docker_daemon",
+                    return_value=(
+                        "available: Docker Engine 25.0.3 linux/arm64 "
+                        "kernel 6.10.14-linuxkit"
+                    ),
+                ),
+                patch.object(
+                    clean,
+                    "_clone_exact_head",
+                    return_value=(checkout, "e" * 40),
+                ),
+                patch.object(clean, "load_source_lock", return_value=source_lock),
+                patch.object(clean, "_static_dependency_preflight"),
+                patch.object(
+                    clean, "_acquire_linux_inputs", return_value=acquired
+                ),
+                patch.object(clean, "_materialize_linux_uv", return_value=uv),
+                patch.object(clean, "_pull_linux_image", return_value=image),
+                patch.object(clean, "_validate_local_linux_image"),
+                patch.object(
+                    clean,
+                    "_run_linux_phases",
+                    side_effect=CleanError("alias normalization failed"),
+                ),
+                patch.object(clean, "_recheck_exact_head") as recheck,
+                self.assertRaisesRegex(CleanError, "alias normalization failed"),
+            ):
+                clean.verify_linux(
+                    root,
+                    source_lock,
+                    git_executable=git,
+                    docker_executable=docker,
+                )
+
+        self.assertFalse(temporary.exists() or temporary.is_symlink())
+        recheck.assert_not_called()
 
     def test_linux_post_clone_planned_result_rechecks_head_before_returning(
         self,
@@ -2021,6 +2143,9 @@ class LinuxProtocolTests(unittest.TestCase):
         self.assertNotIn("build_inventory", script)
         self.assertNotIn("write_inventory", script)
         self.assertNotIn("load_inventory", script)
+        for command in ("ln", "mv", "readlink"):
+            self.assertNotIn(f"\n{command} ", script)
+            self.assertNotIn(f"/usr/bin/{command}", script)
         self.assertNotIn("cargo_version=", script)
         self.assertNotIn('case "$cargo_version"', script)
         self.assertNotIn("/usr/local/rustup", script)
@@ -2367,6 +2492,427 @@ class LinuxProtocolTests(unittest.TestCase):
                 )
             self.assertEqual(["run", "container"], [call[0] for call in calls])
 
+    def test_linux_absolute_python_alias_fails_inventory_before_normalization(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            _python_root, alias = self._python_alias_checkout(root)
+
+            with self.assertRaisesRegex(ValueError, "unsafe acquisition symlink"):
+                clean.build_inventory(root)
+
+            self.assertEqual(self._PYTHON_CONTAINER_TARGET, alias.readlink().as_posix())
+
+    def test_linux_python_alias_normalizes_to_exact_inventoried_relative_link(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            _python_root, alias = self._python_alias_checkout(root)
+            real_replace = clean.os.replace
+            replacements = 0
+
+            def replace_once(*args: object, **kwargs: object) -> None:
+                nonlocal replacements
+                replacements += 1
+                real_replace(*args, **kwargs)
+
+            with (
+                patch.object(clean.os, "replace", side_effect=replace_once),
+                patch.object(
+                    clean.os,
+                    "link",
+                    side_effect=AssertionError("normalizer must not hard-link"),
+                ),
+                patch.object(
+                    clean.os,
+                    "unlink",
+                    side_effect=AssertionError("normalizer must not unlink"),
+                ),
+                patch.object(
+                    clean,
+                    "_invoke",
+                    side_effect=AssertionError("normalizer must not launch a process"),
+                ),
+            ):
+                clean._normalize_linux_python_alias(root)
+
+            self.assertEqual(1, replacements)
+            self.assertEqual(self._PYTHON_VERSION, alias.readlink().as_posix())
+            self.assertEqual(
+                [
+                    {
+                        "path": f"artifacts/uv-python/{self._PYTHON_ALIAS}",
+                        "target": self._PYTHON_VERSION,
+                    }
+                ],
+                clean.build_inventory(root)["links"],
+            )
+
+    def test_linux_python_alias_rejects_noncanonical_inputs_and_collisions(
+        self,
+    ) -> None:
+        for mutation in (
+            "wrong-target",
+            "already-relative",
+            "regular-file",
+            "directory",
+            "temporary-collision",
+        ):
+            with self.subTest(mutation=mutation), TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                python_root, alias = self._python_alias_checkout(root)
+                collision: Path | None = None
+                if mutation == "wrong-target":
+                    alias.unlink()
+                    alias.symlink_to(
+                        "/workspace/artifacts/uv-python/"
+                        "cpython-3.14.5-linux-aarch64-gnu"
+                    )
+                elif mutation == "already-relative":
+                    alias.unlink()
+                    alias.symlink_to(self._PYTHON_VERSION)
+                elif mutation == "regular-file":
+                    alias.unlink()
+                    alias.write_bytes(b"not a link")
+                elif mutation == "directory":
+                    alias.unlink()
+                    alias.mkdir()
+                else:
+                    collision = python_root / self._PYTHON_NORMALIZE_TEMPORARY
+                    collision.write_bytes(b"unowned temporary")
+                alias_before = alias.lstat()
+                collision_before = collision.lstat() if collision is not None else None
+
+                replace = Mock()
+                with (
+                    patch.object(clean.os, "replace", replace),
+                    self.assertRaises(CleanError),
+                ):
+                    clean._normalize_linux_python_alias(root)
+
+                replace.assert_not_called()
+                alias_after = alias.lstat()
+                self.assertEqual(
+                    (alias_before.st_dev, alias_before.st_ino, alias_before.st_mode),
+                    (alias_after.st_dev, alias_after.st_ino, alias_after.st_mode),
+                )
+                if mutation == "wrong-target":
+                    self.assertEqual(
+                        "/workspace/artifacts/uv-python/"
+                        "cpython-3.14.5-linux-aarch64-gnu",
+                        alias.readlink().as_posix(),
+                    )
+                elif mutation == "already-relative":
+                    self.assertEqual(self._PYTHON_VERSION, alias.readlink().as_posix())
+                elif mutation == "regular-file":
+                    self.assertEqual(b"not a link", alias.read_bytes())
+                elif mutation == "directory":
+                    self.assertTrue(alias.is_dir())
+                else:
+                    assert collision is not None
+                    assert collision_before is not None
+                    collision_after = collision.lstat()
+                    self.assertEqual(
+                        (
+                            collision_before.st_dev,
+                            collision_before.st_ino,
+                            collision_before.st_mode,
+                        ),
+                        (
+                            collision_after.st_dev,
+                            collision_after.st_ino,
+                            collision_after.st_mode,
+                        ),
+                    )
+                    self.assertEqual(b"unowned temporary", collision.read_bytes())
+
+    def test_linux_python_alias_rejects_non_directory_version_target(self) -> None:
+        for target_type in ("symlink", "regular-file"):
+            with (
+                self.subTest(target_type=target_type),
+                TemporaryDirectory() as directory,
+            ):
+                root = Path(directory).resolve()
+                python_root, alias = self._python_alias_checkout(root)
+                target = python_root / self._PYTHON_VERSION
+                target.rmdir()
+                if target_type == "symlink":
+                    (python_root / "other-version").mkdir()
+                    target.symlink_to("other-version", target_is_directory=True)
+                else:
+                    target.write_bytes(b"not a directory")
+                alias_before = alias.lstat()
+                target_before = target.lstat()
+
+                replace = Mock()
+                with (
+                    patch.object(clean.os, "replace", replace),
+                    self.assertRaises(CleanError),
+                ):
+                    clean._normalize_linux_python_alias(root)
+
+                replace.assert_not_called()
+                alias_after = alias.lstat()
+                target_after = target.lstat()
+                self.assertEqual(
+                    (alias_before.st_dev, alias_before.st_ino, alias_before.st_mode),
+                    (alias_after.st_dev, alias_after.st_ino, alias_after.st_mode),
+                )
+                self.assertEqual(
+                    (target_before.st_dev, target_before.st_ino, target_before.st_mode),
+                    (target_after.st_dev, target_after.st_ino, target_after.st_mode),
+                )
+                self.assertEqual(
+                    self._PYTHON_CONTAINER_TARGET, alias.readlink().as_posix()
+                )
+                if target_type == "symlink":
+                    self.assertEqual("other-version", target.readlink().as_posix())
+                else:
+                    self.assertEqual(b"not a directory", target.read_bytes())
+
+    def test_linux_python_alias_postpublication_failure_leaves_published_state(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            python_root, alias = self._python_alias_checkout(root)
+            real_replace = clean.os.replace
+            replacements = 0
+
+            def replace_once(*args: object, **kwargs: object) -> None:
+                nonlocal replacements
+                replacements += 1
+                real_replace(*args, **kwargs)
+
+            with (
+                patch.object(clean.os, "replace", side_effect=replace_once),
+                patch.object(clean.os, "fsync", side_effect=OSError("injected fsync")),
+                self.assertRaises(CleanError),
+            ):
+                clean._normalize_linux_python_alias(root)
+
+            self.assertEqual(1, replacements)
+            self.assertEqual(self._PYTHON_VERSION, alias.readlink().as_posix())
+            self.assertEqual(
+                self._PYTHON_VERSION,
+                clean.build_inventory(root)["links"][0]["target"],
+            )
+            temporary = python_root / self._PYTHON_NORMALIZE_TEMPORARY
+            self.assertFalse(temporary.exists() or temporary.is_symlink())
+
+    def test_linux_python_alias_replace_failure_leaves_scratch_for_outer_discard(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            python_root, alias = self._python_alias_checkout(root)
+            temporary = python_root / self._PYTHON_NORMALIZE_TEMPORARY
+            replace = Mock(side_effect=OSError("injected replace"))
+
+            with (
+                patch.object(clean.os, "replace", replace),
+                patch.object(
+                    clean.os,
+                    "unlink",
+                    side_effect=AssertionError("normalizer must not clean pathnames"),
+                ),
+                self.assertRaises(CleanError),
+            ):
+                clean._normalize_linux_python_alias(root)
+
+            self.assertEqual(1, replace.call_count)
+            self.assertEqual(self._PYTHON_CONTAINER_TARGET, alias.readlink().as_posix())
+            self.assertEqual(self._PYTHON_VERSION, temporary.readlink().as_posix())
+
+    def test_linux_python_alias_descriptor_close_failure_remains_hard(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            _python_root, alias = self._python_alias_checkout(root)
+            real_close = clean.os.close
+            real_fsync = clean.os.fsync
+            python_descriptor: int | None = None
+            injected = False
+
+            def remember_python_descriptor(descriptor: int) -> None:
+                nonlocal python_descriptor
+                python_descriptor = descriptor
+                real_fsync(descriptor)
+
+            def fail_python_close(descriptor: int) -> None:
+                nonlocal injected
+                if descriptor == python_descriptor and not injected:
+                    injected = True
+                    raise OSError("injected descriptor close")
+                real_close(descriptor)
+
+            try:
+                with (
+                    patch.object(
+                        clean.os, "fsync", side_effect=remember_python_descriptor
+                    ),
+                    patch.object(clean.os, "close", side_effect=fail_python_close),
+                    self.assertRaises(CleanError),
+                ):
+                    clean._normalize_linux_python_alias(root)
+            finally:
+                if python_descriptor is not None and injected:
+                    real_close(python_descriptor)
+
+            self.assertTrue(injected)
+            self.assertEqual(self._PYTHON_VERSION, alias.readlink().as_posix())
+
+    def test_linux_python_alias_rechecks_source_immediately_before_replace(
+        self,
+    ) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            _python_root, alias = self._python_alias_checkout(root)
+            original = alias.lstat()
+            real_open = clean.os.open
+            real_replace = clean.os.replace
+            replace = Mock(wraps=real_replace)
+            temporary_opens = 0
+
+            def substitute_during_second_temporary_resolution(
+                path: object,
+                flags: int,
+                mode: int = 0o777,
+                *,
+                dir_fd: int | None = None,
+            ) -> int:
+                nonlocal temporary_opens
+                if path == self._PYTHON_NORMALIZE_TEMPORARY:
+                    temporary_opens += 1
+                    if temporary_opens == 2:
+                        alias.unlink()
+                        alias.symlink_to(self._PYTHON_CONTAINER_TARGET)
+                return real_open(path, flags, mode, dir_fd=dir_fd)
+
+            with (
+                patch.object(
+                    clean.os,
+                    "open",
+                    side_effect=substitute_during_second_temporary_resolution,
+                ),
+                patch.object(clean.os, "replace", replace),
+                self.assertRaises(CleanError),
+            ):
+                clean._normalize_linux_python_alias(root)
+
+            self.assertEqual(2, temporary_opens)
+            replace.assert_not_called()
+            changed = alias.lstat()
+            self.assertNotEqual(
+                (original.st_dev, original.st_ino),
+                (changed.st_dev, changed.st_ino),
+            )
+            self.assertEqual(
+                self._PYTHON_CONTAINER_TARGET, alias.readlink().as_posix()
+            )
+
+    def test_linux_python_alias_detects_substituted_temporary_at_publication(
+        self,
+    ) -> None:
+        for substituted_target in ("adversarial", self._PYTHON_VERSION):
+            with (
+                self.subTest(substituted_target=substituted_target),
+                TemporaryDirectory() as directory,
+            ):
+                root = Path(directory).resolve()
+                _python_root, alias = self._python_alias_checkout(root)
+                real_replace = clean.os.replace
+                real_symlink = clean.os.symlink
+                real_unlink = clean.os.unlink
+                calls = 0
+
+                def substitute_then_replace(
+                    source: str,
+                    destination: str,
+                    *,
+                    src_dir_fd: int,
+                    dst_dir_fd: int,
+                ) -> None:
+                    nonlocal calls
+                    calls += 1
+                    real_unlink(source, dir_fd=src_dir_fd)
+                    real_symlink(substituted_target, source, dir_fd=src_dir_fd)
+                    real_replace(
+                        source,
+                        destination,
+                        src_dir_fd=src_dir_fd,
+                        dst_dir_fd=dst_dir_fd,
+                    )
+
+                with (
+                    patch.object(
+                        clean.os, "replace", side_effect=substitute_then_replace
+                    ),
+                    self.assertRaises(CleanError),
+                ):
+                    clean._normalize_linux_python_alias(root)
+
+                self.assertEqual(1, calls)
+                self.assertEqual(substituted_target, alias.readlink().as_posix())
+
+    def test_linux_postpublication_substitutions_stop_before_inventory(self) -> None:
+        for mutation in ("alias", "parent", "target"):
+            with self.subTest(mutation=mutation), TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                python_root, alias = self._python_alias_checkout(root)
+                version = python_root / self._PYTHON_VERSION
+                real_fsync = clean.os.fsync
+                real_replace = clean.os.replace
+                replacements = 0
+
+                def replace_once(*args: object, **kwargs: object) -> None:
+                    nonlocal replacements
+                    replacements += 1
+                    real_replace(*args, **kwargs)
+
+                def substitute_after_fsync(descriptor: int) -> None:
+                    real_fsync(descriptor)
+                    if mutation == "alias":
+                        alias.unlink()
+                        alias.symlink_to("adversarial")
+                    elif mutation == "parent":
+                        python_root.rename(root / "artifacts/uv-python-held")
+                        python_root.mkdir()
+                    else:
+                        version.rename(python_root / f"{self._PYTHON_VERSION}.held")
+                        version.mkdir()
+
+                phases: list[str] = []
+                with (
+                    patch.object(clean, "_validate_runtime_roots"),
+                    patch.object(
+                        clean,
+                        "_run_linux_container",
+                        side_effect=lambda *_args: phases.append(_args[-1]),
+                    ),
+                    patch.object(clean.os, "replace", side_effect=replace_once),
+                    patch.object(clean.os, "fsync", side_effect=substitute_after_fsync),
+                    patch.object(
+                        clean,
+                        "build_inventory",
+                        side_effect=AssertionError("inventory must not start"),
+                    ) as build,
+                    self.assertRaises(CleanError),
+                ):
+                    clean._run_linux_phases(
+                        SimpleNamespace(),
+                        root,
+                        SimpleNamespace(),
+                        SimpleNamespace(),
+                        "image",
+                        root / "git",
+                    )
+
+                self.assertEqual(1, replacements)
+                self.assertEqual(["probe", "acquire"], phases)
+                build.assert_not_called()
+
     def test_linux_phases_publish_once_then_compare_offline_and_full_inventory(
         self,
     ) -> None:
@@ -2410,6 +2956,12 @@ class LinuxProtocolTests(unittest.TestCase):
                 ) as build,
                 patch.object(
                     clean,
+                    "_normalize_linux_python_alias",
+                    side_effect=lambda *_args: events.append("normalize"),
+                    create=True,
+                ) as normalize,
+                patch.object(
+                    clean,
                     "write_inventory",
                     side_effect=lambda *_args: events.append("publish"),
                 ) as write,
@@ -2442,6 +2994,7 @@ class LinuxProtocolTests(unittest.TestCase):
 
         self.assertEqual(["probe", "acquire", "offline"], phases)
         roots.assert_called_once_with(checkout)
+        normalize.assert_called_once_with(checkout)
         remove.assert_called_once_with(checkout, git)
         recreate.assert_called_once_with(checkout)
         state.assert_called_once_with(checkout)
@@ -2450,6 +3003,7 @@ class LinuxProtocolTests(unittest.TestCase):
             [
                 "probe",
                 "acquire",
+                "normalize",
                 "build",
                 "publish",
                 "reload",
@@ -2474,7 +3028,14 @@ class LinuxProtocolTests(unittest.TestCase):
         self,
     ) -> None:
         inventory = {"schema_version": 0, "roots": [], "files": [], "links": []}
-        for failure in ("acquire", "build", "write", "reload", "reload_error"):
+        for failure in (
+            "acquire",
+            "normalize",
+            "build",
+            "write",
+            "reload",
+            "reload_error",
+        ):
             events: list[str] = []
 
             def run(*_args):
@@ -2482,6 +3043,11 @@ class LinuxProtocolTests(unittest.TestCase):
                 events.append(phase)
                 if failure == "acquire" and phase == "acquire":
                     raise CleanError("acquisition or cleanup failed")
+
+            def normalize(_root):
+                events.append("normalize")
+                if failure == "normalize":
+                    raise CleanError("alias normalization failed")
 
             def build(_root):
                 events.append("build")
@@ -2504,6 +3070,12 @@ class LinuxProtocolTests(unittest.TestCase):
                 self.subTest(failure=failure),
                 patch.object(clean, "_validate_runtime_roots"),
                 patch.object(clean, "_run_linux_container", side_effect=run),
+                patch.object(
+                    clean,
+                    "_normalize_linux_python_alias",
+                    side_effect=normalize,
+                    create=True,
+                ),
                 patch.object(clean, "build_inventory", side_effect=build),
                 patch.object(clean, "write_inventory", side_effect=write),
                 patch.object(clean, "load_inventory", side_effect=load),
@@ -2511,6 +3083,21 @@ class LinuxProtocolTests(unittest.TestCase):
                     clean,
                     "_remove_disposable_outputs",
                     side_effect=lambda *_args: events.append("remove"),
+                ),
+                patch.object(
+                    clean,
+                    "_recreate_cargo_target_root",
+                    side_effect=lambda *_args: events.append("recreate"),
+                ),
+                patch.object(
+                    clean,
+                    "_validate_offline_disposable_state",
+                    side_effect=lambda *_args: events.append("state"),
+                ),
+                patch.object(
+                    clean,
+                    "_validate_cargo_target_root",
+                    side_effect=lambda *_args: events.append("target"),
                 ),
                 self.assertRaises(CleanError),
             ):
@@ -2525,6 +3112,22 @@ class LinuxProtocolTests(unittest.TestCase):
 
             self.assertNotIn("remove", events)
             self.assertNotIn("offline", events)
+            if failure == "acquire":
+                self.assertNotIn("normalize", events)
+            else:
+                self.assertIn("normalize", events)
+                if failure != "normalize":
+                    failed_event = "reload" if failure == "reload_error" else failure
+                    self.assertLess(
+                        events.index("normalize"), events.index(failed_event)
+                    )
+            if failure == "normalize":
+                self.assertNotIn("build", events)
+                self.assertNotIn("write", events)
+                self.assertNotIn("reload", events)
+                self.assertNotIn("recreate", events)
+                self.assertNotIn("state", events)
+                self.assertNotIn("target", events)
 
     def test_offline_phase_requires_absent_venv_and_exact_empty_target(self) -> None:
         with TemporaryDirectory() as directory:

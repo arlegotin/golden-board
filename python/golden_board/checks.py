@@ -592,6 +592,7 @@ _COMMAND_FUNCTION_TARGETS = {
         "_native_environment",
         "_native_sdk",
         "_new_temporary_root",
+        "_normalize_linux_python_alias",
         "_prepare_checkout_directories",
         "_prepare_docker_client",
         "_probe_docker_daemon",
@@ -734,6 +735,10 @@ _COMMAND_ASSIGNMENT_TARGETS = {
         "LINUX_LIBC_VERSION",
         "LINUX_PLATFORM",
         "LINUX_PROTOCOL",
+        "LINUX_PYTHON_ALIAS",
+        "LINUX_PYTHON_CONTAINER_TARGET",
+        "LINUX_PYTHON_NORMALIZE_TEMPORARY",
+        "LINUX_PYTHON_VERSION",
         "LINUX_RUSTUP",
         "LINUX_RUSTUP_HOME",
         "LINUX_RUSTUP_VERSION",
@@ -1208,6 +1213,10 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     ): "436ab20813afe006d43c2463cf3285f8d5a9174f4fedc5caf4a1c9fae8daeb77",
     (
         "python/golden_board/clean.py",
+        "_normalize_linux_python_alias",
+    ): "204d894b7311fda25a0b8974f210a363de2232a746dbf7916e844c58d1c930bd",
+    (
+        "python/golden_board/clean.py",
         "_prepare_checkout_directories",
     ): "a749e732621c11e4fab4d0950437119ada84eea0bc39c2429ffd83dc1f5e2d31",
     (
@@ -1301,7 +1310,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_run_linux_phases",
-    ): "02bb7254d0d6545317609c01ea3f30cb580445bba20077b013ea16a5aec50423",
+    ): "360e671bdeb7c0f19d44815d62e30224ca84b11f9213b13a7e0d8a03571ef6dc",
     (
         "python/golden_board/clean.py",
         "_run_native_phases",
@@ -1632,6 +1641,22 @@ _COMMAND_ASSIGNMENT_AST_SHA256 = {
         "python/golden_board/clean.py",
         "LINUX_PROTOCOL",
     ): "6879d6fa6f80588715d5f2c0bf0516248c0385cd83e0226a252b6874ed9097e6",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_PYTHON_ALIAS",
+    ): "08dd5a8853da93a490662f6716932bd624c6637bb6905269e7ae87e92e0375bf",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_PYTHON_CONTAINER_TARGET",
+    ): "b0ff3bb3785930942588df3e5cc999b785c2785a823a79d921fbaaa5cea21f3e",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_PYTHON_NORMALIZE_TEMPORARY",
+    ): "19c77a5762bfcf54f44ffa7b1332ea06af5a6dd827e13a893c0ec6ecbe8017e6",
+    (
+        "python/golden_board/clean.py",
+        "LINUX_PYTHON_VERSION",
+    ): "8f590cbd49727162f1b21bb77af28465ebe1d04fc72e4ca0f8a5ab45a6205a0d",
     (
         "python/golden_board/clean.py",
         "LINUX_RUSTUP",

@@ -806,6 +806,12 @@ LINUX_RUST_BIN = f"{LINUX_RUST_SYSROOT}/bin"
 LINUX_CC_VERSION = "12.2.0"
 LINUX_LD_VERSION = "GNU ld (GNU Binutils for Debian) 2.40"
 LINUX_LIBC_VERSION = "ldd (Debian GLIBC 2.36-9+deb12u13) 2.36"
+LINUX_PYTHON_ALIAS = "cpython-3.14-linux-aarch64-gnu"
+LINUX_PYTHON_VERSION = "cpython-3.14.6-linux-aarch64-gnu"
+LINUX_PYTHON_CONTAINER_TARGET = (
+    "/workspace/artifacts/uv-python/cpython-3.14.6-linux-aarch64-gnu"
+)
+LINUX_PYTHON_NORMALIZE_TEMPORARY = ".cpython-3.14-linux-aarch64-gnu.normalize.tmp"
 _LINUX_TOKEN = re.compile(r"[A-Za-z0-9._+-]{1,64}\Z")
 
 
@@ -2204,6 +2210,234 @@ def _validate_offline_disposable_state(root: Path) -> None:
             os.close(descriptor)
 
 
+def _normalize_linux_python_alias(root: Path) -> None:
+    repository = _repository(root)
+    directory_flags = os.O_RDONLY | os.O_CLOEXEC | os.O_DIRECTORY | os.O_NOFOLLOW
+    follow_directory_flags = os.O_RDONLY | os.O_CLOEXEC | os.O_DIRECTORY
+    root_descriptor: int | None = None
+    artifacts: int | None = None
+    python_root: int | None = None
+    version: int | None = None
+    mount: tuple[int, bytes | None] | None = None
+    failure: BaseException | None = None
+
+    def directories_current() -> None:
+        if (
+            root_descriptor is None
+            or artifacts is None
+            or python_root is None
+            or version is None
+            or mount is None
+        ):
+            raise CleanError("unsafe clean-Linux Python alias directories")
+        held_root = os.fstat(root_descriptor)
+        path_root = repository.lstat()
+        held_artifacts = os.fstat(artifacts)
+        named_artifacts = os.stat(
+            "artifacts", dir_fd=root_descriptor, follow_symlinks=False
+        )
+        path_artifacts = (repository / "artifacts").lstat()
+        held_python = os.fstat(python_root)
+        named_python = os.stat("uv-python", dir_fd=artifacts, follow_symlinks=False)
+        path_python = (repository / "artifacts/uv-python").lstat()
+        held_version = os.fstat(version)
+        named_version = os.stat(
+            LINUX_PYTHON_VERSION,
+            dir_fd=python_root,
+            follow_symlinks=False,
+        )
+        path_version = (
+            repository / "artifacts/uv-python" / LINUX_PYTHON_VERSION
+        ).lstat()
+        if (
+            not all(
+                stat.S_ISDIR(value.st_mode)
+                for value in (
+                    held_root,
+                    path_root,
+                    held_artifacts,
+                    named_artifacts,
+                    path_artifacts,
+                    held_python,
+                    named_python,
+                    path_python,
+                    held_version,
+                    named_version,
+                    path_version,
+                )
+            )
+            or _facts(held_root) != _facts(path_root)
+            or _facts(held_artifacts) != _facts(named_artifacts)
+            or _facts(held_artifacts) != _facts(path_artifacts)
+            or _facts(held_python) != _facts(named_python)
+            or _facts(held_python) != _facts(path_python)
+            or _facts(held_version) != _facts(named_version)
+            or _facts(held_version) != _facts(path_version)
+            or not same_held_mount(mount, artifacts, repository / "artifacts")
+            or not same_held_mount(
+                mount,
+                python_root,
+                repository / "artifacts/uv-python",
+            )
+            or not same_held_mount(
+                mount,
+                version,
+                repository / "artifacts/uv-python" / LINUX_PYTHON_VERSION,
+            )
+        ):
+            raise CleanError("unsafe clean-Linux Python alias directories")
+
+    def link_state(
+        name: str,
+        target: str,
+        *,
+        identity: tuple[int, int, int] | None = None,
+        links: int | None = None,
+    ) -> os.stat_result:
+        if python_root is None or mount is None:
+            raise CleanError("unsafe clean-Linux Python alias")
+        directories_current()
+        before = os.stat(name, dir_fd=python_root, follow_symlinks=False)
+        if not stat.S_ISLNK(before.st_mode):
+            raise CleanError("unsafe clean-Linux Python alias")
+        before_target = os.readlink(name, dir_fd=python_root)
+        path_state = (repository / "artifacts/uv-python" / name).lstat()
+        after = os.stat(name, dir_fd=python_root, follow_symlinks=False)
+        after_target = os.readlink(name, dir_fd=python_root)
+        if (
+            before.st_dev != mount[0]
+            or _facts(before) != _facts(path_state)
+            or _facts(before) != _facts(after)
+            or before_target != target
+            or after_target != target
+            or (identity is not None and _identity(after) != identity)
+            or (links is not None and after.st_nlink != links)
+        ):
+            raise CleanError("unsafe clean-Linux Python alias")
+        directories_current()
+        return after
+
+    def resolves_to_version(
+        name: str,
+        identity: tuple[int, int, int],
+    ) -> None:
+        if python_root is None or version is None or mount is None:
+            raise CleanError("unsafe clean-Linux Python alias")
+        link_state(
+            name,
+            LINUX_PYTHON_VERSION,
+            identity=identity,
+            links=1,
+        )
+        resolved = os.open(name, follow_directory_flags, dir_fd=python_root)
+        try:
+            held = os.fstat(resolved)
+            expected = os.fstat(version)
+            if (
+                not stat.S_ISDIR(held.st_mode)
+                or _facts(held) != _facts(expected)
+                or not same_held_mount(
+                    mount,
+                    resolved,
+                    repository / "artifacts/uv-python" / name,
+                )
+            ):
+                raise CleanError("unsafe clean-Linux Python alias target")
+        finally:
+            os.close(resolved)
+        link_state(
+            name,
+            LINUX_PYTHON_VERSION,
+            identity=identity,
+            links=1,
+        )
+
+    def require_absent(name: str) -> None:
+        if python_root is None:
+            raise CleanError("unsafe clean-Linux Python alias")
+        try:
+            os.stat(name, dir_fd=python_root, follow_symlinks=False)
+        except FileNotFoundError:
+            return
+        raise CleanError("clean-Linux Python alias scratch collision")
+
+    try:
+        root_descriptor = os.open(repository, directory_flags)
+        mount = held_mount_identity(root_descriptor)
+        artifacts = os.open("artifacts", directory_flags, dir_fd=root_descriptor)
+        python_root = os.open("uv-python", directory_flags, dir_fd=artifacts)
+        version = os.open(
+            LINUX_PYTHON_VERSION,
+            directory_flags,
+            dir_fd=python_root,
+        )
+        directories_current()
+        require_absent(LINUX_PYTHON_NORMALIZE_TEMPORARY)
+        original = link_state(
+            LINUX_PYTHON_ALIAS,
+            LINUX_PYTHON_CONTAINER_TARGET,
+            links=1,
+        )
+        original_identity = _identity(original)
+
+        os.symlink(
+            LINUX_PYTHON_VERSION,
+            LINUX_PYTHON_NORMALIZE_TEMPORARY,
+            dir_fd=python_root,
+        )
+        temporary = link_state(
+            LINUX_PYTHON_NORMALIZE_TEMPORARY,
+            LINUX_PYTHON_VERSION,
+            links=1,
+        )
+        temporary_identity = _identity(temporary)
+        resolves_to_version(
+            LINUX_PYTHON_NORMALIZE_TEMPORARY,
+            temporary_identity,
+        )
+        resolves_to_version(
+            LINUX_PYTHON_NORMALIZE_TEMPORARY,
+            temporary_identity,
+        )
+        link_state(
+            LINUX_PYTHON_ALIAS,
+            LINUX_PYTHON_CONTAINER_TARGET,
+            identity=original_identity,
+            links=1,
+        )
+
+        os.replace(
+            LINUX_PYTHON_NORMALIZE_TEMPORARY,
+            LINUX_PYTHON_ALIAS,
+            src_dir_fd=python_root,
+            dst_dir_fd=python_root,
+        )
+        resolves_to_version(LINUX_PYTHON_ALIAS, temporary_identity)
+        directories_current()
+        os.fsync(python_root)
+        require_absent(LINUX_PYTHON_NORMALIZE_TEMPORARY)
+        resolves_to_version(LINUX_PYTHON_ALIAS, temporary_identity)
+        directories_current()
+    except BaseException as error:
+        failure = error
+    finally:
+        for descriptor in (version, python_root, artifacts, root_descriptor):
+            if descriptor is not None:
+                try:
+                    os.close(descriptor)
+                except OSError as error:
+                    if failure is None:
+                        failure = error
+
+    if failure is None:
+        return
+    if isinstance(failure, CleanError):
+        raise failure
+    if isinstance(failure, (KeyboardInterrupt, SystemExit)):
+        raise failure
+    raise CleanError("clean-Linux Python alias normalization failed") from failure
+
+
 def _run_linux_phases(
     client: _DockerClient,
     root: Path,
@@ -2215,6 +2449,7 @@ def _run_linux_phases(
     _validate_runtime_roots(root)
     _run_linux_container(client, root, uv, clean_lock, image, "probe")
     _run_linux_container(client, root, uv, clean_lock, image, "acquire")
+    _normalize_linux_python_alias(root)
     inventory = build_inventory(root)
     write_inventory(root, inventory)
     if load_inventory(root) != inventory:
