@@ -5,7 +5,7 @@
 | Roadmap revision | 1 |
 | Last updated | 2026-08-01 |
 | Project state | In progress |
-| Current milestone | M0 — Foundation and source reconnaissance |
+| Current milestone | M1 — Chess truth, source grammar, and assessment blueprint |
 | Delivery model | One implementation track, one final square bitplane |
 | Canonical anthology source | `docs/64_games.md` |
 | Mutable status authority | Section 13 |
@@ -2289,7 +2289,7 @@ This section is intentionally mutable. Updating status does not require preservi
 
 | Milestone | Status | Completion evidence or blocker |
 |---|---|---|
-| M0 — Foundation and source reconnaissance | In progress | — |
+| M0 — Foundation and source reconnaissance | Complete — 2026-08-03 and G1 source-doctor raw SHA-256 d31ba21ac75139a45da36f2b982904d55d1e03883607060159d58938991f9725 | reports/source-doctor.json |
 | M1 — Chess truth, source grammar, and assessment blueprint | Not started | — |
 | M2 — Full-carrier bootstrap and transport feasibility | Not started | — |
 | M3 — Complete content and formative integration | Not started | — |
