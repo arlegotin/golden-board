@@ -998,7 +998,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/bootstrap.py",
         "validate_venv",
-    ): "f02757cb53c8d8a4037a102734e2823dda6dba8dbd22a790834c463dbae6361e",
+    ): "67a34c31c786e0d738a0e2ae41a9a11e9d7a2540ef06003f333d7bf88e4a95ed",
     (
         "python/golden_board/checks.py",
         "_canonical_repository",
