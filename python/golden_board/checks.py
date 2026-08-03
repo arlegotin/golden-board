@@ -1382,7 +1382,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "verify_isolated_native",
-    ): "9c746a50e86c325ffc8e7e754f1ea4eeb882c261130294fd91ba052e944e3ee5",
+    ): "59fbc226dfaec5df4e0171f087bd6ede5b6a4ef05e147a0b58c54262e5d5b5c9",
     (
         "python/golden_board/clean.py",
         "verify_linux",

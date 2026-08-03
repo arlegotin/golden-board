@@ -781,6 +781,7 @@ def verify_isolated_native(
     try:
         checkout, oid = _clone_exact_head(repository, temporary, tools.git)
         lock = load_source_lock(checkout)
+        _seed_native_cache_trees(repository, checkout)
         _static_dependency_preflight(checkout)
         _probe_native_platform(checkout, tools, lock)
         _run_native_phases(checkout, tools)
@@ -2606,6 +2607,29 @@ def _native_environment(
             }
         )
     return environment
+
+
+def _seed_native_cache_trees(source_root: Path, checkout_root: Path) -> None:
+    if (
+        not isinstance(source_root, Path)
+        or not isinstance(checkout_root, Path)
+        or not source_root.is_absolute()
+        or not checkout_root.is_absolute()
+    ):
+        raise CleanError("invalid cache seed root")
+    source_root_string = os.fspath(source_root)
+    checkout_root_string = os.fspath(checkout_root)
+    if "\0" in source_root_string or "\0" in checkout_root_string:
+        raise CleanError("invalid cache seed root")
+    for name in ("uv-cache", "uv-python", "cargo-home"):
+        source = source_root / "artifacts" / name
+        if not source.is_dir():
+            continue
+        destination = checkout_root / "artifacts" / name
+        try:
+            shutil.copytree(source, destination, dirs_exist_ok=True)
+        except OSError as error:
+            raise CleanError("runtime cache seeding failed") from error
 
 
 def _validate_fresh_venv(root: Path) -> Path:
