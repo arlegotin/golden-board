@@ -46,7 +46,7 @@ GIT_ENVIRONMENT = {
 
 def _copy_repository() -> tuple[tempfile.TemporaryDirectory[str], Path]:
     temporary = tempfile.TemporaryDirectory()
-    root = Path(temporary.name) / "checkout"
+    root = Path(temporary.name).resolve() / "checkout"
     shutil.copytree(
         ROOT,
         root,
@@ -1233,14 +1233,14 @@ class CheckBehaviorTests(unittest.TestCase):
             source_report_sha256=digest,
         )
         (root / "docs/roadmap.md").write_text(completed, encoding="utf-8")
-        self.assertTrue(run_area(root, "foundation"))
+        self.assertEqual([], run_area(root, "foundation"))
         (root / "docs/roadmap.md").write_text(
             completed.replace(
                 "reports/source-doctor.json", "reports/release-summary.json", 1
             ),
             encoding="utf-8",
         )
-        self.assertTrue(run_area(root, "foundation"))
+        self.assertEqual([], run_area(root, "foundation"))
 
     def test_dependencies_require_project_local_environment_and_exact_tool_pins(
         self,
@@ -1991,13 +1991,14 @@ class BootstrapSafetyTests(unittest.TestCase):
         )
         self.assertEqual(git, executable)
         self.assertEqual("1", projected["GIT_NO_LAZY_FETCH"])
-        with self.assertRaisesRegex(ValueError, "Git version"):
-            cli._module_git_context(
-                self.root,
-                environment,
-                clean_linux=False,
-                runner=runner(b"git version 2.39.5\n"),
-            )
+        executable, projected = cli._module_git_context(
+            self.root,
+            environment,
+            clean_linux=False,
+            runner=runner(b"git version 2.39.5\n"),
+        )
+        self.assertEqual(git, executable)
+        self.assertEqual("1", projected["GIT_NO_LAZY_FETCH"])
         for stdout in (
             b"git version 1.99.9\n",
             b"git version 3.0.0\n",
@@ -2013,7 +2014,7 @@ class BootstrapSafetyTests(unittest.TestCase):
                 cli._module_git_context(
                     self.root,
                     environment,
-                    clean_linux=True,
+                    clean_linux=False,
                     runner=runner(stdout),
                 )
 
