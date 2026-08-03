@@ -1314,7 +1314,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "_run_native_phases",
-    ): "ccc135bb86887ca0f41fe24a84e40814354ef99c27b7df8ed059230ca8454760",
+    ): "49e58cf4ce0167ddb735d916db65a97c19d8b28727a89b7cb29f82d6a4098f05",
     (
         "python/golden_board/clean.py",
         "_safe_executable",
@@ -1382,7 +1382,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/clean.py",
         "verify_isolated_native",
-    ): "59fbc226dfaec5df4e0171f087bd6ede5b6a4ef05e147a0b58c54262e5d5b5c9",
+    ): "6f9593b3b955ab3b75d5e787fbefbe4fd1bb5bdd9acbdb0b6c62020473e2d32b",
     (
         "python/golden_board/clean.py",
         "verify_linux",

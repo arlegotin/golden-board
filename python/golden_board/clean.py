@@ -42,6 +42,9 @@ class CleanError(ValueError):
     pass
 
 
+_NATIVE_CACHE_SOURCE_ROOT: Path | None = None
+
+
 TOOL_TIMEOUT = 10.0
 COMMAND_TIMEOUT = 900.0
 OUTPUT_LIMIT = 1024 * 1024
@@ -772,6 +775,7 @@ def verify_isolated_native(
     *,
     git_executable: Path,
 ) -> dict[str, object]:
+    global _NATIVE_CACHE_SOURCE_ROOT
     repository = _repository(root)
     sealed_path = os.environ.get("PATH")
     if sealed_path is None:
@@ -779,9 +783,10 @@ def verify_isolated_native(
     tools = _resolve_native_tools(git_executable, sealed_path=sealed_path)
     temporary = _new_temporary_root()
     try:
+        previous_source_root = _NATIVE_CACHE_SOURCE_ROOT
+        _NATIVE_CACHE_SOURCE_ROOT = repository
         checkout, oid = _clone_exact_head(repository, temporary, tools.git)
         lock = load_source_lock(checkout)
-        _seed_native_cache_trees(repository, checkout)
         _static_dependency_preflight(checkout)
         _probe_native_platform(checkout, tools, lock)
         _run_native_phases(checkout, tools)
@@ -793,6 +798,7 @@ def verify_isolated_native(
             raise
         raise CleanError("isolated native verification failed") from error
     finally:
+        _NATIVE_CACHE_SOURCE_ROOT = previous_source_root
         _remove_temporary_root(temporary)
 
 
@@ -2926,6 +2932,8 @@ def _full_environment(tools: object, managed_python: Path) -> dict[str, str]:
 
 def _run_native_phases(root: Path, tools: object) -> Path:
     _validate_runtime_roots(root)
+    if _NATIVE_CACHE_SOURCE_ROOT is not None:
+        _seed_native_cache_trees(_NATIVE_CACHE_SOURCE_ROOT, root)
     _probe_linux_cargo_fmt(
         root,
         getattr(tools, "cargo"),
