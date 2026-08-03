@@ -235,19 +235,26 @@ roadmap is part of the M0 design, not optional setup advice.
   host inventory build,
   the adapter descriptor-walks the exact uv-Python root and version directory,
   accepts only that exact alias and target, holds the exact real same-mount
-  version directory across the transaction, creates one fixed-name
-  identity-proved same-directory temporary symlink, and preserves the original
-  alias inode with one no-follow hard-link backup before atomically replacing
-  the alias through dir-fd `os.replace`. The equivalent relative target is
-  `cpython-3.14.6-linux-aarch64-gnu`. It rechecks held directory, target, source,
-  temporary, and published identities, target bytes, final resolution, and mount
-  containment. Temporary/backup cleanup and rollback act only on exact
-  still-owned identities and targets and never unlink or overwrite an
-  unrecognized pathname. With continued ownership, a failed transaction leaves
-  either the exact original or exact canonical alias; on ownership loss it
-  touches no unrecognized entry and discards the fresh checkout. A mismatch,
-  collision, race, or replacement failure is a hard failure before deletion or
-  offline work.
+  version directory across the transaction, creates the fixed same-directory
+  temporary symlink
+  `.cpython-3.14-linux-aarch64-gnu.normalize.tmp`, proves its identity, rechecks
+  held directory, target, source, and temporary identities and target bytes, and
+  publishes with exactly one same-directory dir-fd `os.replace`. The equivalent
+  relative target is `cpython-3.14.6-linux-aarch64-gnu`. It then rechecks the
+  published identity, target bytes, final resolution, and mount containment
+  before fsyncing the held parent. Portable `os.replace` is atomic but not
+  compare-and-swap, so this narrowly owned adapter runs only after the
+  acquisition container and its
+  correlated cleanup have completed, with no authorized concurrent writer. It
+  performs no backup, rollback, unlink, or failure-path pathname cleanup. A
+  successful normalizer invocation performs exactly one replace; a failing
+  invocation performs at most one. Any mismatch, collision, substitution,
+  replacement failure, or post-publication failure is a hard failure that
+  discards the entire fresh checkout before
+  inventory, output deletion, or offline work. A failure may therefore leave
+  the temporary or published name changed only inside that doomed checkout. The
+  owning verifier's existing descriptor-safe final cleanup then removes the
+  complete fresh workspace; cleanup failure remains a hard failure.
   Only the pinned project-local Python standard library performs this operation;
   no shell or global executable participates. This makes the acquired link
   valid in both producer and host namespaces without teaching the shared
