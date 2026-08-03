@@ -367,6 +367,40 @@ class SealedCapabilityTests(unittest.TestCase):
         self.assertEqual("1", git_environment["GIT_NO_LAZY_FETCH"])
         self.assertFalse(set(self.environment()) & set(git_environment))
 
+    def test_clean_linux_tool_probes_use_only_root_local_rust_environment(self) -> None:
+        environment = self.environment()
+        environment.update(
+            {
+                "CARGO_HOME": "/attacker/cargo",
+                "HOME": "/attacker/home",
+                "RUSTUP_HOME": "/attacker/rustup",
+            }
+        )
+        probes: dict[str, dict[str, str]] = {}
+
+        def runner(argv: list[str], **kwargs: object) -> object:
+            name = Path(argv[0]).name
+            if name != "git":
+                probes[name] = dict(kwargs["env"])
+            return self.runner(argv, **kwargs)
+
+        cli._module_capability_context(
+            self.root, environment, clean_linux=True, runner=runner
+        )
+        expected = {
+            "CARGO_HOME": str(self.root / "artifacts/cargo-home"),
+            "HOME": str(self.root / "artifacts/check-home"),
+            "LANG": "C",
+            "LC_ALL": "C",
+            "PATH": str(self.tools["cargo"].parent),
+            "RUSTUP_HOME": str(self.root / "artifacts/cargo-home/rustup"),
+            "TZ": "UTC",
+        }
+        self.assertEqual(
+            {name: expected for name in ("cargo", "cargo-fmt", "rustc", "rustdoc", "rustfmt")},
+            probes,
+        )
+
     def test_module_context_rejects_missing_and_semantically_wrong_versions(
         self,
     ) -> None:

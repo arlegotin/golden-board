@@ -1452,7 +1452,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/cli.py",
         "_module_capability_context",
-    ): "7e14d91bdb84e5ebf5654c301315c7b3bb4c4d0271b9d9abcfd84c3d7190b53d",
+    ): "f5354c837927cedd07818afd0b1346c90d26bada2c666695f6a02de95eb08cb4",
     (
         "python/golden_board/cli.py",
         "_module_docker_context",
@@ -1476,7 +1476,7 @@ _COMMAND_FUNCTION_AST_SHA256 = {
     (
         "python/golden_board/cli.py",
         "_module_tool_context",
-    ): "c58d2d1e92e131d22d23379f486fbfd5f1619633fd58e7e669e61c24095841b8",
+    ): "840d1002b9c9504de163b7b3634df70f87c6a52e0f6c981b33bbe0f9f552a226",
     (
         "python/golden_board/cli.py",
         "_projected_executable",

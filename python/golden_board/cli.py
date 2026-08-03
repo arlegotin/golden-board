@@ -953,9 +953,14 @@ def _module_tool_context(
     environment: dict[str, str],
     name: str,
     *,
+    clean_linux: bool = False,
     runner=_git_version_runner,
 ) -> Path:
-    if name not in _TOOL_VERSION or type(environment) is not dict:
+    if (
+        name not in _TOOL_VERSION
+        or type(environment) is not dict
+        or type(clean_linux) is not bool
+    ):
         raise ValueError("sealed tool projection")
     executable = _projected_executable(
         environment,
@@ -968,6 +973,14 @@ def _module_tool_context(
         "PATH": str(executable.parent),
         "TZ": "UTC",
     }
+    if clean_linux:
+        projected.update(
+            {
+                "CARGO_HOME": str(root / "artifacts/cargo-home"),
+                "HOME": str(root / "artifacts/check-home"),
+                "RUSTUP_HOME": str(root / "artifacts/cargo-home/rustup"),
+            }
+        )
     try:
         result = runner([str(executable), "--version"], cwd=root, env=projected)
     except (OSError, RegistryError) as error:
@@ -1068,11 +1081,21 @@ def _module_capability_context(
         clean_linux=clean_linux,
         runner=runner,
     )
-    cargo = _module_tool_context(root, environment, "cargo", runner=runner)
-    cargo_fmt = _module_tool_context(root, environment, "cargo-fmt", runner=runner)
-    rustc = _module_tool_context(root, environment, "rustc", runner=runner)
-    rustdoc = _module_tool_context(root, environment, "rustdoc", runner=runner)
-    rustfmt = _module_tool_context(root, environment, "rustfmt", runner=runner)
+    cargo = _module_tool_context(
+        root, environment, "cargo", clean_linux=clean_linux, runner=runner
+    )
+    cargo_fmt = _module_tool_context(
+        root, environment, "cargo-fmt", clean_linux=clean_linux, runner=runner
+    )
+    rustc = _module_tool_context(
+        root, environment, "rustc", clean_linux=clean_linux, runner=runner
+    )
+    rustdoc = _module_tool_context(
+        root, environment, "rustdoc", clean_linux=clean_linux, runner=runner
+    )
+    rustfmt = _module_tool_context(
+        root, environment, "rustfmt", clean_linux=clean_linux, runner=runner
+    )
     if (
         cargo_fmt != cargo.parent / "cargo-fmt"
         or rustc != cargo.parent / "rustc"
