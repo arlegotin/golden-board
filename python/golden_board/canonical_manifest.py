@@ -80,17 +80,21 @@ def _scalar_string(value: str) -> str:
     return "".join(output)
 
 
-def _validate_value(value: Any) -> Any:
+def _validate_value(value: Any, depth: int = 1) -> Any:
     if isinstance(value, dict):
+        if depth > MAX_DEPTH:
+            raise ManifestError("nesting depth exceeds 32")
         normalized: dict[str, Any] = {}
         for raw_key, item in value.items():
             key = _scalar_string(raw_key)
             if not key or any(not 0x20 <= ord(character) <= 0x7E for character in key):
                 raise ManifestError("object key outside printable ASCII")
-            normalized[key] = _validate_value(item)
+            normalized[key] = _validate_value(item, depth + 1)
         return normalized
     if isinstance(value, list):
-        return [_validate_value(item) for item in value]
+        if depth > MAX_DEPTH:
+            raise ManifestError("nesting depth exceeds 32")
+        return [_validate_value(item, depth + 1) for item in value]
     if isinstance(value, str):
         return _scalar_string(value)
     if type(value) is bool:

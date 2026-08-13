@@ -516,20 +516,20 @@ module and one test file unless reviewability clearly demands a consumed split.
 
 ### Slice 6A: Locked-file trust boundary
 
-- [ ] Add failing lock-document tests for duplicate IDs, malformed digest/size,
+- [x] Add failing lock-document tests for duplicate IDs, malformed digest/size,
   missing or extra fields, absolute or escaping paths, wrong entry classes, and
   forbidden future selections.
 
-- [ ] Implement the consumed lock parser with `tomllib`. Accept only the closed
+- [x] Implement the consumed lock parser with `tomllib`. Accept only the closed
   M0 shape, keep tracked paths inside the supplied repository root, reject
   duplicate/future selections, and never fetch remote references.
 
-- [ ] Add failing adapter tests for exact source, missing path, symlink,
+- [x] Add failing adapter tests for exact source, missing path, symlink,
   directory and portable FIFO/socket cases, path escape, unreadable/non-regular
   objects, just-below/at/above 1,048,576 bytes, same-length replacement, append,
   deletion, and mismatched lock size/hash combinations.
 
-- [ ] Implement the locked-path adapter with an `lstat` rejection of obvious
+- [x] Implement the locked-path adapter with an `lstat` rejection of obvious
   symlink/non-regular objects, then a read-only nonblocking open with no-follow
   support where available, followed by immediate `fstat` as the authoritative
   file-kind check. This prevents a swapped-in FIFO from blocking between the
@@ -541,32 +541,32 @@ module and one test file unless reviewability clearly demands a consumed split.
 
 ### Slice 6B: Pure byte scanner
 
-- [ ] Add small table-driven tests for encoding, BOM, NFC availability, newline
+- [x] Add small table-driven tests for encoding, BOM, NFC availability, newline
   forms, controls, tabs/trailing whitespace by region, exact fences and near
   misses, orphan/nested/unclosed cases, completed-candidate spans, separators,
   tags, malformed/duplicate tags, escapes, tag orders, and punctuation. Assert
   every span round-trips by slicing the original bytes.
 
-- [ ] Implement a pure scanner whose inputs are bounded bytes and validated lock
+- [x] Implement a pure scanner whose inputs are bounded bytes and validated lock
   facts and whose output is a bounded manifest value. It must not consult the
   filesystem, network, time, environment, locale, randomness, subprocesses, or
   chess logic. Only exact completed fence pairs contribute blocks.
 
 ### Slice 6C: Movetext inventory, duplicates, and report schema
 
-- [ ] Add tests for every lexical class and construct in M0 spec Sections
+- [x] Add tests for every lexical class and construct in M0 spec Sections
   8.6–8.8, including line wrapping, result agreement states, empty movetext,
   unknowns, SAN-shaped features, tag/movetext punctuation separation, raw and
   token-sequence duplicates, deterministic ordering, sample truncation, and
   exact fragment spans.
 
-- [ ] Add adversarial long-line/token, fence-dense, unique-tag-dense, invalid
+- [x] Add adversarial long-line/token, fence-dense, unique-tag-dense, invalid
   UTF-8, CRLF, and report-growth cases. Verify the single input/report ceiling,
   32 examples per sampled category, 256 retained bytes per sample, checked
   canonical size accounting, and the exact `report_limit` error manifest. Use
   anchored/linear matching; no input-dependent catastrophic regex.
 
-- [ ] Implement the exact closed report shape, fixed strings, ranges, hashes,
+- [x] Implement the exact closed report shape, fixed strings, ranges, hashes,
   sample fragments, sort orders, duplicate equality confirmation, and
   lexical-only field allowlist in M0 spec Section 8.8. Both implementations must
   accept normal report bytes as canonical manifest; Python additionally checks
@@ -574,12 +574,12 @@ module and one test file unless reviewability clearly demands a consumed split.
 
 ### Slice 6D: Current-source evidence
 
-- [ ] Expose one thin module command that asks Git for the enclosing worktree,
+- [x] Expose one thin module command that asks Git for the enclosing worktree,
   loads its lock, reads only the locked anthology, and writes candidate report
   bytes to stdout. It accepts no arbitrary source path or source-derived shell
   command, executes no input, and never writes the tracked report itself.
 
-- [ ] Test the command from the checkout root and a nested working directory.
+- [x] Test the command from the checkout root and a nested working directory.
   A safe bounded read emits a report; the gate exits 0 only when size/hash,
   UTF-8/no-BOM, locked LF/final-LF, controls, 64 candidates, and orphan/nested/
   unclosed-fence invariants all pass. Lock, encoding, newline, control, count,
@@ -587,7 +587,7 @@ module and one test file unless reviewability clearly demands a consumed split.
   misses alone remain nonblocking. Unsafe input leaves stdout empty and exits 1;
   report overflow emits only the exact `report_limit` manifest and exits 1.
 
-- [ ] Create ignored authoring storage with pinned Python and generate a
+- [x] Create ignored authoring storage with pinned Python and generate a
   candidate there, never directly over the tracked report. Review it against
   M0 spec Section 2.2 and the Section 8.8 schema. Install approved bytes by
   writing a same-directory temporary file under `reports/`, closing it, and
@@ -595,17 +595,17 @@ module and one test file unless reviewability clearly demands a consumed split.
   that explicit candidate-review/atomic-replace workflow in README so an
   interrupted generation leaves either the old complete report or the new one.
 
-- [ ] Add the focused-source harness: capture one fresh full-source generation
+- [x] Add the focused-source harness: capture one fresh full-source generation
   in `tempfile.TemporaryDirectory`, compare it byte-for-byte to the tracked
   report, validate all spans/order/non-claim invariants, and compare the source
   digest before and after. Ordinary tests never update the report.
 
-- [ ] Extend the Rust conformance test to validate the tracked report bytes as
+- [x] Extend the Rust conformance test to validate the tracked report bytes as
   canonical manifest v0 without learning the Python source-report schema. The
   source-focused Python tests remain the sole checker of report-specific fields
   and spans.
 
-- [ ] Run after every slice and once over the real source:
+- [x] Run after every slice and once over the real source:
 
   ```sh
   PYTHONPATH="$PWD/python" uv run --locked --offline --no-python-downloads \

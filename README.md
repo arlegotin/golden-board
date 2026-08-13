@@ -29,6 +29,27 @@ rustup toolchain install 1.97.1 --profile minimal --component rustfmt
 Dependency acquisition commands will be added with the native lockfiles. Root
 check commands will be documented when the real dispatcher exists.
 
+## Source-doctor evidence
+
+Ordinary checks compare a fresh report with the tracked evidence and never
+rewrite it. To review an intentional update, generate into ignored authoring
+storage first:
+
+```sh
+mkdir -p artifacts
+PYTHONPATH="$PWD/python" uv run --locked --offline --no-python-downloads \
+  python -m golden_board.source_doctor > artifacts/source-doctor.candidate.json
+```
+
+After reviewing that complete candidate, install it with a same-directory
+temporary file and atomic replace; do not redirect output over the tracked
+report:
+
+```sh
+PYTHONPATH="$PWD/python" uv run --locked --offline --no-python-downloads \
+  python -c 'import os,tempfile; from pathlib import Path; s=Path("artifacts/source-doctor.candidate.json"); d=Path("reports/source-doctor.json"); d.parent.mkdir(exist_ok=True); f=tempfile.NamedTemporaryFile(dir=d.parent,delete=False); p=f.name; f.write(s.read_bytes()); f.close(); os.replace(p,d)'
+```
+
 ## Repository map
 
 - `docs/roadmap.md` — product contract, milestone gates, and status authority
