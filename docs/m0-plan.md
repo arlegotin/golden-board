@@ -259,7 +259,7 @@ pins are exact, and no project/future scaffold exists.
 - Create: `conformance/registry.toml`
 - Modify: `docs/m0-spec.md`
 
-- [ ] Move the exact identity/canonical-manifest wire contract from M0 spec
+- [x] Move the exact identity/canonical-manifest wire contract from M0 spec
   Sections 7.1–7.7 into `spec/identity-v0.md`. In the same change, replace the
   duplicate wire prose in `docs/m0-spec.md` with a short owner link and an
   acceptance checklist for framing, domains, data model, serialization, limits,
@@ -267,21 +267,21 @@ pins are exact, and no project/future scaffold exists.
   point to the new owner headings, then search for duplicated normative
   algorithms before proceeding.
 
-- [ ] Write `conformance/identity-v0.json` as a canonical manifest with the
+- [x] Write `conformance/identity-v0.json` as a canonical manifest with the
   cases under `spec/identity-v0.md` “Conformance fixtures”: NIST empty and
   one-byte `d3` SHA-256 cases, zero
   fields versus one empty field, ambiguous-looking field boundaries, two local
   test domains, binary bytes, count/length helper boundaries, and lowercase
   output.
 
-- [ ] Write `conformance/manifest-v0.json` with lowercase-hex payloads and
+- [x] Write `conformance/manifest-v0.json` with lowercase-hex payloads and
   expected canonical/rejection outcomes covering the valid, noncanonical,
   invalid, depth, integer, Unicode, duplicate-key, escape, UTF-8, and size cases
   under the owning spec's data-model, serialization, limits, and fixtures
   headings. Describe size/depth boundary recipes compactly; construct the large
   values in each implementation's tests.
 
-- [ ] Independently spot-check the hand-authored bytes before any implementation
+- [x] Independently spot-check the hand-authored bytes before any implementation
   can bless them:
 
   - manually expand at least zero fields, one empty field, `a|bc`, and `ab|c`
@@ -292,12 +292,12 @@ pins are exact, and no project/future scaffold exists.
     terminal-LF cases byte by byte; and
   - confirm fixture-local `test:*` domains are not registered product domains.
 
-- [ ] Create `conformance/registry.toml` only after both payloads exist. Give
+- [x] Create `conformance/registry.toml` only after both payloads exist. Give
   each entry its unique ID, path, spec/version, SHA-256, consumers `python` and
   `rust`, and provenance `hand-authored`. Register exactly these two suites;
   every other future category stays absent rather than empty.
 
-- [ ] Validate shape and hashes with a disposable standard-library command or
+- [x] Validate shape and hashes with a disposable standard-library command or
   review snippet. Do not add a fixture generator, updater, or schema package.
   Re-run:
 
