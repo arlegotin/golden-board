@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Roadmap revision | 1 |
-| Last updated | 2026-08-01 |
+| Roadmap revision | 2 |
+| Last updated | 2026-08-14 |
 | Project state | Not started |
 | Current milestone | M0 — Foundation and source reconnaissance |
 | Delivery model | One implementation track, one final square bitplane |
@@ -248,7 +248,7 @@ AGENTS.md                         concise agent rules
 README.md                         setup, commands, project summary, status link
 docs/roadmap.md                   this roadmap
 docs/sources.md                   exact research/reference ledger created at M0
-docs/decisions.md                 concise consequential choices only
+docs/decisions.md                 created only when the first consequential choice exists
 docs/64_games.md                  authoritative anthology source
 inputs/source-lock.toml           source and normative-reference identities
 inputs/semantic-inputs.json       final platform-independent byte inputs
@@ -267,7 +267,7 @@ conformance/                      small tracked valid/invalid vector payloads
 python/                           reference core, source compiler, packer, generators
 crates/                           independent Rust core, CLI, later Wasm target
 web/                              minimal guided explorer, introduced at M6
-reports/release-summary.json      compact generated acceptance summary
+reports/release-summary.json      compact generated acceptance summary, introduced at M4
 artifacts/                        ignored candidates, raw reports, caches
 scripts/check                     one root command
 ```
@@ -283,12 +283,13 @@ M0 MUST NOT require choices that later milestones are responsible for selecting.
 - `docs/64_games.md` relative path, raw byte length, and SHA-256;
 - the frozen FIDE rules snapshot/version used by the project;
 - the source-format reference snapshot/version;
-- the FIPS 180-4 SHA-256 reference and known-answer source;
-- candidate references for checks and error-correction methods, without pretending one is already selected;
-- Python, Rust, package-manager, and host versions used for development; and
-- the chosen clean Linux verification mechanism, or a specific blocker before M2 closes.
+- FIPS 180-4 as the SHA-256 definition and, separately, the locked CAVP/CAVS
+  SHA-256 vectors used for known-answer checks; and
+- enough immutable identity information to detect substitution of every retained external reference.
 
-The selected transport, checks, interleave, shell notation, profile limits, and final dimensions are recorded only by their owning milestones. M0 may record candidate references; it cannot record future selections as though they already exist.
+Toolchain pins live in their native project files. Host observations are build provenance, not source identity. The concrete clean-Linux mechanism and its deadline live in the M0 execution specification until a real container or equivalent has a consumer.
+
+The selected transport, checks, interleave, shell notation, profile limits, and final dimensions are recorded only by their owning milestones. Candidate-method references remain roadmap background until an owning milestone has a real comparison consumer; M0 cannot record future selections as though they already exist.
 
 ### 3.4 One owner per normative fact
 
@@ -306,7 +307,7 @@ The selected transport, checks, interleave, shell notation, profile limits, and 
 - `spec/curriculum-v0.toml` owns teaching concepts, predicates, assessment families, and cut order.
 - Section 13 owns mutable milestone status.
 
-A small neutral constants schema feeds Python, Rust, docs, and vectors. Generated language files never become the normative owner.
+When two real consumers need the same constants, a small neutral schema feeds them. Empty schemas and generated-language skeletons are forbidden; generated files never become the normative owner.
 
 ### 3.5 Lean decisions and evidence
 
@@ -320,7 +321,7 @@ A short decision note is required only for:
 
 One dated Markdown entry is sufficient. No approval matrix, committee, recurring sign-off, or process meeting is implied.
 
-`reports/release-summary.json` is generated from tests and candidate reports. It contains one row per acceptance gate with candidate identity, command/protocol, result, and limitation. Raw logs remain in `artifacts/`. Status displays and README summaries are generated or link to Section 13; they are not separately maintained authorities.
+`reports/release-summary.json` is introduced at M4, when candidate acceptance reports first exist. It is generated from tests and candidate reports and contains one row per acceptance gate with candidate identity, command/protocol, result, and limitation. Raw logs remain in `artifacts/`. Status displays and README summaries are generated or link to Section 13; they are not separately maintained authorities.
 
 ### 3.6 Check cadence
 
@@ -602,17 +603,17 @@ Hand-audited microvectors, Python/Rust differential tests, an independent develo
 
 ### 5.2 Immediate source doctor
 
-M0 runs a read-only source doctor before production parser work. It reports, bound to the raw source hash:
+M0 runs a read-only byte scanner before production parser work. It reports, bound to the raw source hash:
 
 - UTF-8/BOM/newline facts;
-- fenced-PGN count and byte spans;
+- mechanically recognized fenced-PGN candidate count and half-open byte spans;
 - tag-name inventory and size maxima;
 - move-number and SAN token shapes;
 - comments, variations, NAGs, annotations, alternate-start tags, and unfinished results;
 - provisional game and ply size ranges; and
 - raw duplicate movetext candidates.
 
-The source doctor may use a permissive development parser because it emits no canonical bytes. Its purpose is early compatibility reconnaissance, not authority.
+The source doctor is observational: it inventories mechanically recognized structures and suspicious constructs but does not decide PGN validity, SAN meaning, chess legality, terminal correctness, or canonical game identity. M0's check policy may fail on source-lock or basic byte/fence invariants; M1's `spec/source-v0.md` and dual compilers own syntax and semantics. The doctor emits no canonical game bytes and never calls its candidates canonical game records.
 
 ### 5.3 Frozen Markdown/PGN subset
 
@@ -1654,13 +1655,13 @@ No status file, output hash, generated completion manifest, or repository commit
 
 ### 9.6 Clean Linux path
 
-M0 may begin on the primary host. Before M2 freezes any transport/wire candidate, one real clean Linux verification path MUST exist. It may be a container, virtual machine, Nix-like environment, or dedicated pinned host; the mechanism is less important than the independent clean environment.
+M0 may begin on the primary host and records one concrete clean-Linux plan in `docs/m0-spec.md`. Before M2 freezes any transport/wire candidate, that plan MUST become one real clean Linux verification path. It may be a container, virtual machine, Nix-like environment, or dedicated pinned host; the mechanism is less important than the independent clean environment.
 
 M4 and M6 require native and clean-Linux builds to produce identical canonical bitplane bytes from the same semantic-input manifest.
 
 ### 9.7 Dependency and offline build policy
 
-Use lockfiles and only dependencies with a current consumer. Networking may be used by an explicit acquisition step that creates a hash inventory. Release verification runs with ordinary global caches hidden and external network unavailable, using only the declared local acquisition bundle.
+Use lockfiles and only dependencies with a current consumer. The bootstrap executables declared in Section 11 (`sh`, Git, `uv`, and Rustup/Cargo) are allowed host prerequisites rather than project packages. Networking may be used by an explicit acquisition step that creates a hash inventory. Release verification runs with ordinary global caches hidden and external network unavailable, using only the declared local acquisition bundle.
 
 Dependency executable-surface review is change-triggered: run it when lockfiles, build scripts, proc macros, native extensions, package lifecycle scripts, toolchains, base image, or web tooling change, and at final release. It is not a recurring ceremony after unrelated content edits.
 
@@ -1966,7 +1967,7 @@ Only the passing composed chain supports the full bounded claim.
 
 | ID | Milestone | Depends on | Main work | Unlocks |
 |---|---|---|---|---|
-| M0 | Foundation and source reconnaissance | this roadmap | repository, source doctor, input locks, identity skeleton | M1 |
+| M0 | Foundation and source reconnaissance | this roadmap | repository, source doctor, input locks, identity contract | M1 |
 | M1 | Chess truth, source grammar, and assessment blueprint | M0 | dual chess cores, dual raw source compilers, source audit | M2 |
 | M2 | Full-carrier bootstrap and transport feasibility | M1 | recipe notation, transport candidates, damage policy, early pilots | M3 |
 | M3 | Complete content and formative integration | M2 | full curriculum, generic transducer, all game records, formative tests | M4 |
@@ -1976,13 +1977,15 @@ Only the passing composed chain supports the full bounded claim.
 
 Disposable research spikes may look ahead but cannot freeze downstream bytes or count as later evidence.
 
+Within each milestone, Inputs, Deliverables, Exit gate, and If it fails are normative. Goal text summarizes intent. `docs/m0-spec.md` refines M0 execution without overriding this roadmap; any conflict is repaired here first.
+
 ### Project-local dependency management
 
 * Python dependencies MUST be managed with `uv`, using a committed `uv.lock` and a project-local virtual environment. Project setup and checks MUST NOT require system-wide or user-wide Python package installation.
 * Rust dependencies MUST be managed with Cargo using a committed `Cargo.lock`. Project dependencies MUST NOT be installed globally with `cargo install`.
 * Repository commands MUST run through the declared environments, such as `uv run` and `cargo`.
-* The project MUST NOT depend on undeclared globally installed packages, libraries, or executables beyond the pinned Python and Rust toolchains.
-* Shared download and compilation caches MAY be used during development, but clean verification MUST succeed with ordinary global caches hidden.
+* POSIX `sh`, Git, `uv`, and Rustup/Cargo are the declared bootstrap executables. Their supported versions and acquisition instructions MUST be visible in the README or native pin files; no other ambient package, library, or executable may be silently required.
+* Shared download and compilation caches MAY be used during development. Cache-hidden, network-disabled verification becomes mandatory when the clean-Linux path is implemented before M2 closes, not during M0 reconnaissance.
 
 
 ### 11.2 M0 — Foundation and source reconnaissance
@@ -1995,6 +1998,8 @@ Create the smallest safe repository foundation, identify the real source shape, 
 
 - this roadmap;
 - `docs/64_games.md`;
+- the exact external references retained by M0;
+- local Git, POSIX `sh`, `uv`, and Rustup/Cargo bootstrap tools;
 - local Python/Rust toolchain; and
 - an owner-controlled primary development host.
 
@@ -2003,25 +2008,25 @@ Create the smallest safe repository foundation, identify the real source shape, 
 - `AGENTS.md` with Section 3.1 rules;
 - concise README with setup, root checks, project thesis, and Section 13 status link;
 - minimal Python and Rust projects with only used dependencies;
-- `scripts/check` implementing real `fast`, `focused`, and `full` M0 checks;
-- `inputs/source-lock.toml` with source and normative-reference candidate identities;
-- `docs/sources.md` and `docs/decisions.md` using the lean formats in Sections 3.5 and 16.6;
+- `scripts/check` implementing real `fast`, `focused <source|identity|repo>`, and `full` M0 checks;
+- `inputs/source-lock.toml` with local source and retained external-reference identities;
+- `docs/sources.md` using Section 16.6; `docs/decisions.md` only if M0 makes a Section 3.5 decision;
 - `spec/identity-v0.md` and canonical-manifest test fixtures;
-- neutral constants-schema skeleton;
-- `conformance/registry.toml` with identity/manifest known-answer vectors and slots for later profile vectors;
+- `conformance/registry.toml` indexing only identity/manifest vectors that already exist;
 - source doctor and deterministic report bound to the exact raw source hash;
-- `.gitignore` and optional build-context allowlist;
-- `reports/release-summary.json` schema; and
-- a concrete plan for the clean Linux path required before M2 closes.
+- `.gitignore` for outputs M0 actually creates; and
+- the concrete clean-Linux plan in `docs/m0-spec.md`, with a verified mechanism or exact blocker and a deadline before M2 closes.
 
 **Exit gate**
 
-- a fresh checkout validates the real source path, byte length, hash, regular-file status, and UTF-8 profile;
-- the source doctor finds exactly sixty-four fenced game records and reports every source construct without producing canonical game bytes;
-- canonical manifest/identity vectors pass independently in Python and Rust;
-- native `fast` and `full` checks pass;
-- no selected ECC/check/profile field is falsely required at M0; and
-- no source-derived statistic is treated as authoritative unless regenerated by the doctor.
+- a fresh checkout validates the real source path, raw byte length, SHA-256, non-symlink regular-file status, UTF-8/no-BOM profile, newline profile, and exact mechanical fence invariants;
+- the source doctor reports exactly sixty-four fenced candidates and all bounded inventories required by Section 5.2; its closed lexical-only schema contains no canonical game bytes, resolved chess semantics, or validity claims;
+- canonical manifest and identity vectors, including rejection/boundary cases, pass through independently written Python and Rust paths;
+- `scripts/check fast`, every M0 focused area, and `scripts/check full` pass from the declared project environments; unknown modes/areas fail;
+- the checked doctor report regenerates byte-for-byte, is bound to the locked source, and contains no host path, timestamp, inode, or other ambient fact;
+- no selected ECC/check/profile field, empty future registry slot, unused constants schema, or premature release report exists; and
+- every M0 exit criterion is covered by G1 evidence; later-milestone claims
+  remain explicitly deferred to their owners.
 
 **If it fails**
 
@@ -2260,7 +2265,7 @@ The M5 canonical artifact remains valid, but public-project completion is pendin
 
 | ID | Acceptance requirement | Owning milestone | Required evidence |
 |---|---|---|---|
-| G1 | Cold-start repository and real source are identifiable | M0 | fresh-checkout input/source-doctor report |
+| G1 | Cold-start repository, local source, and identity contract reproduce; retained external references are immutably identified | M0 | `scripts/check full`, source lock/ledger, deterministic source-doctor report, and Python/Rust identity/manifest vectors |
 | G2 | Practical chess semantics are exact for the declared scope | M1 | hand vectors, dual cores, properties, mutation tests |
 | G3 | Raw `docs/64_games.md` compiles independently to 64 legal minimal records | M1 | Path P/Path R per-ply agreement and source audit |
 | G4 | Source metadata/order cannot influence canonical game bytes | M1 | noninterference corpus and canonical set-order proof |
@@ -2308,6 +2313,8 @@ Candidate ready — independent validation pending
 Complete — <date and candidate/report identity>
 Stopped — redesign required
 ```
+
+`Current milestone` is the first row in milestone order whose state is not `Complete`; if every row is complete it is `Completed project`. `Project state` is `Not started` when every row is not started, `Complete` when every row is complete, the current row's leading allowed state (`In progress`, `Blocked`, `Needs revision`, `Candidate ready`, or `Stopped`) when it has one of those states, and otherwise `In progress` when earlier milestones are complete but the current row is `Not started`. `scripts/check` verifies these two derived header rows.
 
 README may link to or generate a display from this section. It MUST NOT become a second manually maintained status authority.
 
@@ -2396,15 +2403,15 @@ This matrix is part of the implementation contract. It does not claim to cover e
 
 | Scenario | Required behavior | Primary gate |
 |---|---|---|
-| The source has a UTF-8 BOM, unexpected control byte, or mixed unsupported newline form | The source doctor reports a stable syntax error before semantic compilation | G1, G3 |
-| A fenced block contains a comment, recursive variation, NAG, alternate start, or unfinished result | It is rejected unless the frozen source profile explicitly admits that exact construct | G1, G3 |
+| The source has a UTF-8 BOM, unexpected control byte, or mixed unsupported newline form | The M0 doctor reports the byte facts and the M0 source check blocks; M1 owns the stable syntax rejection | G1, G3 |
+| A fenced candidate contains a comment, recursive variation, NAG, alternate start, or unfinished result | The M0 doctor inventories it; M1 rejects it unless the frozen source profile explicitly admits that exact construct | G1, G3 |
 | `+` or `#` is omitted where the project import subset permits omission | The resolver computes the move's true effect; a present suffix must be correct | G3 |
 | A present `+` marks mate or `#` marks non-mate | The token is rejected | G3 |
 | SAN disambiguation has several geometrically possible pieces but only one legal mover | Each independent compiler resolves it from its own legal-move core | G3 |
 | Source tags, prose, player names, dates, comments, fence order, or file path change while moves/scores stay fixed | Canonical game bytes and the sorted semantic set are unchanged | G4 |
 | Two source records have identical move streams and score | M1 rejects the duplicate before ordinal assignment; no metadata or source order is used to choose one | G3–G4 |
 | Identical move streams carry different scores | M1 rejects the contradictory duplicate stream; profile v0 requires sixty-four distinct move streams | G3–G4 |
-| The source has 63 or 65 fenced games | M0/M1 blocks; the compiler never silently selects or pads to 64 | G1, G3 |
+| The source has 63 or 65 mechanically recognized fenced candidates | M0/M1 blocks; the compiler never silently selects or pads to 64 | G1, G3 |
 | One game exceeds a frozen count/byte limit | The source fails before allocation or packing; limits are revised only through an explicit profile decision | G3, G10 |
 | One source compiler accepts a token the other rejects | M1 remains open until the grammar/spec or implementation defect is resolved | G3 |
 | A development chess library disagrees with both project cores | The disagreement is investigated, but no external library silently becomes wire authority | G2–G3 |
@@ -2534,10 +2541,11 @@ External sources motivate or constrain parts of the design, but none substitutes
 
 | Reference | Starter locator | Project use |
 |---|---|---|
-| FIDE Laws of Chess, edition taking effect 1 January 2023 | <https://handbook.fide.com/chapter/E012023> | Governing orthodox setup, movement, attack, legality, castling, en passant, promotion, check, checkmate, stalemate, and the ordinary draw concepts selected by profile v0 |
-| FIDE Handbook index | <https://handbook.fide.com/> | Confirm the selected edition and archive the project snapshot at M0 |
-| Steven J. Edwards, *Portable Game Notation Specification and Implementation Guide* | <https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm> | Background for PGN tags, movetext, SAN, and result markers |
-| NIST FIPS 180-4, *Secure Hash Standard* | <https://csrc.nist.gov/pubs/fips/180-4/upd1/final> | SHA-256 definition and identity known-answer basis |
+| FIDE Laws of Chess, edition taking effect 1 January 2023 | <https://handbook.fide.com/chapter/E012023>; official Rules Commission PDF <https://rcc.fide.com/wp-content/uploads/2022/11/Laws_of_Chess-2023.pdf> | Governing orthodox setup, movement, attack, legality, castling, en passant, promotion, check, checkmate, stalemate, and the ordinary draw concepts selected by profile v0 |
+| FIDE Handbook index | <https://handbook.fide.com/> | Confirm the selected edition at M0; freeze the exact Rules Commission PDF identity without assuming redistribution permission |
+| Steven J. Edwards, *Portable Game Notation Specification and Implementation Guide*, revised 1994-03-12 | preserved ASCII copy <https://archive.org/download/pgn-standard-1994-03-12/PGN_standard_1994-03-12.txt>; readable rendering <https://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm> | Historical background for PGN tags, movetext, SAN, and result markers; not a maintained standard or Golden Board grammar authority |
+| NIST FIPS 180-4, *Secure Hash Standard* | <https://csrc.nist.gov/pubs/fips/180-4/upd1/final> | SHA-256 definition |
+| NIST CAVP byte-oriented Secure Hash vectors | <https://csrc.nist.gov/Projects/Cryptographic-Algorithm-Validation-Program/Secure-Hashing> | Informal implementation known-answer basis; exact archive/member identity belongs in the M0 source ledger |
 
 The FIDE text is the chess-rule authority, but profile v0 intentionally teaches a practical subset of competition procedure. `spec/chess-v0.md` MUST state every included rule and deliberate exclusion rather than relying on an implementer's memory.
 
@@ -2559,7 +2567,7 @@ The PGN guide is not the Golden Board parser contract. `spec/source-v0.md` owns 
 
 **ETSI TR 102 993 V1.1.1** (<https://www.etsi.org/deliver/etsi_tr/102900_102999/102993/01.01.01_60/tr_102993v010101p.pdf>) and **ETSI EN 301 192 V1.7.1** (<https://www.etsi.org/deliver/etsi_en/301100_301199/301192/01.07.01_60/en_301192v010701p.pdf>), if `RS(255,191)` remains in the measured comparison, may supply a concrete field/code profile. Golden Board MUST copy the relevant parameters into its own selected profile and MUST NOT inherit unrelated DVB framing assumptions.
 
-**RFC 9260 Appendix A** (<https://www.rfc-editor.org/rfc/rfc9260.html>) and **ECMA-182** (<https://ecma-international.org/publications-and-standards/standards/ecma-182/>) are candidates for interoperable CRC definitions and known-answer vectors. A named CRC and output width do not establish a universal `2^-k` false-accept probability for structured faults. Golden Board uses exact checks, code guarantees, and finite negative/damage corpora without that shortcut.
+**RFC 9260 Appendix A** (<https://www.rfc-editor.org/rfc/rfc9260.html>) and **ECMA-182** (<https://ecma-international.org/publications-and-standards/standards/ecma-182/>) are candidate parameter/background references: the former specifies SCTP's CRC-32C procedure and byte mapping, while the latter specifies an application-specific CRC-64 for DLT1 tape fields. Neither is, by itself, a generic Golden Board profile or standalone known-answer basis. M2 MUST freeze the complete tuple, covered bytes, stored byte order, and independently checked project vectors. A named CRC and output width do not establish a universal `2^-k` false-accept probability for structured faults. Golden Board uses exact checks, code guarantees, and finite negative/damage corpora without that shortcut.
 
 **Blaum, Bruck, and Vardy, “Interleaving Schemes for Multidimensional Cluster Errors,”** IEEE Transactions on Information Theory 44(2), 1998, DOI <https://doi.org/10.1109/18.661516>. It supports the idea that a spatial cluster can be distributed across codewords. Only the generated placement proof establishes that Golden Board's exact map survives its exact declared cases.
 
@@ -2582,7 +2590,8 @@ These sources do not establish Golden Board's symbolic representation, item coun
 M0 creates `docs/sources.md` with, for each source actually used:
 
 - exact title, author/organization, edition/version, stable locator, and access date;
-- local snapshot or immutable identifier when practical;
+- byte length and SHA-256 for every exact fetched artifact retained as evidence, plus a local snapshot or immutable identifier when practical;
+- provenance and redistribution status where the repository may publish copied material;
 - role: normative authority, implementation profile, design precedent, or pedagogical hypothesis;
 - the exact Golden Board consequence it supports; and
 - what it does not establish.
