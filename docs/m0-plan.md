@@ -327,22 +327,22 @@ the two files that exist.
 - Create: `python/golden_board/canonical_manifest.py`
 - Create: `python/tests/test_foundation.py`
 
-- [ ] Define the root Python project for exactly CPython 3.14.6 with
+- [x] Define the root Python project for exactly CPython 3.14.6 with
   `[tool.uv] package = false`, no build backend, no runtime dependency, and
   standard-library `unittest`. Generate `uv.lock` with uv 0.11.29.
 
-- [ ] Add failing identity tests that read the shared registry and fixture
+- [x] Add failing identity tests that read the shared registry and fixture
   directly. Cover framing byte examples, domain rules, field order/boundaries,
   binary fields, `u16`/`u32` maxima and one-over rejection, NIST raw SHA cases,
   and fixed lowercase digest rendering. Assert fixtures remain unchanged across
   the run.
 
-- [ ] Implement only the byte-oriented identity operations needed by those
+- [x] Implement only the byte-oriented identity operations needed by those
   tests using `hashlib`, explicit big-endian conversions, and checked bounds.
   Reject bad domains and overflows before constructing an output. Do not accept
   text implicitly or normalize bytes.
 
-- [ ] Add failing canonical-manifest tests in manageable groups:
+- [x] Add failing canonical-manifest tests in manageable groups:
 
   1. valid scalar/container/ordering and round-trip cases;
   2. noncanonical-but-parseable cases;
@@ -351,7 +351,7 @@ the two files that exist.
   5. idempotence, insertion-order independence, NFC/NFD distinction, and exact
      terminal-LF properties.
 
-- [ ] Implement parse, serialize, canonicalize, and canonical-validate behavior
+- [x] Implement parse, serialize, canonicalize, and canonical-validate behavior
   with `json` hooks plus explicit subset, Unicode-scalar, key, depth, integer,
   and byte-count checks. Reject oversized input before parsing, enforce depth
   before descending to level 33, and count output while emitting so an oversized
@@ -359,7 +359,7 @@ the two files that exist.
   defaults for floats, constants, duplicate keys, or surrogate-containing
   strings.
 
-- [ ] Run the Python gate after each group:
+- [x] Run the Python gate after each group:
 
   ```sh
   PYTHONPATH="$PWD/python" uv run --locked --offline --no-python-downloads \
@@ -369,7 +369,7 @@ the two files that exist.
   Expected: the intended new tests fail before implementation, then all pass;
   fixture and lock bytes remain unchanged.
 
-- [ ] Review for accidental ambient inputs and hidden dependencies:
+- [x] Review for accidental ambient inputs and hidden dependencies:
 
   ```sh
   uv lock --check --offline --no-python-downloads
