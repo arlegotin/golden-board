@@ -199,21 +199,21 @@ These checks observe the host; they do not enter semantic inputs or the report.
 This packet starts the milestone and creates only information already selected
 by the roadmap/spec. It does not create a pretend check runner.
 
-- [ ] Change the M0 row in roadmap Section 13 to `In progress`; update the two
+- [x] Change the M0 row in roadmap Section 13 to `In progress`; update the two
   derived header rows to `Project state = In progress` and `Current milestone =
   M0 — Foundation and source reconnaissance`. Do not touch later milestone
   states.
 
-- [ ] Write the six roadmap Section 3.1 rules into `AGENTS.md` with links to the
+- [x] Write the six roadmap Section 3.1 rules into `AGENTS.md` with links to the
   roadmap and M0 spec. Keep it to roughly one screen and do not add generic
   agent-process policy. Packet 7 adds the root commands after they exist.
 
-- [ ] Draft `README.md` with the product thesis, bounded/pre-artifact warning,
+- [x] Draft `README.md` with the product thesis, bounded/pre-artifact warning,
   exact tool versions and runtime acquisition, a link to roadmap Section 13
   instead of copied status, and a map containing only paths that exist at that
   point. Packet 7 adds the check commands after they are real.
 
-- [ ] Write exactly the M0 ignore entries:
+- [x] Write exactly the M0 ignore entries:
 
   ```text
   .DS_Store
@@ -227,10 +227,10 @@ by the roadmap/spec. It does not create a pretend check runner.
   Do not ignore lockfiles, reports, fixtures, source, or broad document/source
   patterns.
 
-- [ ] Pin `.python-version` to `3.14.6`. Pin `rust-toolchain.toml` to channel
+- [x] Pin `.python-version` to `3.14.6`. Pin `rust-toolchain.toml` to channel
   `1.97.1`, profile `minimal`, with the `rustfmt` component.
 
-- [ ] Review the packet directly:
+- [x] Review the packet directly:
 
   ```sh
   uv --version
