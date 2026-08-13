@@ -458,33 +458,33 @@ other.
 - Create: `inputs/source-lock.toml`
 - Create: `docs/sources.md`
 
-- [ ] Author the small TOML lock with one authoritative source entry and exact
+- [x] Author the small TOML lock with one authoritative source entry and exact
   receipts for the FIDE 2023 PDF, historical PGN text, FIPS 180-4 PDF, NIST byte
   vector archive, and consumed `SHA256ShortMsg.rsp` member. Use the identities in
   M0 spec Section 2.3; do not refetch moving pages during ordinary validation.
 
-- [ ] Keep tool versions, host/Docker observations, report hashes, future
+- [x] Keep tool versions, host/Docker observations, report hashes, future
   semantic inputs, and all CRC/ECC/profile candidates out of this lock.
 
-- [ ] Write `docs/sources.md` as one compact human ledger. For each retained
+- [x] Write `docs/sources.md` as one compact human ledger. For each retained
   source record title/organization, exact edition and access date, stable
   locator and locked identity, role, concrete supported conclusion, explicit
   non-conclusion, retention, provenance, and redistribution status. Link to the
   machine lock rather than duplicating a second inventory.
 
-- [ ] Include the five M0-wide conclusions explicitly: the PGN guide is not the
+- [x] Include the five M0-wide conclusions explicitly: the PGN guide is not the
   project grammar; CRC/ECC material remains deferred until M2 has a consumer;
   references do not prove Golden Board conformance; ordinary checks never fetch
   them; and anthology provenance/redistribution rights remain unresolved unless
   the owner supplies a concrete basis.
 
-- [ ] State the rights boundary plainly: a URL or owner risk decision is not
+- [x] State the rights boundary plainly: a URL or owner risk decision is not
   redistribution permission. Local read-only M0/M1 analysis may continue, but
   further public redistribution needs source provenance plus an applicable
   licence, permission, public-domain status, or other concrete basis for the
   exact retained material.
 
-- [ ] Run:
+- [x] Run:
 
   ```sh
   PYTHONPATH="$PWD/python" uv run --locked --offline --no-python-downloads \

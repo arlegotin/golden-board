@@ -1,0 +1,70 @@
+schema = "golden-board.source-lock/v0"
+
+[[source]]
+id = "anthology"
+role = "authoritative_input"
+path = "docs/64_games.md"
+bytes = 165145
+sha256 = "33d44f7167ab190cc793e3fdfd8190d89ed13c1dc507c20854cf64751c7be7da"
+encoding = "utf-8"
+newline = "lf"
+
+[[reference]]
+id = "fide-laws-2023"
+role = "normative_future_input"
+title = "FIDE Laws of Chess taking effect 1 January 2023"
+version = "2023-01-01"
+locator = "https://rcc.fide.com/wp-content/uploads/2022/11/Laws_of_Chess-2023.pdf"
+accessed = "2026-08-14"
+bytes = 862953
+sha256 = "1b46ade85c91110538c9ad2ad90fb6aba1b04125d54f5241d3cb46ef96c40f81"
+retention = "receipt_only"
+redistribution = "not_established"
+
+[[reference]]
+id = "pgn-guide-1994"
+role = "historical_background"
+title = "Portable Game Notation Specification and Implementation Guide"
+version = "1994-03-12"
+locator = "https://archive.org/download/pgn-standard-1994-03-12/PGN_standard_1994-03-12.txt"
+accessed = "2026-08-14"
+bytes = 121009
+sha256 = "fe892515f096e268794811ca25099acdd64ebff6dacacff90879cbaae76be961"
+retention = "receipt_only"
+redistribution = "not_established"
+
+[[reference]]
+id = "nist-fips-180-4"
+role = "hash_definition"
+title = "FIPS PUB 180-4: Secure Hash Standard"
+version = "2015-08"
+locator = "https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.180-4.pdf"
+accessed = "2026-08-14"
+bytes = 833315
+sha256 = "0455b406d89648d20cbde375561e19c245b9815e894164c2670772e3d54deb82"
+retention = "receipt_only"
+redistribution = "not_established"
+
+[[reference]]
+id = "nist-sha-byte-vectors-archive"
+role = "known_answer_container"
+title = "CAVP byte-oriented Secure Hash test-vector archive"
+version = "accessed-2026-08-14"
+locator = "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/shs/shabytetestvectors.zip"
+accessed = "2026-08-14"
+bytes = 4909729
+sha256 = "929ef80b7b3418aca026643f6f248815913b60e01741a44bba9e118067f4c9b8"
+retention = "receipt_only"
+redistribution = "not_established"
+
+[[reference]]
+id = "nist-sha256-short-message-vectors"
+role = "known_answer_source"
+title = "shabytetestvectors/SHA256ShortMsg.rsp"
+version = "CAVS-11.0-generated-2011-03-15"
+locator = "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/shs/shabytetestvectors.zip#shabytetestvectors/SHA256ShortMsg.rsp"
+accessed = "2026-08-14"
+bytes = 10299
+sha256 = "75e1cb83994638481808e225b9eb0c1ebd0c232d952ac42b61abce6363be283c"
+retention = "receipt_only"
+redistribution = "not_established"
