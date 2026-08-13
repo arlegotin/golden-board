@@ -400,39 +400,40 @@ Packets 3 and 4 may be assigned to separate agents or contexts. The Rust author
 must implement from `spec/identity-v0.md` and the hand fixtures, not from Python
 source or Python-generated output.
 
-- [ ] Create a one-member Cargo workspace and one library crate. Add only
+- [x] Create a one-member Cargo workspace and one library crate. Add only
   `sha2` and `serde_json` as ordinary dependencies and `toml` as a dev
   dependency. A direct `serde` or `serde_core` entry is permitted only if code
   imports its visitor traits; in that case first make the same narrow correction
   to M0 spec Section 4.3. Resolve and commit the root lockfile.
 
-- [ ] Add failing Rust conformance tests that parse the registry and both fixture
+- [x] Add failing Rust conformance tests that parse the registry and both fixture
   payloads themselves. Mirror the behavior categories, not the Python code
   organization. Include direct framing/preimage assertions and the two NIST
   raw-digest cases so cross-language agreement is not the only oracle.
 
-- [ ] Implement checked identity framing and digest rendering using `sha2`.
+- [x] Implement checked identity framing and digest rendering using `sha2`.
   Reject domain/count/length violations before truncation or unchecked
   allocation.
 
-- [ ] Implement the manifest subset over a small local value/error model or an
+- [x] Implement the manifest subset over a small local value/error model or an
   equally direct representation. Use `serde_json` lexical machinery, with a
   custom visitor where duplicate-key preservation/rejection requires it. Add
   explicit UTF-8, scalar, key, subset, `u64`, depth, canonical-byte, and output
   limit enforcement; do not inherit `serde_json` defaults as the spec.
 
-- [ ] Run the pinned Rust gate repeatedly:
+- [x] Run the pinned Rust gate repeatedly:
 
   ```sh
-  rustup run 1.97.1 cargo test --workspace --all-targets --locked --offline
+  RUSTC="$(rustup which --toolchain 1.97.1 rustc)" \
+    rustup run 1.97.1 cargo test --workspace --all-targets --locked --offline
   rustup run 1.97.1 cargo fmt --all --check
   ```
 
-- [ ] Run both language suites without one invoking the other and compare their
+- [x] Run both language suites without one invoking the other and compare their
   fixture outcomes. The shared expected data must still be the hand-authored
   files, never an output copied from the first implementation.
 
-- [ ] Audit the dependency boundary:
+- [x] Audit the dependency boundary:
 
   ```sh
   rustup run 1.97.1 cargo metadata --locked --offline

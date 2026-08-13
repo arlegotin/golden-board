@@ -304,6 +304,7 @@ The Rust workspace contains one library crate, `gb-foundation`:
 - `sha2` supplies SHA-256;
 - `serde_json` supplies lexical JSON machinery, with a custom visitor where
   needed to preserve duplicate-key detection and the project subset;
+- `serde` is a direct dependency because that visitor imports its traits;
 - `toml` is a test-only dependency used to consume the shared conformance
   registry; and
 - no CLI framework, error-derivation crate, schema crate, or logging crate is
@@ -313,9 +314,10 @@ The dependency requirements selected during initialization are ordinary
 compatible ranges; `Cargo.lock` records the exact resolved graph. The project
 specification and fixtures, not library defaults, control accepted JSON.
 
-Checks invoke the toolchain through `rustup run 1.97.1 ...`, so an unrelated
-Homebrew `cargo` earlier on `PATH` cannot bypass the pin. The toolchain file still
-documents the standard directory override for hosts using Rustup proxies.
+Checks invoke Cargo through `rustup run 1.97.1 ...` and set `RUSTC` from
+`rustup which --toolchain 1.97.1 rustc`. This keeps unrelated Homebrew Cargo and
+Rust binaries earlier on `PATH` from bypassing either pin. The toolchain file
+still documents the standard directory override for hosts using Rustup proxies.
 
 The host happened to have Rust 1.94.0, but M0 deliberately selects
 [Rust 1.97.1](https://blog.rust-lang.org/2026/07/16/Rust-1.97.1/): that official
@@ -370,7 +372,8 @@ checked deterministic report.
   --locked` acquisition commands;
 - ordinary checks never fetch references or rewrite a lockfile;
 - Python commands use `uv run --locked --offline --no-python-downloads`;
-- Rust commands use `rustup run 1.97.1 cargo ... --locked --offline`;
+- Rust commands select both pinned Cargo and pinned `RUSTC`, then use
+  `--locked --offline`;
 - a lock mismatch fails with the command needed to repair it;
 - cache-hidden and network-disabled release verification is deferred to the
   concrete Linux path before M2 closes; and
@@ -1163,9 +1166,10 @@ for routine local use; no timing threshold is an acceptance gate.
 
 - all Python invocations use `uv run --locked --offline
   --no-python-downloads`;
-- all Cargo invocations use `rustup run 1.97.1`; dependency-resolving commands
-  add `--locked --offline`, while `cargo fmt` (which accepts neither lock flag)
-  runs only the pinned `rustfmt` component;
+- all Cargo invocations use `rustup run 1.97.1`; compiler invocations set
+  `RUSTC` from the same toolchain; dependency-resolving commands add `--locked
+  --offline`, while `cargo fmt` (which accepts neither lock flag) runs only the
+  pinned `rustfmt` component;
 - ordinary checks do not mutate lockfiles, checked reports, source, or status;
 - ordinary checks make no network request;
 - any temporary path is owned and cleaned by pinned Python's
