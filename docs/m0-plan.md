@@ -644,13 +644,13 @@ easy to inspect.
 - Modify: `README.md`
 - Modify: `AGENTS.md`
 
-- [ ] Add failing tests for the public CLI contract: no argument, unknown mode,
+- [x] Add failing tests for the public CLI contract: no argument, unknown mode,
   missing/unknown focused area, and extra arguments return 2 with usage; a
   failed prerequisite/child returns 1 and names the area/command; success
   returns 0. Avoid invoking `fast` or `full` recursively from inside its own
   unit suite.
 
-- [ ] Implement one portable POSIX-shell dispatcher with exactly:
+- [x] Implement one portable POSIX-shell dispatcher with exactly:
 
   ```text
   scripts/check fast
@@ -666,7 +666,7 @@ easy to inspect.
   is reported only as a prerequisite, not pinned or recorded in evidence. Do
   not implement `release`, `linux`, or future focused areas.
 
-- [ ] Set the dispatcher executable in the working tree, then record that mode
+- [x] Set the dispatcher executable in the working tree, then record that mode
   when staging its first commit. Use the already-pinned Python runtime rather
   than adding another bootstrap utility:
 
@@ -681,7 +681,7 @@ easy to inspect.
   Expected index mode: `100755`. The final repo check rejects a missing working
   executable bit or a non-`100755` tracked mode.
 
-- [ ] Before the first `full` run, inspect every intended M0 path and stage each
+- [x] Before the first `full` run, inspect every intended M0 path and stage each
   one explicitly. Never unstage or otherwise rewrite unrelated index entries;
   do not use `git add -A` or broad directory pathspecs in a dirty worktree:
 
@@ -697,7 +697,7 @@ easy to inspect.
   repo check prove that every intended deliverable and executable mode will
   survive a clone without taking ownership of unrelated changes.
 
-- [ ] Compose the areas without duplicated expensive work:
+- [x] Compose the areas without duplicated expensive work:
 
   - `identity`: registry/fixture hashes and closure; independent Python and Rust
     identity, manifest, rejection, and boundary cases.
@@ -726,7 +726,7 @@ easy to inspect.
   route `fast` and `focused` to explicit `unittest` classes rather than adding a
   test plugin or environment-controlled skip framework.
 
-- [ ] Ensure every ordinary Python child uses:
+- [x] Ensure every ordinary Python child uses:
 
   ```text
   uv run --locked --offline --no-python-downloads
@@ -735,19 +735,19 @@ easy to inspect.
   and every dependency-resolving Cargo child uses pinned Rust with `--locked
   --offline`. Run pinned `cargo fmt` without unsupported lock/offline flags.
 
-- [ ] Verify dirty-worktree safety. The checks may inspect M0-owned diffs but
+- [x] Verify dirty-worktree safety. The checks may inspect M0-owned diffs but
   must neither fail merely because unrelated changes exist nor modify, stash,
   restore, clean, or reset them. Temporary test objects must be self-created and
   removed through `TemporaryDirectory` or an equally scoped standard-library
   mechanism.
 
-- [ ] Finalize README: list only existing paths; document exact
+- [x] Finalize README: list only existing paths; document exact
   setup/acquisition and all real check forms; document the
   candidate-first report-authoring command; link rather than copy status; retain
   the pre-artifact/unvalidated warning. Finalize AGENTS with the same real root
   command surface.
 
-- [ ] Exercise every public form from the repository root:
+- [x] Exercise every public form from the repository root:
 
   ```sh
   scripts/check fast
@@ -764,7 +764,7 @@ easy to inspect.
   resolve outside the checkout. The dispatcher must still locate and operate on
   its own repository rather than the caller's current directory.
 
-- [ ] Repeat deterministic checks under changed `TZ`, locale variables, and
+- [x] Repeat deterministic checks under changed `TZ`, locale variables, and
   caller `PYTHONPATH`. Output bytes must not change. Confirm the checks make no
   network request after acquisition because every resolving invocation is
   explicitly offline; actual network isolation remains the named M2 Linux

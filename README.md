@@ -26,8 +26,23 @@ uv python install 3.14.6
 rustup toolchain install 1.97.1 --profile minimal --component rustfmt
 ```
 
-Dependency acquisition commands will be added with the native lockfiles. Root
-check commands will be documented when the real dispatcher exists.
+Acquire the committed dependency graphs once while network access is explicit:
+
+```sh
+uv sync --locked
+rustup run 1.97.1 cargo fetch --locked
+```
+
+Ordinary checks are then locked and offline. The complete public command surface
+is:
+
+```sh
+scripts/check fast
+scripts/check focused source
+scripts/check focused identity
+scripts/check focused repo
+scripts/check full
+```
 
 ## Source-doctor evidence
 
@@ -36,7 +51,8 @@ rewrite it. To review an intentional update, generate into ignored authoring
 storage first:
 
 ```sh
-mkdir -p artifacts
+PYTHONPATH="$PWD/python" uv run --locked --offline --no-python-downloads \
+  python -c 'from pathlib import Path; Path("artifacts").mkdir(exist_ok=True)'
 PYTHONPATH="$PWD/python" uv run --locked --offline --no-python-downloads \
   python -m golden_board.source_doctor > artifacts/source-doctor.candidate.json
 ```
@@ -55,5 +71,12 @@ PYTHONPATH="$PWD/python" uv run --locked --offline --no-python-downloads \
 - `docs/roadmap.md` — product contract, milestone gates, and status authority
 - `docs/m0-spec.md` — M0 implementation contract
 - `docs/m0-plan.md` — ordered M0 execution plan
+- `docs/sources.md` — retained reference ledger and rights limits
 - `docs/64_games.md` — authoritative, immutable-for-M0 anthology input
+- `inputs/source-lock.toml` — exact input and reference receipts
+- `spec/identity-v0.md` — sole identity/canonical-manifest byte contract
+- `conformance/` — hand-authored shared identity/manifest fixtures
+- `python/` and `crates/gb-foundation/` — independent implementations and tests
+- `reports/source-doctor.json` — deterministic lexical reconnaissance evidence
+- `scripts/check` — M0 root check dispatcher
 - `AGENTS.md` — concise repository safety rules

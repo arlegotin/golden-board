@@ -1,0 +1,138 @@
+#!/bin/sh
+
+usage() {
+    printf '%s\n' \
+        'usage: scripts/check fast' \
+        '       scripts/check focused source' \
+        '       scripts/check focused identity' \
+        '       scripts/check focused repo' \
+        '       scripts/check full' >&2
+}
+
+case "$#:$1" in
+    1:fast|1:full) mode=$1 ;;
+    2:focused)
+        case "$2" in
+            source|identity|repo) mode=$2 ;;
+            *) usage; exit 2 ;;
+        esac
+        ;;
+    *) usage; exit 2 ;;
+esac
+
+case "$0" in
+    */*) script_path=$0 ;;
+    *) script_path=$(command -v "$0") || exit 1 ;;
+esac
+SCRIPT_DIR=$(CDPATH= cd "${script_path%/*}" && pwd) || exit 1
+ROOT=$(CDPATH= cd "$SCRIPT_DIR/.." && pwd) || exit 1
+cd "$ROOT" || exit 1
+PYTHONPATH="$ROOT/python"
+export PYTHONPATH
+
+fail() {
+    printf 'check: %s\n' "$1" >&2
+    exit 1
+}
+
+run_check() {
+    label=$1
+    shift
+    printf 'check: %s\n' "$label"
+    if ! "$@"; then
+        printf 'check: %s failed\n' "$label" >&2
+        return 1
+    fi
+}
+
+for tool in git uv rustup; do
+    command -v "$tool" >/dev/null 2>&1 || fail "preflight: missing $tool"
+done
+case "$(uv --version 2>/dev/null)" in
+    "uv 0.11.29 "*) ;;
+    *) fail "preflight: expected uv 0.11.29" ;;
+esac
+if ! uv run --locked --offline --no-python-downloads python -c \
+    'import sys; raise SystemExit(sys.version_info[:3] != (3, 14, 6))'
+then
+    fail "preflight: expected CPython 3.14.6; run uv python install 3.14.6"
+fi
+RUSTC=$(rustup which --toolchain 1.97.1 rustc 2>/dev/null) || \
+    fail "preflight: install Rust 1.97.1 with rustfmt"
+export RUSTC
+case "$("$RUSTC" --version 2>/dev/null)" in
+    "rustc 1.97.1 "*) ;;
+    *) fail "preflight: expected rustc 1.97.1" ;;
+esac
+case "$(rustup run 1.97.1 cargo --version 2>/dev/null)" in
+    "cargo 1.97.1 "*) ;;
+    *) fail "preflight: expected cargo 1.97.1" ;;
+esac
+printf 'check: preflight (%s)\n' "$(git --version)"
+
+python_tests() {
+    test_label=$1
+    shift
+    run_check "$test_label" uv run --locked --offline --no-python-downloads \
+        python -m unittest -v "$@"
+}
+
+identity() {
+    python_tests identity-python \
+        python.tests.test_foundation.FoundationModulesPresent \
+        python.tests.test_foundation.IdentityConformance \
+        python.tests.test_foundation.ManifestConformance || return 1
+    run_check identity-rust rustup run 1.97.1 cargo test --workspace \
+        --all-targets --locked --offline -- --skip source_report_is_canonical
+}
+
+source_full() {
+    python_tests source-python \
+        python.tests.test_foundation.SourceDoctorTrustBoundary \
+        python.tests.test_foundation.SourceDoctorScanner \
+        python.tests.test_foundation.SourceDoctorEvidence || return 1
+    run_check source-rust rustup run 1.97.1 cargo test --workspace \
+        --all-targets --locked --offline source_report_is_canonical
+}
+
+source_fast() {
+    python_tests source-current python.tests.test_foundation.SourceDoctorFast
+}
+
+repo() {
+    run_check repo-shell sh -n scripts/check || return 1
+    run_check repo-rustfmt rustup run 1.97.1 cargo fmt --all --check || return 1
+    run_check repo-working-diff git diff --check -- \
+        .gitignore .python-version AGENTS.md Cargo.lock Cargo.toml README.md \
+        conformance/identity-v0.json conformance/manifest-v0.json \
+        conformance/registry.toml crates/gb-foundation/Cargo.toml \
+        crates/gb-foundation/src/lib.rs crates/gb-foundation/tests/conformance.rs \
+        docs/64_games.md docs/m0-plan.md docs/m0-spec.md docs/roadmap.md \
+        docs/sources.md inputs/source-lock.toml pyproject.toml \
+        python/golden_board/__init__.py python/golden_board/canonical_manifest.py \
+        python/golden_board/identity.py python/golden_board/source_doctor.py \
+        python/tests/test_foundation.py reports/source-doctor.json \
+        rust-toolchain.toml scripts/check spec/identity-v0.md uv.lock || return 1
+    run_check repo-index-diff git diff --cached --check -- \
+        .gitignore .python-version AGENTS.md Cargo.lock Cargo.toml README.md \
+        conformance/identity-v0.json conformance/manifest-v0.json \
+        conformance/registry.toml crates/gb-foundation/Cargo.toml \
+        crates/gb-foundation/src/lib.rs crates/gb-foundation/tests/conformance.rs \
+        docs/64_games.md docs/m0-plan.md docs/m0-spec.md docs/roadmap.md \
+        docs/sources.md inputs/source-lock.toml pyproject.toml \
+        python/golden_board/__init__.py python/golden_board/canonical_manifest.py \
+        python/golden_board/identity.py python/golden_board/source_doctor.py \
+        python/tests/test_foundation.py reports/source-doctor.json \
+        rust-toolchain.toml scripts/check spec/identity-v0.md uv.lock || return 1
+    python_tests repo-python \
+        python.tests.test_foundation.RepoContract \
+        python.tests.test_foundation.RootCheckCLI
+}
+
+case "$mode" in
+    identity) identity ;;
+    source) source_full ;;
+    repo) repo ;;
+    fast) repo && identity && source_fast ;;
+    full) repo && identity && source_full ;;
+esac

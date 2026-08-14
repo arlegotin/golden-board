@@ -4,10 +4,12 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import socket
 import subprocess
 import sys
 import tempfile
+import tomllib
 import unittest
 
 try:
@@ -562,6 +564,182 @@ class SourceDoctorEvidence(unittest.TestCase):
             result = self.run_doctor(root)
             self.assertEqual(result.returncode, 1)
             self.assertEqual(result.stdout, source_doctor.REPORT_LIMIT_BYTES)
+
+
+@unittest.skipIf(source_doctor is None, "source doctor not present")
+class SourceDoctorFast(unittest.TestCase):
+    def test_locked_current_source_is_gate_clean(self) -> None:
+        locked = source_doctor.load_source_lock(ROOT)
+        opened = source_doctor.read_locked_source(ROOT, locked)
+        self.assertTrue(opened.lock_match)
+        self.assertTrue(source_doctor._gate_passes(source_doctor.scan_source(opened.data, locked)))
+
+
+class RepoContract(unittest.TestCase):
+    REQUIRED = [
+        ".gitignore", ".python-version", "AGENTS.md", "Cargo.lock", "Cargo.toml",
+        "README.md", "conformance/identity-v0.json", "conformance/manifest-v0.json",
+        "conformance/registry.toml", "crates/gb-foundation/Cargo.toml",
+        "crates/gb-foundation/src/lib.rs", "crates/gb-foundation/tests/conformance.rs",
+        "docs/64_games.md", "docs/m0-plan.md", "docs/m0-spec.md", "docs/roadmap.md",
+        "docs/sources.md", "inputs/source-lock.toml", "pyproject.toml",
+        "python/golden_board/__init__.py", "python/golden_board/canonical_manifest.py",
+        "python/golden_board/identity.py", "python/golden_board/source_doctor.py",
+        "python/tests/test_foundation.py", "reports/source-doctor.json",
+        "rust-toolchain.toml", "scripts/check", "spec/identity-v0.md", "uv.lock",
+    ]
+
+    def tracked(self) -> dict[str, str]:
+        output = subprocess.run(
+            ["git", "ls-files", "--stage", "--", *self.REQUIRED],
+            cwd=ROOT,
+            check=True,
+            stdout=subprocess.PIPE,
+            text=True,
+        ).stdout
+        return {line.split("\t", 1)[1]: line.split()[0] for line in output.splitlines()}
+
+    def test_required_surface_is_nonempty_tracked_and_not_premature(self) -> None:
+        tracked = self.tracked()
+        self.assertEqual(set(tracked), set(self.REQUIRED))
+        for relative in self.REQUIRED:
+            self.assertGreater((ROOT / relative).stat().st_size, 0, relative)
+        self.assertEqual(tracked["scripts/check"], "100755")
+        self.assertTrue(os.access(ROOT / "scripts/check", os.X_OK))
+
+        all_tracked = subprocess.run(
+            ["git", "ls-files"], cwd=ROOT, check=True, stdout=subprocess.PIPE, text=True
+        ).stdout.splitlines()
+        forbidden_exact = {
+            ".dockerignore", "Dockerfile", "docs/decisions.md", "flake.nix",
+            "spec/chess-v0.md", "spec/source-v0.md"
+        }
+        forbidden_prefixes = (".github/workflows/", "release/", "schemas/", "tools/linux/")
+        self.assertFalse(forbidden_exact.intersection(all_tracked))
+        self.assertFalse([path for path in all_tracked if path.startswith(forbidden_prefixes)])
+
+    def test_text_registry_links_and_status_are_consistent(self) -> None:
+        for relative in self.REQUIRED:
+            if relative == "docs/64_games.md":
+                continue
+            data = (ROOT / relative).read_bytes()
+            self.assertNotIn(b"\r", data, relative)
+            self.assertTrue(data.endswith(b"\n"), relative)
+            for line in data.splitlines():
+                self.assertFalse(line.endswith((b" ", b"\t")), relative)
+                self.assertFalse(line.startswith((b"<<<<<<<", b"=======", b">>>>>>>")), relative)
+
+        registry = tomllib.loads((ROOT / "conformance/registry.toml").read_text())
+        payloads = sorted(path.name for path in (ROOT / "conformance").iterdir() if path.name != "registry.toml")
+        self.assertEqual(payloads, sorted(Path(item["path"]).name for item in registry["suite"]))
+        for item in registry["suite"]:
+            payload = ROOT / item["path"]
+            self.assertEqual(hashlib.sha256(payload.read_bytes()).hexdigest(), item["sha256"])
+
+        readme = (ROOT / "README.md").read_text()
+        agents = (ROOT / "AGENTS.md").read_text()
+        for command in (
+            "scripts/check fast", "scripts/check focused source",
+            "scripts/check focused identity", "scripts/check focused repo",
+            "scripts/check full",
+        ):
+            self.assertIn(command, readme)
+            self.assertIn(command, agents)
+        self.assertLessEqual(len(agents.splitlines()), 80)
+
+        roadmap = (ROOT / "docs/roadmap.md").read_text()
+        header_state = re.search(r"^\| Project state \| (.+) \|$", roadmap, re.MULTILINE).group(1)
+        header_milestone = re.search(r"^\| Current milestone \| (.+) \|$", roadmap, re.MULTILINE).group(1)
+        rows = re.findall(r"^\| (M[0-6] — [^|]+) \| ([^|]+) \|", roadmap, re.MULTILINE)
+        current = next(((name, status.strip()) for name, status in rows if not status.strip().startswith("Complete")), None)
+        if current is None:
+            expected_state, expected_milestone = "Complete", "Completed project"
+        else:
+            expected_milestone = current[0]
+            leading = current[1].split(" — ", 1)[0]
+            if all(status.strip() == "Not started" for _, status in rows):
+                expected_state = "Not started"
+            elif leading == "Not started":
+                expected_state = "In progress"
+            else:
+                expected_state = leading
+        self.assertEqual(header_state, expected_state)
+        self.assertEqual(header_milestone, expected_milestone)
+
+
+class RootCheckCLI(unittest.TestCase):
+    SCRIPT = ROOT / "scripts/check"
+
+    def run_check(self, *arguments: str, **kwargs) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [str(self.SCRIPT), *arguments],
+            cwd=kwargs.get("cwd", ROOT),
+            env=kwargs.get("env"),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=False,
+        )
+
+    def test_usage_errors(self) -> None:
+        for arguments in ((), ("unknown",), ("focused",), ("focused", "unknown"), ("full", "extra"), ("focused", "repo", "extra")):
+            with self.subTest(arguments=arguments):
+                result = self.run_check(*arguments)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("usage:", result.stderr)
+
+    def fake_environment(self, root: Path, fail_child: bool) -> dict[str, str]:
+        binary = root / "bin"
+        binary.mkdir(parents=True)
+        fake_rustc = binary / "rustc"
+        fake_rustc.write_text("#!/bin/sh\necho 'rustc 1.97.1 (test)'\n")
+        fake_rustc.chmod(0o755)
+        git = binary / "git"
+        git.write_text("#!/bin/sh\necho 'git version test'\n")
+        git.chmod(0o755)
+        uv = binary / "uv"
+        uv.write_text(
+            "#!/bin/sh\n"
+            "if [ \"$1\" = --version ]; then echo 'uv 0.11.29 (test)'; exit 0; fi\n"
+            + (
+                "case \" $* \" in *\" -c \"*) exit 0;; *) exit 1;; esac\n"
+                if fail_child
+                else "exit 0\n"
+            )
+        )
+        uv.chmod(0o755)
+        rustup = binary / "rustup"
+        rustup.write_text(
+            "#!/bin/sh\n"
+            "if [ \"$1\" = which ]; then echo \"${0%/*}/rustc\"; exit 0; fi\n"
+            "if [ \"$4\" = --version ]; then echo 'cargo 1.97.1 (test)'; exit 0; fi\n"
+            "exit 0\n"
+        )
+        rustup.chmod(0o755)
+        environment = os.environ.copy()
+        environment["PATH"] = str(binary)
+        return environment
+
+    def test_success_and_failed_child_are_classified(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            copied = root / "scripts/check"
+            copied.parent.mkdir()
+            copied.write_bytes(self.SCRIPT.read_bytes())
+            copied.chmod(0o755)
+            environment = self.fake_environment(root, fail_child=False)
+            success = subprocess.run(
+                [str(copied), "focused", "identity"], cwd=root, env=environment,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False
+            )
+            self.assertEqual(success.returncode, 0, success.stderr)
+            failed_environment = self.fake_environment(root / "failed", fail_child=True)
+            failure = subprocess.run(
+                [str(copied), "focused", "identity"], cwd=root, env=failed_environment,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False
+            )
+            self.assertEqual(failure.returncode, 1)
+            self.assertIn("identity", failure.stderr)
 
 
 if __name__ == "__main__":

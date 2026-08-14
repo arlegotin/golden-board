@@ -119,9 +119,13 @@ fn manifest_fixture() {
     }
     validate_canonical_manifest(&fixture("identity-v0.json")).unwrap();
     validate_canonical_manifest(&original).unwrap();
+    assert_eq!(fixture("manifest-v0.json"), original);
+}
+
+#[test]
+fn source_report_is_canonical() {
     validate_canonical_manifest(&fs::read(root().join("reports/source-doctor.json")).unwrap())
         .unwrap();
-    assert_eq!(fixture("manifest-v0.json"), original);
 }
 
 #[test]
