@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import socket
+import stat
 import subprocess
 import sys
 import tempfile
@@ -27,6 +28,64 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[2]
 IDENTITY_FIXTURE = ROOT / "conformance" / "identity-v0.json"
 MANIFEST_FIXTURE = ROOT / "conformance" / "manifest-v0.json"
+MAX_REPO_TEXT_BYTES = 1_048_576
+
+
+def repo_text_bytes(root: Path, relative: bytes) -> bytes:
+    components = relative.split(b"/")
+    if (
+        not relative
+        or b"\0" in relative
+        or relative.startswith(b"/")
+        or any(component in {b"", b".", b".."} for component in components)
+        or not hasattr(os, "O_NOFOLLOW")
+    ):
+        raise AssertionError(f"unsafe repository text path: {relative!r}")
+
+    directory_fd = None
+    file_fd = None
+    try:
+        directory_fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY)
+        for component in components[:-1]:
+            metadata = os.stat(component, dir_fd=directory_fd, follow_symlinks=False)
+            if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISDIR(metadata.st_mode):
+                raise AssertionError(f"unsafe repository text path: {relative!r}")
+            next_fd = os.open(
+                component,
+                os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                dir_fd=directory_fd,
+            )
+            os.close(directory_fd)
+            directory_fd = next_fd
+
+        metadata = os.stat(components[-1], dir_fd=directory_fd, follow_symlinks=False)
+        if (
+            stat.S_ISLNK(metadata.st_mode)
+            or not stat.S_ISREG(metadata.st_mode)
+            or metadata.st_size > MAX_REPO_TEXT_BYTES
+        ):
+            raise AssertionError(f"unsafe repository text path: {relative!r}")
+        file_fd = os.open(
+            components[-1], os.O_RDONLY | os.O_NOFOLLOW, dir_fd=directory_fd
+        )
+        metadata = os.fstat(file_fd)
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > MAX_REPO_TEXT_BYTES:
+            raise AssertionError(f"unsafe repository text path: {relative!r}")
+
+        data = bytearray()
+        while len(data) <= MAX_REPO_TEXT_BYTES:
+            chunk = os.read(file_fd, min(65_536, MAX_REPO_TEXT_BYTES + 1 - len(data)))
+            if not chunk:
+                return bytes(data)
+            data.extend(chunk)
+        raise AssertionError(f"unsafe repository text path: {relative!r}")
+    except OSError as error:
+        raise AssertionError(f"unsafe repository text path: {relative!r}") from error
+    finally:
+        if file_fd is not None:
+            os.close(file_fd)
+        if directory_fd is not None:
+            os.close(directory_fd)
 
 
 class FoundationModulesPresent(unittest.TestCase):
@@ -627,16 +686,18 @@ class RepoContract(unittest.TestCase):
 
     def test_text_registry_links_and_status_are_consistent(self) -> None:
         output = subprocess.run(
-            ["git", "ls-files", "--others", "--exclude-standard"],
+            ["git", "ls-files", "--others", "--exclude-standard", "-z"],
             cwd=ROOT,
             check=True,
             stdout=subprocess.PIPE,
-            text=True,
         ).stdout
-        for relative in [*self.REQUIRED, *output.splitlines()]:
-            if relative in {"docs/64_games.md", "reports/game-set-v0.bin"}:
+        for relative in [
+            *(os.fsencode(path) for path in self.REQUIRED),
+            *(path for path in output.split(b"\0") if path),
+        ]:
+            if relative in {b"docs/64_games.md", b"reports/game-set-v0.bin"}:
                 continue
-            data = (ROOT / relative).read_bytes()
+            data = repo_text_bytes(ROOT, relative)
             self.assertNotIn(b"\r", data, relative)
             self.assertTrue(data.endswith(b"\n"), relative)
             for line in data.splitlines():
@@ -680,11 +741,56 @@ class RepoContract(unittest.TestCase):
         self.assertEqual(header_state, expected_state)
         self.assertEqual(header_milestone, expected_milestone)
 
+    def test_untracked_text_scan_rejects_unsafe_files(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT, prefix="repo-contract-") as directory:
+            root = Path(directory)
+            (root / "regular.txt").write_bytes(b"regular\n")
+            (root / "newline\nname.txt").write_bytes(b"newline\n")
+            self.test_text_registry_links_and_status_are_consistent()
+            self.assertEqual(repo_text_bytes(root, b"regular.txt"), b"regular\n")
+            for relative in (b"/absolute", b"../outside", b"regular.txt/../outside"):
+                with self.subTest(relative=relative), self.assertRaises(AssertionError):
+                    repo_text_bytes(root, relative)
+
+            safe_directory = root / "safe-directory"
+            safe_directory.mkdir()
+            (safe_directory / "inside.txt").write_bytes(b"inside\n")
+            (root / "directory-link").symlink_to(safe_directory, target_is_directory=True)
+            with self.assertRaises(AssertionError):
+                repo_text_bytes(root, b"directory-link/inside.txt")
+            (root / "directory-link").unlink()
+
+            target = root / "target.txt"
+            target.write_bytes(b"target\n")
+            (root / "link.txt").symlink_to(target)
+            with self.assertRaises(AssertionError):
+                self.test_text_registry_links_and_status_are_consistent()
+            (root / "link.txt").unlink()
+
+            (root / "oversize.txt").write_bytes(b"x" * (1_048_576 + 1))
+            with self.assertRaises(AssertionError):
+                self.test_text_registry_links_and_status_are_consistent()
+            (root / "oversize.txt").unlink()
+
+            if hasattr(os, "mkfifo"):
+                fifo = root / "pipe"
+                os.mkfifo(fifo)
+                try:
+                    with self.assertRaises(AssertionError):
+                        repo_text_bytes(root, b"pipe")
+                finally:
+                    fifo.unlink()
+
     def test_m1_admission_policy(self) -> None:
         check = (ROOT / "scripts/check").read_text()
         self.assertIn("cargo test -p gb-foundation", check)
         self.assertIn("git diff --check || return 1", check)
         self.assertIn("git diff --cached --check || return 1", check)
+        identity_block = check.split("identity() {", 1)[1].split("\n}\n", 1)[0]
+        repo_block = check.split("repo() {", 1)[1].split("\n}\n", 1)[0]
+        self.assertNotIn("--workspace", identity_block)
+        self.assertNotIn("git diff --check -- ", repo_block)
+        self.assertNotIn("git diff --cached --check -- ", repo_block)
 
         roadmap = (ROOT / "docs/roadmap.md").read_text()
         self.assertIn(
