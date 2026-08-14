@@ -13,6 +13,8 @@
 Project authority and milestone status live in [`docs/roadmap.md`](docs/roadmap.md).
 M0's executable contract and plan are
 [`docs/m0-spec.md`](docs/m0-spec.md) and [`docs/m0-plan.md`](docs/m0-plan.md).
+M1's executable contract and plan are
+[`docs/m1-spec.md`](docs/m1-spec.md) and [`docs/m1-plan.md`](docs/m1-plan.md).
 
 Root checks:
 

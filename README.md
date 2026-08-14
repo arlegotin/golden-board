@@ -71,6 +71,8 @@ PYTHONPATH="$PWD/python" uv run --locked --offline --no-python-downloads \
 - `docs/roadmap.md` — product contract, milestone gates, and status authority
 - `docs/m0-spec.md` — M0 implementation contract
 - `docs/m0-plan.md` — ordered M0 execution plan
+- `docs/m1-spec.md` — M1 execution contract and design rationale
+- `docs/m1-plan.md` — flexible, ordered M1 execution plan
 - `docs/sources.md` — retained reference ledger and rights limits
 - `docs/64_games.md` — authoritative, immutable-for-M0 anthology input
 - `inputs/source-lock.toml` — exact input and reference receipts
