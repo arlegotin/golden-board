@@ -1,0 +1,19 @@
+schema = "golden-board.conformance-registry/v0"
+
+[[suite]]
+id = "identity-v0"
+path = "conformance/identity-v0.json"
+specification = "identity-v0"
+version = "v0"
+sha256 = "57d7c84b994eec22290830ddd7b08cf4528869b826dce451713bfbc3656b2488"
+consumers = ["python", "rust"]
+provenance = "hand-authored"
+
+[[suite]]
+id = "manifest-v0"
+path = "conformance/manifest-v0.json"
+specification = "identity-v0"
+version = "v0"
+sha256 = "cb9a7604683623c5809c2b5b4bde45fb4e6fb67dc48e56aea10c23bc88e6c3e8"
+consumers = ["python", "rust"]
+provenance = "hand-authored"
