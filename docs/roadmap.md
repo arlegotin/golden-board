@@ -5,7 +5,7 @@
 | Roadmap revision | 2 |
 | Last updated | 2026-08-14 |
 | Project state | In progress |
-| Current milestone | M0 — Foundation and source reconnaissance |
+| Current milestone | M1 — Chess truth, source grammar, and assessment blueprint |
 | Delivery model | One implementation track, one final square bitplane |
 | Canonical anthology source | `docs/64_games.md` |
 | Mutable status authority | Section 13 |
@@ -2294,7 +2294,7 @@ This section is intentionally mutable. Updating status does not require preservi
 
 | Milestone | Status | Completion evidence or blocker |
 |---|---|---|
-| M0 — Foundation and source reconnaissance | In progress | `docs/m0-spec.md`; `docs/m0-plan.md` |
+| M0 — Foundation and source reconnaissance | Complete — 2026-08-14; scripts/check full; report SHA-256 ce40dc9c56a37a74969135fab5a8cf13f8c35c4a624005bfe1b239eb32ff04db; registry SHA-256 ed22a5d85e5372727616ed8bb8b86b88d21bc6591a8b0937a23fad580aa5e27e | `docs/m0-spec.md`; `docs/m0-plan.md`; `reports/source-doctor.json`; `conformance/registry.toml` |
 | M1 — Chess truth, source grammar, and assessment blueprint | Not started | — |
 | M2 — Full-carrier bootstrap and transport feasibility | Not started | — |
 | M3 — Complete content and formative integration | Not started | — |
