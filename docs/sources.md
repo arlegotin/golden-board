@@ -33,8 +33,8 @@ and conformance evidence, so M1 does not add mutable copies to the source lock.
 
 ## Boundaries
 
-- The historical PGN guide is not the Golden Board grammar; M1's
-  `spec/source-v0.md` will own that contract.
+- The historical PGN guide is not the Golden Board grammar;
+  [`spec/source-v0.md`](../spec/source-v0.md) owns that contract.
 - M1 design references above remain explanatory citations unless a later
   implementation consumes exact external bytes; such a consumer must first add
   a locked receipt and rights note.

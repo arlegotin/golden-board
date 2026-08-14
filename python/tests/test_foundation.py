@@ -655,7 +655,8 @@ class RepoContract(unittest.TestCase):
         "python/golden_board/__init__.py", "python/golden_board/canonical_manifest.py",
         "python/golden_board/identity.py", "python/golden_board/source_doctor.py",
         "python/tests/test_foundation.py", "reports/source-doctor.json",
-        "rust-toolchain.toml", "scripts/check", "spec/identity-v0.md", "uv.lock",
+        "rust-toolchain.toml", "scripts/check", "spec/chess-v0.md",
+        "spec/identity-v0.md", "spec/source-v0.md", "uv.lock",
     ]
 
     def tracked(self) -> dict[str, str]:
@@ -796,6 +797,72 @@ class RepoContract(unittest.TestCase):
         self.assertIn(
             "| M1 — Chess truth, source grammar, and assessment blueprint | In progress | — |",
             roadmap,
+        )
+
+    def test_m1_chess_and_source_owners_are_closed(self) -> None:
+        chess = (ROOT / "spec/chess-v0.md").read_text()
+        source = (ROOT / "spec/source-v0.md").read_text()
+        design = (ROOT / "docs/m1-spec.md").read_text()
+        design_words = " ".join(design.split())
+
+        self.assertIn("sole owner of Golden Board v0 chess types", chess)
+        self.assertIn("sole owner of Golden Board v0 raw Markdown", source)
+        self.assertIn("sole normative owner of chess bytes", design_words)
+        self.assertIn("sole normative owner of raw grammar", design_words)
+        self.assertIsNone(re.search(r"\b(?:TODO|TBD|FIXME|XXX)\b", chess + source))
+
+        operations = {
+            "decode_position", "encode_position", "decode_move", "encode_move",
+            "decode_event", "encode_event", "validate_local",
+            "controls_square", "king_in_check", "pseudo_legal_moves",
+            "replay_from_start", "legal_moves", "apply_move",
+            "repetition_key", "board_terminal", "common_dead", "new_game",
+            "apply_event", "validate_source_record", "evaluate_predicate",
+        }
+        api = chess.split("## 5. Public logical API", 1)[1].split(
+            "## 6. Board semantics", 1
+        )[0]
+        api_block = api.split("```text", 1)[1].split("```", 1)[0]
+        self.assertEqual(
+            set(re.findall(r"^([a-z_]+)\(", api_block, re.MULTILINE)),
+            operations,
+        )
+
+        source_operations = {
+            "compile_source", "encode_game", "decode_game",
+            "validate_anthology", "encode_game_set", "decode_game_set",
+            "encode_candidate_trace", "validate_candidate_trace",
+            "coordinate_candidates", "validate_retained_evidence",
+        }
+        source_api = source.split("### 1.2 Logical API", 1)[1].split(
+            "## 2. Input profile and spans", 1
+        )[0]
+        source_api_block = source_api.split("```text", 1)[1].split("```", 1)[0]
+        self.assertEqual(
+            set(re.findall(r"^([a-z_]+)\(", source_api_block, re.MULTILINE)),
+            source_operations,
+        )
+
+        predicates = set(
+            re.findall(r"^\| `(chess\.[a-z0-9_]+)` \|", chess, re.MULTILINE)
+        )
+        self.assertEqual(
+            predicates,
+            {
+                "chess.setup_turn", "chess.occupancy", "chess.move_legality",
+                "chess.control", "chess.defended", "chess.king_check",
+                "chess.absolute_pin", "chess.fork_double_attack",
+                "chess.discovered_attack_check", "chess.escape_square_control",
+                "chess.passed_pawn", "chess.open_file", "chess.semi_open_file",
+                "chess.finite_promotion_race", "chess.finite_mating_geometry",
+                "chess.terminal_transition", "chess.history_claim",
+                "chess.declaration_event", "chess.source_score_relation",
+                "chess.move_record_replay",
+            },
+        )
+        self.assertEqual(
+            re.findall(r"^\*\*Stage ([0-9]+) ", source, re.MULTILINE),
+            [str(stage) for stage in range(1, 12)],
         )
 
 

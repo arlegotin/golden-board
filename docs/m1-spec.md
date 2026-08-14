@@ -38,10 +38,9 @@ rule first. If two owning specifications disagree, stop affected implementation
 until one owner is made unambiguous. Never adjust an expected vector, source
 grammar, learner denominator, or pass threshold merely to obtain a pass.
 
-Writing this document does not start or complete M1. Section 13 of the roadmap
-therefore remains `Not started`. M1 moves to `In progress` when its first
-executable deliverable is intentionally introduced, and to `Complete` only when
-every M1 deliverable/checklist item and all G2–G4 evidence below pass.
+M1 is now `In progress` because its first executable repository deliverable has
+landed. This design document does not complete it. M1 moves to `Complete` only
+when every M1 deliverable/checklist item and all G2–G4 evidence below pass.
 
 ## 2. Evidence behind the design
 
@@ -338,6 +337,14 @@ roadmap-owned chess/source scope rather than implementing this design.
 
 ## 6. Canonical chess bytes and identity
 
+Sections 6–10 retain the reviewed design rationale and evidence checklist. The
+promoted [`spec/chess-v0.md`](../spec/chess-v0.md) is now the sole normative
+owner of chess bytes, types, APIs, semantics, predicates, and rejection order;
+[`spec/identity-v0.md`](../spec/identity-v0.md) owns identity framing/domains,
+and `spec/constants-v0.toml` owns shared numeric assignments once it lands. Any
+implementation detail or draft spelling below is a nonnormative synopsis and
+does not override those smaller owners.
+
 ### 6.1 Primitive conventions
 
 - all canonical integers are unsigned big-endian;
@@ -474,9 +481,10 @@ u16_be(game_count) || sorted_game_0 || ... || sorted_game_(count-1)
 ```
 
 Each game is self-delimiting through its leading ply count and fixed move/score
-width. The anthology object requires `game_count == 64`; no source ordinal,
-length wrapper, metadata, filename, or raw source hash enters it. M1 does not
-invent a history-state identity because no M1 consumer needs one.
+width. The general source-v0 encoder accepts `1..65,535` unique valid records;
+the Golden Board anthology object requires `game_count == 64`. No source
+ordinal, length wrapper, metadata, filename, or raw source hash enters it. M1
+does not invent a history-state identity because no M1 consumer needs one.
 
 ## 7. Chess validation layers and pure APIs
 
@@ -503,39 +511,26 @@ may be used only for explicitly board-local occupancy/control predicates; it
 makes no reachability, legal-move, history, event, terminal, or source claim.
 
 `GameState` is one opaque `ReplayState` plus active/closed status and, when
-closed, exact cause/result. No public constructor accepts independently supplied
-position/history/status fields.
+closed, the exact board-terminal or declaration cause and its derived result.
+No public constructor accepts independently supplied position, history,
+status, cause, or result fields.
 
 ### 7.2 Logical API
 
-Both implementations expose equivalent pure operations, even if idiomatic
-language signatures differ:
+The exact closed operation list is owned by chess-v0: `decode_position`,
+`encode_position`, `decode_move`, `encode_move`, `decode_event`, `encode_event`,
+`validate_local`, `controls_square`, `king_in_check`, `pseudo_legal_moves`,
+`replay_from_start`, `legal_moves`, `apply_move`, `repetition_key`,
+`board_terminal`, `common_dead`, `new_game`, `apply_event`,
+`validate_source_record`, and `evaluate_predicate`. Chess-v0 owns their exact
+argument/result types and sorting.
 
-```text
-decode_position(bytes) -> WirePosition | Reject
-validate_local(WirePosition) -> LocallyAdmissiblePosition | Reject
-controls_square(WirePosition, side, target) -> sorted origin squares | Reject
-king_in_check(LocallyAdmissiblePosition, side) -> bool
-pseudo_legal_moves(LocallyAdmissiblePosition) -> sorted moves
-replay_from_start(moves) -> ReplayState | Reject
-legal_moves(ReplayState) -> sorted moves
-apply_move(ReplayState, Move) -> ReplayState | Reject
-repetition_key(ReplayState) -> 67 bytes
-board_terminal(ReplayState) -> terminal result
-common_dead(ReplayState) -> bool for the closed classes
-new_game() -> GameState
-apply_event(GameState, Event) -> next GameState | Reject
-validate_source_record(moves, score) -> RecordResult | Reject
-evaluate_predicate(predicate_id, verified inputs) -> exact result | Reject
-```
-
-`controls_square` is defined over structurally decoded occupancy and therefore
-returns `Reject` only for malformed side/target/position bytes; it does not need
-a unique king. `king_in_check` requires local admissibility because it selects
-the side's unique king. All returned controller squares and legal/pseudo-legal
-moves sort in ascending unsigned numeric encoding. No API consults global
-mutable state, time, randomness, hash-map iteration order, source metadata, or
-transport state.
+`controls_square` is total over typed, structurally decoded occupancy and does
+not need a unique king. `king_in_check` requires local admissibility because it
+selects the side's unique king. All returned controller squares and legal/
+pseudo-legal moves sort in ascending unsigned numeric encoding. No API consults
+global mutable state, time, randomness, hash-map iteration order, source
+metadata, or transport state.
 
 `legal_moves(ReplayState)` returns the empty set when `board_terminal` is
 checkmate, stalemate, or selected common-dead; an internal board-move generator
@@ -741,17 +736,18 @@ truth definition into the curriculum.
 
 ### 9.2 Primary rejection layers
 
-The public chess API returns a stable machine code plus typed context; prose is
-nonnormative. The top-level precedence is:
+The public chess API's only canonical cross-language rejection datum is the
+stable primary machine code. Richer diagnostic context is optional,
+noncanonical, and not compared or scored. Chess-v0 owns the complete code list
+and precedence; the design-level layers are:
 
 1. malformed byte length/encoding, reserved bit, or invalid encoded code;
 2. local position incoherence;
-3. missing replay authority;
-4. closed game;
-5. resource limit;
-6. illegal move;
-7. invalid declaration/claim event; and
-8. source-record contradiction.
+3. closed game;
+4. resource limit;
+5. illegal move;
+6. invalid declaration/claim event; and
+7. source-record contradiction.
 
 Within illegal move, the chess spec freezes enough distinct families for exact
 feedback and the critical-error policy, including at least:
@@ -762,15 +758,13 @@ feedback and the critical-error policy, including at least:
 - friendly destination or attempted king capture;
 - piece geometry, blocker, pawn advance/capture, or double-step failure;
 - promotion missing, unnecessary, or invalid;
-- castling right, entitled piece, path, current check, transit check, or
-  destination check;
+- castling right, path, current check, transit check, or destination check;
 - en-passant target/geometry/expiry failure; and
 - own king left or moved into check.
 
-The exact same primary code is required only where both language APIs receive
-the same validated-layer input. An implementation may retain richer secondary
-diagnostics, but scoring and cross-language comparison use only the frozen
-primary code and typed fields.
+The exact same primary code is required where both language APIs receive the
+same validated-layer input. An implementation may retain richer diagnostics,
+but scoring and cross-language comparison use only the frozen primary code.
 
 ### 9.3 Closure-aware transition
 
@@ -895,9 +889,14 @@ answer automatically.
 
 ## 11. Raw source grammar
 
-`spec/source-v0.md` must be implementable from this section without a Markdown,
-PGN, regex, or parser-generator dependency. Both compilers start from the same
-locked raw bytes but implement the state machines independently.
+Sections 11–13 retain reviewed grammar rationale and evidence requirements.
+The promoted [`spec/source-v0.md`](../spec/source-v0.md) is now the sole
+normative owner of raw grammar, project SAN, spans, rejection precedence, game
+records/sets, candidate comparison, and retained source evidence. Draft shapes
+or process wording below are nonnormative and cannot override that owner. Both
+compilers still start from the same locked raw bytes and implement their state
+machines independently without a Markdown, PGN, regex, or parser-generator
+dependency.
 
 ### 11.1 Resource and byte profile
 
@@ -1068,11 +1067,12 @@ score are consistent. A failed step exposes no shorter accepted prefix.
 3. fence shape/pairing/count and per-block fence-span limit;
 4. tag count/name/value limits and tag syntax/escape/duplicate/forbidden/result;
 5. separator/movetext framing and token/per-record-ply/total-ply limits;
-6. move-number/result-token structure and tag/marker mismatch;
+6. move-number/result-token structure, tag/marker mismatch, and any token after
+   the result marker;
 7. terminal continuation;
 8. SAN shape, legal-set match, ambiguity, and canonical stem;
 9. check/mate suffix truth;
-10. terminal score consistency/trailing record data; and
+10. terminal score consistency; and
 11. duplicate move streams across otherwise valid records.
 
 The lowest raw start wins within a category; equal starts use the code order
@@ -1114,73 +1114,13 @@ a source-lock observation, never imported as parser code.
 
 ### 13.3 Per-ply equality
 
-Every one of the expected 4,915 plies is compared, not sampled. A normalized
-trace row contains:
-
-```text
-[raw_start, raw_end, move_u16_hex, post_position_bytes_hex, suffix_truth_code]
-```
-
-The report has this closed canonical-manifest-v0 shape (field names are exact;
-no additional field is accepted):
-
-| Object | Exact fields |
-|---|---|
-| top | `constants_sha256`, `game_count=64`, `game_set_identity`, `games`, `initial_position_bytes`, `initial_position_identity`, `ir_bytes`, `ply_count`, `producer_labels`, `score_counts`, `source_sha256`, `spec_sha256` |
-| `spec_sha256` | `chess_v0`, `identity_v0`, `source_v0`, each raw-file SHA-256 lowercase hex |
-| one `games` entry | `game_identity`, `rows`, `score`, `source_ordinal` |
-
-`constants_sha256`, identities, and `source_sha256` are 64 lowercase hex;
-`initial_position_bytes` is 134 lowercase hex; `producer_labels` is exactly
-`["python","rust"]`; and `score_counts` is three unsigned integers ordered
-first-side win, second-side win, draw. `games` contains 64 entries ordered by
-ascending source ordinal `0..63`; `score` is its u8 code. Each `rows` value is an
-array of fixed five-element rows in source order: raw start/end are unsigned
-integers, move is exactly four lowercase hex characters, post-position is 134
-lowercase hex characters, and suffix truth is integer `0 none`, `1 check`, or
-`2 mate`. `game_count` and `ply_count` are measured unsigned integers;
-`ir_bytes` is exactly the sum of the 64 individual game-record lengths
-`sum(2 + 2*ply_count + 1)`, excluding the game-set container's leading two-byte
-count. The standard initial bytes/identity at top level apply to every game.
-
-Validation recomputes every cross-field fact: source ordinals are exactly the
-unique set `0..63`; `sum(len(rows)) == ply_count`; score counts are derived from
-games and sum to 64; initial identity is derived from initial bytes; each game
-IR is rebuilt from row moves plus score and its identity recomputed; `ir_bytes`
-is the sum of those rebuilt lengths; sorting the 64 rebuilt IR values and adding
-the count recomputes `game_set_identity`; source/spec/constants hashes match the
-actual locked/read bytes. Any contradiction rejects the report rather than
-preserving a self-consistent-looking subset.
-
-A row's pre-position is the prior row's post-position, or the top-level initial
-bytes for the first row. Position identities are recomputed from those exact
-bytes. This compact adjacency representation proves every full-byte/hash pre/
-post comparison without storing each pre-position twice.
-
-Path P and R first write separate complete report candidates under ignored
-temporary/artifact paths from the same fixed report schema. Their canonical
-bytes must be byte-equal. Only then may that exact candidate be atomically
-installed; neither candidate becomes the other's expected data.
-
-The retained canonical report:
-
-- uses the existing canonical-manifest-v0 serializer and the closed shape above;
-- is at most 1,048,576 bytes, including final LF;
-- contains no timestamp, absolute path, host, locale, inode, temp name, or
-  iteration-order leakage;
-- binds the locked source identity, exact owning spec/constant identities,
-  game-set identity, counts, score distribution, ply/IR sizes, both fixed
-  producer labels, and is installable only after the complete Path P/Path R
-  report candidates and game-set bytes compare equal; and
-- is generated to a sibling temporary file, validated, then atomically replaces
-  the prior report. An interrupted generation leaves the prior accepted report.
-
-The report has no self-hash or undefined trace-identity domain; its exact bytes
-are compared directly and the already registered game-set identity binds the
-canonical semantic output. Do not raise the 1 MiB limit to accommodate verbose
-evidence. The row form above is comfortably bounded; if measured canonical output still exceeds the cap,
-remove duplicated presentation fields or use one bounded binary trace plus a
-small canonical manifest before changing a repository-wide limit.
+Every resolved ply is compared, not sampled. Source-v0 owns the exact trace row,
+candidate/report schemas, cross-field validation, and 1 MiB cap. Each producer
+independently emits candidate facts, trace, and game-set bytes without a
+producer/agreement assertion. The coordinator validates both candidates,
+compares every candidate-trace and game-set byte, and only then constructs and
+atomically installs the single retained report with fixed producer labels. The
+retained report has no self-hash or trace-identity domain.
 
 ### 13.4 Game IR, duplicates, and sorting
 
@@ -2104,7 +2044,7 @@ evidence.
 - Anthology provenance/redistribution remains a release concern; this milestone
   makes no rights claim.
 
-These are honest scope boundaries, not TODO infrastructure. Revisit one only
+These are honest scope boundaries, not deferred infrastructure. Revisit one only
 when a later milestone has a concrete consumer or the owner changes product
 scope.
 

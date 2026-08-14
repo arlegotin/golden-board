@@ -367,6 +367,10 @@ A deferred value is not permission to guess. It is permission to measure and dec
 
 `spec/chess-v0.md` freezes the standard initial position and the selected practical rules from the FIDE Laws snapshot. The specification must be readable without consulting code.
 
+This Section 4 is the roadmap-owned product-scope and gate synopsis. The live
+chess specification is the sole owner of exact types, bytes, operation
+signatures, predicate definitions, rejection names, and precedence.
+
 Tournament-only procedure omitted by Section 1.5 MUST NOT leak back into APIs, curriculum, or source validation as an implicit requirement.
 
 ### 4.2 Semantic types
@@ -406,7 +410,8 @@ valid position and history values.
 
 - `ReplayState`;
 - active, checkmate, stalemate, common-dead draw, resigned, agreed draw, claimed threefold, or claimed 50-move status; and
-- result when the game is closed.
+- exact board-terminal or declaration cause and its derived result when the
+  game is closed.
 
 #### `RecordContext`
 
@@ -601,22 +606,12 @@ also out of scope.
 
 ### 4.11 Public APIs
 
-The normative logical API is:
-
-```text
-validate_wire_position(bytes) -> WirePosition | Reject
-validate_local_position(WirePosition) -> LocallyAdmissiblePosition | Reject
-replay_from_start(moves) -> ReplayState | Reject
-controls_square(WirePosition, side, square) -> ordered controllers
-king_in_check(LocallyAdmissiblePosition, side) -> bool
-legal_moves(ReplayState) -> canonical ordered moves
-board_terminal(ReplayState) -> none | checkmate(winning_side) | stalemate | common_dead
-apply_move(ReplayState, Move) -> next ReplayState | Reject
-common_dead(ReplayState) -> bool for the frozen closed material classes
-new_game() -> GameState
-apply_event(GameState, Event) -> GameState | Reject
-validate_source_record(moves, score) -> RecordResult | Reject
-```
+The exact closed operation names are `decode_position`, `encode_position`,
+`decode_move`, `encode_move`, `decode_event`, `encode_event`, `validate_local`,
+`controls_square`, `king_in_check`, `pseudo_legal_moves`, `replay_from_start`,
+`legal_moves`, `apply_move`, `repetition_key`, `board_terminal`, `common_dead`,
+`new_game`, `apply_event`, `validate_source_record`, and `evaluate_predicate`.
+`spec/chess-v0.md` owns their exact argument/result types and sorting.
 
 `replay_from_start` and `apply_move` are closure-aware: they reject the first
 move after checkmate, stalemate, or a selected common-dead state, and reject the
@@ -629,9 +624,10 @@ replay-level board/history transition and cannot observe a resignation,
 agreement, or accepted claim stored in `GameState`.
 
 Validation precedence is fixed in `spec/chess-v0.md`: malformed encoding or
-invalid encoded code, local incoherence, missing replay authority, closed state,
-resource limit, illegal move, invalid event, and record contradiction. Python
-and Rust return the same primary rejection code for multiply invalid fixtures.
+invalid encoded code, local incoherence, closed state, resource limit, illegal
+move, invalid event, and record contradiction. Python and Rust return the same
+primary rejection code for multiply invalid fixtures. Generic content binding
+authority and its mismatch rejection remain content-v0-owned.
 
 ### 4.12 Chess conformance corpus
 
@@ -663,6 +659,10 @@ Hand-audited microvectors, Python/Rust differential tests, an independent develo
 ### 5.1 Source authority
 
 `docs/64_games.md` is the sole anthology source. The roadmap neither copies nor enumerates its games. The raw source SHA-256 belongs to developer verification only and never enters the canonical bitplane or blind learning material.
+
+This Section 5 owns anthology product scope and milestone intent.
+`spec/source-v0.md` is the sole owner of exact raw grammar, project SAN, spans,
+compiler operations/rejections, general game/set bytes, and evidence schema.
 
 ### 5.2 Immediate source doctor
 
@@ -701,9 +701,10 @@ If the M0 doctor demonstrates that the exact file differs, the coding agent may 
 
 `spec/source-v0.md` also freezes byte-level tokenization and one deterministic
 primary-error order: encoding/control bytes, fence structure/count, tag
-syntax/duplicates, separator/movetext framing, move-number/result-token syntax,
-terminal continuation, SAN shape and legal-set resolution, canonical suffix
-truth, result consistency, trailing data, and duplicate move streams. SAN is
+syntax/duplicates, separator/movetext framing, move-number/result-token syntax
+including any token after a result marker, terminal continuation, SAN shape and
+legal-set resolution, canonical suffix truth, result consistency, and duplicate
+move streams. SAN is
 resolved against the legal move set, so there is no fictitious second
 "legality" phase after a unique legal match; direct chess APIs retain their own
 illegal-move rejection. Multiply invalid source fixtures MUST produce the same
@@ -1836,9 +1837,11 @@ Adapters MUST NOT recompute chess truth, repair unchecked bytes, inject dimensio
 
 ### 9.9 Stable rejection codes
 
-Owning subsystem specifications define rejection names, meanings, typed context,
-and precedence. A neutral schema owns only their shared numeric assignments and
-feeds generated language constants. Required families include:
+Owning subsystem specifications define rejection names, meanings, and
+precedence. A neutral schema owns only their shared numeric assignments and
+feeds generated language constants. The stable primary code is canonical;
+richer diagnostic context is optional and noncanonical unless a smaller owner
+explicitly says otherwise. Required families include:
 
 ```text
 input.missing
@@ -1858,7 +1861,6 @@ record.noncanonical
 record.trailing_data
 record.missing_dependency
 chess.bad_position
-chess.missing_replay_authority
 chess.illegal_move
 chess.invalid_event
 lesson.invalid_graph
