@@ -131,7 +131,7 @@ tests and callers may move together if an equally small interface is clearer.
 
 These checks observe the host; they do not enter semantic inputs or the report.
 
-- [ ] Confirm the current branch and inspect, but do not discard, existing
+- [x] Confirm the current branch and inspect, but do not discard, existing
   changes:
 
   ```sh
@@ -142,7 +142,7 @@ These checks observe the host; they do not enter semantic inputs or the report.
   Expected: the branch is the user's current M0 branch. A dirty worktree is not
   itself a failure; overlapping changes must be preserved or surfaced.
 
-- [ ] Check the bootstrap tools. If an exact tool is missing, use the documented
+- [x] Check the bootstrap tools. If an exact tool is missing, use the documented
   explicit acquisition route; do not make checks install it implicitly:
 
   ```sh
@@ -154,7 +154,7 @@ These checks observe the host; they do not enter semantic inputs or the report.
   Expected M0 selections: uv 0.11.29, CPython 3.14.6, Rust/Cargo 1.97.1 with
   `rustfmt`. Git's observed version is not byte-defining.
 
-- [ ] If the exact runtimes are absent, acquire them explicitly after confirming
+- [x] If the exact runtimes are absent, acquire them explicitly after confirming
   the selected pins. Initial lockfile resolution in Packets 3 and 4 may also use
   the network. Once a lockfile exists, its tests and checks may not:
 
@@ -163,7 +163,7 @@ These checks observe the host; they do not enter semantic inputs or the report.
   rustup toolchain install 1.97.1 --profile minimal --component rustfmt
   ```
 
-- [ ] With the pinned Python now available, confirm the locked anthology before
+- [x] With the pinned Python now available, confirm the locked anthology before
   any implementation edit:
 
   ```sh
@@ -175,7 +175,7 @@ These checks observe the host; they do not enter semantic inputs or the report.
   `33d44f7167ab190cc793e3fdfd8190d89ed13c1dc507c20854cf64751c7be7da`;
   expected size: `165145` bytes.
 
-- [ ] After each native lockfile exists, acquire its declared dependencies:
+- [x] After each native lockfile exists, acquire its declared dependencies:
 
   ```sh
   uv sync --locked
@@ -850,7 +850,7 @@ non-mutating, path-independent, and safe in a dirty worktree.
   Use a path-scoped commit (`git commit --only -- <exact intended M0 paths>`) so
   unrelated staged entries remain untouched.
 
-- [ ] From a standard-library `TemporaryDirectory`, clone that exact candidate
+- [x] From a standard-library `TemporaryDirectory`, clone that exact candidate
   commit without local hardlinks, run the documented runtime/dependency
   acquisition, then run `scripts/check full`. The harness may invoke Git and the
   documented bootstrap tools through `subprocess`; it must delete only its own
@@ -865,7 +865,7 @@ non-mutating, path-independent, and safe in a dirty worktree.
 
 ### Status transition
 
-- [ ] Only after the candidate audit is green, change M0's roadmap row to:
+- [x] Only after the candidate audit is green, change M0's roadmap row to:
 
   ```text
   Complete — <actual date>; scripts/check full; <report and registry identities>
@@ -875,7 +875,7 @@ non-mutating, path-independent, and safe in a dirty worktree.
   milestone = M1 — Chess truth, source grammar, and assessment blueprint`.
   Leave M1 itself `Not started`. This is the last semantic M0 edit.
 
-- [ ] Re-run after the status edit:
+- [x] Re-run after the status edit:
 
   ```sh
   scripts/check focused repo
@@ -895,7 +895,7 @@ non-mutating, path-independent, and safe in a dirty worktree.
   same leading state and current milestone M0, then make a path-scoped
   roadmap-only status commit. Never leave a failed tree labelled `Complete`.
 
-- [ ] Commit the status/header transition after the post-status `full` passes;
+- [x] Commit the status/header transition after the post-status `full` passes;
   assert its diff names only `docs/roadmap.md`, then commit that exact path with
   path-scoped/`--only` semantics. Do not mix it with implementation or evidence
   changes or disturb unrelated index entries. The preceding candidate clone
