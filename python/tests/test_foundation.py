@@ -363,6 +363,16 @@ class SourceDoctorScanner(unittest.TestCase):
         non_nfc = self.scan("e\u0301\n".encode())
         self.assertEqual(non_nfc["source"]["nfc_state"], "valid_non_nfc")
 
+        candidate = b"```pgn\n\n```\n"
+        for count in (0, 1, 63, 64, 65):
+            source = candidate * count
+            locked = source_doctor.LockedSource(
+                "docs/source.md", len(source), hashlib.sha256(source).hexdigest()
+            )
+            counted = source_doctor.scan_source(source, locked)
+            self.assertEqual(counted["fences"]["candidate_count"], count)
+            self.assertEqual(source_doctor._gate_passes(counted), count == 64)
+
     def test_movetext_classes_constructs_results_and_duplicates(self) -> None:
         first = (
             b"```pgn\n[Result \"1-0\"]\n\n"
@@ -740,6 +750,14 @@ class RootCheckCLI(unittest.TestCase):
             )
             self.assertEqual(failure.returncode, 1)
             self.assertIn("identity", failure.stderr)
+
+    def test_missing_dependency_cache_fails_actionably(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            environment = os.environ.copy()
+            environment["CARGO_HOME"] = directory
+            result = self.run_check("focused", "identity", env=environment)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("identity-rust failed", result.stderr)
 
 
 if __name__ == "__main__":
