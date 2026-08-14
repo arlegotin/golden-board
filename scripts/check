@@ -82,7 +82,7 @@ identity() {
         python.tests.test_foundation.FoundationModulesPresent \
         python.tests.test_foundation.IdentityConformance \
         python.tests.test_foundation.ManifestConformance || return 1
-    run_check identity-rust rustup run 1.97.1 cargo test --workspace \
+    run_check identity-rust rustup run 1.97.1 cargo test -p gb-foundation \
         --all-targets --locked --offline -- --skip source_report_is_canonical
 }
 
@@ -102,28 +102,8 @@ source_fast() {
 repo() {
     run_check repo-shell sh -n scripts/check || return 1
     run_check repo-rustfmt rustup run 1.97.1 cargo fmt --all --check || return 1
-    run_check repo-working-diff git diff --check -- \
-        .gitignore .python-version AGENTS.md Cargo.lock Cargo.toml README.md \
-        conformance/identity-v0.json conformance/manifest-v0.json \
-        conformance/registry.toml crates/gb-foundation/Cargo.toml \
-        crates/gb-foundation/src/lib.rs crates/gb-foundation/tests/conformance.rs \
-        docs/64_games.md docs/m0-plan.md docs/m0-spec.md docs/roadmap.md \
-        docs/sources.md inputs/source-lock.toml pyproject.toml \
-        python/golden_board/__init__.py python/golden_board/canonical_manifest.py \
-        python/golden_board/identity.py python/golden_board/source_doctor.py \
-        python/tests/test_foundation.py reports/source-doctor.json \
-        rust-toolchain.toml scripts/check spec/identity-v0.md uv.lock || return 1
-    run_check repo-index-diff git diff --cached --check -- \
-        .gitignore .python-version AGENTS.md Cargo.lock Cargo.toml README.md \
-        conformance/identity-v0.json conformance/manifest-v0.json \
-        conformance/registry.toml crates/gb-foundation/Cargo.toml \
-        crates/gb-foundation/src/lib.rs crates/gb-foundation/tests/conformance.rs \
-        docs/64_games.md docs/m0-plan.md docs/m0-spec.md docs/roadmap.md \
-        docs/sources.md inputs/source-lock.toml pyproject.toml \
-        python/golden_board/__init__.py python/golden_board/canonical_manifest.py \
-        python/golden_board/identity.py python/golden_board/source_doctor.py \
-        python/tests/test_foundation.py reports/source-doctor.json \
-        rust-toolchain.toml scripts/check spec/identity-v0.md uv.lock || return 1
+    run_check repo-working-diff git diff --check || return 1
+    run_check repo-index-diff git diff --cached --check || return 1
     python_tests repo-python \
         python.tests.test_foundation.RepoContract \
         python.tests.test_foundation.RootCheckCLI

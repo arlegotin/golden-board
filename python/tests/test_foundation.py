@@ -592,7 +592,7 @@ class RepoContract(unittest.TestCase):
         "conformance/registry.toml", "crates/gb-foundation/Cargo.toml",
         "crates/gb-foundation/src/lib.rs", "crates/gb-foundation/tests/conformance.rs",
         "docs/64_games.md", "docs/m0-plan.md", "docs/m0-spec.md", "docs/roadmap.md",
-        "docs/sources.md", "inputs/source-lock.toml", "pyproject.toml",
+        "docs/m1-plan.md", "docs/m1-spec.md", "docs/sources.md", "inputs/source-lock.toml", "pyproject.toml",
         "python/golden_board/__init__.py", "python/golden_board/canonical_manifest.py",
         "python/golden_board/identity.py", "python/golden_board/source_doctor.py",
         "python/tests/test_foundation.py", "reports/source-doctor.json",
@@ -620,17 +620,21 @@ class RepoContract(unittest.TestCase):
         all_tracked = subprocess.run(
             ["git", "ls-files"], cwd=ROOT, check=True, stdout=subprocess.PIPE, text=True
         ).stdout.splitlines()
-        forbidden_exact = {
-            ".dockerignore", "Dockerfile", "docs/decisions.md", "flake.nix",
-            "spec/chess-v0.md", "spec/source-v0.md"
-        }
+        forbidden_exact = {".dockerignore", "Dockerfile", "docs/decisions.md", "flake.nix"}
         forbidden_prefixes = (".github/workflows/", "release/", "schemas/", "tools/linux/")
         self.assertFalse(forbidden_exact.intersection(all_tracked))
         self.assertFalse([path for path in all_tracked if path.startswith(forbidden_prefixes)])
 
     def test_text_registry_links_and_status_are_consistent(self) -> None:
-        for relative in self.REQUIRED:
-            if relative == "docs/64_games.md":
+        output = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard"],
+            cwd=ROOT,
+            check=True,
+            stdout=subprocess.PIPE,
+            text=True,
+        ).stdout
+        for relative in [*self.REQUIRED, *output.splitlines()]:
+            if relative in {"docs/64_games.md", "reports/game-set-v0.bin"}:
                 continue
             data = (ROOT / relative).read_bytes()
             self.assertNotIn(b"\r", data, relative)
@@ -675,6 +679,18 @@ class RepoContract(unittest.TestCase):
                 expected_state = leading
         self.assertEqual(header_state, expected_state)
         self.assertEqual(header_milestone, expected_milestone)
+
+    def test_m1_admission_policy(self) -> None:
+        check = (ROOT / "scripts/check").read_text()
+        self.assertIn("cargo test -p gb-foundation", check)
+        self.assertIn("git diff --check || return 1", check)
+        self.assertIn("git diff --cached --check || return 1", check)
+
+        roadmap = (ROOT / "docs/roadmap.md").read_text()
+        self.assertIn(
+            "| M1 — Chess truth, source grammar, and assessment blueprint | In progress | — |",
+            roadmap,
+        )
 
 
 class RootCheckCLI(unittest.TestCase):
