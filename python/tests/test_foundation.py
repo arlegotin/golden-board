@@ -656,7 +656,7 @@ class RepoContract(unittest.TestCase):
         "python/golden_board/identity.py", "python/golden_board/source_doctor.py",
         "python/tests/test_foundation.py", "reports/source-doctor.json",
         "rust-toolchain.toml", "scripts/check", "spec/chess-v0.md",
-        "spec/identity-v0.md", "spec/source-v0.md", "uv.lock",
+        "spec/content-v0.md", "spec/identity-v0.md", "spec/source-v0.md", "uv.lock",
     ]
 
     def tracked(self) -> dict[str, str]:
@@ -863,6 +863,54 @@ class RepoContract(unittest.TestCase):
         self.assertEqual(
             re.findall(r"^\*\*Stage ([0-9]+) ", source, re.MULTILINE),
             [str(stage) for stage in range(1, 12)],
+        )
+
+    def test_m1_content_owner_is_closed(self) -> None:
+        content = (ROOT / "spec/content-v0.md").read_text()
+        design = " ".join((ROOT / "docs/m1-spec.md").read_text().split())
+
+        self.assertIn("sole owner of Golden Board content-v0", content)
+        self.assertIn("sole normative owner of generic content bytes", design)
+        self.assertIsNone(re.search(r"\b(?:TODO|TBD|FIXME|XXX)\b", content))
+        self.assertIn("content.stream_validation", content)
+        self.assertIn("466,958", content)
+        self.assertIn("466,955", content)
+
+        self.assertEqual(
+            set(re.findall(r"\bCONTENT_KIND_[A-Z_]+\b", content)),
+            {
+                "CONTENT_KIND_TEXT", "CONTENT_KIND_ATOM_SCHEMA",
+                "CONTENT_KIND_ATOM_VECTOR", "CONTENT_KIND_MATRIX",
+                "CONTENT_KIND_FIELD_SCHEMA", "CONTENT_KIND_TUPLE",
+                "CONTENT_KIND_REGION_SET", "CONTENT_KIND_SEMANTIC_BINDING",
+                "CONTENT_KIND_OPAQUE_DATA", "CONTENT_KIND_PREDICATE_RESULT",
+                "CONTENT_KIND_FEEDBACK", "CONTENT_KIND_PASSIVE_TRACE",
+                "CONTENT_KIND_LESSON_NODE", "CONTENT_KIND_ROOT",
+            },
+        )
+        code_section = content.split("### 13.2 Primary code order", 1)[1].split(
+            "### 13.3 Validation stages", 1
+        )[0]
+        self.assertEqual(
+            re.findall(r"^\d+\. `(CONTENT_[A-Z0-9_]+)`$", code_section, re.MULTILINE),
+            [
+                "CONTENT_LIMIT_EXCEEDED", "CONTENT_TRUNCATED",
+                "CONTENT_BAD_VERSION", "CONTENT_BAD_RECORD_COUNT",
+                "CONTENT_BAD_RECORD_ID", "CONTENT_RECORD_ORDER",
+                "CONTENT_BAD_RECORD_KIND", "CONTENT_BAD_PAYLOAD_LENGTH",
+                "CONTENT_TRAILING_DATA", "CONTENT_BAD_TAG",
+                "CONTENT_RESERVED_NONZERO", "CONTENT_BAD_UTF8",
+                "CONTENT_BAD_COUNT", "CONTENT_BAD_VALUE",
+                "CONTENT_NONCANONICAL_ORDER", "CONTENT_DUPLICATE",
+                "CONTENT_ZERO_REFERENCE", "CONTENT_FORWARD_REFERENCE",
+                "CONTENT_MISSING_REFERENCE", "CONTENT_WRONG_REFERENCE_KIND",
+                "CONTENT_SCHEMA_MISMATCH", "CONTENT_ROOT_COUNT",
+                "CONTENT_ROOT_NOT_FINAL", "CONTENT_BAD_CONTROL_EDGE",
+                "CONTENT_ORPHAN_RECORD", "CONTENT_BAD_RESPONSE_SCHEMA",
+                "CONTENT_FORBIDDEN_ANSWER_DATA", "CONTENT_BAD_FEEDBACK",
+                "CONTENT_BAD_PASSIVE_TRACE", "CONTENT_BUDGET_PROOF",
+                "CONTENT_BAD_RUN_STATE",
+            ],
         )
 
 

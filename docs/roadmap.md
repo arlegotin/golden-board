@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Roadmap revision | 3 |
+| Roadmap revision | 4 |
 | Last updated | 2026-08-14 |
 | Project state | In progress |
 | Current milestone | M1 — Chess truth, source grammar, and assessment blueprint |
@@ -59,7 +59,8 @@ The final candidate MUST satisfy all of the following:
 - the generic learning interface has no hidden chess rules, move generator, answer database, or board-size constant;
 - independent Python and Rust implementations agree on canonical wire data, chess semantics, source compilation, lesson records, recovery states, and game replay;
 - every exact lesson answer is computed from a frozen finite predicate or explicit accepted set;
-- every interactive lesson has a complete passive route and a finite event budget;
+- every packed interactive lesson has a complete passive route, and every
+  interaction has finite local/global event budgets;
 - all sixty-four game records originate from `docs/64_games.md`, replay legally from the standard initial position, and carry no descriptive source metadata;
 - damaged observations never yield silently accepted wrong canonical bytes in the frozen damage corpus;
 - final dimensions are chosen from the complete actual shell, curriculum, anthology, integrity, redundancy, and reserve ledger;
@@ -892,8 +893,12 @@ The mandatory scored Core 3 families are: attacked/defended, absolute pin, fork/
 
 ### 6.3 Generic content grammar
 
-`spec/content-v0.md` defines only generic record primitives that have a live consumer:
+This subsection is a checked product-level synopsis.
+`spec/content-v0.md` is the sole normative owner of generic content bytes,
+record semantics, interaction state, rejection order, and M1 pre-profile
+limits. It defines only primitives with a live consumer:
 
+- bounded literal text;
 - bounded unsigned scalar;
 - fixed-width enum;
 - bit set/mask;
@@ -906,7 +911,8 @@ The mandatory scored Core 3 families are: attacked/defended, absolute pin, fork/
 - feedback node;
 - passive trace;
 - opaque fixed-width semantic data with an earlier schema/binding reference; and
-- one final content-root record naming the entry lesson node.
+- one final four-byte content-root record naming the entry lesson node and an
+  independent global event budget.
 
 Verified Core 0 schemas compose these primitives into chess positions, history records, transitions, lessons, and atomic game records. The blind transducer renders and traverses those compositions generically; it has no built-in chess record class, field name, board size, or rule. Python/Rust semantic validators separately recognize the canonical schema identities and enforce chess truth.
 
@@ -924,13 +930,13 @@ Every curriculum record has one role:
 
 | Role | Meaning | May define a scored answer? |
 |---|---|---|
-| `exact_rule` | legality, transition, terminal, score, or record fact | yes |
-| `observable_relation` | exact finite relation over the shown state | yes |
-| `worked_example` | demonstrated rule/relation application | only through its cited exact predicate |
+| `exact_rule` | legality, transition, terminal, score, or record fact | no; exact assertion only |
+| `observable_relation` | exact finite relation over the shown state | no; exact assertion only |
+| `worked_example` | demonstrated rule/relation application | no; exact assertion and trace |
 | `heuristic` | practical tendency with limitations | no move-quality score |
-| `practice` | finite prompt with explicit accepted set | yes |
-| `feedback` | exact relation/match result | yes |
-| `passive_trace` | deterministic noninteractive path | not independently scored |
+| `practice` | finite prompt, packed for feedback or evaluator-side | yes |
+| `feedback` | exact relation/match result | embodied by feedback records, not a lesson role |
+| `passive_trace` | deterministic noninteractive path | embodied by trace records, not a lesson role |
 
 The curriculum linter rejects:
 
@@ -939,7 +945,7 @@ The curriculum linter rejects:
 - a one-answer exercise when several selections satisfy the predicate;
 - a relation name with no executable definition;
 - feedback not derivable from the shown verified state and predicate;
-- a practice record without a passive trace; and
+- a packed-practice record without a passive trace; and
 - a heuristic without at least one limitation or counterexample.
 
 ### 6.5 Grounding sequence
@@ -1021,6 +1027,10 @@ The routine has no unrestricted search, numerical evaluation, principal variatio
 
 ### 6.9 Interaction protocol
 
+This subsection is a checked product-level synopsis;
+`spec/content-v0.md` owns the exact action/response bytes, role/mode table,
+local/global budgets, transitions, outcomes, and run-state replay.
+
 The only canonical learner actions are:
 
 ```text
@@ -1032,25 +1042,27 @@ A lesson graph defines:
 - response shape (`single`, unordered `set`, or ordered `sequence`), maximum
   selection count, and uniqueness rules;
 - all visible/selectable region IDs;
-- accepted selections;
+- packed-practice accepted selections; external accepted alternatives remain
+  evaluator-side;
 - legal-but-outside-objective selections;
 - malformed, duplicate, empty-commit, over-limit, and reset behavior;
 - promotion subchoice;
 - exact feedback code;
 - next node or termination; and
-- a per-run event budget.
+- a node-local item-event budget, under the root's separate global run budget.
 
 `select` buffers a response without revealing whether it is accepted. `reset`
 clears only an uncommitted buffer. The first `commit` terminates the response;
 an empty committed buffer is the explicit `none` response. Exact scoring uses
 the committed canonical response, not an intermediate click. Every call has
 fixed work/allocation bounds. Accepted completion paths and passive traces
-terminate within a generated bound. Repeated malformed input, selection, or
-reset cannot create unbounded state: each attempt consumes the per-run event
-budget, which is at least `max_selections + 1`. Budget exhaustion returns a
-stable terminal code. Canonical set responses sort region IDs by unsigned byte
-order; sequence responses preserve selection order; the event log always
-preserves action order.
+terminate within the content-owned checked bounds. Repeated malformed input,
+selection, reset, or rejected/default cycles cannot create unbounded state:
+each active attempt consumes both remaining budgets, and each node's local
+budget is at least `max_selections + 1`. Budget exhaustion returns a stable
+terminal code. Canonical set responses sort fixed `u16` region IDs; sequence
+responses preserve selection order; the event log always preserves action
+order.
 
 Canonical regions use integer logical coordinates and half-open bounds. Host
 adapters map pointer or keyboard events to region IDs through one shared fixture
@@ -1067,13 +1079,17 @@ Practice consists only of:
 - finite branch lessons whose complete graph is packed; and
 - passive worked sequences.
 
-Any opposing reply is a predeclared edge. The runtime never selects a reply by search, evaluation, randomness, or preference. A legal move outside the lesson objective receives neutral feedback such as `legal_not_targeted`, never `bad move`.
+Any opposing reply is a predeclared edge. The runtime never selects a reply by
+search, evaluation, randomness, or preference. In packed practice, a legal move
+outside the lesson objective receives exact `FEEDBACK_ALTERNATIVE` with its own
+assertion, never an invented `bad move` judgment. External practice keeps every
+alternative evaluator-side and its public commit neutral.
 
 Every lesson graph is exhaustively model-checked for totality, legal transitions, reference validity, and bounded completion.
 
 ### 6.11 Passive completeness
 
-Every practice lesson has a passive trace containing:
+Every packed-practice lesson has a passive trace containing:
 
 - prompt state;
 - complete finite alternatives available in that lesson state;
@@ -2432,7 +2448,7 @@ Author every mandatory final record, complete both runtimes and the blind generi
 
 - every mandatory concept and game is serialized with no placeholders or `remaining authored bytes` estimate;
 - every exact answer recomputes identically in Python and Rust;
-- every practice graph is total, bounded, and passively complete;
+- every packed-practice graph is total, bounded, and passively complete;
 - no heuristic or undefined relation enters scoring;
 - the blind transducer handles Golden Board and non-chess isomorphic fixtures with no chess dependency;
 - formative learners can complete the full Core 1/2 path and retained Core 3 examples under the generic interface;
@@ -2722,12 +2738,12 @@ This matrix is part of the implementation contract. It does not claim to cover e
 | Scenario | Required behavior | Primary gate |
 |---|---|---|
 | A scored predicate uses an undefined word such as “best,” “active,” or “strong” | The curriculum linter rejects it or the item becomes an unscored heuristic example | G9 |
-| Several answer regions satisfy the exact predicate | The complete accepted set is encoded; choosing any valid answer is scored correctly | G9 |
+| Several answer regions satisfy the exact predicate | Packed practice encodes the complete accepted set; result-bearing alternatives stay evaluator-side and every valid answer scores correctly | G9 |
 | A choose-all response has zero or several selections | An explicit `commit` terminates the buffered response; empty commit represents `none`, so hidden answer cardinality is never needed to finish | G9 |
 | A heuristic is useful but has counterexamples | It is taught with observable basis, limitation, and counterexample; it is not scored as a universal truth | G9, G16 |
 | A finite exercise omits a legal but off-objective selection | The lesson graph supplies deterministic feedback for that selection class or does not expose it as selectable | G9 |
-| Reset or invalid input is repeated indefinitely | Each call remains bounded and a per-run event budget terminates the run with a stable code | G9, G17 |
-| An interactive path fails but the passive trace survives | The full intended concept remains reachable passively | G9 |
+| Reset or invalid input is repeated indefinitely | Each call remains bounded and the node-local/root-global budgets terminate the run with a stable code | G9, G17 |
+| A packed interactive path fails but the passive trace survives | The full intended concept remains reachable passively | G9 |
 | The blind generic transducer links a chess crate, contains an 8×8 branch, or computes a legal answer | Dependency/noninterference canaries fail; learner evidence is invalid | G14 |
 | Answer location, record length, highlight count, or choice order predicts the answer | Counterfactual/control checks fail and the item set is regenerated before result-bearing pretest | G9, G14 |
 | A result-bearing payload, usable seed, schedule, or answer map appears in the public/learner bundle before delayed testing closes | Replace the form only if no result-bearing pretest began; otherwise invalidate/retire the affected evidence without rewriting history | G14, G16 |

@@ -6,7 +6,7 @@
 | Field | Value |
 |---|---|
 | Date | 2026-08-14 |
-| Roadmap | Revision 3, M1 |
+| Roadmap | Revision 4, M1 |
 | Execution contract | [`docs/m1-spec.md`](m1-spec.md) |
 | Baseline | `5d0acbd` (`M0 (#3)`) |
 
@@ -649,7 +649,7 @@ lanes may proceed while P3–P5 run.
   immutable terminal calls.
 - [ ] Validate compatible control-flow edges, selection-plus-commit capacity,
   role-gated accepted sets, exact packed practice feedback, and a
-  dependency-complete passive trace for every practice node.
+  dependency-complete passive trace for every packed-practice node.
 - [ ] Keep generic construction values opaque; content parsing cannot upgrade a
   board-like value into `ReplayState` or validate chess truth.
 - [ ] Add a small import/dependency audit proving this module imports neither

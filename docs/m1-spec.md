@@ -4,7 +4,7 @@
 |---|---|
 | Status | Ready for execution |
 | Date | 2026-08-14 |
-| Roadmap | Revision 3, M1 |
+| Roadmap | Revision 4, M1 |
 | Branch | `m1` |
 | Baseline | `5d0acbd` (`M0 (#3)`) |
 | Scope | Chess truth, raw-source compilation, assessment blueprint, and the initial M2 content slice |
@@ -170,7 +170,8 @@ item accuracy. One learner clears all 24 with probability `0.95^24 = 0.292`;
 the probability that at least the same five of six do so is about `0.00964`.
 Even at 98% item accuracy it is only about `0.259`.
 
-The revision-3 gate preserves strict all-or-nothing family scoring but combines:
+The gate introduced in revision 3 and retained in revision 4 preserves strict
+all-or-nothing family scoring but combines:
 
 - per-family cohort gates, which expose systematic topic holes;
 - baseline-failure acquisition gates, which exclude prior mastery; and
@@ -1297,62 +1298,33 @@ without creating hundreds of one-off cases.
 
 ### 14.5 Response and item scoring
 
-The only learner actions are `select(region_id)`, `reset`, and `commit`.
-Each node declares:
+This subsection is a checked human synopsis. The promoted
+[`spec/content-v0.md`](../spec/content-v0.md) is the sole normative owner of
+generic content bytes, role/mode compatibility, action precedence, budgets,
+outcomes, and run-state replay.
 
-- response shape: `single`, unordered `set`, or ordered `sequence`;
-- maximum selection count;
-- whether repeated region IDs are allowed (`false` by default and always false
-  for `single`/`set`);
-- whether an empty committed response is a valid answer; and
-- a run event budget `>= max_selections + 1`, so a maximum-length response can
-  still commit.
+The learner actions remain `select(region_id)`, `reset`, and `commit`. A node
+declares a single, unordered-set, or ordered-sequence response; a mechanical
+selection cap and repeat policy; a local item-event budget; and one of the
+closed packed-practice, external, or unscored modes. The final root separately
+declares the global run budget. Empty commit is always well-formed. Only an
+explicit packed accepted case makes it accepted; external validity and every
+result-bearing accepted alternative remain evaluator-side.
 
-Schema validation requires `single.max_selections == 1`, every accepted
-response to conform to the declared shape/cap/repetition rule, and at least one
-accepted committed response. An empty accepted response requires the explicit
-empty-valid flag; otherwise empty commit is well-formed but incorrect.
+Malformed raw actions normalize to one canonical invalid sentinel. A
+well-framed select of zero, a missing region, or a nonselectable region remains
+the original action and returns invalid-region. Every active call consumes one
+event. Duplicate precedes over-limit, a final-event commit succeeds, and later
+committed or exhausted calls are immutable and unlogged. A non-learner advance
+moves a committed nonterminal edge without replenishing global budget.
 
-`select` appends to a sequence or inserts into a set/single buffer. While
-uncommitted, action precedence is budget availability, action/region validity,
-reset/commit handling, duplicate prohibition, selection-capacity check, then
-insertion. Thus a repeated ID in a full unique buffer reports `duplicate`, not
-`over_limit`. A duplicate or over-limit selection returns its stable code,
-consumes one event, and leaves the buffer unchanged. `reset` before commit clears
-the buffer and consumes one event. The first `commit` terminates the item; empty
-commit is the explicit `none` response. Any later action returns
-`already_committed` without appending to or changing canonical run state, event
-log, response, budget, or score; a host may rate-limit/drop such transport input
-outside the canonical runtime.
-Invalid/off-board input consumes an event and does not change the buffer.
-
-Before an uncommitted action, zero remaining budget yields stable terminal
-`budget_exhausted`. Otherwise decrement once and process the action. A commit on
-the final event succeeds; any noncommitting final event transitions to
-`budget_exhausted` after its own deterministic result is logged. No action starts
-a fresh run implicitly. Once exhausted, later actions return
-`budget_exhausted` without changing or appending to canonical state, log,
-response, budget, or score; optional host telemetry remains separate and
-bounded.
-
-Scoring compares only the canonical committed response:
-
-- `single` requires the exact one region (or accepted empty response);
-- `set` compares unique IDs order-independently;
-- `sequence` compares order and multiplicity exactly;
-- every result-bearing accepted alternative is evaluator-side; practice
-  accepted sets remain packed for exact feedback;
-- no partial credit, answer cardinality disclosure, administrator override, or
-  inferred early completion exists; and
-- malformed, missing, extra, over-budget, uncommitted, or late responses are
-  incorrect.
-
-Canonical response bytes encode the declared shape followed by a bounded count
-and length-prefixed region IDs. `single` encodes its zero or one ID, `set` sorts
-IDs by unsigned byte order before encoding, and `sequence` preserves selection
-order. The event log preserves action order independently of response
-canonicalization. `content-v0.md` owns the exact field widths and rejection
-codes; this section owns only those semantic invariants.
+Canonical responses contain one shape byte, one fixed `u16` count, and fixed
+`u16` region IDs. Single permits zero or one, set is sorted and unique, and
+sequence preserves order and permitted multiplicity. Packed practice alone
+contains exact accepted/special cases and correctness feedback. External and
+unscored nodes have no correctness branch; there is no partial credit,
+learner-visible answer cardinality, administrator override, or inferred early
+completion.
 
 A critical label applies only to a committed incorrect response, never a
 transient buffered selection later reset. It is reported/emphasized and makes
@@ -1430,7 +1402,7 @@ The posttest integrated item IDs are exactly
 `integrated_legal_sequence_post` and `integrated_record_reading_post`; the
 eligibility screen is the disjoint `integrated_legal_sequence_pre`.
 
-The final frozen gates are exactly the revision-3 roadmap gates:
+The final frozen gates are exactly the revision-4 roadmap gates:
 
 1. for every `f in E`, `p_f >= 5` and
    `a_f >= family_acquisition(b_f)`;
@@ -1565,153 +1537,43 @@ use p-values, inferred population percentages, or a qualitative override.
 
 ## 15. Initial generic content-v0 slice
 
-### 15.1 Purpose and boundary
+This section is a checked rationale and implementation synopsis. The promoted
+[`spec/content-v0.md`](../spec/content-v0.md) is the sole normative owner of
+generic content bytes, records, references, interaction semantics, run-state
+bytes, rejection spans/precedence, and pre-profile content limits. A conflict
+is repaired in that smaller owner before implementation continues.
 
-M1 freezes only enough generic wire grammar for M2 to serialize, recover, and
-present its real bootstrap/learner slice. It must represent Core 0 primitives, a
-small lesson graph, regions/actions/feedback, passive traces, and generic
-fixed-width data sufficient to carry one position/replay/move record. It does not pre-author
-M3 content or attempt to anticipate every future presentation.
+The selected format remains one atomic, flat, definite-length stream with
+strictly increasing nonzero IDs, earlier typed dependencies, bounded control
+references, exactly one final root, and no partial prefix acceptance. The root
+payload is four bytes: one entry lesson-node reference and one independent
+global event budget. Each node has its own local item budget. Success edges form
+a terminating DAG whose worst path's complete local-budget sum fits the global
+budget; rejected/default cycles terminate because every traversal consumes a
+global event.
 
-The selected form is a flat, definite-length record stream. It borrows the useful
-principle of definite lengths and deterministic ordering from formats such as
-[CBOR](https://www.rfc-editor.org/rfc/rfc8949.html), without importing CBOR maps,
-tags, alternate encodings, canonicalization modes, or a dependency.
+The closed fourteen kinds cover text; unsigned/enum/mask atom schemas; atom
+vectors; matrices; field schemas and tuples; regions; semantic bindings and
+opaque data; predicate results; feedback; standalone per-node passive traces;
+lesson nodes; and the root. Presentations either are the region surface matrix
+or contain that exact matrix once through typed tuple references. Semantic
+namespaces and atoms stay opaque: structural validation cannot create
+`ReplayState` or evaluate chess.
 
-### 15.2 Stream framing
+The exact role/mode table prevents correctness data from entering external or
+unscored paths. Packed practice alone contains accepted/special cases and exact
+feedback. Passive traces replay one node from a fresh empty local state and end
+at commit; they do not create a cross-node trace protocol. Malformed raw actions
+normalize to one zero sentinel, while well-framed invalid-region selects remain
+unchanged. A final-event commit succeeds. Advancing a nonterminal commit with
+zero global budget reaches an immutable exhausted target.
 
-The initial canonical framing is:
-
-```text
-u16_be(content_version = 0)
-u16_be(record_count)
-record_count × Record
-
-Record := u16_be(record_id)
-          u16_be(record_kind)
-          u32_be(payload_length)
-          payload_length bytes
-```
-
-Record IDs are unique, nonzero, and strictly ascending. The parser first bounds
-and indexes the complete stream without exposing records, then validates typed
-references. Schema/grounding/dependency fields may reference only an earlier ID,
-making that dependency graph acyclic without recursive loading. Explicit lesson
-control-flow edges may reference any existing compatible node ID; cycles are
-allowed only when exhaustive state/event-budget checking proves bounded
-termination behavior. Kind `0`, ID `0`, unknown kinds, unknown flag bits,
-forward/self **dependency** references, missing/wrong-kind references,
-duplicate/out-of-order IDs, length mismatch, or trailing bytes reject. The
-stream is atomic: a valid prefix is never exposed as a shorter content stream.
-
-`record_count` is at least two. Exactly one `content_root` record exists; it is
-the final/highest-ID record and its payload is exactly `u16_be(entry_node_id)`,
-referencing an earlier lesson node. Every other record must be transitively
-reachable through typed references from that root. This single convention gives
-the stream an entry point and rejects orphans without another directory/header.
-One content-v0 stream is one independently accepted logical content section,
-not the whole future artifact. M2 owns the inventory, tier/section roots,
-cross-stream dependency policy, copies, and packaging of multiple streams, so
-loss of one section cannot silently invalidate an otherwise recoverable tier.
-
-There is no checksum inside content-v0; the transport/section layer owns
-integrity. There is no per-record version, compression, padding, map, implicit
-default, native struct layout, or alternate integer encoding. The M1 live kinds
-must cover the known M2/M3 consumers; a genuinely new kind reopens M1 rather
-than silently extending v0 after parsers ship.
-
-### 15.3 Live primitive families
-
-`spec/content-v0.md` assigns exact payload bytes only to families with an M2
-consumer:
-
-- bounded unsigned scalar of width 1, 2, or 4 bytes;
-- fixed-width enum and bit mask with declared valid/reserved codes;
-- bounded vector/fixed-width atom sequence;
-- bounded matrix with explicit rows, columns, atom width, and row-major payload;
-- bounded field-schema record declaring ordered fixed-width tuple fields;
-- bounded tuple instance referencing an earlier field-schema record;
-- labelled region set with integer half-open coordinates and deterministic
-  region-ID order;
-- predicate/result reference and typed generic payload;
-- finite lesson node with response shape, selection/event caps, and explicit
-  edges;
-- exact feedback record;
-- passive trace covering the node's declared exposed action scope;
-- opaque fixed-width semantic data referencing an earlier schema/binding record.
-
-Chess names, piece glyphs, board size, move rules, answers, and terminal logic
-remain data. M1's two minimal decoders/validators must decode and step a
-non-chess matrix/enum/region interaction fixture without importing chess
-modules. Rendering and the blind generic transducer remain M2/M3 work.
-
-Position, replay, move, and game are compositions of those generic tuples,
-vectors, and atoms—not content record kinds. The separate chess validator
-recognizes the referenced schema/binding identity and enforces whether the data
-has board-local or full `ReplayState` authority; content-v0 and the blind decoder
-do not interpret or upgrade it.
-
-M1 does not add arbitrary maps, recursive records, unions with implicit tags,
-expressions, scripts, callbacks, dynamic types, or general-purpose schema
-reflection. A bounded tuple schema and earlier-ID references cover the known
-slice.
-
-### 15.4 Interaction state machine
-
-Content-v0 owns the generic response buffer and the exact event result codes
-described in Section 14.5. It must be possible to prove from record bytes that:
-
-- every referenced region/node/feedback ID exists and has the right kind;
-- every event is total over current state and consumes at most fixed work;
-- every successful route has room for its required selections plus `commit`;
-- every path either commits, reaches an explicit terminal, or exhausts a finite
-  budget;
-- reset cannot cross a committed boundary;
-- accepted-set data is present only where the role permits it; and
-- every practice node has a dependency-complete passive trace.
-
-M1's minimal validators step the canonical action/result state machine only for
-hand vectors; they do not render a curriculum or become the blind transducer.
-The later blind transducer logs the same canonical actions/codes and never scores
-chess predicates. Practice feedback is selected from packed exact data;
-result-bearing assessment scoring remains evaluator-side.
-
-### 15.5 Initial safety caps
-
-M1 owns only parser-safety ceilings needed before M2. The initial content spec
-uses:
-
-| Resource | M1 ceiling |
-|---|---:|
-| Complete developer content stream | 1,048,576 bytes |
-| Records/IDs | 65,535 |
-| One record payload | 1,048,576 bytes and within remaining stream |
-| Vector atoms or matrix cells | 65,535 |
-| Tuple fields | 256 |
-| Regions in one set | 4,096 |
-| Lesson nodes | 4,096 |
-| Total lesson edges | 16,384 |
-| Events in one run | 65,535 |
-| Fixed-width semantic atoms in one record | 4,096 |
-| Records of any one non-root kind | 4,096 |
-| `content_root` records | exactly 1 |
-
-These are checked before multiplication/allocation and are not promises that
-the final artifact can afford those sizes. M2 measures realistic serialized
-content and freezes lower physical/profile maxima compatible with every retained
-transport finalist. The curriculum blueprint labels its early per-family caps
-`initial_safety`, never `final_capacity`.
-
-The uniform 4,096 non-root-kind ceiling is the initial record-kind cap; M1
-does not invent a different arbitrary number for every kind. A kind's smaller
-structural ceiling above wins where applicable.
-
-Separately, `curriculum-v0.toml` sets one generous authoring safety guard:
-`initial_records_per_curriculum_family = 256` across all roles/splits. A record
-tagged to several families counts against each; generic untagged grounding data
-uses only the content-kind caps. This is not a content target or final capacity
-promise. M2/M3 may lower it from measured serialized content, and optional
-variants are cut before mandatory strata or assessment minima.
+The exact largest valid run state is 466,958 bytes; the exhausted-buffer maximum
+is 466,955 bytes. The content stream remains capped at 1,048,576 bytes, with the
+smaller structural count/field limits owned and exhaustively listed in the
+content specification. M2 measures lower physical/profile maxima from real
+content. M1 adds no generic serializer, VM, renderer, concrete lesson graph,
+assessment form, or transport profile.
 
 ## 16. Implementation and repository contract
 
@@ -1892,7 +1754,7 @@ bytes in the hand fixtures, include:
 | Choose-all zero/several selections | Explicit commit terminates; cardinality is not leaked |
 | Duplicate/reset/off-board repeated | Stable no-mutation result; budget eventually terminates |
 | Response committed twice | First response/log/score immutable |
-| Multiple exact answers | All evaluator-side alternatives accepted; no preferred move |
+| Multiple exact answers | Packed practice encodes every exact accepted case; external/result-bearing alternatives remain evaluator-side and all validate without a preferred move |
 | Undefined or heuristic score term | Curriculum linter rejects or marks unscored |
 | Exact case/parameterization or independently valid transformed equivalent reused across splits | Split linter rejects leakage |
 | Shared schema/template with new semantic case | Accepted when every split/leakage key remains distinct |
