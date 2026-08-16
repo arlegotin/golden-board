@@ -14,7 +14,7 @@ id = "content-v0"
 path = "conformance/content-v0.json"
 specification = "content-v0"
 version = "v0"
-sha256 = "128341c2a0b8e53b210e196b431225ee5e19d955d474891307097efafd3a9d3a"
+sha256 = "6d7c20defc2d53e57562d73e707b826d0ce074b9a696832272e2e2ab672d1aa9"
 consumers = ["python", "rust"]
 provenance = "hand-authored"
 

@@ -227,6 +227,1014 @@ def validate_conformance_registry(root: Path) -> None:
         raise AssertionError("invalid conformance registry")
 
 
+def _content_u16(value: int) -> bytes:
+    return value.to_bytes(2, "big")
+
+
+def _content_u32(value: int) -> bytes:
+    return value.to_bytes(4, "big")
+
+
+_CONTENT_KINDS = {
+    "TEXT": 1,
+    "ATOM_SCHEMA": 2,
+    "ATOM_VECTOR": 3,
+    "MATRIX": 4,
+    "FIELD_SCHEMA": 5,
+    "TUPLE": 6,
+    "REGION_SET": 7,
+    "SEMANTIC_BINDING": 8,
+    "OPAQUE_DATA": 9,
+    "PREDICATE_RESULT": 10,
+    "FEEDBACK": 11,
+    "PASSIVE_TRACE": 12,
+    "LESSON_NODE": 13,
+    "ROOT": 14,
+}
+
+
+def _content_record(record_id: int, kind: str, payload: bytes) -> bytes:
+    return (
+        _content_u16(record_id)
+        + _content_u16(_CONTENT_KINDS[kind])
+        + _content_u32(len(payload))
+        + payload
+    )
+
+
+def _content_stream(records: list[bytes]) -> bytes:
+    return b"\0\0" + _content_u16(len(records)) + b"".join(records)
+
+
+def _content_schema(record_id: int) -> bytes:
+    return _content_record(record_id, "ATOM_SCHEMA", b"\x01\x01\0\0\0\0")
+
+
+def _content_vector(record_id: int, schema: int, values: list[int]) -> bytes:
+    return _content_record(
+        record_id,
+        "ATOM_VECTOR",
+        _content_u16(schema) + _content_u16(len(values)) + bytes(values),
+    )
+
+
+def _content_matrix(
+    record_id: int, schema: int, rows: int, columns: int, values: list[int]
+) -> bytes:
+    return _content_record(
+        record_id,
+        "MATRIX",
+        _content_u16(schema)
+        + _content_u16(rows)
+        + _content_u16(columns)
+        + bytes(values),
+    )
+
+
+def _content_feedback(record_id: int, code: int, display: int, predicate: int) -> bytes:
+    return _content_record(
+        record_id,
+        "FEEDBACK",
+        _content_u16(code) + _content_u16(display) + _content_u16(predicate),
+    )
+
+
+def _content_wrong_root(records: list[bytes], root_id: int, entry: int) -> bytes:
+    return _content_stream(
+        [*records, _content_record(root_id, "ROOT", _content_u16(entry) + b"\0\x01")]
+    )
+
+
+def _content_support_stream() -> bytes:
+    records = [
+        _content_record(1, "TEXT", b"cell"),
+        _content_schema(2),
+        _content_matrix(3, 2, 64, 64, [0] * 4096),
+    ]
+    regions = _content_u16(3) + _content_u16(4096)
+    for index in range(4096):
+        row, column = divmod(index, 64)
+        regions += (
+            _content_u16(index + 1)
+            + _content_u16(1)
+            + _content_u16(row)
+            + _content_u16(row + 1)
+            + _content_u16(column)
+            + _content_u16(column + 1)
+            + b"\x01\0"
+        )
+    records.extend(
+        [
+            _content_record(4, "REGION_SET", regions),
+            _content_record(
+                5,
+                "SEMANTIC_BINDING",
+                b"\x01\0" + _content_u16(1) + _content_u16(1)
+                + _content_u16(2) + _content_u16(1),
+            ),
+            _content_record(6, "OPAQUE_DATA", _content_u16(5) + b"\0"),
+            _content_vector(7, 2, [0]),
+            _content_record(
+                8,
+                "SEMANTIC_BINDING",
+                b"\x02\0" + _content_u16(1) + _content_u16(2)
+                + _content_u16(5) + _content_u16(2),
+            ),
+            _content_record(
+                9,
+                "PREDICATE_RESULT",
+                _content_u16(8) + _content_u16(6) + _content_u16(7),
+            ),
+            _content_feedback(10, 2, 1, 9),
+            _content_feedback(11, 3, 1, 9),
+        ]
+    )
+    actions = b"".join(
+        b"\x01\0" + _content_u16(index) for index in range(1, 4097)
+    ) + b"\x03\0\0\0"
+    records.append(
+        _content_record(
+            12,
+            "PASSIVE_TRACE",
+            _content_u16(3) + _content_u16(4) + b"\0\0\0\0"
+            + _content_u16(4097) + actions + b"\x01\0"
+            + _content_u16(10) + b"\0\0",
+        )
+    )
+    selected = b"".join(_content_u16(index) for index in range(1, 4097))
+    case = b"\x01\0" + _content_u16(4096) + selected + _content_u16(10) + b"\0\0"
+    node = (
+        bytes((5, 2, 1, 0)) + _content_u16(3) + _content_u16(4)
+        + _content_u16(9) + _content_u16(12) + _content_u16(4096)
+        + _content_u16(65535) + _content_u16(1) + case
+        + _content_u16(11) + _content_u16(13)
+    )
+    records.extend(
+        [
+            _content_record(13, "LESSON_NODE", node),
+            _content_record(14, "ROOT", _content_u16(13) + _content_u16(65535)),
+        ]
+    )
+    return _content_stream(records)
+
+
+def _content_max_states() -> tuple[bytes, bytes]:
+    def event(action: bytes, result: int) -> bytes:
+        return _content_u16(13) + action + bytes((result,))
+
+    sentinel = event(b"\0" * 4, 4)
+    selections = b"".join(
+        event(b"\x01\0" + _content_u16(index), 1) for index in range(1, 4097)
+    )
+    response = b"\x02" + _content_u16(4096) + b"".join(
+        _content_u16(index) for index in range(1, 4097)
+    )
+    committed = (
+        _content_u16(0) + _content_u16(14) + _content_u16(13) + b"\0\0\0\0"
+        + b"\x02\x01\0\0" + _content_u16(len(response)) + response
+        + _content_u16(65535) + sentinel * 61438 + selections
+        + event(b"\x03\0\0\0", 3)
+    )
+    exhausted = (
+        _content_u16(0) + _content_u16(14) + _content_u16(13) + b"\0\0\0\0"
+        + b"\x03\0" + _content_u16(4096)
+        + b"".join(_content_u16(index) for index in range(1, 4097))
+        + b"\0\0" + _content_u16(65535) + selections + sentinel * 61439
+    )
+    return committed, exhausted
+
+
+def _content_control_stream(extra: bool) -> bytes:
+    records = [
+        _content_record(1, "TEXT", b"cell"),
+        _content_schema(2),
+        _content_matrix(3, 2, 1, 3, [0, 0, 0]),
+    ]
+    regions = _content_u16(3) + _content_u16(3)
+    for index in range(3):
+        regions += (
+            _content_u16(index + 1) + _content_u16(1) + b"\0\0\0\x01"
+            + _content_u16(index) + _content_u16(index + 1) + b"\x01\0"
+        )
+    records.extend(
+        [
+            _content_record(4, "REGION_SET", regions),
+            _content_record(
+                5,
+                "SEMANTIC_BINDING",
+                b"\x01\0" + _content_u16(1) + _content_u16(1)
+                + _content_u16(2) + _content_u16(1),
+            ),
+            _content_record(6, "OPAQUE_DATA", _content_u16(5) + b"\0"),
+            _content_vector(7, 2, [0]),
+            _content_record(
+                8,
+                "SEMANTIC_BINDING",
+                b"\x02\0" + _content_u16(1) + _content_u16(2)
+                + _content_u16(5) + _content_u16(2),
+            ),
+            _content_record(
+                9,
+                "PREDICATE_RESULT",
+                _content_u16(8) + _content_u16(6) + _content_u16(7),
+            ),
+            _content_feedback(10, 2, 1, 9),
+            _content_feedback(11, 3, 1, 9),
+            _content_feedback(12, 4, 1, 9),
+        ]
+    )
+    first_node = 4109
+    for index in range(4096):
+        next_node = first_node + index + 1 if index < 4095 else 0
+        payload = (
+            _content_u16(3) + _content_u16(4) + b"\0\0\0\0"
+            + _content_u16(1) + b"\x03\0\0\0\x01\0"
+            + _content_u16(10) + _content_u16(next_node)
+        )
+        records.append(_content_record(13 + index, "PASSIVE_TRACE", payload))
+    for index in range(4096):
+        node_id = first_node + index
+        success = node_id + 1 if index < 4095 else 0
+        alternatives = [[1], [2]]
+        if index == 4095:
+            alternatives.extend([[3], [1, 1]] if extra else [[3]])
+        cases = [(1, [], 10, success), *(
+            (2, region_ids, 12, node_id) for region_ids in alternatives
+        )]
+        payload = (
+            bytes((5, 3, 1, 1)) + _content_u16(3) + _content_u16(4)
+            + _content_u16(9) + _content_u16(13 + index)
+            + _content_u16(2) + _content_u16(3) + _content_u16(len(cases))
+        )
+        for case_class, region_ids, feedback, target in cases:
+            payload += (
+                bytes((case_class, 0)) + _content_u16(len(region_ids))
+                + b"".join(_content_u16(value) for value in region_ids)
+                + _content_u16(feedback) + _content_u16(target)
+            )
+        records.append(
+            _content_record(
+                node_id,
+                "LESSON_NODE",
+                payload + _content_u16(11) + _content_u16(node_id),
+            )
+        )
+    records.append(
+        _content_record(
+            first_node + 4096,
+            "ROOT",
+            _content_u16(first_node) + _content_u16(12287),
+        )
+    )
+    return _content_stream(records)
+
+
+_CONTENT_RECIPE_INPUT_KEYS = {
+    "patch-base": ({"base", "patches"},),
+    "stream-byte-cap": ({"byte_count"},),
+    "maximum-support-stream": ({
+        "accepted_selection_count", "event_budget", "matrix_columns",
+        "matrix_rows", "record_count", "region_count", "selection_cap",
+    },),
+    "maximum-selection-cap-over": ({"base_stream_sha256", "selection_cap"},),
+    "maximum-committed-state": ({
+        "event_count", "invalid_action_count", "selection_count",
+        "support_stream_sha256",
+    },),
+    "maximum-exhausted-state": ({
+        "event_count", "invalid_action_count", "selection_count",
+        "support_stream_sha256",
+    },),
+    "maximum-state-byte-over": ({"append_hex", "base_state"},),
+    "typed-step-sequence": ({
+        "first_4096", "last", "next_61439", "operation_count",
+        "support_stream_sha256",
+    },),
+    "stream-bytes-boundary": ({"boundary", "byte_count"},),
+    "record-count-boundary": ({"boundary", "record_count"},),
+    "record-id-boundary": ({"boundary", "record_id"},),
+    "text-bytes-boundary": (
+        {"boundary", "text_bytes"},
+        {"boundary", "declared_text_bytes"},
+    ),
+    "per-kind-records-boundary": ({"boundary", "text_record_count"},),
+    "enum-entries-boundary": ({"boundary", "entry_count"},),
+    "vector-atoms-boundary": ({"atom_count", "boundary"},),
+    "matrix-cells-boundary": ({"boundary", "cell_count", "columns", "rows"},),
+    "field-schema-fields-boundary": ({"boundary", "field_count"},),
+    "tuple-slots-boundary": ({"boundary", "slot_count"},),
+    "opaque-atoms-boundary": ({"atom_count", "boundary"},),
+    "regions-boundary": ({"boundary", "region_count"},),
+    "lesson-nodes-boundary": ({"boundary", "lesson_node_count"},),
+    "cases-per-node-boundary": ({"boundary", "case_count"},),
+    "record-payload-bytes-boundary": ({"boundary", "declared_payload_bytes"},),
+    "control-edge-boundary": ({"control_edges", "lesson_nodes"},),
+    "typed-record-sequence": ({"host_count"},),
+    "typed-vector-sequence": ({"host_count"},),
+}
+
+_CONTENT_DIRECT_NAMES = {
+    "stream_validation": frozenset("""
+        passive-region-set-owner-mismatch stream-bad-record-count-zero
+        stream-bad-version stream-empty-truncated stream-partial-header-truncated
+        stream-trailing-data stream-truncated-final-payload
+        stream-truncated-record-header stream-valid-generic-base
+    """.split()),
+    "new_run": frozenset("new-run-exact".split()),
+    "step": frozenset("""
+        step-caller-zero-action-is-sentinel step-committed-is-immutable
+        step-default-rejected-commit step-duplicate-before-over-limit
+        step-empty-accepted-commit-passive-trace step-exhausted-is-immutable
+        step-external-neutral-commit step-heuristic-neutral-terminal-commit
+        step-malformed-action-normalizes-sentinel step-over-limit
+        step-reset-final-local-event step-select step-select-zero-invalid-region
+        step-selected-accepted-commit step-special-rejected-commit
+    """.split()),
+    "advance_committed": frozenset("""
+        advance-active-invalid-host-state advance-committed-ordinary
+        advance-terminal-invalid-host-state advance-to-heuristic
+        advance-with-zero-global-reaches-exhausted
+    """.split()),
+    "validate_run_state": frozenset("""
+        validate-state-active validate-state-active-with-outcome
+        validate-state-active-zero-budget validate-state-bad-phase
+        validate-state-bad-version validate-state-buffer-count-over-cap
+        validate-state-buffer-region-zero validate-state-committed-response-bad-shape
+        validate-state-committed-response-length-over-cap
+        validate-state-event-bad-action-tag validate-state-event-count-over-budget
+        validate-state-event-result-mismatch validate-state-event-wrong-node
+        validate-state-exhausted validate-state-global-over-root
+        validate-state-local-over-global validate-state-local-over-node
+        validate-state-missing-current-node validate-state-post-advance
+        validate-state-pre-advance validate-state-pre-post-advance-hybrid
+        validate-state-replay-final-global-mismatch validate-state-short-prefix
+        validate-state-trailing-byte validate-state-wrong-root
+    """.split()),
+}
+
+_CONTENT_RECIPE_NAMES = {
+    "cases-per-node-boundary": frozenset("cases-per-node-exact cases-per-node-plus-one".split()),
+    "control-edge-boundary": frozenset("control-edges-exact control-edges-plus-one".split()),
+    "enum-entries-boundary": frozenset("enum-entries-exact enum-entries-plus-one".split()),
+    "field-schema-fields-boundary": frozenset("field-schema-fields-exact field-schema-fields-plus-one".split()),
+    "lesson-nodes-boundary": frozenset("lesson-nodes-exact lesson-nodes-plus-one".split()),
+    "matrix-cells-boundary": frozenset("matrix-cells-exact matrix-cells-plus-one".split()),
+    "maximum-committed-state": frozenset("maximum-committed-run-state".split()),
+    "maximum-exhausted-state": frozenset("maximum-exhausted-run-state".split()),
+    "maximum-selection-cap-over": frozenset("maximum-selection-cap-plus-one".split()),
+    "maximum-state-byte-over": frozenset(
+        "committed-run-state-first-byte-over exhausted-run-state-first-byte-over".split()
+    ),
+    "maximum-support-stream": frozenset("maximum-support-content-stream".split()),
+    "opaque-atoms-boundary": frozenset("opaque-atoms-exact opaque-atoms-plus-one".split()),
+    "patch-base": frozenset("""
+        alternative-feedback-missing-predicate atom-class-unknown atom-width-unknown
+        bad-control-edge binding-class-unknown binding-key-duplicate
+        data-binding-atom-count-zero data-binding-namespace-zero
+        data-binding-semantic-code-zero duplicate-field-name-bytes
+        enum-code-decreasing enum-code-duplicate external-default-feedback-mismatch
+        feedback-code-unknown field-count-zero field-name-multiline
+        field-reserved-nonzero field-storage-unknown
+        heuristic-default-feedback-mismatch inline-field-count-zero
+        lesson-case-reserved-nonzero lesson-case-response-decreasing
+        lesson-case-response-duplicate lesson-case-tag-unknown lesson-flags-reserved
+        lesson-mode-tag-unknown lesson-role-tag-unknown lesson-shape-tag-unknown
+        limitation-feedback-with-predicate mask-bit-decreasing mask-bit-duplicate
+        mask-listed-bit-not-one-hot mask-popcount-mismatch
+        match-feedback-missing-predicate matrix-cell-outside-schema
+        matrix-row-count-zero matrix-schema-forward matrix-schema-missing
+        matrix-schema-self-reference matrix-schema-wrong-kind matrix-schema-zero
+        multiple-passive-trace-owners multiple-roots
+        neutral-feedback-with-predicate no-match-feedback-missing-predicate
+        node-local-budget-below-selection-plus-commit node-local-budget-zero
+        opaque-atom-outside-schema orphan-text-five packed-case-absent-region
+        packed-case-feedback-mismatch packed-case-nonselectable-region
+        packed-case-over-selection-cap packed-case-region-zero
+        packed-default-feedback-mismatch packed-no-accepted-case
+        packed-special-feedback-mismatch passive-action-count-exceeds-budget
+        passive-action-count-zero passive-action-tag-unknown
+        passive-commit-nonzero-region passive-expected-feedback-mismatch
+        passive-expected-next-node-mismatch passive-expected-outcome-mismatch
+        passive-final-action-not-commit passive-limitation-for-practice
+        passive-outcome-tag-unknown passive-prefinal-action-result-mismatch
+        passive-presentation-owner-mismatch practice-external-with-predicate
+        precedence-stage3-id-before-kind precedence-stage4-before-stage5a
+        precedence-stage5a-before-stage5b precedence-stage5b-before-stage5c
+        precedence-stage7a-before-stage7b precedence-stage7b-before-stage7c
+        precedence-success-cycle-before-budget predicate-binding-wrong-class
+        predicate-result-binding-schema-mismatch predicate-result-schema-mismatch
+        presentation-wrong-kind record-id-decreasing record-id-zero record-kind-zero
+        region-count-zero region-flags-reserved region-id-decreasing
+        region-id-duplicate region-id-zero region-label-wrong-kind
+        region-out-of-surface-bounds region-selectable-overlap
+        repeat-flag-set-forbidden repeat-flag-single-forbidden
+        role-1-mode-1-forbidden role-1-mode-2-forbidden role-2-mode-1-forbidden
+        role-2-mode-2-forbidden role-3-mode-1-forbidden role-3-mode-2-forbidden
+        role-4-mode-1-forbidden role-4-mode-2-forbidden role-5-mode-3-forbidden
+        root-budget-too-small root-budget-zero root-kind-changed-missing-root
+        root-not-final sequence-case-repeat-forbidden single-case-cardinality-two
+        single-max-selections-bad stream-stage-order-version-before-later-kind
+        success-cycle text-initial-bom text-invalid-utf8
+        text-invalid-utf8-continuation text-invalid-utf8-out-of-range
+        text-invalid-utf8-overlong text-invalid-utf8-surrogate
+        text-payload-length-zero text-prohibited-c0 text-prohibited-cr
+        text-prohibited-del text-prohibited-nul text-truncated-utf8-sequence
+        text-valid-multibyte-prefix-prohibited-c1 tuple-inline-atom-outside-schema
+        tuple-presentation-contains-surface-twice
+        tuple-reference-derived-length-mismatch tuple-slot-forward
+        tuple-slot-missing tuple-slot-self-reference tuple-slot-wrong-kind
+        tuple-slot-zero unsigned-entry-count-nonzero unsigned-min-greater-than-max
+        vector-reference-derived-length-mismatch
+    """.split()),
+    "per-kind-records-boundary": frozenset("per-kind-records-exact per-kind-records-plus-one".split()),
+    "record-count-boundary": frozenset("record-count-exact".split()),
+    "record-id-boundary": frozenset("record-id-65535-exact".split()),
+    "record-payload-bytes-boundary": frozenset(
+        "record-payload-bytes-exact record-payload-bytes-plus-one".split()
+    ),
+    "regions-boundary": frozenset("regions-exact regions-plus-one".split()),
+    "stream-byte-cap": frozenset("stream-byte-cap-plus-one".split()),
+    "stream-bytes-boundary": frozenset("stream-bytes-exact stream-bytes-plus-one".split()),
+    "text-bytes-boundary": frozenset("text-bytes-exact text-bytes-plus-one".split()),
+    "tuple-slots-boundary": frozenset("tuple-slots-exact tuple-slots-plus-one".split()),
+    "typed-record-sequence": frozenset("typed-record-65536-rejects-without-wrap".split()),
+    "typed-step-sequence": frozenset("typed-step-65536-does-not-wrap".split()),
+    "typed-vector-sequence": frozenset("typed-vector-atom-65536-rejects-without-wrap".split()),
+    "vector-atoms-boundary": frozenset("vector-atoms-exact".split()),
+}
+
+
+def _content_hex(value: object) -> bytes:
+    if type(value) is not str or re.fullmatch(r"(?:[0-9a-f]{2})*", value) is None:
+        raise AssertionError("invalid content fixture hex")
+    return bytes.fromhex(value)
+
+
+def _content_recipe_bytes(payload: dict[str, object], recipe: dict[str, object]) -> bytes:
+    tag = recipe["recipe"]
+    data = recipe["input"]
+    if tag not in _CONTENT_RECIPE_INPUT_KEYS or set(data) not in _CONTENT_RECIPE_INPUT_KEYS[tag]:
+        raise AssertionError("invalid content recipe input")
+    for value in data.values():
+        if type(value) not in {int, str, list}:
+            raise AssertionError("invalid content recipe value")
+    integer_values = [value for value in data.values() if type(value) is int]
+    if integer_values and max(integer_values) > recipe["count_cap"]:
+        raise AssertionError("content recipe exceeds declared cap")
+
+    base_row = payload["bases"][0]
+    base = _content_hex(base_row["stream_hex"])
+    name = recipe["name"]
+    support_sha = None
+    if tag in {
+        "maximum-support-stream", "maximum-selection-cap-over",
+        "maximum-committed-state", "maximum-exhausted-state",
+        "typed-step-sequence",
+    }:
+        support_sha = hashlib.sha256(_content_support_stream()).hexdigest()
+    if tag == "maximum-support-stream" and data != {
+        "accepted_selection_count": 4096,
+        "event_budget": 65535,
+        "matrix_columns": 64,
+        "matrix_rows": 64,
+        "record_count": 14,
+        "region_count": 4096,
+        "selection_cap": 4096,
+    }:
+        raise AssertionError("invalid maximum content support descriptor")
+    if tag == "maximum-selection-cap-over" and data != {
+        "base_stream_sha256": support_sha,
+        "selection_cap": 4097,
+    }:
+        raise AssertionError("invalid selection-cap descriptor")
+    if tag == "maximum-committed-state" and data != {
+        "event_count": 65535,
+        "invalid_action_count": 61438,
+        "selection_count": 4096,
+        "support_stream_sha256": support_sha,
+    }:
+        raise AssertionError("invalid committed-state descriptor")
+    if tag == "maximum-exhausted-state" and data != {
+        "event_count": 65535,
+        "invalid_action_count": 61439,
+        "selection_count": 4096,
+        "support_stream_sha256": support_sha,
+    }:
+        raise AssertionError("invalid exhausted-state descriptor")
+    if tag == "maximum-state-byte-over" and (
+        data["base_state"] not in {"committed", "exhausted"}
+        or data["append_hex"] != "00"
+    ):
+        raise AssertionError("invalid maximum-state excess descriptor")
+    if tag == "typed-step-sequence" and data != {
+        "first_4096": "select-region-ids-1-through-4096",
+        "last": "commit",
+        "next_61439": "invalid-action-sentinel",
+        "operation_count": 65536,
+        "support_stream_sha256": support_sha,
+    }:
+        raise AssertionError("invalid typed-step descriptor")
+    if tag in {"typed-record-sequence", "typed-vector-sequence"} and data != {
+        "host_count": 65536
+    }:
+        raise AssertionError("invalid typed full-width descriptor")
+    if tag == "control-edge-boundary" and data not in (
+        {"control_edges": 16384, "lesson_nodes": 4096},
+        {"control_edges": 16385, "lesson_nodes": 4096},
+    ):
+        raise AssertionError("invalid control-edge descriptor")
+    if tag == "patch-base":
+        if data["base"] != "generic-base" or type(data["patches"]) is not list:
+            raise AssertionError("invalid content patch recipe")
+        output = bytearray(base)
+        previous = len(base) + 1
+        for patch in data["patches"]:
+            if type(patch) is not dict or set(patch) != {"new_hex", "old_hex", "start"}:
+                raise AssertionError("invalid content patch")
+            if type(patch["start"]) is not int or patch["start"] < 0:
+                raise AssertionError("invalid content patch start")
+            old = _content_hex(patch["old_hex"])
+            new = _content_hex(patch["new_hex"])
+            start = patch["start"]
+            if start >= previous or start + len(old) > previous:
+                raise AssertionError("content patches are not descending and disjoint")
+            if bytes(output[start:start + len(old)]) != old:
+                raise AssertionError("content patch old bytes mismatch")
+            output[start:start + len(old)] = new
+            previous = start
+        return bytes(output)
+    if tag == "stream-byte-cap":
+        return b"\0" * data["byte_count"]
+    if tag == "maximum-support-stream":
+        return _content_support_stream()
+    if tag == "maximum-selection-cap-over":
+        support = _content_support_stream()
+        start = 78030
+        return support[:start] + _content_u16(data["selection_cap"]) + support[start + 2:]
+    if tag in {"maximum-committed-state", "maximum-exhausted-state"}:
+        committed, exhausted = _content_max_states()
+        return committed if tag == "maximum-committed-state" else exhausted
+    if tag == "maximum-state-byte-over":
+        committed, exhausted = _content_max_states()
+        state = committed if data["base_state"] == "committed" else exhausted
+        return state + _content_hex(data["append_hex"])
+    if tag == "typed-step-sequence":
+        return (
+            b"".join(b"\x01\0" + _content_u16(index) for index in range(1, 4097))
+            + b"\0" * 4 * 61439 + b"\x03\0\0\0"
+        )
+    if tag in {"typed-record-sequence", "typed-vector-sequence"}:
+        return b""
+    if tag == "stream-bytes-boundary":
+        return b"\0" * 4 + b"a" * (data["byte_count"] - 4)
+    if tag == "record-count-boundary":
+        return b"\0\0" + _content_u16(data["record_count"])
+    if tag == "record-id-boundary":
+        return _content_stream(
+            [
+                _content_record(1, "TEXT", b"a"),
+                _content_record(data["record_id"], "ROOT", b"\0\x01\0\x01"),
+            ]
+        )
+    if tag == "text-bytes-boundary":
+        if data["boundary"] == "exact":
+            return _content_wrong_root(
+                [_content_record(1, "TEXT", b"a" * data["text_bytes"])], 2, 1
+            )
+        return (
+            b"\0\0\0\x02\0\x01\0\x01"
+            + _content_u32(data["declared_text_bytes"])
+            + _content_record(2, "ROOT", b"\0\x01\0\x01")
+        )
+    if tag == "per-kind-records-boundary":
+        count = data["text_record_count"]
+        records = [_content_record(index, "TEXT", b"a") for index in range(1, count + 1)]
+        return _content_wrong_root(records, count + 1, 1) if count == 4096 else _content_stream(
+            [*records, _content_record(count + 1, "ROOT", b"\0\x01\0\x01")]
+        )
+    if tag == "enum-entries-boundary":
+        count = data["entry_count"]
+        labels = [_content_record(index, "TEXT", b"a") for index in range(1, 4097)]
+        entries = b"".join(
+            _content_u16(index) + _content_u16(index + 1 if count == 4096 else 1)
+            for index in range(count)
+        )
+        enum = _content_record(4097, "ATOM_SCHEMA", b"\x02\x02" + _content_u16(count) + entries)
+        return _content_wrong_root([*labels, enum], 4098, 4097) if count == 4096 else _content_stream(
+            [*labels, enum, _content_record(4098, "ROOT", _content_u16(4097) + b"\0\x01")]
+        )
+    if tag == "vector-atoms-boundary":
+        return _content_wrong_root(
+            [_content_schema(1), _content_vector(2, 1, [0] * data["atom_count"])], 3, 2
+        )
+    if tag == "matrix-cells-boundary":
+        records = [
+            _content_schema(1),
+            _content_matrix(2, 1, data["rows"], data["columns"], [0] * data["cell_count"]),
+        ]
+        return _content_wrong_root(records, 3, 2) if data["boundary"] == "exact" else _content_stream(
+            [*records, _content_record(3, "ROOT", b"\0\x02\0\x01")]
+        )
+    if tag == "field-schema-fields-boundary":
+        count = data["field_count"]
+        names = [_content_record(index, "TEXT", f"f{index}".encode()) for index in range(1, count + 1)]
+        atom_id = 258
+        fields = _content_record(
+            259,
+            "FIELD_SCHEMA",
+            _content_u16(count) + b"".join(
+                _content_u16(index + 1) + b"\x01\0" + _content_u16(atom_id) + b"\0\x01"
+                for index in range(count)
+            ),
+        )
+        records = [*names, _content_schema(atom_id), fields]
+        return _content_wrong_root(records, 260, 259) if count == 256 else _content_stream(
+            [*records, _content_record(260, "ROOT", _content_u16(259) + b"\0\x01")]
+        )
+    if tag == "tuple-slots-boundary":
+        count = data["slot_count"]
+        field_schema = _content_record(
+            2,
+            "FIELD_SCHEMA",
+            b"\0\x01\0\x01\x02\0\0\x01" + _content_u16(count),
+        )
+        if count == 4096:
+            return _content_wrong_root(
+                [_content_record(1, "TEXT", b"refs"), field_schema,
+                 _content_record(3, "TUPLE", b"\0\x02" + b"\0\x01" * count)],
+                4,
+                3,
+            )
+        return _content_stream(
+            [_content_record(1, "TEXT", b"refs"), field_schema,
+             _content_record(3, "ROOT", b"\0\x02\0\x01")]
+        )
+    if tag == "opaque-atoms-boundary":
+        count = data["atom_count"]
+        binding = _content_record(
+            2,
+            "SEMANTIC_BINDING",
+            b"\x01\0\0\x01\0\x01\0\x01" + _content_u16(count),
+        )
+        if count == 4096:
+            return _content_wrong_root(
+                [_content_schema(1), binding,
+                 _content_record(3, "OPAQUE_DATA", b"\0\x02" + b"\0" * count)],
+                4,
+                3,
+            )
+        return _content_stream(
+            [_content_schema(1), binding, _content_record(3, "ROOT", b"\0\x02\0\x01")]
+        )
+    if tag == "regions-boundary":
+        count = data["region_count"]
+        regions = _content_u16(3) + _content_u16(count)
+        for index in range(count):
+            row, column = divmod(index, 64)
+            regions += (
+                _content_u16(index + 1) + _content_u16(1) + _content_u16(row)
+                + _content_u16(row + 1) + _content_u16(column)
+                + _content_u16(column + 1) + b"\x01\0"
+            )
+        records = [
+            _content_record(1, "TEXT", b"cell"),
+            _content_schema(2),
+            _content_matrix(3, 2, 64, 64, [0] * 4096),
+            _content_record(4, "REGION_SET", regions),
+        ]
+        return _content_wrong_root(records, 5, 4) if count == 4096 else _content_stream(
+            [*records, _content_record(5, "ROOT", b"\0\x04\0\x01")]
+        )
+    if tag == "lesson-nodes-boundary":
+        count = data["lesson_node_count"]
+        nodes = [_content_record(index, "LESSON_NODE", b"\0" * 22) for index in range(1, count + 1)]
+        return _content_stream(
+            [*nodes, _content_record(count + 1, "ROOT", b"\0\x01\0\x01")]
+        )
+    if tag == "cases-per-node-boundary":
+        count = data["case_count"]
+        payload_bytes = bytes((5, 3, 1, 1)) + b"\0\0" * 4 + _content_u16(4096) + _content_u16(65535) + _content_u16(count)
+        payload_bytes += b"".join(
+            b"\x01\0\0\x01" + _content_u16(index) + b"\0\0\0\0"
+            for index in range(1, count + 1)
+        )
+        return _content_stream(
+            [_content_record(1, "LESSON_NODE", payload_bytes + b"\0\0\0\0"),
+             _content_record(2, "ROOT", b"\0\x01\xff\xff")]
+        )
+    if tag == "record-payload-bytes-boundary":
+        return b"\0\0\0\x02\0\x01\0\x01" + _content_u32(data["declared_payload_bytes"])
+    if tag == "control-edge-boundary":
+        return _content_control_stream(data["control_edges"] == 16385)
+    raise AssertionError(f"unknown content recipe: {name}")
+
+
+def _content_projection_is_closed(projection: object) -> None:
+    if type(projection) is not dict or set(projection) != {
+        "records", "root_record_id", "version"
+    }:
+        raise AssertionError("invalid content projection")
+    if type(projection["version"]) is not int or type(projection["root_record_id"]) is not int:
+        raise AssertionError("invalid content projection scalar")
+    records = projection["records"]
+    if type(records) is not list:
+        raise AssertionError("invalid content projection records")
+    record_keys = {
+        "ATOM_VECTOR": {"atom_count", "atom_schema_ref", "atoms"},
+        "FEEDBACK": {"display_ref", "feedback_code", "predicate_result_ref"},
+        "FIELD_SCHEMA": {"field_count", "fields"},
+        "LESSON_NODE": {
+            "answer_mode", "case_count", "cases", "default_feedback_ref",
+            "default_next_node_ref", "flags", "item_event_budget",
+            "max_selections", "passive_trace_ref", "predicate_result_ref",
+            "presentation_ref", "region_set_ref", "response_shape", "role",
+        },
+        "MATRIX": {"atom_schema_ref", "cells", "columns", "rows"},
+        "OPAQUE_DATA": {"data", "data_binding_ref"},
+        "PASSIVE_TRACE": {
+            "action_count", "actions", "expected_feedback_ref",
+            "expected_next_node_ref", "expected_outcome", "limitation_text_ref",
+            "presentation_ref", "region_set_ref", "resulting_presentation_ref",
+        },
+        "PREDICATE_RESULT": {
+            "predicate_binding_ref", "result_atom_vector_ref",
+            "subject_opaque_data_ref",
+        },
+        "REGION_SET": {"region_count", "regions", "surface_matrix_ref"},
+        "ROOT": {"entry_node_ref", "global_event_budget"},
+        "SEMANTIC_BINDING": {
+            "argument", "auxiliary", "binding_class", "namespace_id",
+            "semantic_code",
+        },
+        "TEXT": {"text"},
+        "TUPLE": {"field_schema_ref", "field_values"},
+    }
+    for record in records:
+        if type(record) is not dict or type(record.get("kind")) is not str:
+            raise AssertionError("invalid content projection record")
+        kind = record["kind"]
+        expected = record_keys.get(kind)
+        if kind == "ATOM_SCHEMA":
+            atom_class = record.get("atom_class")
+            if type(atom_class) is not int:
+                raise AssertionError("invalid atom class")
+            expected = {
+                1: {"atom_class", "atom_width", "entry_count", "max_value", "min_value"},
+                2: {"atom_class", "atom_width", "entries", "entry_count"},
+                3: {"allowed_mask", "atom_class", "atom_width", "entries", "entry_count"},
+            }.get(atom_class)
+        if expected is None or set(record) != {"kind", "record_id", *expected}:
+            raise AssertionError("invalid content projection record keys")
+        if type(record["record_id"]) is not int:
+            raise AssertionError("invalid content record id")
+        for key, value in record.items():
+            if key in {"kind", "text"}:
+                if type(value) is not str:
+                    raise AssertionError("invalid content projection text")
+            elif key in {"atoms", "cells", "data"}:
+                if type(value) is not list or any(type(item) is not int for item in value):
+                    raise AssertionError("invalid content scalar list")
+            elif key == "actions":
+                if type(value) is not list:
+                    raise AssertionError("invalid content action list")
+                for action in value:
+                    if len(_content_hex(action)) != 4:
+                        raise AssertionError("invalid content action")
+            elif key == "entries":
+                if type(value) is not list:
+                    raise AssertionError("invalid content entries")
+                entry_keys = (
+                    {"code", "label_text_ref"}
+                    if record["atom_class"] == 2
+                    else {"label_text_ref", "one_hot_bit"}
+                )
+                for entry in value:
+                    if type(entry) is not dict or set(entry) != entry_keys or any(
+                        type(item) is not int for item in entry.values()
+                    ):
+                        raise AssertionError("invalid content entry")
+            elif key == "fields":
+                if type(value) is not list:
+                    raise AssertionError("invalid content fields")
+                for field in value:
+                    if type(field) is not dict or set(field) != {
+                        "count", "name_text_ref", "storage", "type"
+                    } or any(type(item) is not int for item in field.values()):
+                        raise AssertionError("invalid content field")
+            elif key == "field_values":
+                if type(value) is not list:
+                    raise AssertionError("invalid tuple fields")
+                for field in value:
+                    if type(field) is not dict or set(field) not in (
+                        {"atoms"}, {"record_refs"}
+                    ):
+                        raise AssertionError("invalid tuple field")
+                    values = next(iter(field.values()))
+                    if type(values) is not list or any(type(item) is not int for item in values):
+                        raise AssertionError("invalid tuple field values")
+            elif key == "regions":
+                if type(value) is not list:
+                    raise AssertionError("invalid content regions")
+                for region in value:
+                    if type(region) is not dict or set(region) != {
+                        "column_end", "column_start", "flags", "label_ref",
+                        "region_id", "row_end", "row_start",
+                    } or any(type(item) is not int for item in region.values()):
+                        raise AssertionError("invalid content region")
+            elif key == "cases":
+                if type(value) is not list:
+                    raise AssertionError("invalid content cases")
+                for case in value:
+                    if type(case) is not dict or set(case) != {
+                        "case_class", "feedback_ref", "next_node_ref",
+                        "region_ids", "selection_count",
+                    }:
+                        raise AssertionError("invalid content case")
+                    if any(
+                        type(item) is not int
+                        for name, item in case.items() if name != "region_ids"
+                    ) or type(case["region_ids"]) is not list or any(
+                        type(item) is not int for item in case["region_ids"]
+                    ):
+                        raise AssertionError("invalid content case values")
+            elif type(value) is not int:
+                raise AssertionError("invalid content projection scalar")
+
+
+def validate_content_fixture_contract(payload: object) -> None:
+    if type(payload) is not dict or set(payload) != {"bases", "cases", "recipes", "schema"}:
+        raise AssertionError("invalid content fixture")
+    if payload["schema"] != "golden-board.content-v0-fixtures/v0":
+        raise AssertionError("invalid content fixture schema")
+    if type(payload["bases"]) is not list or len(payload["bases"]) != 1:
+        raise AssertionError("invalid content fixture base")
+    base = payload["bases"][0]
+    if type(base) is not dict or set(base) != {
+        "name", "projection", "stream_hex", "stream_length", "stream_sha256"
+    } or base["name"] != "generic-base":
+        raise AssertionError("invalid content fixture base")
+    stream = _content_hex(base["stream_hex"])
+    if (
+        type(base["stream_length"]) is not int
+        or base["stream_length"] != len(stream)
+        or type(base["stream_sha256"]) is not str
+        or base["stream_sha256"] != hashlib.sha256(stream).hexdigest()
+    ):
+        raise AssertionError("invalid content fixture base bytes")
+    _content_projection_is_closed(base["projection"])
+
+    if type(payload["cases"]) is not list or type(payload["recipes"]) is not list:
+        raise AssertionError("invalid content fixture rows")
+    rows = [*payload["cases"], *payload["recipes"]]
+    names = [row.get("name") for row in rows if type(row) is dict]
+    if len(names) != len(rows) or len(names) != len(set(names)) or any(
+        type(name) is not str or re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) is None
+        for name in names
+    ):
+        raise AssertionError("invalid content fixture names")
+    by_name = {row["name"]: row for row in rows}
+    direct_names = {
+        operation: frozenset(
+            row["name"] for row in payload["cases"]
+            if row.get("operation") == operation
+        )
+        for operation in _CONTENT_DIRECT_NAMES
+    }
+    recipe_names = {
+        tag: frozenset(
+            row["name"] for row in payload["recipes"]
+            if row.get("recipe") == tag
+        )
+        for tag in _CONTENT_RECIPE_NAMES
+    }
+    if direct_names != _CONTENT_DIRECT_NAMES or recipe_names != _CONTENT_RECIPE_NAMES:
+        raise AssertionError("invalid content name-to-operation inventory")
+    if sum(map(len, direct_names.values())) != len(payload["cases"]) or sum(
+        map(len, recipe_names.values())
+    ) != len(payload["recipes"]):
+        raise AssertionError("unknown content row")
+    if by_name["stream-valid-generic-base"]["operation"] != "stream_validation":
+        raise AssertionError("invalid content operation")
+    if by_name["new-run-exact"]["operation"] != "new_run":
+        raise AssertionError("invalid content operation")
+    projection = by_name["stream-valid-generic-base"]["expected"]["success"]["projection"]
+    if projection != base["projection"]:
+        raise AssertionError("content base projection mismatch")
+
+    input_keys = {
+        "stream_validation": {"stream_hex"},
+        "new_run": {"stream_hex"},
+        "step": {"action_hex", "state_hex", "stream_hex"},
+        "advance_committed": {"state_hex", "stream_hex"},
+        "validate_run_state": {"state_hex", "stream_hex"},
+    }
+    success_shapes = {
+        frozenset({"projection"}),
+        frozenset({"state_hex"}),
+        frozenset({"state_hex", "interaction_result"}),
+        frozenset({
+            "feedback_ref", "interaction_result", "next_node_ref", "outcome", "state_hex"
+        }),
+        frozenset({"stream_length", "stream_sha256"}),
+        frozenset({"state_length", "state_sha256"}),
+        frozenset({
+            "final_state_bytes", "final_state_sha256", "last_interaction_result",
+            "state_unchanged",
+        }),
+        frozenset({"accepted_count", "excess_rejected", "output_bytes", "state_unchanged"}),
+    }
+    integer_success = {
+        "accepted_count", "feedback_ref", "final_state_bytes", "interaction_result",
+        "last_interaction_result", "next_node_ref", "outcome", "output_bytes",
+        "state_length", "stream_length",
+    }
+    boolean_success = {"excess_rejected", "state_unchanged"}
+
+    for case in payload["cases"]:
+        if type(case) is not dict or set(case) != {"covers", "expected", "input", "name", "operation"}:
+            raise AssertionError("invalid direct content row")
+        operation = case["operation"]
+        if operation not in input_keys or type(case["input"]) is not dict or set(case["input"]) != input_keys[operation]:
+            raise AssertionError("invalid direct content input")
+        for key, value in case["input"].items():
+            if key.endswith("_hex"):
+                _content_hex(value)
+        if type(case["covers"]) is not list or len(case["covers"]) != len(set(case["covers"])) or any(
+            type(label) is not str for label in case["covers"]
+        ):
+            raise AssertionError("invalid content coverage")
+
+    for row in rows:
+        expected = row["expected"]
+        if type(expected) is not dict or len(expected) != 1:
+            raise AssertionError("invalid content expected branch")
+        branch, value = next(iter(expected.items()))
+        if branch == "rejection":
+            if type(value) is not dict or set(value) != {"code", "raw_end", "raw_start"} or any(
+                type(item) is not int for item in value.values()
+            ):
+                raise AssertionError("invalid content rejection")
+        elif branch == "invalid_host_state":
+            if value != {}:
+                raise AssertionError("invalid host-state result")
+        elif branch == "success":
+            if type(value) is not dict or frozenset(value) not in success_shapes:
+                raise AssertionError("invalid content success shape")
+            for key, item in value.items():
+                if key == "projection":
+                    _content_projection_is_closed(item)
+                elif key.endswith("_hex"):
+                    _content_hex(item)
+                elif key.endswith("_sha256"):
+                    if type(item) is not str or re.fullmatch(r"[0-9a-f]{64}", item) is None:
+                        raise AssertionError("invalid content success digest")
+                elif key in integer_success and type(item) is not int:
+                    raise AssertionError("invalid content success integer")
+                elif key in boolean_success and type(item) is not bool:
+                    raise AssertionError("invalid content success boolean")
+                elif key not in integer_success | boolean_success:
+                    raise AssertionError("invalid content success field")
+        else:
+            raise AssertionError("invalid content expected branch")
+
+    tag_operations = {
+        tag: "stream_validation" for tag in _CONTENT_RECIPE_INPUT_KEYS
+    }
+    tag_operations.update(
+        {
+            "maximum-committed-state": "validate_run_state",
+            "maximum-exhausted-state": "validate_run_state",
+            "maximum-state-byte-over": "validate_run_state",
+            "typed-step-sequence": "step",
+        }
+    )
+    for recipe in payload["recipes"]:
+        if type(recipe) is not dict or set(recipe) != {
+            "count_cap", "covers", "expected", "input", "input_bytes",
+            "input_sha256", "name", "operation", "recipe",
+        }:
+            raise AssertionError("invalid content recipe row")
+        tag = recipe["recipe"]
+        if type(tag) is not str or tag_operations.get(tag) != recipe["operation"]:
+            raise AssertionError("invalid content recipe dispatch")
+        if (
+            type(recipe["count_cap"]) is not int
+            or not 0 < recipe["count_cap"] <= MAX_REPO_TEXT_BYTES + 1
+            or type(recipe["input_bytes"]) is not int
+            or not 0 <= recipe["input_bytes"] <= MAX_REPO_TEXT_BYTES + 1
+            or type(recipe["input_sha256"]) is not str
+            or re.fullmatch(r"[0-9a-f]{64}", recipe["input_sha256"]) is None
+        ):
+            raise AssertionError("invalid content recipe metadata")
+        built = _content_recipe_bytes(payload, recipe)
+        digest = hashlib.sha256(built).hexdigest()
+        if len(built) != recipe["input_bytes"] or digest != recipe["input_sha256"]:
+            raise AssertionError(
+                f"content recipe construction mismatch: {recipe['name']} "
+                f"{len(built)}/{digest}"
+            )
+
+
 class FoundationModulesPresent(unittest.TestCase):
     def test_identity_and_manifest_modules_exist(self) -> None:
         self.assertIsNotNone(identity)
@@ -939,17 +1947,18 @@ class RepoContract(unittest.TestCase):
                 "id": "content-v0",
                 "path": "conformance/content-v0.json",
                 "provenance": "hand-authored",
-                "sha256": "128341c2a0b8e53b210e196b431225ee5e19d955d474891307097efafd3a9d3a",
+                "sha256": "6d7c20defc2d53e57562d73e707b826d0ce074b9a696832272e2e2ab672d1aa9",
                 "specification": "content-v0",
                 "version": "v0",
             },
         )
         self.assertEqual(
             hashlib.sha256(payload_bytes).hexdigest(),
-            "128341c2a0b8e53b210e196b431225ee5e19d955d474891307097efafd3a9d3a",
+            "6d7c20defc2d53e57562d73e707b826d0ce074b9a696832272e2e2ab672d1aa9",
         )
 
         payload = canonical_manifest.validate_canonical_manifest(payload_bytes)
+        validate_content_fixture_contract(payload)
         self.assertEqual(set(payload), {"bases", "cases", "recipes", "schema"})
         self.assertEqual(payload["schema"], "golden-board.content-v0-fixtures/v0")
         self.assertEqual(len(payload["bases"]), 1)
@@ -1072,10 +2081,12 @@ class RepoContract(unittest.TestCase):
                 "maximum-selection-cap-over", "maximum-state-byte-over",
                 "maximum-support-stream",
                 "opaque-atoms-boundary", "patch-base", "per-kind-records-boundary",
-                "record-count-boundary", "record-payload-bytes-boundary",
+                "record-count-boundary", "record-id-boundary",
+                "record-payload-bytes-boundary",
                 "regions-boundary", "stream-byte-cap", "stream-bytes-boundary",
                 "text-bytes-boundary", "tuple-slots-boundary",
-                "typed-step-sequence", "vector-atoms-boundary",
+                "typed-record-sequence", "typed-step-sequence",
+                "typed-vector-sequence", "vector-atoms-boundary",
             },
         )
         for row in rows:
@@ -1122,6 +2133,156 @@ class RepoContract(unittest.TestCase):
                 "maximum-exhausted-state", "nested-shape-closure", "precedence",
             }.issubset(coverage)
         )
+
+    def test_content_fixture_shape_mutations_fail_closed(self) -> None:
+        payload = canonical_manifest.validate_canonical_manifest(
+            CONTENT_FIXTURE.read_bytes()
+        )
+
+        def nested_type(value: dict[str, object]) -> None:
+            value["bases"][0]["projection"]["records"][5]["entry_count"] = "0"
+
+        def extra_patch_key(value: dict[str, object]) -> None:
+            recipe = next(row for row in value["recipes"] if row["recipe"] == "patch-base")
+            recipe["input"]["patches"][0]["extra"] = 1
+
+        def swapped_operation(value: dict[str, object]) -> None:
+            first, second = value["cases"][:2]
+            first["operation"], second["operation"] = second["operation"], first["operation"]
+
+        def bad_old_bytes(value: dict[str, object]) -> None:
+            recipe = next(row for row in value["recipes"] if row["recipe"] == "patch-base")
+            recipe["input"]["patches"][0]["old_hex"] = "ffff"
+
+        def bad_digest(value: dict[str, object]) -> None:
+            value["recipes"][0]["input_sha256"] = "0" * 64
+
+        def bad_cap(value: dict[str, object]) -> None:
+            recipe = next(
+                row for row in value["recipes"]
+                if row["name"] == "control-edges-plus-one"
+            )
+            recipe["count_cap"] = 1
+
+        def bad_hex(value: dict[str, object]) -> None:
+            recipe = next(row for row in value["recipes"] if row["recipe"] == "patch-base")
+            recipe["input"]["patches"][0]["new_hex"] = "0"
+
+        def bad_patch_order(value: dict[str, object]) -> None:
+            recipe = next(
+                row for row in value["recipes"]
+                if row["recipe"] == "patch-base" and len(row["input"]["patches"]) > 1
+            )
+            recipe["input"]["patches"].reverse()
+
+        def extra_success_key(value: dict[str, object]) -> None:
+            value["cases"][0]["expected"]["success"]["extra"] = 1
+
+        def unknown_name(value: dict[str, object]) -> None:
+            value["recipes"][0]["name"] = "unknown-content-recipe"
+
+        def unknown_recipe(value: dict[str, object]) -> None:
+            value["recipes"][0]["recipe"] = "unknown-content-builder"
+
+        def bad_support_receipt(value: dict[str, object]) -> None:
+            recipe = next(
+                row for row in value["recipes"]
+                if row["name"] == "maximum-committed-run-state"
+            )
+            recipe["input"]["support_stream_sha256"] = "0" * 64
+
+        def wrapped_host_count(value: dict[str, object]) -> None:
+            recipe = next(
+                row for row in value["recipes"]
+                if row["name"] == "typed-record-65536-rejects-without-wrap"
+            )
+            recipe["input"]["host_count"] = 0
+
+        for name, mutate in {
+            "nested type": nested_type,
+            "extra patch key": extra_patch_key,
+            "swapped operation": swapped_operation,
+            "bad patch old bytes": bad_old_bytes,
+            "bad constructed digest": bad_digest,
+            "bad recipe cap": bad_cap,
+            "bad patch hex": bad_hex,
+            "bad patch order": bad_patch_order,
+            "extra success key": extra_success_key,
+            "unknown name": unknown_name,
+            "unknown recipe": unknown_recipe,
+            "bad support receipt": bad_support_receipt,
+            "wrapped host count": wrapped_host_count,
+        }.items():
+            with self.subTest(name=name):
+                mutated = copy.deepcopy(payload)
+                mutate(mutated)
+                with self.assertRaises(AssertionError):
+                    validate_content_fixture_contract(mutated)
+
+    def test_content_fixture_semantic_review_regressions_are_frozen(self) -> None:
+        payload = canonical_manifest.validate_canonical_manifest(
+            CONTENT_FIXTURE.read_bytes()
+        )
+        rows = {row["name"]: row for row in [*payload["cases"], *payload["recipes"]]}
+        rejections = {
+            "matrix-schema-missing": (19, 154, 156),
+            "matrix-schema-self-reference": (18, 167, 169),
+            "tuple-slot-missing": (19, 211, 213),
+            "tuple-slot-self-reference": (18, 224, 226),
+            "repeat-flag-single-forbidden": (26, 456, 457),
+            "repeat-flag-set-forbidden": (26, 514, 515),
+            "single-case-cardinality-two": (26, 491, 493),
+            "packed-case-over-selection-cap": (26, 491, 493),
+            "packed-case-absent-region": (26, 493, 495),
+            "packed-case-nonselectable-region": (26, 493, 495),
+            "sequence-case-repeat-forbidden": (26, 495, 497),
+            "packed-no-accepted-case": (26, 469, 471),
+            "match-feedback-missing-predicate": (28, 373, 375),
+            "no-match-feedback-missing-predicate": (28, 387, 389),
+            "alternative-feedback-missing-predicate": (28, 401, 403),
+            "limitation-feedback-with-predicate": (28, 415, 417),
+            "packed-default-feedback-mismatch": (28, 499, 501),
+            "packed-special-feedback-mismatch": (28, 495, 497),
+            "heuristic-default-feedback-mismatch": (28, 559, 561),
+            "external-default-feedback-mismatch": (28, 529, 531),
+            "passive-region-set-owner-mismatch": (29, 154, 156),
+            "passive-action-count-exceeds-budget": (29, 433, 435),
+            "passive-prefinal-action-result-mismatch": (29, 435, 439),
+            "passive-expected-feedback-mismatch": (29, 441, 443),
+            "passive-expected-next-node-mismatch": (29, 443, 445),
+            "record-id-65535-exact": (20, 21, 23),
+        }
+        for name, (code, raw_start, raw_end) in rejections.items():
+            with self.subTest(name=name):
+                self.assertEqual(
+                    rows[name]["expected"],
+                    {"rejection": {
+                        "code": code,
+                        "raw_end": raw_end,
+                        "raw_start": raw_start,
+                    }},
+                )
+
+        full_width = {
+            "success": {
+                "accepted_count": 65535,
+                "excess_rejected": True,
+                "output_bytes": 0,
+                "state_unchanged": True,
+            }
+        }
+        for name in (
+            "typed-record-65536-rejects-without-wrap",
+            "typed-vector-atom-65536-rejects-without-wrap",
+        ):
+            with self.subTest(name=name):
+                self.assertEqual(rows[name]["input"], {"host_count": 65536})
+                self.assertEqual(rows[name]["expected"], full_width)
+                self.assertEqual(rows[name]["input_bytes"], 0)
+                self.assertEqual(
+                    rows[name]["input_sha256"],
+                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                )
 
     def test_source_fixture_semantic_review_regressions_are_frozen(self) -> None:
         payload = canonical_manifest.validate_canonical_manifest(
