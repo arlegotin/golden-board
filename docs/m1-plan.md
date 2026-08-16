@@ -131,7 +131,7 @@ These public artifacts are stable enough to plan against:
 
 | Purpose | Intended path |
 |---|---|
-| Shared numeric owner | `spec/constants-v0.toml` |
+| Shared numeric owner and fixed-encoding mirror | `spec/constants-v0.toml` |
 | Chess owner | `spec/chess-v0.md` |
 | Source owner | `spec/source-v0.md` |
 | Generic content owner | `spec/content-v0.md` |

@@ -26,9 +26,10 @@ Authority remains simple:
 3. `spec/identity-v0.md`, `spec/chess-v0.md`, `spec/source-v0.md`,
    `spec/content-v0.md`, and `spec/curriculum-v0.toml` become the sole owners of
    their respective wire/semantic facts as they land;
-4. the machine-readable constants file owns shared numeric assignments while
-   each chess/source/content/curriculum specification owns its codes' meanings;
-   and
+4. the machine-readable constants file owns shared numeric assignments except
+   fixed encoding values or formulas explicitly owned by a smaller
+   specification; for those, it records and mirrors them for generation without
+   creating a second normative assignment; and
 5. fixtures, implementations, external libraries, generated reports, and this
    document's research observations prove or motivate contracts but never
    silently redefine them.
@@ -291,7 +292,7 @@ comparison surface; see its [core API documentation](https://python-chess.readth
 | `docs/m1-spec.md` | M1 execution envelope and rationale only |
 | `docs/m1-plan.md` | Nonnormative dependency order, work packets, and review checkpoints |
 | `spec/identity-v0.md` | Developer hash framing and registered product domains |
-| neutral constants source | Numeric codes shared across languages |
+| neutral constants source | Shared numeric codes; generation mirror for fixed encodings owned by a smaller specification |
 | `spec/chess-v0.md` | Semantic bytes, chess truth, APIs, predicates, transitions, rejection precedence |
 | `spec/source-v0.md` | Raw Markdown/tag/token/SAN grammar, spans, compiler errors, game IR |
 | `spec/content-v0.md` | Generic stream/record/interaction bytes and state machine |
@@ -345,9 +346,10 @@ Sections 6–10 retain the reviewed design rationale and evidence checklist. The
 promoted [`spec/chess-v0.md`](../spec/chess-v0.md) is now the sole normative
 owner of chess bytes, types, APIs, semantics, predicates, and rejection order;
 [`spec/identity-v0.md`](../spec/identity-v0.md) owns identity framing/domains,
-and `spec/constants-v0.toml` owns shared numeric assignments once it lands. Any
-implementation detail or draft spelling below is a nonnormative synopsis and
-does not override those smaller owners.
+and `spec/constants-v0.toml` owns shared numeric assignments except fixed chess
+encoding values or formulas explicitly owned by chess-v0, which it mirrors for
+generation. Any implementation detail or draft spelling below is a
+nonnormative synopsis and does not override those smaller owners.
 
 ### 6.1 Primitive conventions
 
@@ -1500,7 +1502,7 @@ bundle outside the learner bundle and public checkout before authorized reveal.
 Before the first screened candidate or reserve starts result-bearing pretest,
 publish a tracked salted commitment that binds the frozen private protocol and
 assessment bundle. Exact commitment byte framing belongs to the later private
-assessment-manifest specification. Keep the bundle and salt private, then reveal
+assessment manifest specification. Keep the bundle and salt private, then reveal
 and verify both only after all selected windows resolve. A private digest is not
 a commitment, and a public generator plus public seed is not a private form.
 

@@ -955,6 +955,70 @@ class RepoContract(unittest.TestCase):
             "publish a tracked salted commitment",
             roadmap,
         )
+        self.assertNotIn("owns the numeric value of every symbolic code named here", chess)
+        for owner in (chess, design):
+            self.assertIn("records and mirrors them for generation", owner)
+            self.assertIn("second normative assignment", owner)
+        self.assertIn("canonical `a1..h8` order", chess)
+        self.assertIn("`square_index` is `0..63`", chess)
+        self.assertIn(
+            "square order is `a1,b1,...,h1,a2,...,h8` and square index is `0..63`",
+            design,
+        )
+        self.assertIn(
+            "Nominal en-passant is `0` for none, otherwise `square_index + 1`",
+            design,
+        )
+        self.assertIn(
+            "The Python and Rust generic-content lanes remain independent and no-chess",
+            plan,
+        )
+        self.assertIn("one presentation-identical neutral acknowledgement", design)
+        self.assertIn("one presentation-identical neutral acknowledgement", roadmap)
+        self.assertIn(
+            "Result-bearing feedback for every screened slot, including unused reserves, "
+            "is withheld until every selected learner's normal or fallback feedback "
+            "window resolves",
+            design,
+        )
+        self.assertIn(
+            "result-bearing feedback for every screened slot, including unused reserves, "
+            "remain withheld until every selected participant's normal or fallback "
+            "feedback window has resolved",
+            roadmap,
+        )
+        for protocol in (design, roadmap):
+            self.assertIn("later private assessment manifest", protocol)
+            self.assertIn("commitment byte framing", protocol)
+            self.assertIn("first delayed attempt is the only attempt", protocol)
+            self.assertIn(
+                "closed interval from 36 through 60 hours after that learner's complete "
+                "valid posttest",
+                protocol,
+            )
+            self.assertIn(
+                "posttest itself finishes by the slot's frozen posttest deadline",
+                protocol,
+            )
+            self.assertIn("early, late, invalid, or missed first attempt", protocol)
+            self.assertIn("without retry", protocol)
+            self.assertIn(
+                "valid in-window completion or at the +60-hour fallback deadline",
+                protocol,
+            )
+        self.assertIn("reveal and verify both only after all selected windows resolve", design)
+        self.assertIn(
+            "reveal follows resolution of all selected normal or fallback windows",
+            roadmap,
+        )
+        self.assertIn(
+            "feedback embargo for that slot resolves 60 hours after that deadline",
+            design,
+        )
+        self.assertIn(
+            "that slot's feedback embargo resolves 60 hours after the deadline",
+            roadmap,
+        )
 
 
 class RootCheckCLI(unittest.TestCase):

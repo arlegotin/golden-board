@@ -1863,9 +1863,11 @@ Adapters MUST NOT recompute chess truth, repair unchecked bytes, inject dimensio
 ### 9.9 Stable rejection codes
 
 Owning subsystem specifications define rejection names, meanings, and
-precedence. A neutral schema owns only their shared numeric assignments and
-feeds generated language constants. The stable primary code is canonical;
-richer diagnostic context is optional and noncanonical unless a smaller owner
+precedence. A neutral schema owns their shared numeric assignments except fixed
+encoding values or formulas explicitly owned by a smaller subsystem
+specification; for those it records and mirrors them for generation without a
+second normative assignment. The stable primary code is canonical; richer
+diagnostic context is optional and noncanonical unless a smaller owner
 explicitly says otherwise. Required families include:
 
 ```text
@@ -2019,11 +2021,12 @@ Before final protocols freeze:
 
 The learner's first delayed attempt is the only attempt. It is valid only inside
 that interval. An early, late, invalid, or missed first attempt is reported and
-fails the affected delayed gates without retry; an early or otherwise invalid
-attempt does not release feedback before that learner's +60-hour deadline. If
-posttest is not complete and valid by the frozen deadline,
-posttest/delayed results are missing failures, no delayed submission counts, and
-that slot's feedback embargo resolves 60 hours after the deadline.
+fails the affected delayed gates without retry. The feedback window resolves
+only on a valid in-window completion or at the +60-hour fallback deadline. An
+early or otherwise invalid attempt does not release feedback before that
+learner's +60-hour deadline. If posttest is not complete and valid by the frozen
+deadline, posttest/delayed results are missing failures, no delayed submission
+counts, and that slot's feedback embargo resolves 60 hours after the deadline.
 
 The final learner initial clock includes interface familiarization, pretest,
 artifact instruction/practice, and immediate posttest. Breaks and neutral

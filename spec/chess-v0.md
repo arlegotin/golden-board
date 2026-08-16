@@ -6,8 +6,8 @@ precedence. The FIDE Laws snapshot identified in `inputs/source-lock.toml` is
 the rule source; this file states the selected project profile completely so an
 implementation never has to infer scope from that source. `spec/source-v0.md`
 owns raw-source syntax and game-record containers. `spec/identity-v0.md` owns
-identity framing and domains. `spec/constants-v0.toml` owns the numeric value of
-every symbolic code named here.
+identity framing and domains. `spec/constants-v0.toml` owns numeric code values
+subject to Section 2's narrow fixed-chess-encoding exception.
 
 Implementations and fixtures are evidence, not authority. No FEN parser,
 external chess library, source tag, comment, or transport field may add or
@@ -40,8 +40,11 @@ particular declaration.
 - `Side` is exactly `SIDE_FIRST` (White) or `SIDE_SECOND` (Black).
 - `PieceKind` is exactly pawn, knight, bishop, rook, queen, or king.
 - Every symbolic code in this file must exist exactly once in
-  `spec/constants-v0.toml`. This file owns its meaning; the TOML owns its
-  numeric value. Reserved codes and bits reject and are never masked.
+  `spec/constants-v0.toml`. This file owns its meaning and every fixed chess
+  encoding value or formula explicitly stated here; the TOML otherwise owns
+  numeric values. For those fixed encodings, the TOML records and mirrors them
+  for generation and does not create a second normative assignment. Reserved
+  codes and bits reject and are never masked.
 - No host enum layout, struct padding, FEN string, locale, map iteration order,
   time, randomness, or source metadata is canonical.
 - Bounds are checked with checked arithmetic before indexing, multiplication,
