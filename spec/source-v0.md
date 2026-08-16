@@ -789,8 +789,9 @@ host-adapter failure and interruption evidence. Neither latter case is a
 portable shared-fixture input; both retain the owner-defined canonical span
 `[0,0)`.
 
-Hand-authored fixtures cover exact raw bytes and expected code/span for every
-rejection above, including:
+Hand-authored portable fixtures cover exact raw-byte or typed-operation inputs
+and expected code/span for every rejection through
+`SOURCE_EVIDENCE_CROSS_FIELD`, including:
 
 - UTF-8 invalid lead, invalid continuation, overlong/surrogate/out-of-range,
   multibyte valid prefix, truncated EOF, BOM, controls, bare CR, mixed newline,

@@ -828,18 +828,29 @@ class RepoContract(unittest.TestCase):
             "the owner-defined canonical span `[0,0)`.",
             source,
         )
-        for rule in (
+        self.assertIn(
             "`global_remaining <= root.global_event_budget`; failure spans "
-            "`global_remaining` `[6,8)`",
+            "`global_remaining` `[6,8)`; "
             "`local_remaining <= current_node.item_event_budget`; failure spans "
-            "`local_remaining` `[8,10)`",
+            "`local_remaining` `[8,10)`; "
             "`local_remaining <= global_remaining`; failure spans "
-            "`local_remaining` `[8,10)`",
+            "`local_remaining` `[8,10)`. "
             "Active requires both remaining values nonzero; exhausted requires at "
             "least one zero; committed permits either. A phase/budget mismatch "
             "spans `phase` `[10,11)`.",
-        ):
-            self.assertIn(rule, content)
+            content,
+        )
+        self.assertIn(
+            "Hand-authored portable fixtures cover exact raw-byte or "
+            "typed-operation inputs and expected code/span for every rejection "
+            "through `SOURCE_EVIDENCE_CROSS_FIELD`, including:",
+            source,
+        )
+        self.assertNotIn(
+            "fixtures cover exact raw bytes and expected code/span for every "
+            "rejection above",
+            source,
+        )
         self.assertIn(
             "Literal boundary-plus-one evidence is required whenever representable.",
             content,
