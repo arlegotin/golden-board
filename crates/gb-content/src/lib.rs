@@ -3207,35 +3207,45 @@ pub fn validate_run_state(projection: &ContentProjection, raw: &[u8]) -> Result<
     if local > *item_event_budget || local > global {
         return Err(bad_state(local_span.start, local_span.end));
     }
+    let mut rule_four = None;
     if (phase == PHASE_ACTIVE && (global == 0 || local == 0))
         || (phase == PHASE_EXHAUSTED && global != 0 && local != 0)
     {
-        return Err(bad_state(10, 11));
-    }
-    if event_count > root_budget {
-        return Err(bad_state(event_count_span.start, event_count_span.end));
+        retain_earliest(&mut rule_four, bad_state(10, 11));
     }
     if phase != PHASE_COMMITTED {
         if outcome != OUTCOME_NONE {
-            return Err(bad_state(outcome_span.start, outcome_span.end));
+            retain_earliest(
+                &mut rule_four,
+                bad_state(outcome_span.start, outcome_span.end),
+            );
         }
         if response_length != 0 {
-            return Err(bad_state(
-                response_length_span.start,
-                response_length_span.end,
-            ));
+            retain_earliest(
+                &mut rule_four,
+                bad_state(response_length_span.start, response_length_span.end),
+            );
         }
     } else if !matches!(
         outcome,
         OUTCOME_ACCEPTED | OUTCOME_REJECTED | OUTCOME_NEUTRAL
     ) {
-        return Err(bad_state(outcome_span.start, outcome_span.end));
+        retain_earliest(
+            &mut rule_four,
+            bad_state(outcome_span.start, outcome_span.end),
+        );
     }
     if phase == PHASE_COMMITTED && buffer_count != 0 {
-        return Err(bad_state(buffer_count_span.start, buffer_count_span.end));
+        retain_earliest(
+            &mut rule_four,
+            bad_state(buffer_count_span.start, buffer_count_span.end),
+        );
     }
     if buffer.len() > *max_selections as usize {
-        return Err(bad_state(buffer_count_span.start, buffer_count_span.end));
+        retain_earliest(
+            &mut rule_four,
+            bad_state(buffer_count_span.start, buffer_count_span.end),
+        );
     }
     let selectable = selectable_regions(
         &projection
@@ -3255,7 +3265,7 @@ pub fn validate_run_state(projection: &ContentProjection, raw: &[u8]) -> Result<
             .collect::<Vec<_>>(),
         *region_set_ref,
     );
-    validate_selection(
+    if let Err(candidate) = validate_selection(
         *response_shape,
         *flags,
         *max_selections,
@@ -3263,54 +3273,79 @@ pub fn validate_run_state(projection: &ContentProjection, raw: &[u8]) -> Result<
         &buffer,
         buffer_count_span,
         &buffer_spans,
-    )?;
+    ) {
+        retain_earliest(&mut rule_four, candidate);
+    }
 
     let (feedback_ref, next_node_ref) = if phase == PHASE_COMMITTED {
         if response.first() != Some(response_shape) {
-            return Err(bad_state(response_span.start, response_span.start + 1));
-        }
-        let decoded = decode_response(*response_shape, &response)
-            .ok_or_else(|| bad_state(response_span.start, response_span.end))?;
-        let response_count_span = Span {
-            start: response_span.start + 1,
-            end: response_span.start + 3,
-        };
-        let response_spans = (0..decoded.len())
-            .map(|index| Span {
-                start: response_span.start + 3 + index * 2,
-                end: response_span.start + 5 + index * 2,
-            })
-            .collect::<Vec<_>>();
-        validate_selection(
-            *response_shape,
-            *flags,
-            *max_selections,
-            &selectable,
-            &decoded,
-            response_count_span,
-            &response_spans,
-        )?;
-        let chosen = cases.iter().find(|case| case.region_ids == decoded);
-        let (class, feedback, next) = chosen
-            .map_or((0, *default_feedback_ref, *default_next_node_ref), |case| {
-                (case.case_class, case.feedback_ref, case.next_node_ref)
-            });
-        let wanted_outcome = if *answer_mode == ANSWER_PACKED_PRACTICE {
-            if class == CASE_ACCEPTED {
-                OUTCOME_ACCEPTED
-            } else {
-                OUTCOME_REJECTED
+            retain_earliest(
+                &mut rule_four,
+                bad_state(response_span.start, response_span.start + 1),
+            );
+            (0, 0)
+        } else if let Some(decoded) = decode_response(*response_shape, &response) {
+            let response_count_span = Span {
+                start: response_span.start + 1,
+                end: response_span.start + 3,
+            };
+            let response_spans = (0..decoded.len())
+                .map(|index| Span {
+                    start: response_span.start + 3 + index * 2,
+                    end: response_span.start + 5 + index * 2,
+                })
+                .collect::<Vec<_>>();
+            if let Err(candidate) = validate_selection(
+                *response_shape,
+                *flags,
+                *max_selections,
+                &selectable,
+                &decoded,
+                response_count_span,
+                &response_spans,
+            ) {
+                retain_earliest(&mut rule_four, candidate);
             }
+            let chosen = cases.iter().find(|case| case.region_ids == decoded);
+            let (class, feedback, next) = chosen
+                .map_or((0, *default_feedback_ref, *default_next_node_ref), |case| {
+                    (case.case_class, case.feedback_ref, case.next_node_ref)
+                });
+            let wanted_outcome = if *answer_mode == ANSWER_PACKED_PRACTICE {
+                if class == CASE_ACCEPTED {
+                    OUTCOME_ACCEPTED
+                } else {
+                    OUTCOME_REJECTED
+                }
+            } else {
+                OUTCOME_NEUTRAL
+            };
+            if outcome != wanted_outcome {
+                retain_earliest(
+                    &mut rule_four,
+                    bad_state(outcome_span.start, outcome_span.end),
+                );
+            }
+            (feedback, next)
         } else {
-            OUTCOME_NEUTRAL
-        };
-        if outcome != wanted_outcome {
-            return Err(bad_state(outcome_span.start, outcome_span.end));
+            retain_earliest(
+                &mut rule_four,
+                bad_state(response_span.start, response_span.end),
+            );
+            (0, 0)
         }
-        (feedback, next)
     } else {
         (0, 0)
     };
+    if event_count > root_budget {
+        retain_earliest(
+            &mut rule_four,
+            bad_state(event_count_span.start, event_count_span.end),
+        );
+    }
+    if let Some(candidate) = rule_four {
+        return Err(candidate);
+    }
 
     let mut replay = new_run(projection);
     for (event, start) in events.iter().zip(event_spans.iter().copied()) {

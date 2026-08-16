@@ -2035,6 +2035,39 @@ fn review_run_state_framing_completes_before_count_driven_allocation() {
 }
 
 #[test]
+fn review_rule_four_buffer_field_precedes_response_compatibility() {
+    let fixture = fixture();
+    let top = object(&fixture, &["bases", "cases", "recipes", "schema"]);
+    let projection = stream_validation(&generic_base(top)).unwrap();
+    let raw = hex("0000001d001a000800020100000100000001000000");
+    assert_eq!(
+        validate_run_state(&projection, &raw).unwrap_err(),
+        ContentReject {
+            code: 31,
+            raw_start: 14,
+            raw_end: 16,
+        }
+    );
+}
+
+#[test]
+fn review_rule_four_outcome_precedes_event_budget() {
+    let fixture = fixture();
+    let top = object(&fixture, &["bases", "cases", "recipes", "schema"]);
+    let projection = stream_validation(&generic_base(top)).unwrap();
+    let mut raw = hex("0000001d001a000800020101000000000009");
+    raw.resize(raw.len() + 9 * 7, 0);
+    assert_eq!(
+        validate_run_state(&projection, &raw).unwrap_err(),
+        ContentReject {
+            code: 31,
+            raw_start: 11,
+            raw_end: 12,
+        }
+    );
+}
+
+#[test]
 fn review_committed_responses_and_replay_candidates_are_fieldwise() {
     let fixture = fixture();
     let top = object(&fixture, &["bases", "cases", "recipes", "schema"]);
@@ -2077,6 +2110,7 @@ fn review_committed_response_cardinality_order_duplicate_and_repeat_are_closed()
     let single = encode_run_state(&step(&projection, selected, &[3, 0, 0, 0]).0);
     let (response_start, response_length) = response_layout(&single);
     let mut overfull = single;
+    overfull[11] = 2;
     overfull[response_start + 1..response_start + 3].copy_from_slice(&2u16.to_be_bytes());
     overfull.splice(
         response_start + response_length..response_start + response_length,
