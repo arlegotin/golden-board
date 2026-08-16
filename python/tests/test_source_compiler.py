@@ -416,15 +416,22 @@ class SourceCompilerApi(unittest.TestCase):
             source.__all__,
             (
                 "CompiledGame",
+                "EvidenceInputs",
                 "GameRecord",
+                "RetainedEvidence",
                 "SourceCandidate",
                 "SourceReject",
+                "ValidatedCandidate",
                 "compile_source",
+                "coordinate_candidates",
                 "decode_game",
                 "decode_game_set",
+                "encode_candidate_trace",
                 "encode_game",
                 "encode_game_set",
+                "validate_candidate_trace",
                 "validate_anthology",
+                "validate_retained_evidence",
             ),
         )
         public_callables = {
