@@ -211,7 +211,7 @@ INPUT_ARGUMENTS = {
     "replay_move_legality": ["ReplayState@derived:authority.replay_state", "Move@bound:bound.shown_move"],
     "replay_terminal_transition": ["ReplayState@derived:authority.replay_state", "Move@bound:bound.shown_move"],
     "replay_move_origin_occupancy": ["WirePosition@derived:authority.replay_wire_position", "Square@bound_projection:bound.shown_move.origin", "OccupancyMatch@call_constant:call.input_constants[0]"],
-    "board_control_with_bound_origin": ["WirePosition@authority:authority.wire_position", "Side@authority:authority.controlling_side", "Square@bound:bound.controller_origin"],
+    "board_control_with_bound_origin": ["WirePosition@authority:authority.wire_position", "Side@authority:authority.controlling_side", "Square@authority:authority.target_square"],
     "board_bound_origin_occupancy": ["WirePosition@authority:authority.wire_position", "Square@bound:bound.controller_origin", "OccupancyMatch@call_constant:call.input_constants[0]"],
     "board_defended": ["WirePosition@authority:authority.wire_position", "Square@authority:authority.target_square", "Defender@authority:authority.defender"],
     "board_pin_with_origin": ["LocallyAdmissiblePosition@derived:authority.locally_admissible_position", "Square@bound:bound.controller_origin"],
@@ -940,7 +940,7 @@ TRANSFORMS = {
 
 # These freeze human-readable TOML projections; direct checks below still own
 # signatures, positional arguments, finite relations, bounds, and rejections.
-PATTERN_DIGEST = "e45fe214fa950817e8c51e29803eaf23605533bd3c49d62a76fc726147d68b75"
+PATTERN_DIGEST = "f025be5107da45b29389a1eb1a739d53e4c831eb556df992859be6b853a7a859"
 FINITE_RULE_DIGEST = "dbd3e25aa767d9c8b877d1afbb2d7bebea4c0daad98958c2da5c9ea2d691cab1"
 TRANSFORM_DIGEST = "80dac0d29304788ce8472313f0dff8e71f7e19bc01ffcfff8c4b12fb672a5f7b"
 ROADMAP_DIGEST = "c57bf574c16764b40885fa41f458eea3fc00f998dcb836da5e6aff8b861b6fa5"

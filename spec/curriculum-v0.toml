@@ -1383,7 +1383,7 @@ id = "board_control_with_bound_origin"
 authority_kind = "board_local_position"
 owner_id = "chess.control"
 input_variant_id = "ControlInput"
-arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.controlling_side" }, { position = 2, type_id = "Square", source_kind = "bound", source_id = "bound.controller_origin" }]
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.controlling_side" }, { position = 2, type_id = "Square", source_kind = "authority", source_id = "authority.target_square" }]
 derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
 
 [[input_binding]]
