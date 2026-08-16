@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import os
 from pathlib import Path
 import re
@@ -69,6 +70,358 @@ pub const FLAG_ONE: u8 = 1;
 
 pub const SAMPLE_LIMIT: u32 = 7;
 '''
+
+EXPECTED_GROUPS = {
+    "side": (
+        "SIDE_FIRST",
+        "SIDE_SECOND",
+    ),
+    "square_code": (
+        "SQUARE_EMPTY",
+        "SQUARE_FIRST_PAWN",
+        "SQUARE_FIRST_KNIGHT",
+        "SQUARE_FIRST_BISHOP",
+        "SQUARE_FIRST_ROOK",
+        "SQUARE_FIRST_QUEEN",
+        "SQUARE_FIRST_KING",
+        "SQUARE_SECOND_PAWN",
+        "SQUARE_SECOND_KNIGHT",
+        "SQUARE_SECOND_BISHOP",
+        "SQUARE_SECOND_ROOK",
+        "SQUARE_SECOND_QUEEN",
+        "SQUARE_SECOND_KING",
+    ),
+    "promotion": (
+        "PROMOTION_NONE",
+        "PROMOTION_QUEEN",
+        "PROMOTION_ROOK",
+        "PROMOTION_BISHOP",
+        "PROMOTION_KNIGHT",
+    ),
+    "event": (
+        "EVENT_MOVE",
+        "EVENT_RESIGNATION",
+        "EVENT_DRAW_AGREEMENT",
+        "EVENT_CLAIM_THREEFOLD",
+        "EVENT_CLAIM_50_MOVE",
+    ),
+    "score": (
+        "SCORE_FIRST_WIN",
+        "SCORE_SECOND_WIN",
+        "SCORE_DRAW",
+    ),
+    "board_terminal": (
+        "BOARD_TERMINAL_NONE",
+        "BOARD_TERMINAL_CHECKMATE",
+        "BOARD_TERMINAL_STALEMATE",
+        "BOARD_TERMINAL_COMMON_DEAD",
+    ),
+    "game_status": (
+        "GAME_STATUS_ACTIVE",
+        "GAME_STATUS_CHECKMATE",
+        "GAME_STATUS_STALEMATE",
+        "GAME_STATUS_COMMON_DEAD",
+        "GAME_STATUS_RESIGNED",
+        "GAME_STATUS_AGREED",
+        "GAME_STATUS_CLAIMED_THREEFOLD",
+        "GAME_STATUS_CLAIMED_50_MOVE",
+    ),
+    "source_suffix": (
+        "SUFFIX_NONE",
+        "SUFFIX_CHECK",
+        "SUFFIX_MATE",
+    ),
+    "predicate": (
+        "PREDICATE_SETUP_TURN",
+        "PREDICATE_OCCUPANCY",
+        "PREDICATE_MOVE_LEGALITY",
+        "PREDICATE_CONTROL",
+        "PREDICATE_DEFENDED",
+        "PREDICATE_KING_CHECK",
+        "PREDICATE_ABSOLUTE_PIN",
+        "PREDICATE_FORK_DOUBLE_ATTACK",
+        "PREDICATE_DISCOVERED_ATTACK_CHECK",
+        "PREDICATE_ESCAPE_SQUARE_CONTROL",
+        "PREDICATE_PASSED_PAWN",
+        "PREDICATE_OPEN_FILE",
+        "PREDICATE_SEMI_OPEN_FILE",
+        "PREDICATE_FINITE_PROMOTION_RACE",
+        "PREDICATE_FINITE_MATING_GEOMETRY",
+        "PREDICATE_TERMINAL_TRANSITION",
+        "PREDICATE_HISTORY_CLAIM",
+        "PREDICATE_DECLARATION_EVENT",
+        "PREDICATE_SOURCE_SCORE_RELATION",
+        "PREDICATE_MOVE_RECORD_REPLAY",
+    ),
+    "chess_reject": (
+        "CHESS_OK",
+        "CHESS_POSITION_LENGTH",
+        "CHESS_POSITION_SQUARE_CODE",
+        "CHESS_POSITION_SIDE_CODE",
+        "CHESS_POSITION_CASTLING_RESERVED",
+        "CHESS_POSITION_EN_PASSANT_CODE",
+        "CHESS_MOVE_LENGTH",
+        "CHESS_MOVE_RESERVED",
+        "CHESS_MOVE_PROMOTION_CODE",
+        "CHESS_MOVE_SAME_SQUARE",
+        "CHESS_EVENT_LENGTH",
+        "CHESS_EVENT_CODE",
+        "CHESS_EVENT_SIDE_CODE",
+        "CHESS_EVENT_TRAILING",
+        "CHESS_PREDICATE_UNKNOWN",
+        "CHESS_PREDICATE_SIGNATURE",
+        "CHESS_LOCAL_FIRST_KING_COUNT",
+        "CHESS_LOCAL_SECOND_KING_COUNT",
+        "CHESS_LOCAL_FIRST_PAWN_COUNT",
+        "CHESS_LOCAL_SECOND_PAWN_COUNT",
+        "CHESS_LOCAL_FIRST_PIECE_COUNT",
+        "CHESS_LOCAL_SECOND_PIECE_COUNT",
+        "CHESS_LOCAL_PAWN_ON_LAST_RANK",
+        "CHESS_LOCAL_KINGS_ADJACENT",
+        "CHESS_LOCAL_BOTH_KINGS_CHECKED",
+        "CHESS_LOCAL_INACTIVE_KING_CHECKED",
+        "CHESS_LOCAL_CASTLING_FIRST_KINGSIDE",
+        "CHESS_LOCAL_CASTLING_FIRST_QUEENSIDE",
+        "CHESS_LOCAL_CASTLING_SECOND_KINGSIDE",
+        "CHESS_LOCAL_CASTLING_SECOND_QUEENSIDE",
+        "CHESS_LOCAL_EN_PASSANT_RANK",
+        "CHESS_LOCAL_EN_PASSANT_TARGET_OCCUPIED",
+        "CHESS_LOCAL_EN_PASSANT_PAWN",
+        "CHESS_LOCAL_EN_PASSANT_ORIGIN_OCCUPIED",
+        "CHESS_GAME_CLOSED",
+        "CHESS_RESOURCE_HISTORY_PLIES",
+        "CHESS_RESOURCE_PREDICATE_INPUT",
+        "CHESS_MOVE_EMPTY_ORIGIN",
+        "CHESS_MOVE_WRONG_SIDE",
+        "CHESS_MOVE_FRIENDLY_DESTINATION",
+        "CHESS_MOVE_KING_CAPTURE",
+        "CHESS_MOVE_PROMOTION_MISSING",
+        "CHESS_MOVE_PROMOTION_UNNEEDED",
+        "CHESS_MOVE_CASTLING_RIGHT",
+        "CHESS_MOVE_CASTLING_PATH",
+        "CHESS_MOVE_CASTLING_FROM_CHECK",
+        "CHESS_MOVE_CASTLING_THROUGH_CHECK",
+        "CHESS_MOVE_CASTLING_INTO_CHECK",
+        "CHESS_MOVE_EN_PASSANT_TARGET",
+        "CHESS_MOVE_EN_PASSANT_GEOMETRY",
+        "CHESS_MOVE_GEOMETRY",
+        "CHESS_MOVE_BLOCKED",
+        "CHESS_MOVE_PAWN_ADVANCE",
+        "CHESS_MOVE_PAWN_CAPTURE",
+        "CHESS_MOVE_PAWN_DOUBLE",
+        "CHESS_MOVE_SELF_CHECK",
+        "CHESS_EVENT_AGREEMENT_TOO_EARLY",
+        "CHESS_EVENT_THREEFOLD_UNAVAILABLE",
+        "CHESS_EVENT_50_MOVE_UNAVAILABLE",
+        "CHESS_PREDICATE_TREE",
+        "CHESS_RECORD_EMPTY",
+        "CHESS_RECORD_CHECKMATE_SCORE",
+        "CHESS_RECORD_DRAW_SCORE",
+    ),
+    "source_reject": (
+        "SOURCE_INPUT_TOO_LARGE",
+        "SOURCE_UTF8_BOM",
+        "SOURCE_UTF8_INVALID",
+        "SOURCE_CONTROL",
+        "SOURCE_NEWLINE_BARE_CR",
+        "SOURCE_NEWLINE_MIXED",
+        "SOURCE_NEWLINE_FINAL_MISSING",
+        "SOURCE_FENCE_SHAPE",
+        "SOURCE_FENCE_ORPHAN_CLOSE",
+        "SOURCE_FENCE_NESTED_OPEN",
+        "SOURCE_FENCE_UNCLOSED",
+        "SOURCE_FENCE_BLOCK_BYTES",
+        "SOURCE_FENCE_COUNT",
+        "SOURCE_TAG_COUNT",
+        "SOURCE_TAG_NAME_LENGTH",
+        "SOURCE_TAG_VALUE_LENGTH",
+        "SOURCE_TAG_SYNTAX",
+        "SOURCE_TAG_ESCAPE",
+        "SOURCE_TAG_DUPLICATE",
+        "SOURCE_TAG_FORBIDDEN",
+        "SOURCE_TAG_RESULT_MISSING",
+        "SOURCE_TAG_RESULT_VALUE",
+        "SOURCE_SEPARATOR_MISSING",
+        "SOURCE_SEPARATOR_EXTRA",
+        "SOURCE_MOVETEXT_MISSING",
+        "SOURCE_MOVETEXT_EMPTY_LINE",
+        "SOURCE_MOVETEXT_TAG_LINE",
+        "SOURCE_MOVETEXT_LEADING_HWS",
+        "SOURCE_MOVETEXT_TRAILING_HWS",
+        "SOURCE_RESOURCE_TOKEN_COUNT",
+        "SOURCE_RESOURCE_RECORD_PLIES",
+        "SOURCE_RESOURCE_TOTAL_PLIES",
+        "SOURCE_MOVE_NUMBER_SHAPE",
+        "SOURCE_MOVE_NUMBER_VALUE",
+        "SOURCE_MOVE_NUMBER_POSITION",
+        "SOURCE_RESULT_TOO_EARLY",
+        "SOURCE_RESULT_TOKEN",
+        "SOURCE_RESULT_MISSING",
+        "SOURCE_RESULT_MISMATCH",
+        "SOURCE_TOKEN_AFTER_RESULT",
+        "SOURCE_GAME_AFTER_TERMINAL",
+        "SOURCE_SAN_SHAPE",
+        "SOURCE_SAN_NO_MATCH",
+        "SOURCE_SAN_AMBIGUOUS",
+        "SOURCE_SAN_NONCANONICAL",
+        "SOURCE_SAN_SUFFIX",
+        "SOURCE_TERMINAL_SCORE",
+        "SOURCE_DUPLICATE_MOVE_STREAM",
+        "SOURCE_GAME_COUNT",
+        "SOURCE_GAME_TRUNCATED",
+        "SOURCE_GAME_MOVE",
+        "SOURCE_GAME_SCORE",
+        "SOURCE_GAME_TRAILING",
+        "SOURCE_GAME_SEMANTIC",
+        "SOURCE_GAME_SET_SIZE",
+        "SOURCE_GAME_SET_COUNT",
+        "SOURCE_GAME_SET_TRUNCATED",
+        "SOURCE_GAME_SET_TOTAL_PLIES",
+        "SOURCE_GAME_SET_ORDER",
+        "SOURCE_GAME_SET_DUPLICATE",
+        "SOURCE_GAME_SET_TRAILING",
+        "SOURCE_ANTHOLOGY_COUNT",
+        "SOURCE_ANTHOLOGY_DUPLICATE_STREAM",
+        "SOURCE_EVIDENCE_SIZE",
+        "SOURCE_EVIDENCE_SHAPE",
+        "SOURCE_EVIDENCE_NONCANONICAL",
+        "SOURCE_EVIDENCE_HASH",
+        "SOURCE_EVIDENCE_CROSS_FIELD",
+        "SOURCE_CANDIDATE_MISMATCH",
+        "SOURCE_EVIDENCE_INSTALL",
+    ),
+    "content_record_kind": (
+        "CONTENT_KIND_TEXT",
+        "CONTENT_KIND_ATOM_SCHEMA",
+        "CONTENT_KIND_ATOM_VECTOR",
+        "CONTENT_KIND_MATRIX",
+        "CONTENT_KIND_FIELD_SCHEMA",
+        "CONTENT_KIND_TUPLE",
+        "CONTENT_KIND_REGION_SET",
+        "CONTENT_KIND_SEMANTIC_BINDING",
+        "CONTENT_KIND_OPAQUE_DATA",
+        "CONTENT_KIND_PREDICATE_RESULT",
+        "CONTENT_KIND_FEEDBACK",
+        "CONTENT_KIND_PASSIVE_TRACE",
+        "CONTENT_KIND_LESSON_NODE",
+        "CONTENT_KIND_ROOT",
+    ),
+    "content_atom_class": (
+        "ATOM_UNSIGNED",
+        "ATOM_ENUM",
+        "ATOM_MASK",
+    ),
+    "content_field_storage": (
+        "FIELD_INLINE_ATOM",
+        "FIELD_RECORD_REF",
+    ),
+    "content_binding_class": (
+        "BINDING_DATA",
+        "BINDING_PREDICATE",
+    ),
+    "content_feedback": (
+        "FEEDBACK_NEUTRAL",
+        "FEEDBACK_MATCH",
+        "FEEDBACK_NO_MATCH",
+        "FEEDBACK_ALTERNATIVE",
+        "FEEDBACK_LIMITATION",
+    ),
+    "content_action": (
+        "ACTION_SELECT",
+        "ACTION_RESET",
+        "ACTION_COMMIT",
+    ),
+    "content_response_shape": (
+        "RESPONSE_SINGLE",
+        "RESPONSE_SET",
+        "RESPONSE_SEQUENCE",
+    ),
+    "content_outcome": (
+        "OUTCOME_NONE",
+        "OUTCOME_ACCEPTED",
+        "OUTCOME_REJECTED",
+        "OUTCOME_NEUTRAL",
+    ),
+    "content_lesson_role": (
+        "ROLE_EXACT_RULE",
+        "ROLE_OBSERVABLE_RELATION",
+        "ROLE_WORKED_EXAMPLE",
+        "ROLE_HEURISTIC",
+        "ROLE_PRACTICE",
+    ),
+    "content_answer_mode": (
+        "ANSWER_PACKED_PRACTICE",
+        "ANSWER_EXTERNAL",
+        "ANSWER_UNSCORED",
+    ),
+    "content_case_class": (
+        "CASE_ACCEPTED",
+        "CASE_REJECTED_SPECIAL",
+    ),
+    "content_interaction_result": (
+        "INTERACTION_SELECTED",
+        "INTERACTION_RESET",
+        "INTERACTION_COMMITTED",
+        "INTERACTION_INVALID_ACTION",
+        "INTERACTION_INVALID_REGION",
+        "INTERACTION_DUPLICATE",
+        "INTERACTION_OVER_LIMIT",
+        "INTERACTION_ALREADY_COMMITTED",
+        "INTERACTION_BUDGET_EXHAUSTED",
+    ),
+    "content_phase": (
+        "PHASE_ACTIVE",
+        "PHASE_COMMITTED",
+        "PHASE_EXHAUSTED",
+    ),
+    "content_reject": (
+        "CONTENT_OK",
+        "CONTENT_LIMIT_EXCEEDED",
+        "CONTENT_TRUNCATED",
+        "CONTENT_BAD_VERSION",
+        "CONTENT_BAD_RECORD_COUNT",
+        "CONTENT_BAD_RECORD_ID",
+        "CONTENT_RECORD_ORDER",
+        "CONTENT_BAD_RECORD_KIND",
+        "CONTENT_BAD_PAYLOAD_LENGTH",
+        "CONTENT_TRAILING_DATA",
+        "CONTENT_BAD_TAG",
+        "CONTENT_RESERVED_NONZERO",
+        "CONTENT_BAD_UTF8",
+        "CONTENT_BAD_COUNT",
+        "CONTENT_BAD_VALUE",
+        "CONTENT_NONCANONICAL_ORDER",
+        "CONTENT_DUPLICATE",
+        "CONTENT_ZERO_REFERENCE",
+        "CONTENT_FORWARD_REFERENCE",
+        "CONTENT_MISSING_REFERENCE",
+        "CONTENT_WRONG_REFERENCE_KIND",
+        "CONTENT_SCHEMA_MISMATCH",
+        "CONTENT_ROOT_COUNT",
+        "CONTENT_ROOT_NOT_FINAL",
+        "CONTENT_BAD_CONTROL_EDGE",
+        "CONTENT_ORPHAN_RECORD",
+        "CONTENT_BAD_RESPONSE_SCHEMA",
+        "CONTENT_FORBIDDEN_ANSWER_DATA",
+        "CONTENT_BAD_FEEDBACK",
+        "CONTENT_BAD_PASSIVE_TRACE",
+        "CONTENT_BUDGET_PROOF",
+        "CONTENT_BAD_RUN_STATE",
+    ),
+    "castling_rights": (
+        "CASTLING_FIRST_KINGSIDE",
+        "CASTLING_FIRST_QUEENSIDE",
+        "CASTLING_SECOND_KINGSIDE",
+        "CASTLING_SECOND_QUEENSIDE",
+    ),
+    "content_region_flags": (
+        "REGION_SELECTABLE",
+        "REGION_HIGHLIGHTED",
+    ),
+    "content_lesson_flags": (
+        "LESSON_ALLOW_REPEATED_SELECTIONS",
+    ),
+}
 
 
 def replace(data: bytes, old: bytes, new: bytes) -> bytes:
@@ -215,6 +568,61 @@ values = [{ name = "FLAG_ONE", value = 1 }]
                         constants_codegen._read(path, 10)
 
     @unittest.skipIf(constants_codegen is None, "implementation not present")
+    def test_read_rejects_preopen_fifo_swap(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input"
+            path.write_bytes(b"x")
+            real_open = os.open
+
+            def swap_then_open(target: Path, flags: int) -> int:
+                self.assertTrue(flags & os.O_NONBLOCK)
+                path.unlink()
+                os.mkfifo(path)
+                return real_open(target, flags)
+
+            with mock.patch.object(constants_codegen.os, "open", swap_then_open):
+                with self.assertRaises(constants_codegen.ConstantsError):
+                    constants_codegen._read(path, 10)
+
+    @unittest.skipIf(constants_codegen is None, "implementation not present")
+    def test_read_rejects_same_inode_preopen_size_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input"
+            path.write_bytes(b"x")
+            real_open = os.open
+
+            def mutate_then_open(target: Path, flags: int) -> int:
+                path.write_bytes(b"xx")
+                return real_open(target, flags)
+
+            with mock.patch.object(constants_codegen.os, "open", mutate_then_open):
+                with self.assertRaises(constants_codegen.ConstantsError):
+                    constants_codegen._read(path, 10)
+
+    @unittest.skipIf(constants_codegen is None, "implementation not present")
+    def test_read_rejects_postread_same_size_path_replacement(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "input"
+            replacement = root / "replacement"
+            path.write_bytes(b"abcd")
+            replacement.write_bytes(b"wxyz")
+            real_read = os.read
+            replaced = False
+
+            def read_then_replace(descriptor: int, length: int) -> bytes:
+                nonlocal replaced
+                data = real_read(descriptor, length)
+                if data and not replaced:
+                    os.replace(replacement, path)
+                    replaced = True
+                return data
+
+            with mock.patch.object(constants_codegen.os, "read", read_then_replace):
+                with self.assertRaises(constants_codegen.ConstantsError):
+                    constants_codegen._read(path, 10)
+
+    @unittest.skipIf(constants_codegen is None, "implementation not present")
     def test_actual_owner_and_semantic_agreement(self) -> None:
         model = constants_codegen._parse(constants_codegen._read(OWNER))
         names = [
@@ -229,13 +637,62 @@ values = [{ name = "FLAG_ONE", value = 1 }]
         )
         self.assertEqual(len(names), 358)
         self.assertEqual(len(names), len(set(names)))
-        owners = "\n".join(
-            (ROOT / path).read_text()
-            for path in ("spec/chess-v0.md", "spec/source-v0.md", "spec/content-v0.md")
-        )
-        for name in names:
-            with self.subTest(owner_occurrence=name):
-                self.assertRegex(owners, rf"\b{re.escape(name)}\b")
+        groups_by_name = {
+            group["name"]: tuple(value["name"] for value in group["values"])
+            for category in ("codes", "bits")
+            for group in model[category]
+        }
+        self.assertEqual(tuple(groups_by_name), tuple(EXPECTED_GROUPS))
+        self.assertEqual(groups_by_name, EXPECTED_GROUPS)
+
+        specs = {
+            owner: (ROOT / f"spec/{owner}-v0.md").read_text()
+            for owner in ("chess", "source", "content")
+        }
+        chess_groups = {
+            "side", "square_code", "castling_rights", "promotion", "event",
+            "score", "board_terminal", "game_status", "predicate", "chess_reject",
+        }
+        source_groups = {"source_suffix", "source_reject"}
+        for group_name, group_names in groups_by_name.items():
+            owner = (
+                "chess"
+                if group_name in chess_groups
+                else "source"
+                if group_name in source_groups
+                else "content"
+            )
+            for name in group_names:
+                with self.subTest(owner=owner, owner_occurrence=name):
+                    self.assertRegex(specs[owner], rf"\b{re.escape(name)}\b")
+        for scalar in model["constant"]:
+            name = scalar["name"]
+            owner = (
+                "source"
+                if name.startswith("SOURCE_")
+                else "content"
+                if name.startswith("CONTENT_")
+                else "chess"
+            )
+            with self.subTest(owner=owner, owner_occurrence=name):
+                self.assertRegex(specs[owner], rf"\b{re.escape(name)}\b")
+
+        scalar_names = tuple(value["name"] for value in model["constant"])
+        self.assertIn("SOURCE_ANTHOLOGY_GAME_COUNT", scalar_names)
+        self.assertNotIn("SOURCE_REQUIRED_BLOCKS", scalar_names)
+        source_flat = " ".join(specs["source"].split())
+        for fragment in (
+            "SourceCandidate { SOURCE_ANTHOLOGY_GAME_COUNT CompiledGames",
+            "requires exactly `SOURCE_ANTHOLOGY_GAME_COUNT` already valid records",
+            "| Recognized blocks | exactly 64 | `SOURCE_ANTHOLOGY_GAME_COUNT` |",
+            "requires exactly `SOURCE_ANTHOLOGY_GAME_COUNT` valid blocks",
+            "emit `u16_be(SOURCE_ANTHOLOGY_GAME_COUNT)`",
+            "ordinals `0..SOURCE_ANTHOLOGY_GAME_COUNT - 1`",
+            "`game_count` is `SOURCE_ANTHOLOGY_GAME_COUNT`",
+            "sums to `SOURCE_ANTHOLOGY_GAME_COUNT`",
+        ):
+            with self.subTest(source_binding=fragment):
+                self.assertIn(fragment, source_flat)
 
         groups = {
             group["name"]: [value["value"] for value in group["values"]]
@@ -282,7 +739,7 @@ values = [{ name = "FLAG_ONE", value = 1 }]
         position = bytes(
             first
             + [constants.SQUARE_FIRST_PAWN] * 8
-            + [constants.SQUARE_EMPTY] * 32
+            + [constants.SQUARE_EMPTY] * (constants.CHESS_SQUARE_COUNT - 32)
             + [constants.SQUARE_SECOND_PAWN] * 8
             + second
             + [
@@ -294,6 +751,8 @@ values = [{ name = "FLAG_ONE", value = 1 }]
                 constants.EN_PASSANT_NONE,
             ]
         )
+        self.assertEqual(len(position) - 3, constants.CHESS_SQUARE_COUNT)
+        self.assertEqual(constants.CHESS_SQUARE_COUNT, 1 << 6)
         self.assertEqual(len(position), constants.CHESS_POSITION_BYTES)
         self.assertEqual(
             position.hex(),
@@ -301,17 +760,42 @@ values = [{ name = "FLAG_ONE", value = 1 }]
             "0000000000000000000000000000000007070707070707070a08090b0c09080a"
             "000f00",
         )
-        masks = (
-            constants.CHESS_MOVE_ORIGIN_MASK,
-            constants.CHESS_MOVE_DESTINATION_MASK,
-            constants.CHESS_MOVE_PROMOTION_MASK,
-            constants.CHESS_MOVE_RESERVED_MASK,
+        masks = {
+            "origin": constants.CHESS_MOVE_ORIGIN_MASK,
+            "destination": constants.CHESS_MOVE_DESTINATION_MASK,
+            "promotion": constants.CHESS_MOVE_PROMOTION_MASK,
+            "reserved": constants.CHESS_MOVE_RESERVED_MASK,
+        }
+        square_bits = (constants.CHESS_SQUARE_COUNT - 1).bit_length()
+        reserved_bits = 1
+        promotion_bits = 3
+        promotion_shift = reserved_bits
+        destination_shift = promotion_shift + promotion_bits
+        origin_shift = destination_shift + square_bits
+        self.assertEqual(
+            (
+                constants.CHESS_MOVE_ORIGIN_SHIFT,
+                constants.CHESS_MOVE_DESTINATION_SHIFT,
+                constants.CHESS_MOVE_PROMOTION_SHIFT,
+            ),
+            (origin_shift, destination_shift, promotion_shift),
         )
-        self.assertEqual(sum(masks), 65_535)
-        self.assertEqual(masks[0] & masks[1] | masks[0] & masks[2] | masks[1] & masks[2], 0)
-        self.assertEqual(63 << constants.CHESS_MOVE_ORIGIN_SHIFT & ~masks[0], 0)
-        self.assertEqual(63 << constants.CHESS_MOVE_DESTINATION_SHIFT & ~masks[1], 0)
-        self.assertEqual(constants.PROMOTION_KNIGHT << constants.CHESS_MOVE_PROMOTION_SHIFT & ~masks[2], 0)
+        self.assertEqual(masks["origin"], ((1 << square_bits) - 1) << origin_shift)
+        self.assertEqual(
+            masks["destination"],
+            ((1 << square_bits) - 1) << destination_shift,
+        )
+        self.assertEqual(
+            masks["promotion"],
+            ((1 << promotion_bits) - 1) << promotion_shift,
+        )
+        self.assertEqual(masks["reserved"], (1 << reserved_bits) - 1)
+        for left, right in itertools.combinations(masks.values(), 2):
+            self.assertEqual(left & right, 0)
+        self.assertEqual(
+            masks["origin"] | masks["destination"] | masks["promotion"] | masks["reserved"],
+            (1 << (8 * constants.CHESS_MOVE_BYTES)) - 1,
+        )
 
         self.assertEqual(
             2 + 2 * constants.SOURCE_MAX_GAME_SET_PLIES + 3 * constants.SOURCE_MAX_GAME_SET_GAMES,
@@ -320,7 +804,13 @@ values = [{ name = "FLAG_ONE", value = 1 }]
         self.assertEqual(constants.SOURCE_MAX_GAME_PLIES, 4_096)
         self.assertEqual(constants.REGION_SELECTABLE | constants.REGION_HIGHLIGHTED | 252, 255)
         self.assertEqual(constants.LESSON_ALLOW_REPEATED_SELECTIONS | 254, 255)
-        self.assertEqual(bytes((0, 0, 0, 0)), b"\0\0\0\0")
+        model = constants_codegen._parse(constants_codegen._read(OWNER))
+        action = next(group for group in model["codes"] if group["name"] == "content_action")
+        self.assertEqual(action["reserved"][0], {"first": 0, "last": 0})
+        action_values = {value["value"] for value in action["values"]}
+        sentinel = bytes((action["reserved"][0]["first"], 0, 0, 0))
+        self.assertNotIn(sentinel[0], action_values)
+        self.assertEqual(sentinel, b"\0\0\0\0")
         event_bytes = constants.CONTENT_EVENT_BYTES * constants.CONTENT_MAX_EVENT_BUDGET
         self.assertEqual(
             constants.CONTENT_RUN_STATE_FIXED_BYTES

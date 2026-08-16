@@ -23,9 +23,32 @@ class ConstantsError(ValueError):
     pass
 
 
+def _same_snapshot(left: os.stat_result, right: os.stat_result) -> bool:
+    return (
+        stat.S_ISREG(left.st_mode)
+        and stat.S_ISREG(right.st_mode)
+        and (
+            left.st_dev,
+            left.st_ino,
+            left.st_mode,
+            left.st_size,
+            left.st_mtime_ns,
+            left.st_ctime_ns,
+        )
+        == (
+            right.st_dev,
+            right.st_ino,
+            right.st_mode,
+            right.st_size,
+            right.st_mtime_ns,
+            right.st_ctime_ns,
+        )
+    )
+
+
 def _read(path: Path, limit: int | None = None) -> bytes:
     limit = MAX_INPUT_BYTES if limit is None else limit
-    if not hasattr(os, "O_NOFOLLOW"):
+    if not all(hasattr(os, flag) for flag in ("O_NOFOLLOW", "O_NONBLOCK")):
         raise ConstantsError("no no-follow support")
     try:
         metadata = os.stat(path, follow_symlinks=False)
@@ -33,23 +56,28 @@ def _read(path: Path, limit: int | None = None) -> bytes:
             raise ConstantsError("input is not a regular file")
         if metadata.st_size > limit:
             raise ConstantsError("input exceeds byte limit")
-        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
         try:
             opened = os.fstat(descriptor)
-            if (
-                not stat.S_ISREG(opened.st_mode)
-                or opened.st_dev != metadata.st_dev
-                or opened.st_ino != metadata.st_ino
-                or opened.st_size > limit
-            ):
+            if not _same_snapshot(metadata, opened) or opened.st_size > limit:
                 raise ConstantsError("input changed while opening")
             output = bytearray()
             while len(output) <= limit:
                 chunk = os.read(descriptor, min(65_536, limit + 1 - len(output)))
                 if not chunk:
-                    return bytes(output)
+                    break
                 output.extend(chunk)
-            raise ConstantsError("input exceeds byte limit")
+            if len(output) > limit:
+                raise ConstantsError("input exceeds byte limit")
+            finished = os.fstat(descriptor)
+            current = os.stat(path, follow_symlinks=False)
+            if (
+                not _same_snapshot(opened, finished)
+                or not _same_snapshot(finished, current)
+                or len(output) != finished.st_size
+            ):
+                raise ConstantsError("input changed while reading")
+            return bytes(output)
         finally:
             os.close(descriptor)
     except ConstantsError:

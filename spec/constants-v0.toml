@@ -736,7 +736,7 @@ type = "u32"
 value = 1048576
 
 [[constant]]
-name = "SOURCE_REQUIRED_BLOCKS"
+name = "SOURCE_ANTHOLOGY_GAME_COUNT"
 type = "u32"
 value = 64
 

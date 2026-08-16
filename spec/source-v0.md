@@ -25,7 +25,7 @@ RawSpan { raw_start: u32, raw_end: u32 }
 SourceReject { code: SourceRejectCode, raw_start: u32, raw_end: u32 }
 GameRecord { moves: Move[1..4096], score: Score }
 CompiledGame { source_ordinal, opener_span, token rows, GameRecord }
-SourceCandidate { 64 CompiledGames, game-set bytes }
+SourceCandidate { SOURCE_ANTHOLOGY_GAME_COUNT CompiledGames, game-set bytes }
 RetainedEvidence { retained report bytes, game-set bytes }
 ```
 
@@ -59,9 +59,10 @@ validate_retained_evidence(ReportBytes, GameSetBytes, EvidenceInputs)
     -> ValidatedEvidence | SourceReject
 ```
 
-`validate_anthology` requires exactly 64 already valid records with distinct
-complete Move streams and preserves input order. `compile_source` uses that
-profile before constructing its canonical set. `EvidenceInputs` contains the
+`validate_anthology` requires exactly `SOURCE_ANTHOLOGY_GAME_COUNT` already
+valid records with distinct complete Move streams and preserves input order.
+`compile_source` uses that profile before constructing its canonical set.
+`EvidenceInputs` contains the
 exact locked raw source bytes, raw bytes of the chess/source/identity
 specifications and constants file, and the registered identity operations. It
 contains no expected moves, trace, report, or game set.
@@ -78,7 +79,7 @@ Every rejection returns no partial accepted record, trace, report, or set.
 | Resource | Inclusive limit | Constant |
 |---|---:|---|
 | Raw source bytes | 1,048,576 | `SOURCE_MAX_INPUT_BYTES` |
-| Recognized blocks | exactly 64 | `SOURCE_REQUIRED_BLOCKS` |
+| Recognized blocks | exactly 64 | `SOURCE_ANTHOLOGY_GAME_COUNT` |
 | One block fence span, opener through closer newline | 65,535 bytes | `SOURCE_MAX_FENCE_BYTES` |
 | Tag lines per block | 64 | `SOURCE_MAX_TAG_LINES` |
 | Tag name | 32 raw ASCII bytes | `SOURCE_MAX_TAG_NAME_BYTES` |
@@ -407,18 +408,20 @@ does not weaken the anthology profile.
 
 ### 7.3 Anthology profile
 
-`compile_source` requires exactly 64 valid blocks and rejects any two records
-with identical complete Move byte streams, whether their Scores match or
-differ. It compares full move bytes, never hashes. Only after all records and
-duplicate checks pass does it:
+`compile_source` requires exactly `SOURCE_ANTHOLOGY_GAME_COUNT` valid blocks
+and rejects any two records with identical complete Move byte streams, whether
+their Scores match or differ. It compares full move bytes, never hashes. Only
+after all records and duplicate checks pass does it:
 
 1. construct each complete GameBytes;
 2. sort by complete GameBytes;
-3. assign canonical ordinals `0..63` by sorted position; and
-4. emit `u16_be(64)` plus sorted records atomically.
+3. assign canonical ordinals `0..SOURCE_ANTHOLOGY_GAME_COUNT - 1` by sorted
+   position; and
+4. emit `u16_be(SOURCE_ANTHOLOGY_GAME_COUNT)` plus sorted records atomically.
 
-Source ordinal remains the physical valid-block order `0..63` for audit only.
-It never enters GameBytes, set sorting, identities, or canonical ordinals.
+Source ordinal remains the physical valid-block order
+`0..SOURCE_ANTHOLOGY_GAME_COUNT - 1` for audit only. It never enters GameBytes,
+set sorting, identities, or canonical ordinals.
 Suffix spelling, whitespace, metadata, raw path, filename, and raw source hash
 also never enter GameBytes or GameSetBytes.
 
@@ -698,13 +701,13 @@ entry has exactly `game_identity`, `rows`, `score`, and `source_ordinal`.
 - Every digest/identity is 64 lowercase hexadecimal characters.
 - `initial_position_bytes` is 134 lowercase hexadecimal characters and is the
   chess-v0 standard initial Position.
-- `game_count` is 64.
-- `source_ordinal` values are the unique ascending sequence `0..63`; games are
-  stored in that source order.
+- `game_count` is `SOURCE_ANTHOLOGY_GAME_COUNT`.
+- `source_ordinal` values are the unique ascending sequence
+  `0..SOURCE_ANTHOLOGY_GAME_COUNT - 1`; games are stored in that source order.
 - `score` is the constants-owned u8 Score code.
 - `rows` are the fixed five-element arrays in Section 6.4, in ply order.
 - `score_counts` is three unsigned integers ordered first-side win,
-  second-side win, draw and sums to 64.
+  second-side win, draw and sums to `SOURCE_ANTHOLOGY_GAME_COUNT`.
 - `ply_count` is the sum of row counts.
 - `ir_bytes` is `sum(2 + 2 * len(rows) + 1)` and excludes the set's leading
   count.
