@@ -1981,7 +1981,7 @@ class RepoContract(unittest.TestCase):
                 "id": "source-v0",
                 "path": "conformance/source-v0.json",
                 "provenance": "hand-authored",
-                "sha256": "d4fbcd8524da07a74f85734e133f56daa61f02883717b455f6d2c36117a07b46",
+                "sha256": "07c36421b2b27aa3b9ab4609f34b6f0d24d63bac9752e0c083747cb90e0f8b30",
                 "specification": "source-v0",
                 "version": "v0",
             },
@@ -2899,6 +2899,80 @@ class RepoContract(unittest.TestCase):
             self.assertEqual(row["input_bytes"], length)
             self.assertEqual(row["input_sha256"], digest)
             self.assertEqual(row["expected"]["rejection"], rejection)
+
+    def test_source_resource_and_span_repairs_are_stage_isolated(self) -> None:
+        payload = canonical_manifest.validate_canonical_manifest(SOURCE_FIXTURE.read_bytes())
+        recipes = {row["name"]: row for row in payload["recipes"]}
+        source_lock = tomllib.loads((ROOT / "inputs/source-lock.toml").read_text())
+        receipt = next(row for row in source_lock["source"] if row["id"] == "anthology")
+        base = repo_text_bytes(ROOT, receipt["path"].encode("ascii"))
+
+        def expanded(name: str) -> bytes:
+            row = recipes[name]
+            inputs = row["input"]
+            if row["recipe"] == "literal-repeat":
+                return (
+                    bytes.fromhex(inputs["prefix_hex"])
+                    + bytes.fromhex(inputs["repeat_hex"]) * inputs["repeat_count"]
+                    + bytes.fromhex(inputs["suffix_hex"])
+                )
+            raw = bytearray(base)
+            for patch in inputs["patches"]:
+                start = patch["start"]
+                old = bytes.fromhex(patch["old_hex"])
+                self.assertEqual(raw[start:start + len(old)], old)
+                raw[start:start + len(old)] = bytes.fromhex(patch["replacement_hex"])
+            return bytes(raw)
+
+        resource_rows = {
+            "resource-token-count-8192": (
+                26_934,
+                "eaeb0072d9e66acc8bf80e868eb0647fa4da1c48b4cf852760ee0cf3b92f1a50",
+                {"code": 35, "raw_start": 26, "raw_end": 28},
+            ),
+            "resource-token-count-8193": (
+                26_937,
+                "30865292f39dfd74589ed784ef5674e2443d61d7981c8ea2dbd7d0fc9775d7de",
+                {"code": 30, "raw_start": 24_599, "raw_end": 24_601},
+            ),
+            "resource-record-plies-4096": (
+                10_554,
+                "bf31cb776a2060674983644250c11058a3f0dc803f969ad3e23fb416c16e56df",
+                {"code": 33, "raw_start": 23, "raw_end": 24},
+            ),
+            "resource-record-plies-4097": (
+                10_556,
+                "9b6f4ce902d86e5d4b8a9188be69eaf8472f494be14c79640be51be0ada1dff7",
+                {"code": 31, "raw_start": 8_215, "raw_end": 8_216},
+            ),
+        }
+        for name, (length, digest, rejection) in resource_rows.items():
+            with self.subTest(name=name):
+                row = recipes[name]
+                raw = expanded(name)
+                self.assertEqual(raw.splitlines().count(b"```pgn"), 64)
+                self.assertEqual(raw.splitlines().count(b"```"), 64)
+                self.assertEqual(len(raw), length)
+                self.assertEqual(row["input_bytes"], length)
+                self.assertEqual(hashlib.sha256(raw).hexdigest(), digest)
+                self.assertEqual(row["input_sha256"], digest)
+                self.assertEqual(row["expected"]["rejection"], rejection)
+                if name.startswith("resource-token"):
+                    self.assertFalse(raw.split(b"\n```\n", 1)[0].endswith((b" ", b"\t")))
+
+        span_rows = {
+            "framing-movetext-hws-only": (28, 12_399, 12_400, b" "),
+            "structure-result-too-early-first": (36, 12_399, 12_402, b"1-0"),
+            "structure-result-too-early-after-number": (36, 12_402, 12_405, b"1-0"),
+        }
+        for name, (code, start, end, token) in span_rows.items():
+            with self.subTest(name=name):
+                raw = expanded(name)
+                self.assertEqual(
+                    recipes[name]["expected"]["rejection"],
+                    {"code": code, "raw_start": start, "raw_end": end},
+                )
+                self.assertEqual(raw[start:end], token)
 
     def test_source_fixture_shape_mutations_fail_closed(self) -> None:
         payload = canonical_manifest.validate_canonical_manifest(SOURCE_FIXTURE.read_bytes())
