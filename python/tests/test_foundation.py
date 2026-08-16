@@ -3713,7 +3713,7 @@ class RepoContract(unittest.TestCase):
 
         roadmap = (ROOT / "docs/roadmap.md").read_text()
         self.assertIn(
-            "| M1 — Chess truth, source grammar, and assessment blueprint | In progress | — |",
+            "| M1 — Chess truth, source grammar, and assessment blueprint | Complete — 2026-08-17; scripts/check full; game-set identity ffe37ea482b590eb2b454041c0918d05a85161c8f0c604bbf58cc7b71de87db9; report SHA-256 93d0f7ee9e3777386e817bac159b11065fc3378f13644b014b5c399bd420be54 |",
             roadmap,
         )
 

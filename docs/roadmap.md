@@ -5,7 +5,7 @@
 | Roadmap revision | 5 |
 | Last updated | 2026-08-14 |
 | Project state | In progress |
-| Current milestone | M1 — Chess truth, source grammar, and assessment blueprint |
+| Current milestone | M2 — Full-carrier bootstrap and transport feasibility |
 | Delivery model | One implementation track, one final square bitplane |
 | Canonical anthology source | `docs/64_games.md` |
 | Mutable status authority | Section 13 |
@@ -2631,7 +2631,7 @@ This section is intentionally mutable. Updating status does not require preservi
 | Milestone | Status | Completion evidence or blocker |
 |---|---|---|
 | M0 — Foundation and source reconnaissance | Complete — 2026-08-14; scripts/check full; report SHA-256 ce40dc9c56a37a74969135fab5a8cf13f8c35c4a624005bfe1b239eb32ff04db; registry SHA-256 ed22a5d85e5372727616ed8bb8b86b88d21bc6591a8b0937a23fad580aa5e27e | `docs/m0-spec.md`; `docs/m0-plan.md`; `reports/source-doctor.json`; `conformance/registry.toml` |
-| M1 — Chess truth, source grammar, and assessment blueprint | In progress | — |
+| M1 — Chess truth, source grammar, and assessment blueprint | Complete — 2026-08-17; scripts/check full; game-set identity ffe37ea482b590eb2b454041c0918d05a85161c8f0c604bbf58cc7b71de87db9; report SHA-256 93d0f7ee9e3777386e817bac159b11065fc3378f13644b014b5c399bd420be54 | `docs/m1-spec.md`; `docs/m1-plan.md`; `reports/game-set-v0.bin`; `reports/source-compilation-v0.json` |
 | M2 — Full-carrier bootstrap and transport feasibility | Not started | — |
 | M3 — Complete content and formative integration | Not started | — |
 | M4 — Final profile, candidate, and automated qualification | Not started | — |
