@@ -14,6 +14,38 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 
 const MAX_BYTES: usize = 1_048_576;
+const M0_IDENTITY_VECTORS_SHA256: &str =
+    "19b90c4ab863ca3853a1b8229b8ae84a886e4a8cf0c3bee496157e592bf000ae";
+const M1_IDENTITY_VECTORS: [(&str, &str, &str, &str, &str); 4] = [
+    (
+        "initial-position",
+        "676f6c64656e2d626f6172643a706f736974696f6e3a763000",
+        "04020305060302040101010101010101000000000000000000000000000000000000000000000000000000000000000007070707070707070a08090b0c09080a000f00",
+        "676f6c64656e2d626f6172643a706f736974696f6e3a76300000010000004304020305060302040101010101010101000000000000000000000000000000000000000000000000000000000000000007070707070707070a08090b0c09080a000f00",
+        "7d578698cdb2095a1b818234f12b3e6d4f19bbadb414887f26e6a8d52417a186",
+    ),
+    (
+        "initial-repetition-key",
+        "676f6c64656e2d626f6172643a72657065746974696f6e2d6b65793a763000",
+        "04020305060302040101010101010101000000000000000000000000000000000000000000000000000000000000000007070707070707070a08090b0c09080a000f00",
+        "676f6c64656e2d626f6172643a72657065746974696f6e2d6b65793a76300000010000004304020305060302040101010101010101000000000000000000000000000000000000000000000000000000000000000007070707070707070a08090b0c09080a000f00",
+        "b12da42c15cc340394688be5d771ad8936241e9dcb03592b2791e06b9dbe33e3",
+    ),
+    (
+        "fools-mate-game",
+        "676f6c64656e2d626f6172643a67616d653a763000",
+        "00043550d24039e0edf001",
+        "676f6c64656e2d626f6172643a67616d653a76300000010000000b00043550d24039e0edf001",
+        "c49a921d652aa82b69a320073ca7ca0f5f3adf3d4ccc80d5aea162a52925b3bb",
+    ),
+    (
+        "fools-mate-game-set",
+        "676f6c64656e2d626f6172643a67616d652d7365743a763000",
+        "000100043550d24039e0edf001",
+        "676f6c64656e2d626f6172643a67616d652d7365743a76300000010000000d000100043550d24039e0edf001",
+        "4070001b03556dcf41043adcf7a261c4b20aa7874a8033546520a48107fbc2f8",
+    ),
+];
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
 const O_NOFOLLOW: i32 = 0x20_000;
@@ -474,7 +506,25 @@ fn registry_payload_byte_boundaries() {
 fn identity_fixture_and_boundaries() {
     let original = fixture("identity-v0.json");
     let data: Value = serde_json::from_slice(&original).unwrap();
-    for case in data["vectors"].as_array().unwrap() {
+    let vectors = data["vectors"].as_array().unwrap();
+    assert_eq!(vectors.len(), 12);
+    assert_eq!(
+        format!(
+            "{:x}",
+            Sha256::digest(serde_json::to_vec(&vectors[..8]).unwrap())
+        ),
+        M0_IDENTITY_VECTORS_SHA256
+    );
+    for (case, (name, domain, field, preimage, digest)) in
+        vectors[8..].iter().zip(M1_IDENTITY_VECTORS)
+    {
+        assert_eq!(case["name"], name);
+        assert_eq!(case["domain_hex"], domain);
+        assert_eq!(case["fields_hex"], serde_json::json!([field]));
+        assert_eq!(case["preimage_hex"], preimage);
+        assert_eq!(case["identity"], digest);
+    }
+    for case in vectors {
         let domain = hex_bytes(case["domain_hex"].as_str().unwrap());
         let fields: Vec<Vec<u8>> = case["fields_hex"]
             .as_array()

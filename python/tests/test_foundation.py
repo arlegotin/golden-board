@@ -29,6 +29,66 @@ ROOT = Path(__file__).resolve().parents[2]
 IDENTITY_FIXTURE = ROOT / "conformance" / "identity-v0.json"
 MANIFEST_FIXTURE = ROOT / "conformance" / "manifest-v0.json"
 MAX_REPO_TEXT_BYTES = 1_048_576
+M0_IDENTITY_VECTORS_SHA256 = (
+    "19b90c4ab863ca3853a1b8229b8ae84a886e4a8cf0c3bee496157e592bf000ae"
+)
+M1_IDENTITY_VECTORS = [
+    {
+        "domain_hex": "676f6c64656e2d626f6172643a706f736974696f6e3a763000",
+        "fields_hex": [
+            "0402030506030204010101010101010100000000000000000000000000000000"
+            "0000000000000000000000000000000007070707070707070a08090b0c09080a"
+            "000f00"
+        ],
+        "identity": "7d578698cdb2095a1b818234f12b3e6d4f19bbadb414887f26e6a8d52417a186",
+        "name": "initial-position",
+        "preimage_hex": (
+            "676f6c64656e2d626f6172643a706f736974696f6e3a763000000100000043"
+            "0402030506030204010101010101010100000000000000000000000000000000"
+            "0000000000000000000000000000000007070707070707070a08090b0c09080a"
+            "000f00"
+        ),
+    },
+    {
+        "domain_hex": (
+            "676f6c64656e2d626f6172643a72657065746974696f6e2d6b65793a763000"
+        ),
+        "fields_hex": [
+            "0402030506030204010101010101010100000000000000000000000000000000"
+            "0000000000000000000000000000000007070707070707070a08090b0c09080a"
+            "000f00"
+        ],
+        "identity": "b12da42c15cc340394688be5d771ad8936241e9dcb03592b2791e06b9dbe33e3",
+        "name": "initial-repetition-key",
+        "preimage_hex": (
+            "676f6c64656e2d626f6172643a72657065746974696f6e2d6b65793a763000"
+            "000100000043"
+            "0402030506030204010101010101010100000000000000000000000000000000"
+            "0000000000000000000000000000000007070707070707070a08090b0c09080a"
+            "000f00"
+        ),
+    },
+    {
+        "domain_hex": "676f6c64656e2d626f6172643a67616d653a763000",
+        "fields_hex": ["00043550d24039e0edf001"],
+        "identity": "c49a921d652aa82b69a320073ca7ca0f5f3adf3d4ccc80d5aea162a52925b3bb",
+        "name": "fools-mate-game",
+        "preimage_hex": (
+            "676f6c64656e2d626f6172643a67616d653a76300000010000000b"
+            "00043550d24039e0edf001"
+        ),
+    },
+    {
+        "domain_hex": "676f6c64656e2d626f6172643a67616d652d7365743a763000",
+        "fields_hex": ["000100043550d24039e0edf001"],
+        "identity": "4070001b03556dcf41043adcf7a261c4b20aa7874a8033546520a48107fbc2f8",
+        "name": "fools-mate-game-set",
+        "preimage_hex": (
+            "676f6c64656e2d626f6172643a67616d652d7365743a76300000010000000d"
+            "000100043550d24039e0edf001"
+        ),
+    },
+]
 
 
 def repo_text_bytes(root: Path, relative: bytes) -> bytes:
@@ -195,6 +255,15 @@ class IdentityConformance(unittest.TestCase):
                 self.assertEqual(
                     identity.identity_hex(domain, fields), case["identity"]
                 )
+
+    def test_registered_m1_vectors_are_exact(self) -> None:
+        vectors = self.fixture["vectors"]
+        self.assertEqual(len(vectors), 12)
+        m0_bytes = json.dumps(
+            vectors[:8], ensure_ascii=False, separators=(",", ":"), sort_keys=True
+        ).encode()
+        self.assertEqual(hashlib.sha256(m0_bytes).hexdigest(), M0_IDENTITY_VECTORS_SHA256)
+        self.assertEqual(vectors[8:], M1_IDENTITY_VECTORS)
 
     def test_nist_sha256_known_answers(self) -> None:
         for case in self.fixture["sha256"]:

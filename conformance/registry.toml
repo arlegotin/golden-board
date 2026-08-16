@@ -5,7 +5,7 @@ id = "identity-v0"
 path = "conformance/identity-v0.json"
 specification = "identity-v0"
 version = "v0"
-sha256 = "57d7c84b994eec22290830ddd7b08cf4528869b826dce451713bfbc3656b2488"
+sha256 = "dad2d33a0d76f99eef1bc346725fbe4cc9fc21b1efbab1a522f2fd6e5362434e"
 consumers = ["python", "rust"]
 provenance = "hand-authored"
 
