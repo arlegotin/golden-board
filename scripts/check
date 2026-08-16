@@ -106,7 +106,8 @@ repo() {
     run_check repo-index-diff git diff --cached --check || return 1
     python_tests repo-python \
         python.tests.test_foundation.RepoContract \
-        python.tests.test_foundation.RootCheckCLI
+        python.tests.test_foundation.RootCheckCLI \
+        python.tests.test_curriculum_contract.CurriculumContract
 }
 
 case "$mode" in
