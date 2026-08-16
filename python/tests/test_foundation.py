@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import os
@@ -12,6 +13,7 @@ import sys
 import tempfile
 import tomllib
 import unittest
+from unittest import mock
 
 try:
     from golden_board import canonical_manifest, identity
@@ -899,7 +901,7 @@ class RepoContract(unittest.TestCase):
                 "id": "chess-v0",
                 "path": "conformance/chess-v0.json",
                 "provenance": "hand-authored",
-                "sha256": "ef30c1726a3b9cd48889fa74fe9a2bbf4f4e447fbc98683833d1c672db9833f4",
+                "sha256": "9a63aa74a32761bf1f8919278e895f532e4d4f305a30f74ddd1d0c4acec6a639",
                 "specification": "chess-v0",
                 "version": "v0",
             },
@@ -913,7 +915,7 @@ class RepoContract(unittest.TestCase):
         self.assertEqual(payload["schema"], "golden-board.chess-v0-fixtures/v0")
 
         cases = payload["cases"]
-        self.assertEqual(len(cases), 223)
+        self.assertEqual(len(cases), 224)
         names = [case["name"] for case in cases]
         self.assertEqual(len(set(names)), len(names))
         self.assertTrue(all(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) for name in names))
@@ -937,7 +939,7 @@ class RepoContract(unittest.TestCase):
             },
             {
                 "wire": 14, "structural": 17, "local": 20, "geometry": 19,
-                "castling": 15, "en-passant": 10, "promotion": 11, "terminal": 7,
+                "castling": 15, "en-passant": 11, "promotion": 11, "terminal": 7,
                 "history": 8, "event": 21, "record": 13, "predicate": 60,
                 "precedence": 8,
             },
@@ -947,6 +949,7 @@ class RepoContract(unittest.TestCase):
             "local-lowest-square-tie", "geometry-king-capture-removes-blocker-self-check",
             "castling-failure-origin-safe-transit-attack",
             "en-passant-pinned-effective-key-omitted", "promotion-immediate-checkmate",
+            "en-passant-geometry-after-nominal-target",
             "terminal-stalemate-precedes-common-dead",
             "terminal-king-two-knights-versus-king-not-common-dead",
             "history-pawn-move-resets-halfmove", "event-after-claimed-fifty-move-closure",
@@ -963,13 +966,198 @@ class RepoContract(unittest.TestCase):
             )),
         }
         self.assertTrue(required.issubset(names))
+        input_shapes = {
+            "apply_event": {"event_hex": str, "events_hex": list},
+            "apply_move": {"move_hex": str, "moves_hex": str},
+            "controls_square": {"position_hex": str, "side": int, "target": int},
+            "decode_event": {"event_hex": str},
+            "decode_move": {"move_hex": str},
+            "decode_position": {"position_hex": str},
+            "evaluate_predicate": {"input": dict, "predicate_id": str},
+            "legal_moves": {"moves_hex": str},
+            "pseudo_legal_moves": {"position_hex": str},
+            "repetition_key": {"moves_hex": str},
+            "replay_from_start": {"moves_hex": str},
+            "validate_local": {"position_hex": str},
+            "validate_source_record": {"moves_hex": str, "score": int},
+        }
+        success_shapes = {
+            "apply_event": ({"cause": dict, "score": int, "status": int},),
+            "apply_move": (
+                {"position_hex": str},
+                {"halfmove_clock": int, "position_hex": str},
+                {"king_in_check": bool, "position_hex": str, "terminal": int},
+            ),
+            "controls_square": ({"squares": list},),
+            "decode_event": ({"event_hex": str},),
+            "decode_move": ({"move_hex": str},),
+            "decode_position": ({"position_hex": str},),
+            "evaluate_predicate": ({"result": dict},),
+            "legal_moves": ({"moves_hex": str},),
+            "pseudo_legal_moves": ({"moves_hex": str},),
+            "repetition_key": ({"repetition_key_hex": str},),
+            "replay_from_start": (
+                {"common_dead": bool, "terminal": int},
+                {"common_dead": bool, "terminal": int, "winning_side": int},
+            ),
+            "validate_source_record": (
+                {"score": int, "terminal": int},
+                {
+                    "fifty_move_available": bool,
+                    "score": int,
+                    "terminal": int,
+                    "threefold_available": bool,
+                },
+            ),
+        }
+        predicate_input_shapes = {
+            "chess.absolute_pin": {"origin": int, "position_hex": str, "variant": str},
+            "chess.control": {"position_hex": str, "side": int, "target": int, "variant": str},
+            "chess.declaration_event": {"event_hex": str, "events_hex": list, "variant": str},
+            "chess.defended": {"defender": dict, "position_hex": str, "target": int, "variant": str},
+            "chess.discovered_attack_check": {"move_hex": str, "moves_hex": str, "slider_origin": int, "target": int, "variant": str},
+            "chess.escape_square_control": {"candidate": int, "position_hex": str, "side": int, "variant": str},
+            "chess.finite_mating_geometry": {"mating_side": int, "moves_hex": str, "nodes": list, "variant": str},
+            "chess.finite_promotion_race": {"moves_hex": str, "nodes": list, "variant": str},
+            "chess.fork_double_attack": {"move_hex": str, "moves_hex": str, "targets": list, "variant": str},
+            "chess.history_claim": {"moves_hex": str, "variant": str},
+            "chess.king_check": {"position_hex": str, "side": int, "variant": str},
+            "chess.move_legality": {"move_hex": str, "moves_hex": str, "variant": str},
+            "chess.move_record_replay": {"move_hex": str, "variant": str},
+            "chess.occupancy": {"match": dict, "position_hex": str, "square": int, "variant": str},
+            "chess.open_file": {"file": int, "position_hex": str, "variant": str},
+            "chess.passed_pawn": {"pawn_square": int, "position_hex": str, "variant": str},
+            "chess.semi_open_file": {"file": int, "position_hex": str, "side": int, "variant": str},
+            "chess.setup_turn": {"position_hex": str, "variant": str},
+            "chess.source_score_relation": {"moves_hex": str, "score": int, "variant": str},
+            "chess.terminal_transition": {"move_hex": str, "moves_hex": str, "variant": str},
+            "chess.unknown": {"position_hex": str, "variant": str},
+        }
+        predicate_result_shapes = {
+            **{
+                predicate_id: {"value": bool}
+                for predicate_id in (
+                    "chess.absolute_pin", "chess.defended", "chess.discovered_attack_check",
+                    "chess.escape_square_control", "chess.fork_double_attack",
+                    "chess.king_check", "chess.occupancy", "chess.open_file",
+                    "chess.passed_pawn", "chess.semi_open_file", "chess.setup_turn",
+                )
+            },
+            "chess.control": {"squares": list},
+            "chess.declaration_event": {"cause": dict, "kind": str, "score": int, "status": int},
+            "chess.finite_mating_geometry": {"all_branches_mate": bool, "mating_side": int, "max_plies": int},
+            "chess.finite_promotion_race": {"outcomes": list},
+            "chess.history_claim": {
+                "current_key_occurrences": int,
+                "effective_ep": dict,
+                "fifty_move_available": bool,
+                "halfmove_clock": int,
+                "nominal_ep": dict,
+                "played_plies": int,
+                "threefold_available": bool,
+            },
+            "chess.move_legality": {"kind": str},
+            "chess.move_record_replay": {"kind": str, "move_hex": str},
+            "chess.source_score_relation": {"kind": str, "terminal": int},
+            "chess.terminal_transition": {"terminal": int, "winning_side": int},
+        }
+        cause_shapes = (
+            {"kind": str},
+            {"kind": str, "side": int},
+            {"kind": str, "terminal": int},
+            {"kind": str, "terminal": int, "winning_side": int},
+        )
         for case in cases:
             self.assertEqual(set(case), {"expected", "input", "name", "operation"})
             self.assertIsInstance(case["input"], dict)
+            input_shape = input_shapes[case["operation"]]
+            self.assertEqual(set(case["input"]), set(input_shape))
+            for key, expected_type in input_shape.items():
+                self.assertIs(type(case["input"][key]), expected_type)
             self.assertEqual(len(case["expected"]), 1)
             self.assertIn(next(iter(case["expected"])), {"rejection", "success"})
             if "rejection" in case["expected"]:
+                self.assertIs(type(case["expected"]["rejection"]), int)
                 self.assertIn(case["expected"]["rejection"], range(1, 63))
+            else:
+                success = case["expected"]["success"]
+                self.assertIsInstance(success, dict)
+                matching = [
+                    shape
+                    for shape in success_shapes[case["operation"]]
+                    if set(success) == set(shape)
+                ]
+                self.assertEqual(len(matching), 1)
+                for key, expected_type in matching[0].items():
+                    self.assertIs(type(success[key]), expected_type)
+
+            if case["operation"] == "apply_event":
+                self.assertTrue(all(type(item) is str for item in case["input"]["events_hex"]))
+                if "success" in case["expected"]:
+                    cause = case["expected"]["success"]["cause"]
+                    matching_causes = [shape for shape in cause_shapes if set(cause) == set(shape)]
+                    self.assertEqual(len(matching_causes), 1)
+                    for key, expected_type in matching_causes[0].items():
+                        self.assertIs(type(cause[key]), expected_type)
+            if case["operation"] == "controls_square" and "success" in case["expected"]:
+                self.assertTrue(
+                    all(type(square) is int for square in case["expected"]["success"]["squares"])
+                )
+            if case["operation"] == "evaluate_predicate":
+                predicate_id = case["input"]["predicate_id"]
+                predicate_input = case["input"]["input"]
+                predicate_shape = predicate_input_shapes[predicate_id]
+                if set(predicate_input) == {"variant"}:
+                    self.assertEqual(case["expected"], {"rejection": 15})
+                    self.assertIs(type(predicate_input["variant"]), str)
+                else:
+                    self.assertEqual(set(predicate_input), set(predicate_shape))
+                    for key, expected_type in predicate_shape.items():
+                        self.assertIs(type(predicate_input[key]), expected_type)
+                    if "match" in predicate_input:
+                        self.assertEqual(set(predicate_input["match"]), {"kind", "piece", "side"})
+                        self.assertIs(type(predicate_input["match"]["kind"]), str)
+                        self.assertIs(type(predicate_input["match"]["piece"]), int)
+                        self.assertIs(type(predicate_input["match"]["side"]), int)
+                    if "defender" in predicate_input:
+                        self.assertEqual(set(predicate_input["defender"]), {"kind", "square"})
+                        self.assertIs(type(predicate_input["defender"]["kind"]), str)
+                        self.assertIs(type(predicate_input["defender"]["square"]), int)
+                    if "targets" in predicate_input:
+                        self.assertTrue(all(type(target) is int for target in predicate_input["targets"]))
+                    if "events_hex" in predicate_input:
+                        self.assertTrue(all(type(event) is str for event in predicate_input["events_hex"]))
+                    if "nodes" in predicate_input:
+                        for node in predicate_input["nodes"]:
+                            self.assertIs(type(node), dict)
+                            self.assertEqual(set(node), {"edges"})
+                            self.assertIs(type(node["edges"]), list)
+                            for edge in node["edges"]:
+                                self.assertIs(type(edge), dict)
+                                self.assertEqual(set(edge), {"child", "move_hex"})
+                                self.assertIs(type(edge["child"]), int)
+                                self.assertIs(type(edge["move_hex"]), str)
+                if "success" in case["expected"]:
+                    result = case["expected"]["success"]["result"]
+                    result_shape = predicate_result_shapes[predicate_id]
+                    self.assertEqual(set(result), set(result_shape))
+                    for key, expected_type in result_shape.items():
+                        self.assertIs(type(result[key]), expected_type)
+                    if "squares" in result:
+                        self.assertTrue(all(type(square) is int for square in result["squares"]))
+                    if "outcomes" in result:
+                        self.assertTrue(all(type(outcome) is str for outcome in result["outcomes"]))
+                    if "cause" in result:
+                        self.assertEqual(set(result["cause"]), {"kind", "side"})
+                        self.assertIs(type(result["cause"]["kind"]), str)
+                        self.assertIs(type(result["cause"]["side"]), int)
+                    for key in ("effective_ep", "nominal_ep"):
+                        if key in result:
+                            ep = result[key]
+                            self.assertIn(set(ep), ({"kind"}, {"kind", "square"}))
+                            self.assertIs(type(ep["kind"]), str)
+                            if "square" in ep:
+                                self.assertIs(type(ep["square"]), int)
 
         def check_hex(value: object) -> None:
             if isinstance(value, dict):
@@ -991,25 +1179,93 @@ class RepoContract(unittest.TestCase):
             "history-boundary-4095", "history-boundary-4096", "history-excess-4097",
         ])
         expected_recipe_facts = (
-            (4095, "", 8190, "fe083157aff7dddf8ef1d7c55d14d74836351de95367107f2382c465ba670735"),
-            (4096, "", 8192, "39b9ad3d90be853994abbf8fba476816fcc15865f9fdf99f26a33673e0972616"),
-            (4097, "4180", 8194, "b2b5803f901288658064cbd1c05ff36db5b6fe73f99d68941e85178b968c5abc"),
+            (4095, "", 8190, "fe083157aff7dddf8ef1d7c55d14d74836351de95367107f2382c465ba670735", {"success": {"played_plies": 4095}}),
+            (4096, "", 8192, "39b9ad3d90be853994abbf8fba476816fcc15865f9fdf99f26a33673e0972616", {"success": {"played_plies": 4096}}),
+            (4097, "4180", 8194, "b2b5803f901288658064cbd1c05ff36db5b6fe73f99d68941e85178b968c5abc", {"rejection": 35}),
         )
-        for recipe, (plies, final_move, byte_count, digest) in zip(recipes, expected_recipe_facts):
+        for recipe, (plies, final_move, byte_count, digest, expected) in zip(recipes, expected_recipe_facts):
             self.assertEqual(set(recipe), {
                 "count_cap", "expected", "input", "input_bytes", "input_sha256", "name", "recipe",
             })
             self.assertEqual(recipe["recipe"], "knight-cycle-history")
+            self.assertIs(type(recipe["count_cap"]), int)
             self.assertEqual(recipe["count_cap"], 4097)
+            self.assertIs(type(recipe["input"]), dict)
             self.assertEqual(set(recipe["input"]), {"cycle_moves_hex", "final_move_hex", "ply_count"})
+            self.assertEqual(recipe["expected"], expected)
+            if "success" in expected:
+                self.assertIs(type(recipe["expected"]["success"]["played_plies"]), int)
+            else:
+                self.assertIs(type(recipe["expected"]["rejection"]), int)
+            self.assertIs(type(recipe["input"]["ply_count"]), int)
             self.assertEqual(recipe["input"]["ply_count"], plies)
+            self.assertIs(type(recipe["input"]["final_move_hex"]), str)
             self.assertEqual(recipe["input"]["final_move_hex"], final_move)
             prefix_plies = plies - bool(final_move)
             cycle = recipe["input"]["cycle_moves_hex"]
+            self.assertIs(type(cycle), str)
+            self.assertEqual(cycle, "1950fad05460b7e0")
             constructed = (cycle * ((prefix_plies + 3) // 4))[: prefix_plies * 4] + final_move
             raw = bytes.fromhex(constructed)
             self.assertEqual((len(raw), hashlib.sha256(raw).hexdigest()), (byte_count, digest))
+            self.assertIs(type(recipe["input_bytes"]), int)
+            self.assertIs(type(recipe["input_sha256"]), str)
             self.assertEqual((recipe["input_bytes"], recipe["input_sha256"]), (byte_count, digest))
+
+    def test_chess_fixture_shape_mutations_fail_closed(self) -> None:
+        payload = canonical_manifest.validate_canonical_manifest(CHESS_FIXTURE.read_bytes())
+
+        def extra_input(value: dict[str, object]) -> None:
+            value["cases"][0]["input"]["extra"] = 1
+
+        def extra_success(value: dict[str, object]) -> None:
+            value["cases"][0]["expected"]["success"]["extra"] = 1
+
+        def wrong_recipe_branch(value: dict[str, object]) -> None:
+            value["recipes"][0]["expected"] = {"rejection": 1}
+
+        def wrong_recipe_type(value: dict[str, object]) -> None:
+            value["recipes"][0]["expected"]["success"]["played_plies"] = "4095"
+
+        def predicate_input_extra(value: dict[str, object]) -> None:
+            case = next(
+                case for case in value["cases"]
+                if case["name"] == "predicate-correct-setup-turn"
+            )
+            case["input"]["input"]["extra"] = 1
+
+        def predicate_result_type(value: dict[str, object]) -> None:
+            case = next(
+                case for case in value["cases"]
+                if case["name"] == "predicate-correct-fork-double-attack"
+            )
+            case["expected"]["success"]["result"]["value"] = 1
+
+        for name, mutate in {
+            "extra operation input": extra_input,
+            "extra operation success": extra_success,
+            "wrong recipe branch": wrong_recipe_branch,
+            "wrong recipe result type": wrong_recipe_type,
+            "extra predicate input": predicate_input_extra,
+            "wrong predicate result type": predicate_result_type,
+        }.items():
+            with self.subTest(name=name):
+                mutated = copy.deepcopy(payload)
+                mutate(mutated)
+                data = canonical_manifest.serialize_manifest(mutated)
+                with mock.patch.object(
+                    sys.modules[__name__], "repo_text_bytes", return_value=data
+                ):
+                    with self.assertRaises(AssertionError):
+                        self.test_chess_fixture_shape_and_coverage_are_closed()
+
+        oversized = copy.deepcopy(payload)
+        oversized["recipes"][0]["input"]["cycle_moves_hex"] += "00"
+        data = canonical_manifest.serialize_manifest(oversized)
+        with mock.patch.object(sys.modules[__name__], "repo_text_bytes", return_value=data):
+            with mock.patch.object(hashlib, "sha256", side_effect=RuntimeError("expanded")):
+                with self.assertRaises(AssertionError):
+                    self.test_chess_fixture_shape_and_coverage_are_closed()
 
     def test_conformance_registry_mutations_fail_closed(self) -> None:
         payload = b"fixture\n"
