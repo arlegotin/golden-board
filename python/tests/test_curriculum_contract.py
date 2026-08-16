@@ -440,6 +440,126 @@ DERIVATION_SIGNATURES = {
     "projection.source_score": ("typed_projection", ["GameRecord"], "Score"),
 }
 
+RELATION_SHAPES = {
+    "candidate_move_effect": (
+        "case", "call_ids", (1, 2),
+        frozenset({
+            "replay_move_legality", "replay_terminal_transition",
+            "replay_record_and_last_move", "post_move_history",
+        }),
+    ),
+    "replay_relation": ("pattern", "case_ids", (2, 3), frozenset()),
+    "en_passant_context": (
+        "case", "call_ids", (1,), frozenset({"replay_move_legality"}),
+    ),
+    "material_class": (
+        "case", "call_ids", (1,), frozenset({"replay_terminal_transition"}),
+    ),
+    "opposing_pawn_ahead": (
+        "case", "call_ids", (1,), frozenset({"board_passed_pawn"}),
+    ),
+    "finite_mating_root_major_piece": (
+        "case", "call_ids", (1,),
+        frozenset({"finite_mating_tree_rooted_at_authority"}),
+    ),
+}
+
+RELATION_FACT_DOMAINS = {
+    "mover_kind": ("PieceKind", frozenset({"pawn", "king", "any"})),
+    "move_kind": ("MoveKind", frozenset({
+        "quiet", "capture", "initial_double", "castling", "en_passant",
+        "promotion_quiet", "promotion_capture", "promotion", "any",
+    })),
+    "promotion_kind": ("PromotionKind", frozenset({
+        "none", "any", "queen", "rook", "bishop", "knight",
+    })),
+    "ply_delta": ("i8", frozenset({"1"})),
+    "shown_move_equal": ("bool", frozenset({"true"})),
+    "position_difference": (
+        "FieldSet", frozenset({"relevant_castling_right_only"}),
+    ),
+    "castling_entitlement_restored": ("bool", frozenset({"false"})),
+    "final_position_equal": ("bool", frozenset({"true"})),
+    "history_equal": ("bool", frozenset({"false"})),
+    "ineffective_ep_key_equal": ("bool", frozenset({"true"})),
+    "effective_ep_key_equal": ("bool", frozenset({"false"})),
+    "intervening_legal_plies_min": ("u16", frozenset({"1"})),
+    "nominal_target": ("EnPassantFact", frozenset({"none"})),
+    "selected_common_dead_class": ("bool", frozenset({"true"})),
+    "common_dead": ("bool", frozenset({"true", "false"})),
+    "material_signature": (
+        "MaterialSignature", frozenset({"king_two_knights_vs_king"}),
+    ),
+    "opposing_pawn_exists": ("bool", frozenset({"true"})),
+    "relative_rank_relation": ("RankRelation", frozenset({"strictly_ahead"})),
+    "absolute_file_delta_max": ("u8", frozenset({"1"})),
+    "major_piece_kind": ("PieceKind", frozenset({"queen", "rook"})),
+    "major_piece_count": ("u8", frozenset({"1"})),
+    "other_nonking_count": ("u8", frozenset({"0"})),
+    "major_piece_side_is_mating_side": ("bool", frozenset({"true"})),
+}
+
+# (pattern, scope/case, relation index, kind, exact operand IDs) maps to the
+# only canonical result and ordered typed facts for those operands.
+CANONICAL_RELATIONS = {
+    ("setup_turn.alternating_turn", "pattern", 0, "replay_relation", ("before", "after")): ("one_legal_ply_extension", (("ply_delta", "i8", "1"),)),
+    ("ordinary_move_capture.pawn_forward_vs_capture", "quiet", 0, "candidate_move_effect", ("legality",)): ("pawn_quiet", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "quiet"), ("promotion_kind", "PromotionKind", "none"))),
+    ("ordinary_move_capture.pawn_forward_vs_capture", "capture", 0, "candidate_move_effect", ("legality",)): ("pawn_capture", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "capture"), ("promotion_kind", "PromotionKind", "none"))),
+    ("ordinary_move_capture.pawn_initial_double", "double", 0, "candidate_move_effect", ("legality",)): ("pawn_initial_double", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "initial_double"), ("promotion_kind", "PromotionKind", "none"))),
+    ("king_safety.king_capture_safety", "safe_capture", 0, "candidate_move_effect", ("legality",)): ("king_capture", (("mover_kind", "PieceKind", "king"), ("move_kind", "MoveKind", "capture"), ("promotion_kind", "PromotionKind", "none"))),
+    ("king_safety.king_capture_safety", "unsafe_capture", 0, "candidate_move_effect", ("legality",)): ("king_capture", (("mover_kind", "PieceKind", "king"), ("move_kind", "MoveKind", "capture"), ("promotion_kind", "PromotionKind", "none"))),
+    ("castling.rights", "pattern", 0, "replay_relation", ("right_present", "right_absent")): ("same_shown_move", (("shown_move_equal", "bool", "true"),)),
+    ("castling.rights", "pattern", 1, "replay_relation", ("right_present", "right_absent")): ("same_position_except_relevant_castling_right", (("position_difference", "FieldSet", "relevant_castling_right_only"),)),
+    ("castling.entitled_king_and_rook", "pattern", 0, "replay_relation", ("entitled", "replacement")): ("same_shown_move", (("shown_move_equal", "bool", "true"),)),
+    ("castling.entitled_king_and_rook", "pattern", 1, "replay_relation", ("entitled", "replacement")): ("replacement_piece_does_not_restore_right", (("castling_entitlement_restored", "bool", "false"),)),
+    ("castling.rook_relocation", "castle", 0, "candidate_move_effect", ("legality", "record")): ("castling", (("mover_kind", "PieceKind", "king"), ("move_kind", "MoveKind", "castling"), ("promotion_kind", "PromotionKind", "none"))),
+    ("en_passant.immediate_window", "immediate", 0, "candidate_move_effect", ("legality",)): ("en_passant", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "en_passant"), ("promotion_kind", "PromotionKind", "none"))),
+    ("en_passant.expiry", "expired", 0, "en_passant_context", ("legality",)): ("expired_after_intervening_move", (("intervening_legal_plies_min", "u16", "1"), ("nominal_target", "EnPassantFact", "none"))),
+    ("en_passant.captured_pawn_removal", "capture", 0, "candidate_move_effect", ("legality", "record")): ("en_passant", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "en_passant"), ("promotion_kind", "PromotionKind", "none"))),
+    ("en_passant.self_check", "self_check", 0, "candidate_move_effect", ("legality",)): ("en_passant", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "en_passant"), ("promotion_kind", "PromotionKind", "none"))),
+    ("promotion.quiet_promotion", "quiet", 0, "candidate_move_effect", ("legality",)): ("promotion_quiet", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "promotion_quiet"), ("promotion_kind", "PromotionKind", "any"))),
+    ("promotion.capture_promotion", "capture", 0, "candidate_move_effect", ("legality",)): ("promotion_capture", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "promotion_capture"), ("promotion_kind", "PromotionKind", "any"))),
+    ("promotion.promote_queen", "queen", 0, "candidate_move_effect", ("legality",)): ("promote_queen", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "promotion"), ("promotion_kind", "PromotionKind", "queen"))),
+    ("promotion.promote_rook", "rook", 0, "candidate_move_effect", ("legality",)): ("promote_rook", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "promotion"), ("promotion_kind", "PromotionKind", "rook"))),
+    ("promotion.promote_bishop", "bishop", 0, "candidate_move_effect", ("legality",)): ("promote_bishop", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "promotion"), ("promotion_kind", "PromotionKind", "bishop"))),
+    ("promotion.promote_knight", "knight", 0, "candidate_move_effect", ("legality",)): ("promote_knight", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "promotion"), ("promotion_kind", "PromotionKind", "knight"))),
+    ("promotion.check_after_promotion", "check", 0, "candidate_move_effect", ("legality", "record")): ("promotion_any", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "promotion"), ("promotion_kind", "PromotionKind", "any"))),
+    ("promotion.mate_after_promotion", "mate", 0, "candidate_move_effect", ("terminal",)): ("promotion_any", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "promotion"), ("promotion_kind", "PromotionKind", "any"))),
+    ("position_history_draw.same_board_different_history", "pattern", 0, "replay_relation", ("history_a", "history_b")): ("same_final_position", (("final_position_equal", "bool", "true"),)),
+    ("position_history_draw.same_board_different_history", "pattern", 1, "replay_relation", ("history_a", "history_b")): ("different_replay_history", (("history_equal", "bool", "false"),)),
+    ("position_history_draw.repetition_key", "pattern", 0, "replay_relation", ("nominal_absent", "nominal_ineffective", "nominal_effective")): ("ineffective_ep_keys_equal_effective_ep_differs", (("ineffective_ep_key_equal", "bool", "true"), ("effective_ep_key_equal", "bool", "false"))),
+    ("position_history_draw.halfmove_pawn_reset", "pattern", 0, "replay_relation", ("before", "after")): ("one_legal_ply_extension", (("ply_delta", "i8", "1"),)),
+    ("position_history_draw.halfmove_pawn_reset", "after", 0, "candidate_move_effect", ("history",)): ("pawn_move", (("mover_kind", "PieceKind", "pawn"), ("move_kind", "MoveKind", "any"), ("promotion_kind", "PromotionKind", "any"))),
+    ("position_history_draw.halfmove_capture_reset", "pattern", 0, "replay_relation", ("before", "after")): ("one_legal_ply_extension", (("ply_delta", "i8", "1"),)),
+    ("position_history_draw.halfmove_capture_reset", "after", 0, "candidate_move_effect", ("history",)): ("capture", (("mover_kind", "PieceKind", "any"), ("move_kind", "MoveKind", "capture"), ("promotion_kind", "PromotionKind", "any"))),
+    ("termination_score.common_dead_scope", "recognized", 0, "material_class", ("terminal",)): ("recognized_common_dead", (("selected_common_dead_class", "bool", "true"), ("common_dead", "bool", "true"))),
+    ("termination_score.common_dead_scope", "two_knights", 0, "material_class", ("terminal",)): ("king_two_knights_vs_king", (("material_signature", "MaterialSignature", "king_two_knights_vs_king"), ("common_dead", "bool", "false"))),
+    ("passed_pawn.opposing_pawn_same_or_adjacent_ahead", "blocked", 0, "opposing_pawn_ahead", ("passed",)): ("strictly_ahead_same_or_adjacent_file", (("opposing_pawn_exists", "bool", "true"), ("relative_rank_relation", "RankRelation", "strictly_ahead"), ("absolute_file_delta_max", "u8", "1"))),
+    ("queen_or_rook_mating_geometry.queen_geometry", "queen", 0, "finite_mating_root_major_piece", ("mating",)): ("queen", (("major_piece_kind", "PieceKind", "queen"), ("major_piece_count", "u8", "1"), ("other_nonking_count", "u8", "0"), ("major_piece_side_is_mating_side", "bool", "true"))),
+    ("queen_or_rook_mating_geometry.rook_geometry", "rook", 0, "finite_mating_root_major_piece", ("mating",)): ("rook", (("major_piece_kind", "PieceKind", "rook"), ("major_piece_count", "u8", "1"), ("other_nonking_count", "u8", "0"), ("major_piece_side_is_mating_side", "bool", "true"))),
+}
+
+CANONICAL_CALL_CONSTANTS = {
+    ("setup_turn.initial_side_to_move", "initial", "turn"): ((1, "Side", "side", ("first",)),),
+    ("setup_turn.alternating_turn", "before", "turn"): ((1, "Side", "side", ("first",)),),
+    ("setup_turn.alternating_turn", "after", "turn"): ((1, "Side", "side", ("second",)),),
+    ("ordinary_move_capture.king_identity_and_move", "legal", "piece"): ((2, "OccupancyMatch", "exact_piece", ("moving_side", "king")),),
+    ("ordinary_move_capture.queen_identity_and_move", "legal", "piece"): ((2, "OccupancyMatch", "exact_piece", ("moving_side", "queen")),),
+    ("ordinary_move_capture.rook_identity_and_move", "legal", "piece"): ((2, "OccupancyMatch", "exact_piece", ("moving_side", "rook")),),
+    ("ordinary_move_capture.bishop_identity_and_move", "legal", "piece"): ((2, "OccupancyMatch", "exact_piece", ("moving_side", "bishop")),),
+    ("ordinary_move_capture.knight_identity_and_move", "legal", "piece"): ((2, "OccupancyMatch", "exact_piece", ("moving_side", "knight")),),
+    ("ordinary_move_capture.pawn_identity", "legal", "piece"): ((2, "OccupancyMatch", "exact_piece", ("moving_side", "pawn")),),
+    ("ordinary_move_capture.knight_jump", "jump", "piece"): ((2, "OccupancyMatch", "exact_piece", ("moving_side", "knight")),),
+    ("control_vs_legal.pawn_control", "pawn", "controller_piece"): ((2, "OccupancyMatch", "exact_piece", ("bound_controller_side", "pawn")),),
+    ("control_vs_legal.king_adjacency", "adjacent", "controller_piece"): ((2, "OccupancyMatch", "exact_piece", ("bound_controller_side", "king")),),
+    ("termination_score.score_vs_cause", "nonterminal_decisive_score", "source"): ((1, "Score", "score", ("first_win",)),),
+    ("record_replay.score_atom", "first_win", "source"): ((1, "Score", "score", ("first_win",)),),
+    ("record_replay.score_atom", "second_win", "source"): ((1, "Score", "score", ("second_win",)),),
+    ("record_replay.score_atom", "draw", "source"): ((1, "Score", "score", ("draw",)),),
+    ("discovered_attack_check.discovered_attack", "attack", "target"): ((2, "OccupancyMatch", "occupied", ()),),
+    ("discovered_attack_check.discovered_check", "check", "target"): ((2, "OccupancyMatch", "exact_piece", ("opposing_side", "king")),),
+}
+
 OWNER_RESULTS = {
     "chess.setup_turn": {"bool_false", "bool_true"},
     "chess.occupancy": {"bool_false", "bool_true"},
@@ -559,7 +679,7 @@ TRANSFORMS = {
 # These freeze human-readable TOML projections; direct checks below still own
 # signatures, positional arguments, finite relations, bounds, and rejections.
 PATTERN_DIGEST = "e45fe214fa950817e8c51e29803eaf23605533bd3c49d62a76fc726147d68b75"
-FINITE_RULE_DIGEST = "0be8f83d07d91ae1624671ca93157c3847af301a4148da73c7781373f417a69c"
+FINITE_RULE_DIGEST = "dbd3e25aa767d9c8b877d1afbb2d7bebea4c0daad98958c2da5c9ea2d691cab1"
 TRANSFORM_DIGEST = "80dac0d29304788ce8472313f0dff8e71f7e19bc01ffcfff8c4b12fb672a5f7b"
 ROADMAP_DIGEST = "c57bf574c16764b40885fa41f458eea3fc00f998dcb836da5e6aff8b861b6fa5"
 SUPPORTING_DIGEST = "f392721c0cc447a510615558a76a088a291c8a56385c49aac879a5981dbe9fde"
@@ -664,28 +784,6 @@ SUPPORTING_KEYS = (
 
 
 def semantic_projection_is_valid(data: dict) -> bool:
-    relation_shapes = {
-        "candidate_move_effect": (
-            "case", "call_ids", [1, 2],
-            ["replay_move_legality", "replay_terminal_transition",
-             "replay_record_and_last_move", "post_move_history"],
-        ),
-        "replay_relation": ("pattern", "case_ids", [2, 3], []),
-        "en_passant_context": (
-            "case", "call_ids", [1], ["replay_move_legality"],
-        ),
-        "material_class": (
-            "case", "call_ids", [1], ["replay_terminal_transition"],
-        ),
-        "opposing_pawn_ahead": (
-            "case", "call_ids", [1], ["board_passed_pawn"],
-        ),
-        "finite_mating_root_major_piece": (
-            "case", "call_ids", [1],
-            ["finite_mating_tree_rooted_at_authority"],
-        ),
-    }
-
     def canonical_arguments(binding: dict) -> list[str]:
         return [
             f"{argument['type_id']}@{argument['source_kind']}:"
@@ -705,6 +803,31 @@ def semantic_projection_is_valid(data: dict) -> bool:
             + f")->{row['output_type_id']}@{row['output_source_id']}"
             for row in binding["derivations"]
         ]
+
+    def canonical_facts(facts: list[dict]) -> tuple[tuple[str, str, str], ...]:
+        return tuple(
+            (fact["id"], fact["type_id"], fact["value_id"])
+            for fact in facts
+        )
+
+    def facts_are_in_domain(facts: tuple[tuple[str, str, str], ...]) -> bool:
+        return all(
+            fact_id in RELATION_FACT_DOMAINS
+            and RELATION_FACT_DOMAINS[fact_id][0] == type_id
+            and value_id in RELATION_FACT_DOMAINS[fact_id][1]
+            for fact_id, type_id, value_id in facts
+        )
+
+    def canonical_constants(
+        constants: list[dict],
+    ) -> tuple[tuple[int, str, str, tuple[str, ...]], ...]:
+        return tuple(
+            (
+                constant["argument_position"], constant["type_id"],
+                constant["constructor_id"], tuple(constant["value_ids"]),
+            )
+            for constant in constants
+        )
 
     def constant_is_valid(constant: dict, argument: dict) -> bool:
         if set(constant) != {
@@ -750,22 +873,20 @@ def semantic_projection_is_valid(data: dict) -> bool:
             return False
         if set(bindings) != set(INPUT_ARGUMENTS):
             return False
-        if set(relation_rules) != set(relation_shapes):
+        if set(relation_rules) != set(RELATION_SHAPES):
             return False
 
-        resolved_rules = {}
-        for kind, expected_shape in relation_shapes.items():
-            rule_set = relation_rules[kind]
-            if set(rule_set) != {
-                "operand_scope", "operand_id_field", "operand_counts",
-                "allowed_input_binding_ids", "rule",
-            }:
+        canonical_rules = {kind: {} for kind in RELATION_SHAPES}
+        for key, canonical in CANONICAL_RELATIONS.items():
+            kind = key[3]
+            result_id, facts = canonical
+            previous = canonical_rules[kind].setdefault(result_id, facts)
+            if previous != facts or not facts_are_in_domain(facts):
                 return False
-            actual_shape = (
-                rule_set["operand_scope"], rule_set["operand_id_field"],
-                rule_set["operand_counts"], rule_set["allowed_input_binding_ids"],
-            )
-            if actual_shape != expected_shape:
+
+        for kind in RELATION_SHAPES:
+            rule_set = relation_rules[kind]
+            if set(rule_set) != {"rule"}:
                 return False
             rows = by_id([
                 {"id": row["result_id"], **row} for row in rule_set["rule"]
@@ -781,7 +902,14 @@ def semantic_projection_is_valid(data: dict) -> bool:
                 if any(set(fact) != {"id", "type_id", "value_id"}
                        for fact in row["facts"]):
                     return False
-            resolved_rules[kind] = rows
+                facts = canonical_facts(row["facts"])
+                if (
+                    not facts_are_in_domain(facts)
+                    or canonical_rules[kind].get(result_id) != facts
+                ):
+                    return False
+            if set(rows) != set(canonical_rules[kind]):
+                return False
 
         for binding_id, binding in bindings.items():
             if set(binding) != {
@@ -873,42 +1001,58 @@ def semantic_projection_is_valid(data: dict) -> bool:
             return False
 
         def relation_is_valid(
-            relation: dict, scope: str, available: dict[str, dict],
+            relation: dict, pattern_id: str, scope_id: str, relation_index: int,
+            available: dict[str, dict], seen: set[tuple],
         ) -> bool:
             kind = relation["kind"]
-            rule_set = relation_rules[kind]
-            operand_field = rule_set["operand_id_field"]
-            if scope != rule_set["operand_scope"]:
+            scope, operand_field, operand_counts, allowed_bindings = (
+                RELATION_SHAPES[kind]
+            )
+            actual_scope = "pattern" if scope_id == "pattern" else "case"
+            if actual_scope != scope:
                 return False
             if set(relation) != {"kind", operand_field, "result_id", "facts"}:
                 return False
             operand_ids = relation[operand_field]
             if (
-                len(operand_ids) not in rule_set["operand_counts"]
+                len(operand_ids) not in operand_counts
                 or len(operand_ids) != len(set(operand_ids))
                 or not set(operand_ids) <= set(available)
             ):
                 return False
-            rule = resolved_rules[kind].get(relation["result_id"])
-            if rule is None or relation["facts"] != rule["facts"]:
+            facts = canonical_facts(relation["facts"])
+            if not facts_are_in_domain(facts):
                 return False
-            if scope == "case":
+            key = (
+                pattern_id, scope_id, relation_index, kind, tuple(operand_ids),
+            )
+            if CANONICAL_RELATIONS.get(key) != (relation["result_id"], facts):
+                return False
+            if actual_scope == "case":
                 actual_bindings = {
                     available[operand_id]["input_binding_id"]
                     for operand_id in operand_ids
                 }
-                if not actual_bindings <= set(rule_set["allowed_input_binding_ids"]):
+                if not actual_bindings <= allowed_bindings:
                     return False
+            seen.add(key)
             return True
 
         used_bindings = set()
         used_contracts = set()
+        seen_relations = set()
+        seen_calls = set()
         for pattern in patterns.values():
             if set(pattern) != {"id", "authority_kind", "relation", "case"}:
                 return False
             cases = by_id(pattern["case"])
-            if any(not relation_is_valid(relation, "pattern", cases)
-                   for relation in pattern["relation"]):
+            if any(
+                not relation_is_valid(
+                    relation, pattern["id"], "pattern", relation_index,
+                    cases, seen_relations,
+                )
+                for relation_index, relation in enumerate(pattern["relation"])
+            ):
                 return False
             for case in pattern["case"]:
                 if set(case) != {"id", "call", "obligation"}:
@@ -922,6 +1066,8 @@ def semantic_projection_is_valid(data: dict) -> bool:
                         return False
                     binding = bindings[call["input_binding_id"]]
                     contract = contracts[call["result_contract_id"]]
+                    call_key = (pattern["id"], case["id"], call["id"])
+                    seen_calls.add(call_key)
                     used_bindings.add(call["input_binding_id"])
                     used_contracts.add(call["result_contract_id"])
                     if call["owner_id"] != binding["owner_id"]:
@@ -944,10 +1090,24 @@ def semantic_projection_is_valid(data: dict) -> bool:
                         argument = binding["arguments"][constant["argument_position"]]
                         if not constant_is_valid(constant, argument):
                             return False
-                if any(not relation_is_valid(obligation, "case", calls)
-                       for obligation in case["obligation"]):
+                    if canonical_constants(call["input_constants"]) != (
+                        CANONICAL_CALL_CONSTANTS.get(call_key, ())
+                    ):
+                        return False
+                if any(
+                    not relation_is_valid(
+                        obligation, pattern["id"], case["id"], relation_index,
+                        calls, seen_relations,
+                    )
+                    for relation_index, obligation in enumerate(case["obligation"])
+                ):
                     return False
-        if used_bindings != set(bindings) or used_contracts != set(contracts):
+        if (
+            used_bindings != set(bindings)
+            or used_contracts != set(contracts)
+            or seen_relations != set(CANONICAL_RELATIONS)
+            or not set(CANONICAL_CALL_CONSTANTS) <= seen_calls
+        ):
             return False
         return True
     except (IndexError, KeyError, TypeError, ValueError):
@@ -1032,13 +1192,13 @@ class CurriculumContract(unittest.TestCase):
             for relation in pattern["relation"]:
                 self.assertIn("facts", relation)
                 self.assertEqual(
-                    rules[relation["kind"]]["operand_id_field"], "case_ids"
+                    RELATION_SHAPES[relation["kind"]][1], "case_ids"
                 )
             for case in pattern["case"]:
                 for obligation in case["obligation"]:
                     self.assertIn("facts", obligation)
                     self.assertEqual(
-                        rules[obligation["kind"]]["operand_id_field"],
+                        RELATION_SHAPES[obligation["kind"]][1],
                         "call_ids",
                     )
         self.assertTrue(semantic_projection_is_valid(self.data))
@@ -1093,6 +1253,66 @@ class CurriculumContract(unittest.TestCase):
                     self.assertIn("input_constants", call)
                     self.assertNotIn("input_constant_ids", call)
         self.assertTrue(semantic_projection_is_valid(self.data))
+
+    def _candidate_with_synchronized_mover(self, value_id: str) -> dict:
+        candidate = copy.deepcopy(self.data)
+        rule = next(
+            row
+            for row in candidate["finite_relation"]["candidate_move_effect"]["rule"]
+            if row["result_id"] == "pawn_quiet"
+        )
+        next(fact for fact in rule["facts"] if fact["id"] == "mover_kind")[
+            "value_id"
+        ] = value_id
+        for pattern in candidate["case_pattern"]:
+            for case in pattern["case"]:
+                for relation in case["obligation"]:
+                    if (
+                        relation["kind"] == "candidate_move_effect"
+                        and relation["result_id"] == "pawn_quiet"
+                    ):
+                        next(
+                            fact
+                            for fact in relation["facts"]
+                            if fact["id"] == "mover_kind"
+                        )["value_id"] = value_id
+        return candidate
+
+    def test_synchronized_out_of_domain_relation_mutation_is_rejected(self) -> None:
+        self.assertFalse(semantic_projection_is_valid(
+            self._candidate_with_synchronized_mover("invented")
+        ))
+
+    def test_synchronized_in_domain_relation_mutation_is_rejected(self) -> None:
+        self.assertFalse(semantic_projection_is_valid(
+            self._candidate_with_synchronized_mover("king")
+        ))
+
+    def test_valid_alternative_initial_side_constant_is_rejected(self) -> None:
+        candidate = copy.deepcopy(self.data)
+        pattern = by_id(candidate["case_pattern"])["setup_turn.initial_side_to_move"]
+        call = by_id(by_id(pattern["case"])["initial"]["call"])["turn"]
+        call["input_constants"][0]["value_ids"] = ["second"]
+        self.assertFalse(semantic_projection_is_valid(candidate))
+
+    def test_valid_alternative_score_and_occupancy_constants_are_rejected(self) -> None:
+        substitutions = (
+            (
+                "termination_score.score_vs_cause", "nonterminal_decisive_score",
+                "source", ["second_win"],
+            ),
+            (
+                "ordinary_move_capture.king_identity_and_move", "legal",
+                "piece", ["moving_side", "queen"],
+            ),
+        )
+        for pattern_id, case_id, call_id, value_ids in substitutions:
+            candidate = copy.deepcopy(self.data)
+            pattern = by_id(candidate["case_pattern"])[pattern_id]
+            call = by_id(by_id(pattern["case"])[case_id]["call"])[call_id]
+            call["input_constants"][0]["value_ids"] = value_ids
+            with self.subTest(call=(pattern_id, case_id, call_id)):
+                self.assertFalse(semantic_projection_is_valid(candidate))
 
     def test_all_88_irreducible_projections_are_frozen(self) -> None:
         self.assertTrue(semantic_projection_is_valid(self.data))

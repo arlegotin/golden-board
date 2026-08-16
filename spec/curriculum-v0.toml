@@ -1207,10 +1207,6 @@ order = "ascending_visible_ordinal"
 cap_source = "declared_max_selections"
 
 [finite_relation.candidate_move_effect]
-operand_scope = "case"
-operand_id_field = "call_ids"
-operand_counts = [1, 2]
-allowed_input_binding_ids = ["replay_move_legality", "replay_terminal_transition", "replay_record_and_last_move", "post_move_history"]
 
 [[finite_relation.candidate_move_effect.rule]]
 result_id = "pawn_quiet"
@@ -1273,10 +1269,6 @@ result_id = "capture"
 facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "any" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }]
 
 [finite_relation.replay_relation]
-operand_scope = "pattern"
-operand_id_field = "case_ids"
-operand_counts = [2, 3]
-allowed_input_binding_ids = []
 
 [[finite_relation.replay_relation.rule]]
 result_id = "one_legal_ply_extension"
@@ -1307,20 +1299,12 @@ result_id = "ineffective_ep_keys_equal_effective_ep_differs"
 facts = [{ id = "ineffective_ep_key_equal", type_id = "bool", value_id = "true" }, { id = "effective_ep_key_equal", type_id = "bool", value_id = "false" }]
 
 [finite_relation.en_passant_context]
-operand_scope = "case"
-operand_id_field = "call_ids"
-operand_counts = [1]
-allowed_input_binding_ids = ["replay_move_legality"]
 
 [[finite_relation.en_passant_context.rule]]
 result_id = "expired_after_intervening_move"
 facts = [{ id = "intervening_legal_plies_min", type_id = "u16", value_id = "1" }, { id = "nominal_target", type_id = "EnPassantFact", value_id = "none" }]
 
 [finite_relation.material_class]
-operand_scope = "case"
-operand_id_field = "call_ids"
-operand_counts = [1]
-allowed_input_binding_ids = ["replay_terminal_transition"]
 
 [[finite_relation.material_class.rule]]
 result_id = "recognized_common_dead"
@@ -1331,20 +1315,12 @@ result_id = "king_two_knights_vs_king"
 facts = [{ id = "material_signature", type_id = "MaterialSignature", value_id = "king_two_knights_vs_king" }, { id = "common_dead", type_id = "bool", value_id = "false" }]
 
 [finite_relation.opposing_pawn_ahead]
-operand_scope = "case"
-operand_id_field = "call_ids"
-operand_counts = [1]
-allowed_input_binding_ids = ["board_passed_pawn"]
 
 [[finite_relation.opposing_pawn_ahead.rule]]
 result_id = "strictly_ahead_same_or_adjacent_file"
 facts = [{ id = "opposing_pawn_exists", type_id = "bool", value_id = "true" }, { id = "relative_rank_relation", type_id = "RankRelation", value_id = "strictly_ahead" }, { id = "absolute_file_delta_max", type_id = "u8", value_id = "1" }]
 
 [finite_relation.finite_mating_root_major_piece]
-operand_scope = "case"
-operand_id_field = "call_ids"
-operand_counts = [1]
-allowed_input_binding_ids = ["finite_mating_tree_rooted_at_authority"]
 
 [[finite_relation.finite_mating_root_major_piece.rule]]
 result_id = "queen"
