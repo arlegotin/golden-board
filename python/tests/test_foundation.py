@@ -972,7 +972,7 @@ def _content_recipe_bytes(payload: dict[str, object], recipe: dict[str, object])
              _content_record(2, "ROOT", b"\0\x01\xff\xff")]
         )
     if tag == "record-payload-bytes-boundary":
-        return b"\0\0\0\x02\0\x01\0\x01" + _content_u32(data["declared_payload_bytes"])
+        return b"\0\0\0\x02\0\x01\0\x03" + _content_u32(data["declared_payload_bytes"])
     if tag == "control-edge-boundary":
         return _content_control_stream(data["control_edges"] == 16385)
     raise AssertionError(f"unknown content recipe: {name}")
@@ -1999,14 +1999,14 @@ class RepoContract(unittest.TestCase):
                 "id": "content-v0",
                 "path": "conformance/content-v0.json",
                 "provenance": "hand-authored",
-                "sha256": "e6a142c4239c174ea354aeb61c970781491eaaf9420b8d9622eb8f5c43921c78",
+                "sha256": "b3f4279e95854e77bd3ce25c05e8580b1298ffccc164ac40a6010e86091a038b",
                 "specification": "content-v0",
                 "version": "v0",
             },
         )
         self.assertEqual(
             hashlib.sha256(payload_bytes).hexdigest(),
-            "e6a142c4239c174ea354aeb61c970781491eaaf9420b8d9622eb8f5c43921c78",
+            "b3f4279e95854e77bd3ce25c05e8580b1298ffccc164ac40a6010e86091a038b",
         )
 
         payload = canonical_manifest.validate_canonical_manifest(payload_bytes)
@@ -2325,6 +2325,8 @@ class RepoContract(unittest.TestCase):
             "passive-expected-feedback-mismatch": (29, 441, 443),
             "passive-expected-next-node-mismatch": (29, 443, 445),
             "record-id-65535-exact": (20, 21, 23),
+            "record-payload-bytes-exact": (2, 12, 12),
+            "region-label-wrong-kind": (20, 246, 248),
         }
         for name, (code, raw_start, raw_end) in rejections.items():
             with self.subTest(name=name):
@@ -2336,6 +2338,23 @@ class RepoContract(unittest.TestCase):
                         "raw_start": raw_start,
                     }},
                 )
+
+        region_wrong_kind = rows["region-label-wrong-kind"]
+        self.assertEqual(
+            region_wrong_kind["input"]["patches"],
+            [{"new_hex": "000d", "old_hex": "0001", "start": 246}],
+        )
+        self.assertEqual(
+            _content_recipe_bytes(payload, region_wrong_kind)[246:248], b"\0\r"
+        )
+        payload_boundary = rows["record-payload-bytes-exact"]
+        self.assertEqual(
+            _content_recipe_bytes(payload, payload_boundary)[6:8], b"\0\x03"
+        )
+        payload_excess = rows["record-payload-bytes-plus-one"]
+        self.assertEqual(
+            _content_recipe_bytes(payload, payload_excess)[6:8], b"\0\x03"
+        )
 
         self.assertEqual(len(payload["recipes"]), 173)
         self.assertFalse({
