@@ -1206,277 +1206,433 @@ kind = "all_selectable_visible_ordinals_up_to_cap"
 order = "ascending_visible_ordinal"
 cap_source = "declared_max_selections"
 
+[finite_relation.candidate_move_effect]
+operand_scope = "case"
+operand_id_field = "call_ids"
+operand_counts = [1, 2]
+allowed_input_binding_ids = ["replay_move_legality", "replay_terminal_transition", "replay_record_and_last_move", "post_move_history"]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "pawn_quiet"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "quiet" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "pawn_capture"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "pawn_initial_double"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "initial_double" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "king_capture"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "king" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "castling"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "king" }, { id = "move_kind", type_id = "MoveKind", value_id = "castling" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "en_passant"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "en_passant" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promotion_quiet"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion_quiet" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promotion_capture"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion_capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promotion_any"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promote_queen"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "queen" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promote_rook"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "rook" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promote_bishop"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "bishop" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promote_knight"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "knight" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "pawn_move"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "any" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "capture"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "any" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }]
+
+[finite_relation.replay_relation]
+operand_scope = "pattern"
+operand_id_field = "case_ids"
+operand_counts = [2, 3]
+allowed_input_binding_ids = []
+
+[[finite_relation.replay_relation.rule]]
+result_id = "one_legal_ply_extension"
+facts = [{ id = "ply_delta", type_id = "i8", value_id = "1" }]
+
+[[finite_relation.replay_relation.rule]]
+result_id = "same_shown_move"
+facts = [{ id = "shown_move_equal", type_id = "bool", value_id = "true" }]
+
+[[finite_relation.replay_relation.rule]]
+result_id = "same_position_except_relevant_castling_right"
+facts = [{ id = "position_difference", type_id = "FieldSet", value_id = "relevant_castling_right_only" }]
+
+[[finite_relation.replay_relation.rule]]
+result_id = "same_final_position"
+facts = [{ id = "final_position_equal", type_id = "bool", value_id = "true" }]
+
+[[finite_relation.replay_relation.rule]]
+result_id = "replacement_piece_does_not_restore_right"
+facts = [{ id = "castling_entitlement_restored", type_id = "bool", value_id = "false" }]
+
+[[finite_relation.replay_relation.rule]]
+result_id = "different_replay_history"
+facts = [{ id = "history_equal", type_id = "bool", value_id = "false" }]
+
+[[finite_relation.replay_relation.rule]]
+result_id = "ineffective_ep_keys_equal_effective_ep_differs"
+facts = [{ id = "ineffective_ep_key_equal", type_id = "bool", value_id = "true" }, { id = "effective_ep_key_equal", type_id = "bool", value_id = "false" }]
+
+[finite_relation.en_passant_context]
+operand_scope = "case"
+operand_id_field = "call_ids"
+operand_counts = [1]
+allowed_input_binding_ids = ["replay_move_legality"]
+
+[[finite_relation.en_passant_context.rule]]
+result_id = "expired_after_intervening_move"
+facts = [{ id = "intervening_legal_plies_min", type_id = "u16", value_id = "1" }, { id = "nominal_target", type_id = "EnPassantFact", value_id = "none" }]
+
+[finite_relation.material_class]
+operand_scope = "case"
+operand_id_field = "call_ids"
+operand_counts = [1]
+allowed_input_binding_ids = ["replay_terminal_transition"]
+
+[[finite_relation.material_class.rule]]
+result_id = "recognized_common_dead"
+facts = [{ id = "selected_common_dead_class", type_id = "bool", value_id = "true" }, { id = "common_dead", type_id = "bool", value_id = "true" }]
+
+[[finite_relation.material_class.rule]]
+result_id = "king_two_knights_vs_king"
+facts = [{ id = "material_signature", type_id = "MaterialSignature", value_id = "king_two_knights_vs_king" }, { id = "common_dead", type_id = "bool", value_id = "false" }]
+
+[finite_relation.opposing_pawn_ahead]
+operand_scope = "case"
+operand_id_field = "call_ids"
+operand_counts = [1]
+allowed_input_binding_ids = ["board_passed_pawn"]
+
+[[finite_relation.opposing_pawn_ahead.rule]]
+result_id = "strictly_ahead_same_or_adjacent_file"
+facts = [{ id = "opposing_pawn_exists", type_id = "bool", value_id = "true" }, { id = "relative_rank_relation", type_id = "RankRelation", value_id = "strictly_ahead" }, { id = "absolute_file_delta_max", type_id = "u8", value_id = "1" }]
+
+[finite_relation.finite_mating_root_major_piece]
+operand_scope = "case"
+operand_id_field = "call_ids"
+operand_counts = [1]
+allowed_input_binding_ids = ["finite_mating_tree_rooted_at_authority"]
+
+[[finite_relation.finite_mating_root_major_piece.rule]]
+result_id = "queen"
+facts = [{ id = "major_piece_kind", type_id = "PieceKind", value_id = "queen" }, { id = "major_piece_count", type_id = "u8", value_id = "1" }, { id = "other_nonking_count", type_id = "u8", value_id = "0" }, { id = "major_piece_side_is_mating_side", type_id = "bool", value_id = "true" }]
+
+[[finite_relation.finite_mating_root_major_piece.rule]]
+result_id = "rook"
+facts = [{ id = "major_piece_kind", type_id = "PieceKind", value_id = "rook" }, { id = "major_piece_count", type_id = "u8", value_id = "1" }, { id = "other_nonking_count", type_id = "u8", value_id = "0" }, { id = "major_piece_side_is_mating_side", type_id = "bool", value_id = "true" }]
+
 [[input_binding]]
 id = "setup_initial_position"
 authority_kind = "board_local_position"
 owner_id = "chess.setup_turn"
 input_variant_id = "SetupTurnInput.initial"
-argument_ids = ["authority.wire_position"]
-derivation_ref_ids = ["chess.validate_local"]
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
 
 [[input_binding]]
 id = "initial_replay_and_side"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.setup_turn"
 input_variant_id = "SetupTurnInput.current_side"
-argument_ids = ["authority.replay_state_exact_0_plies", "call.constant.side"]
-derivation_ref_ids = ["chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state_exact_0_plies" }, { position = 1, type_id = "Side", source_kind = "call_constant", source_id = "call.input_constants[0]" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice_exact_0_plies"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state_exact_0_plies", output_type_id = "ReplayState" }]
 
 [[input_binding]]
 id = "replay_and_current_side"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.setup_turn"
 input_variant_id = "SetupTurnInput.current_side"
-argument_ids = ["authority.replay_state", "call.constant.side"]
-derivation_ref_ids = ["chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state" }, { position = 1, type_id = "Side", source_kind = "call_constant", source_id = "call.input_constants[0]" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }]
 
 [[input_binding]]
 id = "replay_move_legality"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.move_legality"
 input_variant_id = "MoveLegalityInput"
-argument_ids = ["authority.replay_state", "bound.shown_move"]
-derivation_ref_ids = ["chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state" }, { position = 1, type_id = "Move", source_kind = "bound", source_id = "bound.shown_move" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }]
 
 [[input_binding]]
 id = "replay_terminal_transition"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.terminal_transition"
 input_variant_id = "TerminalTransitionInput"
-argument_ids = ["authority.replay_state", "bound.shown_move"]
-derivation_ref_ids = ["chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state" }, { position = 1, type_id = "Move", source_kind = "bound", source_id = "bound.shown_move" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }]
 
 [[input_binding]]
 id = "replay_move_origin_occupancy"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.occupancy"
 input_variant_id = "OccupancyInput"
-argument_ids = ["authority.replay_state.position", "bound.shown_move.origin", "call.constant.occupancy_match"]
-derivation_ref_ids = ["chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "derived", source_id = "authority.replay_wire_position" }, { position = 1, type_id = "Square", source_kind = "bound_projection", source_id = "bound.shown_move.origin" }, { position = 2, type_id = "OccupancyMatch", source_kind = "call_constant", source_id = "call.input_constants[0]" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "typed_projection", operation_id = "projection.replay_wire_position", input_source_ids = ["authority.replay_state"], input_type_ids = ["ReplayState"], output_source_id = "authority.replay_wire_position", output_type_id = "WirePosition" }]
 
 [[input_binding]]
 id = "board_control_with_bound_origin"
 authority_kind = "board_local_position"
 owner_id = "chess.control"
 input_variant_id = "ControlInput"
-argument_ids = ["authority.wire_position", "authority.controlling_side", "bound.controller_origin"]
-derivation_ref_ids = ["chess.validate_local"]
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.controlling_side" }, { position = 2, type_id = "Square", source_kind = "bound", source_id = "bound.controller_origin" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
 
 [[input_binding]]
 id = "board_bound_origin_occupancy"
 authority_kind = "board_local_position"
 owner_id = "chess.occupancy"
 input_variant_id = "OccupancyInput"
-argument_ids = ["authority.wire_position", "bound.controller_origin", "call.constant.occupancy_match"]
-derivation_ref_ids = ["chess.validate_local"]
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Square", source_kind = "bound", source_id = "bound.controller_origin" }, { position = 2, type_id = "OccupancyMatch", source_kind = "call_constant", source_id = "call.input_constants[0]" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
 
 [[input_binding]]
 id = "board_defended"
 authority_kind = "board_local_position"
 owner_id = "chess.defended"
 input_variant_id = "DefendedInput"
-argument_ids = ["authority.wire_position", "authority.target_square", "authority.defender"]
-derivation_ref_ids = ["chess.validate_local"]
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Square", source_kind = "authority", source_id = "authority.target_square" }, { position = 2, type_id = "Defender", source_kind = "authority", source_id = "authority.defender" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
 
 [[input_binding]]
 id = "board_pin_with_origin"
 authority_kind = "board_local_position"
 owner_id = "chess.absolute_pin"
 input_variant_id = "AbsolutePinInput"
-argument_ids = ["authority.locally_admissible_position", "bound.controller_origin"]
-derivation_ref_ids = ["chess.validate_local"]
+arguments = [{ position = 0, type_id = "LocallyAdmissiblePosition", source_kind = "derived", source_id = "authority.locally_admissible_position" }, { position = 1, type_id = "Square", source_kind = "bound", source_id = "bound.controller_origin" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
 
 [[input_binding]]
 id = "replay_move_destination_control_with_origin"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.control"
 input_variant_id = "ControlInput"
-argument_ids = ["authority.replay_state.position", "authority.replay_state.side_to_move", "bound.shown_move.target"]
-derivation_ref_ids = ["chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "derived", source_id = "authority.replay_wire_position" }, { position = 1, type_id = "Side", source_kind = "derived", source_id = "authority.replay_side_to_move" }, { position = 2, type_id = "Square", source_kind = "bound_projection", source_id = "bound.shown_move.target" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "typed_projection", operation_id = "projection.replay_wire_position", input_source_ids = ["authority.replay_state"], input_type_ids = ["ReplayState"], output_source_id = "authority.replay_wire_position", output_type_id = "WirePosition" }, { position = 2, kind_id = "typed_projection", operation_id = "projection.replay_side_to_move", input_source_ids = ["authority.replay_state"], input_type_ids = ["ReplayState"], output_source_id = "authority.replay_side_to_move", output_type_id = "Side" }]
 
 [[input_binding]]
 id = "board_king_check"
 authority_kind = "board_local_position"
 owner_id = "chess.king_check"
 input_variant_id = "KingCheckInput"
-argument_ids = ["authority.locally_admissible_position", "authority.checked_side"]
-derivation_ref_ids = ["chess.validate_local"]
+arguments = [{ position = 0, type_id = "LocallyAdmissiblePosition", source_kind = "derived", source_id = "authority.locally_admissible_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.checked_side" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
 
 [[input_binding]]
 id = "pre_move_moving_side_king_check"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.king_check"
 input_variant_id = "KingCheckInput"
-argument_ids = ["authority.replay_state.position", "authority.replay_state.side_to_move"]
-derivation_ref_ids = ["chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "LocallyAdmissiblePosition", source_kind = "derived", source_id = "authority.replay_local_position" }, { position = 1, type_id = "Side", source_kind = "derived", source_id = "authority.replay_side_to_move" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "typed_projection", operation_id = "projection.replay_local_position", input_source_ids = ["authority.replay_state"], input_type_ids = ["ReplayState"], output_source_id = "authority.replay_local_position", output_type_id = "LocallyAdmissiblePosition" }, { position = 2, kind_id = "typed_projection", operation_id = "projection.replay_side_to_move", input_source_ids = ["authority.replay_state"], input_type_ids = ["ReplayState"], output_source_id = "authority.replay_side_to_move", output_type_id = "Side" }]
 
 [[input_binding]]
 id = "post_move_moving_side_king_check"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.king_check"
 input_variant_id = "KingCheckInput"
-argument_ids = ["derived.post_move_position", "authority.replay_state.side_to_move"]
-derivation_ref_ids = ["chess.replay_from_start", "chess.apply_move"]
+arguments = [{ position = 0, type_id = "LocallyAdmissiblePosition", source_kind = "derived", source_id = "derived.post_move_local_position" }, { position = 1, type_id = "Side", source_kind = "derived", source_id = "authority.replay_side_to_move" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "owner_call", operation_id = "chess.apply_move", input_source_ids = ["authority.replay_state", "bound.shown_move"], input_type_ids = ["ReplayState", "Move"], output_source_id = "derived.post_move_replay_state", output_type_id = "ReplayState" }, { position = 2, kind_id = "typed_projection", operation_id = "projection.replay_local_position", input_source_ids = ["derived.post_move_replay_state"], input_type_ids = ["ReplayState"], output_source_id = "derived.post_move_local_position", output_type_id = "LocallyAdmissiblePosition" }, { position = 3, kind_id = "typed_projection", operation_id = "projection.replay_side_to_move", input_source_ids = ["authority.replay_state"], input_type_ids = ["ReplayState"], output_source_id = "authority.replay_side_to_move", output_type_id = "Side" }]
 
 [[input_binding]]
 id = "post_move_next_side_king_check"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.king_check"
 input_variant_id = "KingCheckInput"
-argument_ids = ["derived.post_move_position", "derived.post_move_side_to_move"]
-derivation_ref_ids = ["chess.replay_from_start", "chess.apply_move"]
+arguments = [{ position = 0, type_id = "LocallyAdmissiblePosition", source_kind = "derived", source_id = "derived.post_move_local_position" }, { position = 1, type_id = "Side", source_kind = "derived", source_id = "derived.post_move_side_to_move" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "owner_call", operation_id = "chess.apply_move", input_source_ids = ["authority.replay_state", "bound.shown_move"], input_type_ids = ["ReplayState", "Move"], output_source_id = "derived.post_move_replay_state", output_type_id = "ReplayState" }, { position = 2, kind_id = "typed_projection", operation_id = "projection.replay_local_position", input_source_ids = ["derived.post_move_replay_state"], input_type_ids = ["ReplayState"], output_source_id = "derived.post_move_local_position", output_type_id = "LocallyAdmissiblePosition" }, { position = 3, kind_id = "typed_projection", operation_id = "projection.replay_side_to_move", input_source_ids = ["derived.post_move_replay_state"], input_type_ids = ["ReplayState"], output_source_id = "derived.post_move_side_to_move", output_type_id = "Side" }]
 
 [[input_binding]]
 id = "board_checked_king_control"
 authority_kind = "board_local_position"
 owner_id = "chess.control"
 input_variant_id = "ControlInput"
-argument_ids = ["authority.wire_position", "authority.opposing_side", "bound.checked_king_square"]
-derivation_ref_ids = ["chess.validate_local"]
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.opposing_side" }, { position = 2, type_id = "Square", source_kind = "bound", source_id = "bound.checked_king_square" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
 
 [[input_binding]]
 id = "replay_record_and_last_move"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.move_record_replay"
 input_variant_id = "MoveRecordInput.record"
-argument_ids = ["authority.move_slice_including_shown_move", "authority.score"]
-derivation_ref_ids = ["chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "MoveSlice", source_kind = "authority", source_id = "authority.move_slice_including_shown_move" }, { position = 1, type_id = "Score", source_kind = "authority", source_id = "authority.case_score" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice_including_shown_move"], input_type_ids = ["MoveSlice"], output_source_id = "derived.record_replay_state", output_type_id = "ReplayState" }]
 
 [[input_binding]]
 id = "canonical_shown_move_bytes"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.move_record_replay"
 input_variant_id = "MoveRecordInput.move_bytes"
-argument_ids = ["derived.chess.encode_move.bound_shown_move"]
-derivation_ref_ids = ["chess.replay_from_start", "chess.encode_move"]
+arguments = [{ position = 0, type_id = "ByteSlice", source_kind = "derived", source_id = "derived.shown_move_bytes" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "owner_call", operation_id = "chess.encode_move", input_source_ids = ["bound.shown_move"], input_type_ids = ["Move"], output_source_id = "derived.shown_move_bytes", output_type_id = "ByteSlice" }]
 
 [[input_binding]]
 id = "replay_history"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.history_claim"
 input_variant_id = "ReplayState"
-argument_ids = ["authority.replay_state"]
-derivation_ref_ids = ["chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }]
 
 [[input_binding]]
 id = "post_move_history"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.history_claim"
 input_variant_id = "ReplayState"
-argument_ids = ["derived.post_move_replay_state"]
-derivation_ref_ids = ["chess.replay_from_start", "chess.apply_move"]
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "derived.post_move_replay_state" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "owner_call", operation_id = "chess.apply_move", input_source_ids = ["authority.replay_state", "bound.shown_move"], input_type_ids = ["ReplayState", "Move"], output_source_id = "derived.post_move_replay_state", output_type_id = "ReplayState" }]
 
 [[input_binding]]
 id = "source_derived_history"
 authority_kind = "source_game_bytes"
 owner_id = "chess.history_claim"
 input_variant_id = "ReplayState"
-argument_ids = ["derived.replay_state_from_source_move_slice"]
-derivation_ref_ids = ["source.decode_game", "chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "derived.source_replay_state" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "source.decode_game", input_source_ids = ["authority.source_game_bytes"], input_type_ids = ["ByteSlice"], output_source_id = "derived.source_game_record", output_type_id = "GameRecord" }, { position = 1, kind_id = "typed_projection", operation_id = "projection.source_move_slice", input_source_ids = ["derived.source_game_record"], input_type_ids = ["GameRecord"], output_source_id = "derived.source_move_slice", output_type_id = "MoveSlice" }, { position = 2, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["derived.source_move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "derived.source_replay_state", output_type_id = "ReplayState" }]
 
 [[input_binding]]
 id = "game_state_and_event"
 authority_kind = "complete_game_events_status"
 owner_id = "chess.declaration_event"
 input_variant_id = "DeclarationEventInput"
-argument_ids = ["authority.game_state", "authority.event"]
-derivation_ref_ids = ["chess.new_game", "chess.apply_event"]
+arguments = [{ position = 0, type_id = "GameState", source_kind = "derived", source_id = "authority.game_state" }, { position = 1, type_id = "Event", source_kind = "authority", source_id = "authority.event" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.new_game", input_source_ids = [], input_type_ids = [], output_source_id = "derived.initial_game_state", output_type_id = "GameState" }, { position = 1, kind_id = "owner_call", operation_id = "chess.apply_event", input_source_ids = ["authority.prior_game_state", "authority.prior_event"], input_type_ids = ["GameState", "Event"], output_source_id = "authority.game_state", output_type_id = "GameState" }]
 
 [[input_binding]]
 id = "source_move_slice_and_score"
 authority_kind = "source_game_bytes"
 owner_id = "chess.source_score_relation"
 input_variant_id = "SourceScoreInput"
-argument_ids = ["derived.source.decode_game.move_slice", "derived.source.decode_game.score"]
-derivation_ref_ids = ["source.decode_game"]
+arguments = [{ position = 0, type_id = "MoveSlice", source_kind = "derived", source_id = "derived.source_move_slice" }, { position = 1, type_id = "Score", source_kind = "call_constant", source_id = "call.input_constants[0]" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "source.decode_game", input_source_ids = ["authority.source_game_bytes"], input_type_ids = ["ByteSlice"], output_source_id = "derived.source_game_record", output_type_id = "GameRecord" }, { position = 1, kind_id = "typed_projection", operation_id = "projection.source_move_slice", input_source_ids = ["derived.source_game_record"], input_type_ids = ["GameRecord"], output_source_id = "derived.source_move_slice", output_type_id = "MoveSlice" }]
+
+[[input_binding]]
+id = "source_move_slice_and_decoded_score"
+authority_kind = "source_game_bytes"
+owner_id = "chess.source_score_relation"
+input_variant_id = "SourceScoreInput"
+arguments = [{ position = 0, type_id = "MoveSlice", source_kind = "derived", source_id = "derived.source_move_slice" }, { position = 1, type_id = "Score", source_kind = "derived", source_id = "derived.source_score" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "source.decode_game", input_source_ids = ["authority.source_game_bytes"], input_type_ids = ["ByteSlice"], output_source_id = "derived.source_game_record", output_type_id = "GameRecord" }, { position = 1, kind_id = "typed_projection", operation_id = "projection.source_move_slice", input_source_ids = ["derived.source_game_record"], input_type_ids = ["GameRecord"], output_source_id = "derived.source_move_slice", output_type_id = "MoveSlice" }, { position = 2, kind_id = "typed_projection", operation_id = "projection.source_score", input_source_ids = ["derived.source_game_record"], input_type_ids = ["GameRecord"], output_source_id = "derived.source_score", output_type_id = "Score" }]
 
 [[input_binding]]
 id = "raw_content_bytes"
 authority_kind = "content_bytes"
 owner_id = "content.stream_validation"
 input_variant_id = "ByteSlice"
-argument_ids = ["authority.content_bytes"]
-derivation_ref_ids = []
+arguments = [{ position = 0, type_id = "ByteSlice", source_kind = "authority", source_id = "authority.content_bytes" }]
+derivations = []
 
 [[input_binding]]
 id = "board_control"
 authority_kind = "board_local_position"
 owner_id = "chess.control"
 input_variant_id = "ControlInput"
-argument_ids = ["authority.wire_position", "authority.controlling_side", "authority.target_square"]
-derivation_ref_ids = ["chess.validate_local"]
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.controlling_side" }, { position = 2, type_id = "Square", source_kind = "authority", source_id = "authority.target_square" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
 
 [[input_binding]]
 id = "board_escape_control"
 authority_kind = "board_local_position"
 owner_id = "chess.escape_square_control"
 input_variant_id = "EscapeControlInput"
-argument_ids = ["authority.wire_position", "authority.controlling_side", "authority.candidate_square"]
-derivation_ref_ids = ["chess.validate_local"]
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.controlling_side" }, { position = 2, type_id = "Square", source_kind = "authority", source_id = "authority.candidate_square" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
 
 [[input_binding]]
 id = "board_passed_pawn"
 authority_kind = "board_local_position"
 owner_id = "chess.passed_pawn"
 input_variant_id = "PassedPawnInput"
-argument_ids = ["authority.locally_admissible_position", "authority.pawn_square"]
-derivation_ref_ids = ["chess.validate_local"]
+arguments = [{ position = 0, type_id = "LocallyAdmissiblePosition", source_kind = "derived", source_id = "authority.locally_admissible_position" }, { position = 1, type_id = "Square", source_kind = "authority", source_id = "authority.pawn_square" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
 
 [[input_binding]]
 id = "board_open_file"
 authority_kind = "board_local_position"
 owner_id = "chess.open_file"
 input_variant_id = "OpenFileInput"
-argument_ids = ["authority.wire_position", "authority.file"]
-derivation_ref_ids = ["chess.validate_local"]
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "File", source_kind = "authority", source_id = "authority.file" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
 
 [[input_binding]]
 id = "board_semi_open_file"
 authority_kind = "board_local_position"
 owner_id = "chess.semi_open_file"
 input_variant_id = "SemiOpenFileInput"
-argument_ids = ["authority.wire_position", "authority.side", "authority.file"]
-derivation_ref_ids = ["chess.validate_local"]
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.side" }, { position = 2, type_id = "File", source_kind = "authority", source_id = "authority.file" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
 
 [[input_binding]]
 id = "replay_fork_targets"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.fork_double_attack"
 input_variant_id = "AfterMoveNamedTargetsInput"
-argument_ids = ["authority.replay_state", "bound.shown_move", "authority.named_target_squares"]
-derivation_ref_ids = ["chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state" }, { position = 1, type_id = "Move", source_kind = "bound", source_id = "bound.shown_move" }, { position = 2, type_id = "SquareSlice", source_kind = "authority", source_id = "authority.named_target_squares" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }]
 
 [[input_binding]]
 id = "replay_discovered_line"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.discovered_attack_check"
 input_variant_id = "DiscoveredLineInput"
-argument_ids = ["authority.replay_state", "bound.shown_move", "authority.slider_origin", "bound.line_target"]
-derivation_ref_ids = ["chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state" }, { position = 1, type_id = "Move", source_kind = "bound", source_id = "bound.shown_move" }, { position = 2, type_id = "Square", source_kind = "authority", source_id = "authority.slider_origin" }, { position = 3, type_id = "Square", source_kind = "bound", source_id = "bound.line_target" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }]
 
 [[input_binding]]
 id = "post_move_discovered_target_occupancy"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.occupancy"
 input_variant_id = "OccupancyInput"
-argument_ids = ["derived.post_move_wire_position", "bound.line_target", "call.constant.occupancy_match"]
-derivation_ref_ids = ["chess.replay_from_start", "chess.apply_move"]
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "derived", source_id = "derived.post_move_wire_position" }, { position = 1, type_id = "Square", source_kind = "bound", source_id = "bound.line_target" }, { position = 2, type_id = "OccupancyMatch", source_kind = "call_constant", source_id = "call.input_constants[0]" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "owner_call", operation_id = "chess.apply_move", input_source_ids = ["authority.replay_state", "bound.shown_move"], input_type_ids = ["ReplayState", "Move"], output_source_id = "derived.post_move_replay_state", output_type_id = "ReplayState" }, { position = 2, kind_id = "typed_projection", operation_id = "projection.replay_wire_position", input_source_ids = ["derived.post_move_replay_state"], input_type_ids = ["ReplayState"], output_source_id = "derived.post_move_wire_position", output_type_id = "WirePosition" }]
 
 [[input_binding]]
 id = "finite_promotion_tree_rooted_at_authority"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.finite_promotion_race"
 input_variant_id = "FinitePromotionTree"
-argument_ids = ["authority.finite_promotion_tree"]
-derivation_ref_ids = ["chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "FinitePromotionTree", source_kind = "authority", source_id = "authority.finite_promotion_tree" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.finite_promotion_tree.root_move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.finite_promotion_tree.root", output_type_id = "ReplayState" }]
 
 [[input_binding]]
 id = "finite_mating_tree_rooted_at_authority"
 authority_kind = "complete_replay_moves"
 owner_id = "chess.finite_mating_geometry"
 input_variant_id = "FiniteMatingTree"
-argument_ids = ["authority.finite_mating_tree"]
-derivation_ref_ids = ["chess.replay_from_start"]
+arguments = [{ position = 0, type_id = "FiniteMatingTree", source_kind = "authority", source_id = "authority.finite_mating_tree" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.finite_mating_tree.root_move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.finite_mating_tree.root", output_type_id = "ReplayState" }]
 
 [[result_contract]]
 id = "bool_true"
@@ -1923,7 +2079,7 @@ obligation = []
 id = "setup"
 owner_id = "chess.setup_turn"
 input_binding_id = "setup_initial_position"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -1939,7 +2095,7 @@ obligation = []
 id = "setup"
 owner_id = "chess.setup_turn"
 input_binding_id = "setup_initial_position"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -1955,13 +2111,13 @@ obligation = []
 id = "turn"
 owner_id = "chess.setup_turn"
 input_binding_id = "initial_replay_and_side"
-input_constant_ids = ["first"]
+input_constants = [{ argument_position = 1, type_id = "Side", constructor_id = "side", value_ids = ["first"] }]
 result_contract_id = "bool_true"
 
 [[case_pattern]]
 id = "setup_turn.alternating_turn"
 authority_kind = "complete_replay_moves"
-relation = [{ kind = "replay_relation", case_ids = ["before", "after"], value = "one_legal_ply_extension" }]
+relation = [{ kind = "replay_relation", case_ids = ["before", "after"], result_id = "one_legal_ply_extension", facts = [{ id = "ply_delta", type_id = "i8", value_id = "1" }] }]
 
 [[case_pattern.case]]
 id = "before"
@@ -1971,7 +2127,7 @@ obligation = []
 id = "turn"
 owner_id = "chess.setup_turn"
 input_binding_id = "replay_and_current_side"
-input_constant_ids = ["first"]
+input_constants = [{ argument_position = 1, type_id = "Side", constructor_id = "side", value_ids = ["first"] }]
 result_contract_id = "bool_true"
 
 [[case_pattern.case]]
@@ -1982,7 +2138,7 @@ obligation = []
 id = "turn"
 owner_id = "chess.setup_turn"
 input_binding_id = "replay_and_current_side"
-input_constant_ids = ["second"]
+input_constants = [{ argument_position = 1, type_id = "Side", constructor_id = "side", value_ids = ["second"] }]
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -1998,14 +2154,14 @@ obligation = []
 id = "piece"
 owner_id = "chess.occupancy"
 input_binding_id = "replay_move_origin_occupancy"
-input_constant_ids = ["mover_king"]
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "king"] }]
 result_contract_id = "bool_true"
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2021,14 +2177,14 @@ obligation = []
 id = "piece"
 owner_id = "chess.occupancy"
 input_binding_id = "replay_move_origin_occupancy"
-input_constant_ids = ["mover_queen"]
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "queen"] }]
 result_contract_id = "bool_true"
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2044,14 +2200,14 @@ obligation = []
 id = "piece"
 owner_id = "chess.occupancy"
 input_binding_id = "replay_move_origin_occupancy"
-input_constant_ids = ["mover_rook"]
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "rook"] }]
 result_contract_id = "bool_true"
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2067,14 +2223,14 @@ obligation = []
 id = "piece"
 owner_id = "chess.occupancy"
 input_binding_id = "replay_move_origin_occupancy"
-input_constant_ids = ["mover_bishop"]
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "bishop"] }]
 result_contract_id = "bool_true"
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2090,14 +2246,14 @@ obligation = []
 id = "piece"
 owner_id = "chess.occupancy"
 input_binding_id = "replay_move_origin_occupancy"
-input_constant_ids = ["mover_knight"]
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "knight"] }]
 result_contract_id = "bool_true"
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2113,14 +2269,14 @@ obligation = []
 id = "piece"
 owner_id = "chess.occupancy"
 input_binding_id = "replay_move_origin_occupancy"
-input_constant_ids = ["mover_pawn"]
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "pawn"] }]
 result_contract_id = "bool_true"
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2136,7 +2292,7 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_blocked"
 
 [[case_pattern]]
@@ -2152,14 +2308,14 @@ obligation = []
 id = "piece"
 owner_id = "chess.occupancy"
 input_binding_id = "replay_move_origin_occupancy"
-input_constant_ids = ["mover_knight"]
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "knight"] }]
 result_contract_id = "bool_true"
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2169,24 +2325,24 @@ relation = []
 
 [[case_pattern.case]]
 id = "quiet"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], value = "pawn_quiet" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "pawn_quiet", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "quiet" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern.case]]
 id = "capture"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], value = "pawn_capture" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "pawn_capture", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2196,13 +2352,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "double"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], value = "pawn_initial_double" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "pawn_initial_double", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "initial_double" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2218,7 +2374,7 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_friendly_destination"
 
 [[case_pattern]]
@@ -2234,14 +2390,14 @@ obligation = []
 id = "controllers"
 owner_id = "chess.control"
 input_binding_id = "board_control_with_bound_origin"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "square_list_contains_bound_origin"
 
 [[case_pattern.case.call]]
 id = "controller_piece"
 owner_id = "chess.occupancy"
 input_binding_id = "board_bound_origin_occupancy"
-input_constant_ids = ["bound_controller_pawn"]
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["bound_controller_side", "pawn"] }]
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -2257,7 +2413,7 @@ obligation = []
 id = "defended"
 owner_id = "chess.defended"
 input_binding_id = "board_defended"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -2273,14 +2429,14 @@ obligation = []
 id = "pin"
 owner_id = "chess.absolute_pin"
 input_binding_id = "board_pin_with_origin"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern.case.call]]
 id = "controllers"
 owner_id = "chess.control"
 input_binding_id = "board_control_with_bound_origin"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "square_list_contains_bound_origin"
 
 [[case_pattern]]
@@ -2296,14 +2452,14 @@ obligation = []
 id = "controllers"
 owner_id = "chess.control"
 input_binding_id = "board_control_with_bound_origin"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "square_list_contains_bound_origin"
 
 [[case_pattern.case.call]]
 id = "controller_piece"
 owner_id = "chess.occupancy"
 input_binding_id = "board_bound_origin_occupancy"
-input_constant_ids = ["bound_controller_king"]
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["bound_controller_side", "king"] }]
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -2319,14 +2475,14 @@ obligation = []
 id = "controllers"
 owner_id = "chess.control"
 input_binding_id = "replay_move_destination_control_with_origin"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "square_list_contains_bound_origin"
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_en_passant_target"
 
 [[case_pattern]]
@@ -2342,7 +2498,7 @@ obligation = []
 id = "check"
 owner_id = "chess.king_check"
 input_binding_id = "board_king_check"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -2358,21 +2514,21 @@ obligation = []
 id = "before"
 owner_id = "chess.king_check"
 input_binding_id = "pre_move_moving_side_king_check"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern.case.call]]
 id = "after"
 owner_id = "chess.king_check"
 input_binding_id = "post_move_moving_side_king_check"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_false"
 
 [[case_pattern]]
@@ -2388,7 +2544,7 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_self_check"
 
 [[case_pattern]]
@@ -2398,24 +2554,24 @@ relation = []
 
 [[case_pattern.case]]
 id = "safe_capture"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], value = "king_capture" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "king_capture", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "king" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern.case]]
 id = "unsafe_capture"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], value = "king_capture" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "king_capture", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "king" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_self_check"
 
 [[case_pattern]]
@@ -2431,14 +2587,14 @@ obligation = []
 id = "check"
 owner_id = "chess.king_check"
 input_binding_id = "board_king_check"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern.case.call]]
 id = "controllers"
 owner_id = "chess.control"
 input_binding_id = "board_checked_king_control"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "square_list_min_two"
 
 [[case_pattern]]
@@ -2454,14 +2610,14 @@ obligation = []
 id = "terminal"
 owner_id = "chess.terminal_transition"
 input_binding_id = "replay_terminal_transition"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "terminal_none"
 
 [[case_pattern.case.call]]
 id = "check"
 owner_id = "chess.king_check"
 input_binding_id = "post_move_next_side_king_check"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern.case]]
@@ -2472,14 +2628,14 @@ obligation = []
 id = "terminal"
 owner_id = "chess.terminal_transition"
 input_binding_id = "replay_terminal_transition"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "terminal_checkmate"
 
 [[case_pattern.case.call]]
 id = "check"
 owner_id = "chess.king_check"
 input_binding_id = "post_move_next_side_king_check"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -2495,7 +2651,7 @@ obligation = []
 id = "terminal"
 owner_id = "chess.terminal_transition"
 input_binding_id = "replay_terminal_transition"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "terminal_stalemate"
 
 [[case_pattern]]
@@ -2511,14 +2667,14 @@ obligation = []
 id = "terminal"
 owner_id = "chess.terminal_transition"
 input_binding_id = "replay_terminal_transition"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "terminal_none"
 
 [[case_pattern.case.call]]
 id = "check"
 owner_id = "chess.king_check"
 input_binding_id = "post_move_next_side_king_check"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern.case]]
@@ -2529,20 +2685,20 @@ obligation = []
 id = "terminal"
 owner_id = "chess.terminal_transition"
 input_binding_id = "replay_terminal_transition"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "terminal_checkmate"
 
 [[case_pattern.case.call]]
 id = "check"
 owner_id = "chess.king_check"
 input_binding_id = "post_move_next_side_king_check"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
 id = "castling.rights"
 authority_kind = "complete_replay_moves"
-relation = [{ kind = "replay_relation", case_ids = ["right_present", "right_absent"], value = "same_shown_move" }, { kind = "replay_relation", case_ids = ["right_present", "right_absent"], value = "same_position_except_relevant_castling_right" }]
+relation = [{ kind = "replay_relation", case_ids = ["right_present", "right_absent"], result_id = "same_shown_move", facts = [{ id = "shown_move_equal", type_id = "bool", value_id = "true" }] }, { kind = "replay_relation", case_ids = ["right_present", "right_absent"], result_id = "same_position_except_relevant_castling_right", facts = [{ id = "position_difference", type_id = "FieldSet", value_id = "relevant_castling_right_only" }] }]
 
 [[case_pattern.case]]
 id = "right_present"
@@ -2552,7 +2708,7 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern.case]]
@@ -2563,13 +2719,13 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_castling_right"
 
 [[case_pattern]]
 id = "castling.entitled_king_and_rook"
 authority_kind = "complete_replay_moves"
-relation = [{ kind = "replay_relation", case_ids = ["entitled", "replacement"], value = "same_shown_move" }, { kind = "replay_relation", case_ids = ["entitled", "replacement"], value = "replacement_piece_does_not_restore_right" }]
+relation = [{ kind = "replay_relation", case_ids = ["entitled", "replacement"], result_id = "same_shown_move", facts = [{ id = "shown_move_equal", type_id = "bool", value_id = "true" }] }, { kind = "replay_relation", case_ids = ["entitled", "replacement"], result_id = "replacement_piece_does_not_restore_right", facts = [{ id = "castling_entitlement_restored", type_id = "bool", value_id = "false" }] }]
 
 [[case_pattern.case]]
 id = "entitled"
@@ -2579,7 +2735,7 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern.case]]
@@ -2590,7 +2746,7 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_castling_right"
 
 [[case_pattern]]
@@ -2606,7 +2762,7 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_castling_path"
 
 [[case_pattern]]
@@ -2622,7 +2778,7 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_castling_from_check"
 
 [[case_pattern]]
@@ -2638,7 +2794,7 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_castling_through_check"
 
 [[case_pattern]]
@@ -2654,7 +2810,7 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_castling_into_check"
 
 [[case_pattern]]
@@ -2670,7 +2826,7 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_castling_right"
 
 [[case_pattern]]
@@ -2680,20 +2836,20 @@ relation = []
 
 [[case_pattern.case]]
 id = "castle"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality", "record"], value = "castling" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality", "record"], result_id = "castling", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "king" }, { id = "move_kind", type_id = "MoveKind", value_id = "castling" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern.case.call]]
 id = "record"
 owner_id = "chess.move_record_replay"
 input_binding_id = "replay_record_and_last_move"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "record_replayed_exact"
 
 [[case_pattern]]
@@ -2703,13 +2859,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "immediate"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], value = "en_passant" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "en_passant", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "en_passant" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2719,13 +2875,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "expired"
-obligation = [{ kind = "en_passant_context", call_ids = ["legality"], value = "expired_after_intervening_move" }]
+obligation = [{ kind = "en_passant_context", call_ids = ["legality"], result_id = "expired_after_intervening_move", facts = [{ id = "intervening_legal_plies_min", type_id = "u16", value_id = "1" }, { id = "nominal_target", type_id = "EnPassantFact", value_id = "none" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_en_passant_target"
 
 [[case_pattern]]
@@ -2735,20 +2891,20 @@ relation = []
 
 [[case_pattern.case]]
 id = "capture"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality", "record"], value = "en_passant" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality", "record"], result_id = "en_passant", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "en_passant" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern.case.call]]
 id = "record"
 owner_id = "chess.move_record_replay"
 input_binding_id = "replay_record_and_last_move"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "record_replayed_exact"
 
 [[case_pattern]]
@@ -2758,13 +2914,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "self_check"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], value = "en_passant" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "en_passant", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "en_passant" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_self_check"
 
 [[case_pattern]]
@@ -2780,7 +2936,7 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "replay_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_nominal_ineffective"
 
 [[case_pattern.case]]
@@ -2791,7 +2947,7 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "replay_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_nominal_effective"
 
 [[case_pattern]]
@@ -2801,13 +2957,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "quiet"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], value = "promotion_quiet" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "promotion_quiet", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion_quiet" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2817,13 +2973,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "capture"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], value = "promotion_capture" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "promotion_capture", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion_capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2833,13 +2989,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "queen"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], value = "promote_queen" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "promote_queen", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "queen" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2849,13 +3005,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "rook"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], value = "promote_rook" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "promote_rook", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "rook" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2865,13 +3021,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "bishop"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], value = "promote_bishop" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "promote_bishop", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "bishop" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2881,13 +3037,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "knight"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], value = "promote_knight" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "promote_knight", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "knight" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern]]
@@ -2897,27 +3053,27 @@ relation = []
 
 [[case_pattern.case]]
 id = "check"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["legality", "record"], value = "promotion_any" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality", "record"], result_id = "promotion_any", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }] }]
 
 [[case_pattern.case.call]]
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_legal"
 
 [[case_pattern.case.call]]
 id = "record"
 owner_id = "chess.move_record_replay"
 input_binding_id = "replay_record_and_last_move"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "record_replayed_exact"
 
 [[case_pattern.case.call]]
 id = "check"
 owner_id = "chess.king_check"
 input_binding_id = "post_move_next_side_king_check"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -2927,13 +3083,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "mate"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["terminal"], value = "promotion_any" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["terminal"], result_id = "promotion_any", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }] }]
 
 [[case_pattern.case.call]]
 id = "terminal"
 owner_id = "chess.terminal_transition"
 input_binding_id = "replay_terminal_transition"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "terminal_checkmate"
 
 [[case_pattern]]
@@ -2949,7 +3105,7 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_promotion_missing"
 
 [[case_pattern.case]]
@@ -2960,13 +3116,13 @@ obligation = []
 id = "legality"
 owner_id = "chess.move_legality"
 input_binding_id = "replay_move_legality"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_illegal_promotion_unneeded"
 
 [[case_pattern]]
 id = "position_history_draw.same_board_different_history"
 authority_kind = "complete_replay_moves"
-relation = [{ kind = "replay_relation", case_ids = ["history_a", "history_b"], value = "same_final_position" }, { kind = "replay_relation", case_ids = ["history_a", "history_b"], value = "different_replay_history" }]
+relation = [{ kind = "replay_relation", case_ids = ["history_a", "history_b"], result_id = "same_final_position", facts = [{ id = "final_position_equal", type_id = "bool", value_id = "true" }] }, { kind = "replay_relation", case_ids = ["history_a", "history_b"], result_id = "different_replay_history", facts = [{ id = "history_equal", type_id = "bool", value_id = "false" }] }]
 
 [[case_pattern.case]]
 id = "history_a"
@@ -2976,7 +3132,7 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "replay_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_exact"
 
 [[case_pattern.case]]
@@ -2987,13 +3143,13 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "replay_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_exact"
 
 [[case_pattern]]
 id = "position_history_draw.repetition_key"
 authority_kind = "complete_replay_moves"
-relation = [{ kind = "replay_relation", case_ids = ["nominal_absent", "nominal_ineffective", "nominal_effective"], value = "ineffective_ep_keys_equal_effective_ep_differs" }]
+relation = [{ kind = "replay_relation", case_ids = ["nominal_absent", "nominal_ineffective", "nominal_effective"], result_id = "ineffective_ep_keys_equal_effective_ep_differs", facts = [{ id = "ineffective_ep_key_equal", type_id = "bool", value_id = "true" }, { id = "effective_ep_key_equal", type_id = "bool", value_id = "false" }] }]
 
 [[case_pattern.case]]
 id = "nominal_absent"
@@ -3003,7 +3159,7 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "replay_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_nominal_absent"
 
 [[case_pattern.case]]
@@ -3014,7 +3170,7 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "replay_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_nominal_ineffective"
 
 [[case_pattern.case]]
@@ -3025,7 +3181,7 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "replay_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_nominal_effective"
 
 [[case_pattern]]
@@ -3041,7 +3197,7 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "replay_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_occurrence_two"
 
 [[case_pattern.case]]
@@ -3052,7 +3208,7 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "replay_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_occurrence_three"
 
 [[case_pattern]]
@@ -3068,7 +3224,7 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "replay_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_halfmove_99"
 
 [[case_pattern.case]]
@@ -3079,13 +3235,13 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "replay_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_halfmove_100"
 
 [[case_pattern]]
 id = "position_history_draw.halfmove_pawn_reset"
 authority_kind = "complete_replay_moves"
-relation = [{ kind = "replay_relation", case_ids = ["before", "after"], value = "one_legal_ply_extension" }]
+relation = [{ kind = "replay_relation", case_ids = ["before", "after"], result_id = "one_legal_ply_extension", facts = [{ id = "ply_delta", type_id = "i8", value_id = "1" }] }]
 
 [[case_pattern.case]]
 id = "before"
@@ -3095,24 +3251,24 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "replay_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_halfmove_nonzero"
 
 [[case_pattern.case]]
 id = "after"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["history"], value = "pawn_move" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["history"], result_id = "pawn_move", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "any" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }] }]
 
 [[case_pattern.case.call]]
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "post_move_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_halfmove_zero"
 
 [[case_pattern]]
 id = "position_history_draw.halfmove_capture_reset"
 authority_kind = "complete_replay_moves"
-relation = [{ kind = "replay_relation", case_ids = ["before", "after"], value = "one_legal_ply_extension" }]
+relation = [{ kind = "replay_relation", case_ids = ["before", "after"], result_id = "one_legal_ply_extension", facts = [{ id = "ply_delta", type_id = "i8", value_id = "1" }] }]
 
 [[case_pattern.case]]
 id = "before"
@@ -3122,18 +3278,18 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "replay_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_halfmove_nonzero"
 
 [[case_pattern.case]]
 id = "after"
-obligation = [{ kind = "candidate_move_effect", call_ids = ["history"], value = "capture" }]
+obligation = [{ kind = "candidate_move_effect", call_ids = ["history"], result_id = "capture", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "any" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }] }]
 
 [[case_pattern.case.call]]
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "post_move_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_halfmove_zero"
 
 [[case_pattern]]
@@ -3149,14 +3305,14 @@ obligation = []
 id = "history"
 owner_id = "chess.history_claim"
 input_binding_id = "source_derived_history"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "history_claim_available"
 
 [[case_pattern.case.call]]
 id = "source"
 owner_id = "chess.source_score_relation"
-input_binding_id = "source_move_slice_and_score"
-input_constant_ids = []
+input_binding_id = "source_move_slice_and_decoded_score"
+input_constants = []
 result_contract_id = "source_terminal_none"
 
 [[case_pattern]]
@@ -3172,7 +3328,7 @@ obligation = []
 id = "terminal"
 owner_id = "chess.terminal_transition"
 input_binding_id = "replay_terminal_transition"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "terminal_checkmate"
 
 [[case_pattern]]
@@ -3188,7 +3344,7 @@ obligation = []
 id = "terminal"
 owner_id = "chess.terminal_transition"
 input_binding_id = "replay_terminal_transition"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "terminal_stalemate"
 
 [[case_pattern]]
@@ -3198,24 +3354,24 @@ relation = []
 
 [[case_pattern.case]]
 id = "recognized"
-obligation = [{ kind = "material_class", call_ids = ["terminal"], value = "recognized_common_dead" }]
+obligation = [{ kind = "material_class", call_ids = ["terminal"], result_id = "recognized_common_dead", facts = [{ id = "selected_common_dead_class", type_id = "bool", value_id = "true" }, { id = "common_dead", type_id = "bool", value_id = "true" }] }]
 
 [[case_pattern.case.call]]
 id = "terminal"
 owner_id = "chess.terminal_transition"
 input_binding_id = "replay_terminal_transition"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "terminal_common_dead"
 
 [[case_pattern.case]]
 id = "two_knights"
-obligation = [{ kind = "material_class", call_ids = ["terminal"], value = "king_two_knights_vs_king" }]
+obligation = [{ kind = "material_class", call_ids = ["terminal"], result_id = "king_two_knights_vs_king", facts = [{ id = "material_signature", type_id = "MaterialSignature", value_id = "king_two_knights_vs_king" }, { id = "common_dead", type_id = "bool", value_id = "false" }] }]
 
 [[case_pattern.case.call]]
 id = "terminal"
 owner_id = "chess.terminal_transition"
 input_binding_id = "replay_terminal_transition"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "terminal_none"
 
 [[case_pattern]]
@@ -3231,7 +3387,7 @@ obligation = []
 id = "event"
 owner_id = "chess.declaration_event"
 input_binding_id = "game_state_and_event"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "declaration_resigned"
 
 [[case_pattern]]
@@ -3247,7 +3403,7 @@ obligation = []
 id = "event"
 owner_id = "chess.declaration_event"
 input_binding_id = "game_state_and_event"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "declaration_rejected_agreement_early"
 
 [[case_pattern.case]]
@@ -3258,7 +3414,7 @@ obligation = []
 id = "event"
 owner_id = "chess.declaration_event"
 input_binding_id = "game_state_and_event"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "declaration_agreed"
 
 [[case_pattern]]
@@ -3274,7 +3430,7 @@ obligation = []
 id = "event"
 owner_id = "chess.declaration_event"
 input_binding_id = "game_state_and_event"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "declaration_rejected_threefold"
 
 [[case_pattern.case]]
@@ -3285,7 +3441,7 @@ obligation = []
 id = "event"
 owner_id = "chess.declaration_event"
 input_binding_id = "game_state_and_event"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "declaration_threefold"
 
 [[case_pattern]]
@@ -3301,7 +3457,7 @@ obligation = []
 id = "event"
 owner_id = "chess.declaration_event"
 input_binding_id = "game_state_and_event"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "declaration_rejected_fifty"
 
 [[case_pattern.case]]
@@ -3312,7 +3468,7 @@ obligation = []
 id = "event"
 owner_id = "chess.declaration_event"
 input_binding_id = "game_state_and_event"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "declaration_fifty"
 
 [[case_pattern]]
@@ -3328,7 +3484,7 @@ obligation = []
 id = "event"
 owner_id = "chess.declaration_event"
 input_binding_id = "game_state_and_event"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "declaration_rejected_game_closed"
 
 [[case_pattern]]
@@ -3344,7 +3500,7 @@ obligation = []
 id = "source"
 owner_id = "chess.source_score_relation"
 input_binding_id = "source_move_slice_and_score"
-input_constant_ids = ["first_win"]
+input_constants = [{ argument_position = 1, type_id = "Score", constructor_id = "score", value_ids = ["first_win"] }]
 result_contract_id = "source_terminal_none"
 
 [[case_pattern]]
@@ -3360,7 +3516,7 @@ obligation = []
 id = "decode"
 owner_id = "chess.move_record_replay"
 input_binding_id = "canonical_shown_move_bytes"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "move_decoded_exact"
 
 [[case_pattern]]
@@ -3376,7 +3532,7 @@ obligation = []
 id = "record"
 owner_id = "chess.move_record_replay"
 input_binding_id = "replay_record_and_last_move"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "record_replayed_exact"
 
 [[case_pattern]]
@@ -3392,7 +3548,7 @@ obligation = []
 id = "source"
 owner_id = "chess.source_score_relation"
 input_binding_id = "source_move_slice_and_score"
-input_constant_ids = ["first_win"]
+input_constants = [{ argument_position = 1, type_id = "Score", constructor_id = "score", value_ids = ["first_win"] }]
 result_contract_id = "source_terminal_none"
 
 [[case_pattern.case]]
@@ -3403,7 +3559,7 @@ obligation = []
 id = "source"
 owner_id = "chess.source_score_relation"
 input_binding_id = "source_move_slice_and_score"
-input_constant_ids = ["second_win"]
+input_constants = [{ argument_position = 1, type_id = "Score", constructor_id = "score", value_ids = ["second_win"] }]
 result_contract_id = "source_terminal_none"
 
 [[case_pattern.case]]
@@ -3414,7 +3570,7 @@ obligation = []
 id = "source"
 owner_id = "chess.source_score_relation"
 input_binding_id = "source_move_slice_and_score"
-input_constant_ids = ["draw"]
+input_constants = [{ argument_position = 1, type_id = "Score", constructor_id = "score", value_ids = ["draw"] }]
 result_contract_id = "source_terminal_none"
 
 [[case_pattern]]
@@ -3430,7 +3586,7 @@ obligation = []
 id = "content"
 owner_id = "content.stream_validation"
 input_binding_id = "raw_content_bytes"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "content_accepted_exact"
 
 [[case_pattern]]
@@ -3446,7 +3602,7 @@ obligation = []
 id = "content"
 owner_id = "content.stream_validation"
 input_binding_id = "raw_content_bytes"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "content_bad_kind_exact_field"
 
 [[case_pattern]]
@@ -3462,7 +3618,7 @@ obligation = []
 id = "content"
 owner_id = "content.stream_validation"
 input_binding_id = "raw_content_bytes"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "content_truncated_eof"
 
 [[case_pattern]]
@@ -3478,7 +3634,7 @@ obligation = []
 id = "controllers"
 owner_id = "chess.control"
 input_binding_id = "board_control"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "square_list_nonempty"
 
 [[case_pattern]]
@@ -3494,7 +3650,7 @@ obligation = []
 id = "defended"
 owner_id = "chess.defended"
 input_binding_id = "board_defended"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -3510,7 +3666,7 @@ obligation = []
 id = "pin"
 owner_id = "chess.absolute_pin"
 input_binding_id = "board_pin_with_origin"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -3526,7 +3682,7 @@ obligation = []
 id = "fork"
 owner_id = "chess.fork_double_attack"
 input_binding_id = "replay_fork_targets"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -3542,14 +3698,14 @@ obligation = []
 id = "line"
 owner_id = "chess.discovered_attack_check"
 input_binding_id = "replay_discovered_line"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern.case.call]]
 id = "target"
 owner_id = "chess.occupancy"
 input_binding_id = "post_move_discovered_target_occupancy"
-input_constant_ids = ["discovered_target_opposing_nonking"]
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "occupied", value_ids = [] }]
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -3565,14 +3721,14 @@ obligation = []
 id = "line"
 owner_id = "chess.discovered_attack_check"
 input_binding_id = "replay_discovered_line"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern.case.call]]
 id = "target"
 owner_id = "chess.occupancy"
 input_binding_id = "post_move_discovered_target_occupancy"
-input_constant_ids = ["discovered_target_opposing_king"]
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["opposing_side", "king"] }]
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -3588,7 +3744,7 @@ obligation = []
 id = "control"
 owner_id = "chess.escape_square_control"
 input_binding_id = "board_escape_control"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -3604,7 +3760,7 @@ obligation = []
 id = "control"
 owner_id = "chess.escape_square_control"
 input_binding_id = "board_escape_control"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_false"
 
 [[case_pattern]]
@@ -3620,7 +3776,7 @@ obligation = []
 id = "passed"
 owner_id = "chess.passed_pawn"
 input_binding_id = "board_passed_pawn"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -3630,13 +3786,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "blocked"
-obligation = [{ kind = "opposing_pawn_ahead", call_ids = ["passed"], value = "strictly_ahead_same_or_adjacent_file" }]
+obligation = [{ kind = "opposing_pawn_ahead", call_ids = ["passed"], result_id = "strictly_ahead_same_or_adjacent_file", facts = [{ id = "opposing_pawn_exists", type_id = "bool", value_id = "true" }, { id = "relative_rank_relation", type_id = "RankRelation", value_id = "strictly_ahead" }, { id = "absolute_file_delta_max", type_id = "u8", value_id = "1" }] }]
 
 [[case_pattern.case.call]]
 id = "passed"
 owner_id = "chess.passed_pawn"
 input_binding_id = "board_passed_pawn"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_false"
 
 [[case_pattern]]
@@ -3652,7 +3808,7 @@ obligation = []
 id = "open"
 owner_id = "chess.open_file"
 input_binding_id = "board_open_file"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -3668,7 +3824,7 @@ obligation = []
 id = "semi_open"
 owner_id = "chess.semi_open_file"
 input_binding_id = "board_semi_open_file"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "bool_true"
 
 [[case_pattern]]
@@ -3684,7 +3840,7 @@ obligation = []
 id = "race"
 owner_id = "chess.finite_promotion_race"
 input_binding_id = "finite_promotion_tree_rooted_at_authority"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "finite_race_exact"
 
 [[case_pattern]]
@@ -3694,13 +3850,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "queen"
-obligation = [{ kind = "finite_mating_root_major_piece", call_ids = ["mating"], value = "queen" }]
+obligation = [{ kind = "finite_mating_root_major_piece", call_ids = ["mating"], result_id = "queen", facts = [{ id = "major_piece_kind", type_id = "PieceKind", value_id = "queen" }, { id = "major_piece_count", type_id = "u8", value_id = "1" }, { id = "other_nonking_count", type_id = "u8", value_id = "0" }, { id = "major_piece_side_is_mating_side", type_id = "bool", value_id = "true" }] }]
 
 [[case_pattern.case.call]]
 id = "mating"
 owner_id = "chess.finite_mating_geometry"
 input_binding_id = "finite_mating_tree_rooted_at_authority"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "finite_mating_exact"
 
 [[case_pattern]]
@@ -3710,13 +3866,13 @@ relation = []
 
 [[case_pattern.case]]
 id = "rook"
-obligation = [{ kind = "finite_mating_root_major_piece", call_ids = ["mating"], value = "rook" }]
+obligation = [{ kind = "finite_mating_root_major_piece", call_ids = ["mating"], result_id = "rook", facts = [{ id = "major_piece_kind", type_id = "PieceKind", value_id = "rook" }, { id = "major_piece_count", type_id = "u8", value_id = "1" }, { id = "other_nonking_count", type_id = "u8", value_id = "0" }, { id = "major_piece_side_is_mating_side", type_id = "bool", value_id = "true" }] }]
 
 [[case_pattern.case.call]]
 id = "mating"
 owner_id = "chess.finite_mating_geometry"
 input_binding_id = "finite_mating_tree_rooted_at_authority"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "finite_mating_exact"
 
 [[case_pattern]]
@@ -3732,5 +3888,5 @@ obligation = []
 id = "mating"
 owner_id = "chess.finite_mating_geometry"
 input_binding_id = "finite_mating_tree_rooted_at_authority"
-input_constant_ids = []
+input_constants = []
 result_contract_id = "finite_mating_exact"

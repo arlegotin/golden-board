@@ -17,7 +17,8 @@ ROOT_KEYS = {
     "gate", "forms", "leakage", "cue_audit", "capacity", "cut",
     "m1_scope", "concept", "role", "generator", "family",
     "integrated_task", "critical_label", "transform", "predicate_mapping",
-    "cue_strategy", "input_binding", "result_contract", "case_pattern",
+    "cue_strategy", "finite_relation", "input_binding", "result_contract",
+    "case_pattern",
 }
 REMOVED_DERIVED_KEYS = {
     "stratum", "evidence_registry", "checker_contract",
@@ -177,107 +178,266 @@ VARIANT_OWNER_ARITY = {
     "ByteSlice": ("content.stream_validation", 1),
 }
 
+VARIANT_ARGUMENT_TYPES = {
+    "SetupTurnInput.initial": ["WirePosition"],
+    "SetupTurnInput.current_side": ["ReplayState", "Side"],
+    "OccupancyInput": ["WirePosition", "Square", "OccupancyMatch"],
+    "MoveLegalityInput": ["ReplayState", "Move"],
+    "ControlInput": ["WirePosition", "Side", "Square"],
+    "DefendedInput": ["WirePosition", "Square", "Defender"],
+    "KingCheckInput": ["LocallyAdmissiblePosition", "Side"],
+    "AbsolutePinInput": ["LocallyAdmissiblePosition", "Square"],
+    "AfterMoveNamedTargetsInput": ["ReplayState", "Move", "SquareSlice"],
+    "DiscoveredLineInput": ["ReplayState", "Move", "Square", "Square"],
+    "EscapeControlInput": ["WirePosition", "Side", "Square"],
+    "PassedPawnInput": ["LocallyAdmissiblePosition", "Square"],
+    "OpenFileInput": ["WirePosition", "File"],
+    "SemiOpenFileInput": ["WirePosition", "Side", "File"],
+    "FinitePromotionTree": ["FinitePromotionTree"],
+    "FiniteMatingTree": ["FiniteMatingTree"],
+    "TerminalTransitionInput": ["ReplayState", "Move"],
+    "ReplayState": ["ReplayState"],
+    "DeclarationEventInput": ["GameState", "Event"],
+    "SourceScoreInput": ["MoveSlice", "Score"],
+    "MoveRecordInput.move_bytes": ["ByteSlice"],
+    "MoveRecordInput.record": ["MoveSlice", "Score"],
+    "ByteSlice": ["ByteSlice"],
+}
+
 INPUT_ARGUMENTS = {
-    "setup_initial_position": ["authority.wire_position"],
+    "setup_initial_position": ["WirePosition@authority:authority.wire_position"],
+    "initial_replay_and_side": ["ReplayState@derived:authority.replay_state_exact_0_plies", "Side@call_constant:call.input_constants[0]"],
+    "replay_and_current_side": ["ReplayState@derived:authority.replay_state", "Side@call_constant:call.input_constants[0]"],
+    "replay_move_legality": ["ReplayState@derived:authority.replay_state", "Move@bound:bound.shown_move"],
+    "replay_terminal_transition": ["ReplayState@derived:authority.replay_state", "Move@bound:bound.shown_move"],
+    "replay_move_origin_occupancy": ["WirePosition@derived:authority.replay_wire_position", "Square@bound_projection:bound.shown_move.origin", "OccupancyMatch@call_constant:call.input_constants[0]"],
+    "board_control_with_bound_origin": ["WirePosition@authority:authority.wire_position", "Side@authority:authority.controlling_side", "Square@bound:bound.controller_origin"],
+    "board_bound_origin_occupancy": ["WirePosition@authority:authority.wire_position", "Square@bound:bound.controller_origin", "OccupancyMatch@call_constant:call.input_constants[0]"],
+    "board_defended": ["WirePosition@authority:authority.wire_position", "Square@authority:authority.target_square", "Defender@authority:authority.defender"],
+    "board_pin_with_origin": ["LocallyAdmissiblePosition@derived:authority.locally_admissible_position", "Square@bound:bound.controller_origin"],
+    "replay_move_destination_control_with_origin": ["WirePosition@derived:authority.replay_wire_position", "Side@derived:authority.replay_side_to_move", "Square@bound_projection:bound.shown_move.target"],
+    "board_king_check": ["LocallyAdmissiblePosition@derived:authority.locally_admissible_position", "Side@authority:authority.checked_side"],
+    "pre_move_moving_side_king_check": ["LocallyAdmissiblePosition@derived:authority.replay_local_position", "Side@derived:authority.replay_side_to_move"],
+    "post_move_moving_side_king_check": ["LocallyAdmissiblePosition@derived:derived.post_move_local_position", "Side@derived:authority.replay_side_to_move"],
+    "post_move_next_side_king_check": ["LocallyAdmissiblePosition@derived:derived.post_move_local_position", "Side@derived:derived.post_move_side_to_move"],
+    "board_checked_king_control": ["WirePosition@authority:authority.wire_position", "Side@authority:authority.opposing_side", "Square@bound:bound.checked_king_square"],
+    "replay_record_and_last_move": ["MoveSlice@authority:authority.move_slice_including_shown_move", "Score@authority:authority.case_score"],
+    "canonical_shown_move_bytes": ["ByteSlice@derived:derived.shown_move_bytes"],
+    "replay_history": ["ReplayState@derived:authority.replay_state"],
+    "post_move_history": ["ReplayState@derived:derived.post_move_replay_state"],
+    "source_derived_history": ["ReplayState@derived:derived.source_replay_state"],
+    "game_state_and_event": ["GameState@derived:authority.game_state", "Event@authority:authority.event"],
+    "source_move_slice_and_score": ["MoveSlice@derived:derived.source_move_slice", "Score@call_constant:call.input_constants[0]"],
+    "source_move_slice_and_decoded_score": ["MoveSlice@derived:derived.source_move_slice", "Score@derived:derived.source_score"],
+    "raw_content_bytes": ["ByteSlice@authority:authority.content_bytes"],
+    "board_control": ["WirePosition@authority:authority.wire_position", "Side@authority:authority.controlling_side", "Square@authority:authority.target_square"],
+    "board_escape_control": ["WirePosition@authority:authority.wire_position", "Side@authority:authority.controlling_side", "Square@authority:authority.candidate_square"],
+    "board_passed_pawn": ["LocallyAdmissiblePosition@derived:authority.locally_admissible_position", "Square@authority:authority.pawn_square"],
+    "board_open_file": ["WirePosition@authority:authority.wire_position", "File@authority:authority.file"],
+    "board_semi_open_file": ["WirePosition@authority:authority.wire_position", "Side@authority:authority.side", "File@authority:authority.file"],
+    "replay_fork_targets": ["ReplayState@derived:authority.replay_state", "Move@bound:bound.shown_move", "SquareSlice@authority:authority.named_target_squares"],
+    "replay_discovered_line": ["ReplayState@derived:authority.replay_state", "Move@bound:bound.shown_move", "Square@authority:authority.slider_origin", "Square@bound:bound.line_target"],
+    "post_move_discovered_target_occupancy": ["WirePosition@derived:derived.post_move_wire_position", "Square@bound:bound.line_target", "OccupancyMatch@call_constant:call.input_constants[0]"],
+    "finite_promotion_tree_rooted_at_authority": ["FinitePromotionTree@authority:authority.finite_promotion_tree"],
+    "finite_mating_tree_rooted_at_authority": ["FiniteMatingTree@authority:authority.finite_mating_tree"],
+}
+
+DERIVATIONS = {
+    "setup_initial_position": [
+        "owner_call:chess.validate_local(WirePosition@authority.wire_position)"
+        "->LocallyAdmissiblePosition@authority.locally_admissible_position",
+    ],
     "initial_replay_and_side": [
-        "authority.replay_state_exact_0_plies", "call.constant.side",
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice_exact_0_plies)"
+        "->ReplayState@authority.replay_state_exact_0_plies",
     ],
     "replay_and_current_side": [
-        "authority.replay_state", "call.constant.side",
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
     ],
-    "replay_move_legality": ["authority.replay_state", "bound.shown_move"],
+    "replay_move_legality": [
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
+    ],
     "replay_terminal_transition": [
-        "authority.replay_state", "bound.shown_move",
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
     ],
     "replay_move_origin_occupancy": [
-        "authority.replay_state.position", "bound.shown_move.origin",
-        "call.constant.occupancy_match",
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
+        "typed_projection:projection.replay_wire_position(ReplayState@authority.replay_state)"
+        "->WirePosition@authority.replay_wire_position",
     ],
     "board_control_with_bound_origin": [
-        "authority.wire_position", "authority.controlling_side",
-        "bound.controller_origin",
+        "owner_call:chess.validate_local(WirePosition@authority.wire_position)"
+        "->LocallyAdmissiblePosition@authority.locally_admissible_position",
     ],
     "board_bound_origin_occupancy": [
-        "authority.wire_position", "bound.controller_origin",
-        "call.constant.occupancy_match",
+        "owner_call:chess.validate_local(WirePosition@authority.wire_position)"
+        "->LocallyAdmissiblePosition@authority.locally_admissible_position",
     ],
     "board_defended": [
-        "authority.wire_position", "authority.target_square",
-        "authority.defender",
+        "owner_call:chess.validate_local(WirePosition@authority.wire_position)"
+        "->LocallyAdmissiblePosition@authority.locally_admissible_position",
     ],
     "board_pin_with_origin": [
-        "authority.locally_admissible_position", "bound.controller_origin",
+        "owner_call:chess.validate_local(WirePosition@authority.wire_position)"
+        "->LocallyAdmissiblePosition@authority.locally_admissible_position",
     ],
     "replay_move_destination_control_with_origin": [
-        "authority.replay_state.position",
-        "authority.replay_state.side_to_move", "bound.shown_move.target",
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
+        "typed_projection:projection.replay_wire_position(ReplayState@authority.replay_state)"
+        "->WirePosition@authority.replay_wire_position",
+        "typed_projection:projection.replay_side_to_move(ReplayState@authority.replay_state)"
+        "->Side@authority.replay_side_to_move",
     ],
     "board_king_check": [
-        "authority.locally_admissible_position", "authority.checked_side",
+        "owner_call:chess.validate_local(WirePosition@authority.wire_position)"
+        "->LocallyAdmissiblePosition@authority.locally_admissible_position",
     ],
     "pre_move_moving_side_king_check": [
-        "authority.replay_state.position",
-        "authority.replay_state.side_to_move",
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
+        "typed_projection:projection.replay_local_position(ReplayState@authority.replay_state)"
+        "->LocallyAdmissiblePosition@authority.replay_local_position",
+        "typed_projection:projection.replay_side_to_move(ReplayState@authority.replay_state)"
+        "->Side@authority.replay_side_to_move",
     ],
     "post_move_moving_side_king_check": [
-        "derived.post_move_position", "authority.replay_state.side_to_move",
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
+        "owner_call:chess.apply_move(ReplayState@authority.replay_state, "
+        "Move@bound.shown_move)->ReplayState@derived.post_move_replay_state",
+        "typed_projection:projection.replay_local_position(ReplayState@derived.post_move_replay_state)"
+        "->LocallyAdmissiblePosition@derived.post_move_local_position",
+        "typed_projection:projection.replay_side_to_move(ReplayState@authority.replay_state)"
+        "->Side@authority.replay_side_to_move",
     ],
     "post_move_next_side_king_check": [
-        "derived.post_move_position", "derived.post_move_side_to_move",
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
+        "owner_call:chess.apply_move(ReplayState@authority.replay_state, "
+        "Move@bound.shown_move)->ReplayState@derived.post_move_replay_state",
+        "typed_projection:projection.replay_local_position(ReplayState@derived.post_move_replay_state)"
+        "->LocallyAdmissiblePosition@derived.post_move_local_position",
+        "typed_projection:projection.replay_side_to_move(ReplayState@derived.post_move_replay_state)"
+        "->Side@derived.post_move_side_to_move",
     ],
     "board_checked_king_control": [
-        "authority.wire_position", "authority.opposing_side",
-        "bound.checked_king_square",
+        "owner_call:chess.validate_local(WirePosition@authority.wire_position)"
+        "->LocallyAdmissiblePosition@authority.locally_admissible_position",
     ],
     "replay_record_and_last_move": [
-        "authority.move_slice_including_shown_move", "authority.score",
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice_including_shown_move)"
+        "->ReplayState@derived.record_replay_state",
     ],
     "canonical_shown_move_bytes": [
-        "derived.chess.encode_move.bound_shown_move",
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
+        "owner_call:chess.encode_move(Move@bound.shown_move)"
+        "->ByteSlice@derived.shown_move_bytes",
     ],
-    "replay_history": ["authority.replay_state"],
-    "post_move_history": ["derived.post_move_replay_state"],
+    "replay_history": [
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
+    ],
+    "post_move_history": [
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
+        "owner_call:chess.apply_move(ReplayState@authority.replay_state, "
+        "Move@bound.shown_move)->ReplayState@derived.post_move_replay_state",
+    ],
     "source_derived_history": [
-        "derived.replay_state_from_source_move_slice",
+        "owner_call:source.decode_game(ByteSlice@authority.source_game_bytes)"
+        "->GameRecord@derived.source_game_record",
+        "typed_projection:projection.source_move_slice(GameRecord@derived.source_game_record)"
+        "->MoveSlice@derived.source_move_slice",
+        "owner_call:chess.replay_from_start(MoveSlice@derived.source_move_slice)"
+        "->ReplayState@derived.source_replay_state",
     ],
-    "game_state_and_event": ["authority.game_state", "authority.event"],
+    "game_state_and_event": [
+        "owner_call:chess.new_game()->GameState@derived.initial_game_state",
+        "owner_call:chess.apply_event(GameState@authority.prior_game_state, "
+        "Event@authority.prior_event)->GameState@authority.game_state",
+    ],
     "source_move_slice_and_score": [
-        "derived.source.decode_game.move_slice", "derived.source.decode_game.score",
+        "owner_call:source.decode_game(ByteSlice@authority.source_game_bytes)"
+        "->GameRecord@derived.source_game_record",
+        "typed_projection:projection.source_move_slice(GameRecord@derived.source_game_record)"
+        "->MoveSlice@derived.source_move_slice",
     ],
-    "raw_content_bytes": ["authority.content_bytes"],
+    "source_move_slice_and_decoded_score": [
+        "owner_call:source.decode_game(ByteSlice@authority.source_game_bytes)"
+        "->GameRecord@derived.source_game_record",
+        "typed_projection:projection.source_move_slice(GameRecord@derived.source_game_record)"
+        "->MoveSlice@derived.source_move_slice",
+        "typed_projection:projection.source_score(GameRecord@derived.source_game_record)"
+        "->Score@derived.source_score",
+    ],
+    "raw_content_bytes": [],
     "board_control": [
-        "authority.wire_position", "authority.controlling_side",
-        "authority.target_square",
+        "owner_call:chess.validate_local(WirePosition@authority.wire_position)"
+        "->LocallyAdmissiblePosition@authority.locally_admissible_position",
     ],
     "board_escape_control": [
-        "authority.wire_position", "authority.controlling_side",
-        "authority.candidate_square",
+        "owner_call:chess.validate_local(WirePosition@authority.wire_position)"
+        "->LocallyAdmissiblePosition@authority.locally_admissible_position",
     ],
     "board_passed_pawn": [
-        "authority.locally_admissible_position", "authority.pawn_square",
+        "owner_call:chess.validate_local(WirePosition@authority.wire_position)"
+        "->LocallyAdmissiblePosition@authority.locally_admissible_position",
     ],
-    "board_open_file": ["authority.wire_position", "authority.file"],
+    "board_open_file": [
+        "owner_call:chess.validate_local(WirePosition@authority.wire_position)"
+        "->LocallyAdmissiblePosition@authority.locally_admissible_position",
+    ],
     "board_semi_open_file": [
-        "authority.wire_position", "authority.side", "authority.file",
+        "owner_call:chess.validate_local(WirePosition@authority.wire_position)"
+        "->LocallyAdmissiblePosition@authority.locally_admissible_position",
     ],
     "replay_fork_targets": [
-        "authority.replay_state", "bound.shown_move",
-        "authority.named_target_squares",
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
     ],
     "replay_discovered_line": [
-        "authority.replay_state", "bound.shown_move",
-        "authority.slider_origin", "bound.line_target",
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
     ],
     "post_move_discovered_target_occupancy": [
-        "derived.post_move_wire_position", "bound.line_target",
-        "call.constant.occupancy_match",
+        "owner_call:chess.replay_from_start(MoveSlice@authority.move_slice)"
+        "->ReplayState@authority.replay_state",
+        "owner_call:chess.apply_move(ReplayState@authority.replay_state, "
+        "Move@bound.shown_move)->ReplayState@derived.post_move_replay_state",
+        "typed_projection:projection.replay_wire_position(ReplayState@derived.post_move_replay_state)"
+        "->WirePosition@derived.post_move_wire_position",
     ],
     "finite_promotion_tree_rooted_at_authority": [
-        "authority.finite_promotion_tree",
+        "owner_call:chess.replay_from_start("
+        "MoveSlice@authority.finite_promotion_tree.root_move_slice)"
+        "->ReplayState@authority.finite_promotion_tree.root",
     ],
     "finite_mating_tree_rooted_at_authority": [
-        "authority.finite_mating_tree",
+        "owner_call:chess.replay_from_start("
+        "MoveSlice@authority.finite_mating_tree.root_move_slice)"
+        "->ReplayState@authority.finite_mating_tree.root",
     ],
+}
+
+DERIVATION_SIGNATURES = {
+    "chess.validate_local": ("owner_call", ["WirePosition"], "LocallyAdmissiblePosition"),
+    "chess.replay_from_start": ("owner_call", ["MoveSlice"], "ReplayState"),
+    "chess.apply_move": ("owner_call", ["ReplayState", "Move"], "ReplayState"),
+    "chess.encode_move": ("owner_call", ["Move"], "ByteSlice"),
+    "chess.new_game": ("owner_call", [], "GameState"),
+    "chess.apply_event": ("owner_call", ["GameState", "Event"], "GameState"),
+    "source.decode_game": ("owner_call", ["ByteSlice"], "GameRecord"),
+    "projection.replay_wire_position": ("typed_projection", ["ReplayState"], "WirePosition"),
+    "projection.replay_local_position": ("typed_projection", ["ReplayState"], "LocallyAdmissiblePosition"),
+    "projection.replay_side_to_move": ("typed_projection", ["ReplayState"], "Side"),
+    "projection.source_move_slice": ("typed_projection", ["GameRecord"], "MoveSlice"),
+    "projection.source_score": ("typed_projection", ["GameRecord"], "Score"),
 }
 
 OWNER_RESULTS = {
@@ -334,34 +494,6 @@ REJECT_CODES = {
 REJECT_SPANS = {
     "content_bad_kind_exact_field": "exact_field",
     "content_truncated_eof": "eof",
-}
-
-FINITE_RELATIONS = {
-    "candidate_move_effect": {
-        value: {1, 2} for value in {
-            "pawn_quiet", "pawn_capture", "pawn_initial_double",
-            "king_capture", "castling", "en_passant", "promotion_quiet",
-            "promotion_capture", "promotion_any", "promote_queen",
-            "promote_rook", "promote_bishop", "promote_knight",
-            "pawn_move", "capture",
-        }
-    },
-    "replay_relation": {
-        "one_legal_ply_extension": {2}, "same_shown_move": {2},
-        "same_position_except_relevant_castling_right": {2},
-        "same_final_position": {2},
-        "replacement_piece_does_not_restore_right": {2},
-        "different_replay_history": {2},
-        "ineffective_ep_keys_equal_effective_ep_differs": {3},
-    },
-    "en_passant_context": {"expired_after_intervening_move": {1}},
-    "material_class": {
-        "recognized_common_dead": {1}, "king_two_knights_vs_king": {1},
-    },
-    "opposing_pawn_ahead": {
-        "strictly_ahead_same_or_adjacent_file": {1},
-    },
-    "finite_mating_root_major_piece": {"queen": {1}, "rook": {1}},
 }
 
 FIXED_PROTOCOL = {
@@ -426,7 +558,8 @@ TRANSFORMS = {
 
 # These freeze human-readable TOML projections; direct checks below still own
 # signatures, positional arguments, finite relations, bounds, and rejections.
-PATTERN_DIGEST = "594dc68e0e8a8a31548bca0b7c75640715b39e65f802185b622e9c6c0de294de"
+PATTERN_DIGEST = "e45fe214fa950817e8c51e29803eaf23605533bd3c49d62a76fc726147d68b75"
+FINITE_RULE_DIGEST = "0be8f83d07d91ae1624671ca93157c3847af301a4148da73c7781373f417a69c"
 TRANSFORM_DIGEST = "80dac0d29304788ce8472313f0dff8e71f7e19bc01ffcfff8c4b12fb672a5f7b"
 ROADMAP_DIGEST = "c57bf574c16764b40885fa41f458eea3fc00f998dcb836da5e6aff8b861b6fa5"
 SUPPORTING_DIGEST = "f392721c0cc447a510615558a76a088a291c8a56385c49aac879a5981dbe9fde"
@@ -509,7 +642,7 @@ def pattern_projection(data: dict) -> list[dict]:
                         {
                             "id": call["id"],
                             "owner_id": call["owner_id"],
-                            "input_constant_ids": call["input_constant_ids"],
+                            "input_constants": call["input_constants"],
                             "input": bindings[call["input_binding_id"]],
                             "result": contracts[call["result_contract_id"]],
                         }
@@ -531,27 +664,188 @@ SUPPORTING_KEYS = (
 
 
 def semantic_projection_is_valid(data: dict) -> bool:
+    relation_shapes = {
+        "candidate_move_effect": (
+            "case", "call_ids", [1, 2],
+            ["replay_move_legality", "replay_terminal_transition",
+             "replay_record_and_last_move", "post_move_history"],
+        ),
+        "replay_relation": ("pattern", "case_ids", [2, 3], []),
+        "en_passant_context": (
+            "case", "call_ids", [1], ["replay_move_legality"],
+        ),
+        "material_class": (
+            "case", "call_ids", [1], ["replay_terminal_transition"],
+        ),
+        "opposing_pawn_ahead": (
+            "case", "call_ids", [1], ["board_passed_pawn"],
+        ),
+        "finite_mating_root_major_piece": (
+            "case", "call_ids", [1],
+            ["finite_mating_tree_rooted_at_authority"],
+        ),
+    }
+
+    def canonical_arguments(binding: dict) -> list[str]:
+        return [
+            f"{argument['type_id']}@{argument['source_kind']}:"
+            f"{argument['source_id']}"
+            for argument in binding["arguments"]
+        ]
+
+    def canonical_derivations(binding: dict) -> list[str]:
+        return [
+            f"{row['kind_id']}:{row['operation_id']}("
+            + ", ".join(
+                f"{type_id}@{source_id}"
+                for type_id, source_id in zip(
+                    row["input_type_ids"], row["input_source_ids"], strict=True
+                )
+            )
+            + f")->{row['output_type_id']}@{row['output_source_id']}"
+            for row in binding["derivations"]
+        ]
+
+    def constant_is_valid(constant: dict, argument: dict) -> bool:
+        if set(constant) != {
+            "argument_position", "type_id", "constructor_id", "value_ids",
+        }:
+            return False
+        if (
+            constant["argument_position"] != argument["position"]
+            or constant["type_id"] != argument["type_id"]
+        ):
+            return False
+        constructor = constant["constructor_id"]
+        values = constant["value_ids"]
+        if constant["type_id"] == "Side":
+            return constructor == "side" and values in (["first"], ["second"])
+        if constant["type_id"] == "Score":
+            return constructor == "score" and values in (
+                ["first_win"], ["second_win"], ["draw"],
+            )
+        if constant["type_id"] != "OccupancyMatch":
+            return False
+        if constructor == "occupied":
+            return values == []
+        return (
+            constructor == "exact_piece"
+            and len(values) == 2
+            and values[0] in {
+                "moving_side", "bound_controller_side", "opposing_side",
+            }
+            and values[1] in {
+                "pawn", "knight", "bishop", "rook", "queen", "king",
+            }
+        )
+
     try:
         bindings = by_id(data["input_binding"])
         contracts = by_id(data["result_contract"])
         patterns = by_id(data["case_pattern"])
+        relation_rules = data["finite_relation"]
         if set(data) != ROOT_KEYS or REMOVED_DERIVED_KEYS & set(data):
             return False
         if set(patterns) != EXPECTED_PATTERN_IDS or len(patterns) != 88:
             return False
         if set(bindings) != set(INPUT_ARGUMENTS):
             return False
+        if set(relation_rules) != set(relation_shapes):
+            return False
+
+        resolved_rules = {}
+        for kind, expected_shape in relation_shapes.items():
+            rule_set = relation_rules[kind]
+            if set(rule_set) != {
+                "operand_scope", "operand_id_field", "operand_counts",
+                "allowed_input_binding_ids", "rule",
+            }:
+                return False
+            actual_shape = (
+                rule_set["operand_scope"], rule_set["operand_id_field"],
+                rule_set["operand_counts"], rule_set["allowed_input_binding_ids"],
+            )
+            if actual_shape != expected_shape:
+                return False
+            rows = by_id([
+                {"id": row["result_id"], **row} for row in rule_set["rule"]
+            ])
+            for result_id, row in rows.items():
+                if set(row) != {"id", "result_id", "facts"}:
+                    return False
+                if row["id"] != row["result_id"]:
+                    return False
+                fact_ids = [fact["id"] for fact in row["facts"]]
+                if len(fact_ids) != len(set(fact_ids)) or not fact_ids:
+                    return False
+                if any(set(fact) != {"id", "type_id", "value_id"}
+                       for fact in row["facts"]):
+                    return False
+            resolved_rules[kind] = rows
+
         for binding_id, binding in bindings.items():
             if set(binding) != {
                 "id", "authority_kind", "owner_id", "input_variant_id",
-                "argument_ids", "derivation_ref_ids",
+                "arguments", "derivations",
             }:
                 return False
             owner_id, arity = VARIANT_OWNER_ARITY[binding["input_variant_id"]]
-            if owner_id != binding["owner_id"] or arity != len(binding["argument_ids"]):
+            if owner_id != binding["owner_id"] or arity != len(binding["arguments"]):
                 return False
-            if binding["argument_ids"] != INPUT_ARGUMENTS[binding_id]:
+            if canonical_arguments(binding) != INPUT_ARGUMENTS[binding_id]:
                 return False
+            if [argument["position"] for argument in binding["arguments"]] != list(
+                range(arity)
+            ):
+                return False
+            if any(set(argument) != {
+                "position", "type_id", "source_kind", "source_id",
+            } for argument in binding["arguments"]):
+                return False
+            if [argument["type_id"] for argument in binding["arguments"]] != (
+                VARIANT_ARGUMENT_TYPES[binding["input_variant_id"]]
+            ):
+                return False
+            if any(argument["source_kind"] not in {
+                "authority", "bound", "bound_projection", "derived",
+                "call_constant",
+            } for argument in binding["arguments"]):
+                return False
+
+            derivations = binding["derivations"]
+            if [row["position"] for row in derivations] != list(range(len(derivations))):
+                return False
+            if canonical_derivations(binding) != DERIVATIONS[binding_id]:
+                return False
+            produced = {}
+            for derivation in derivations:
+                if set(derivation) != {
+                    "position", "kind_id", "operation_id", "input_source_ids",
+                    "input_type_ids", "output_source_id", "output_type_id",
+                }:
+                    return False
+                kind_id, input_types, output_type = DERIVATION_SIGNATURES[
+                    derivation["operation_id"]
+                ]
+                if (
+                    derivation["kind_id"] != kind_id
+                    or derivation["input_type_ids"] != input_types
+                    or len(derivation["input_source_ids"]) != len(input_types)
+                    or derivation["output_type_id"] != output_type
+                    or derivation["output_source_id"] in produced
+                ):
+                    return False
+                for source_id, type_id in zip(
+                    derivation["input_source_ids"], input_types, strict=True
+                ):
+                    if source_id.startswith("derived.") and produced.get(source_id) != type_id:
+                        return False
+                produced[derivation["output_source_id"]] = output_type
+            for argument in binding["arguments"]:
+                if argument["source_kind"] == "derived":
+                    if produced.get(argument["source_id"]) != argument["type_id"]:
+                        return False
+
         rejecting = {"move_illegal", "declaration_rejected", "content_rejected"}
         actual_rejects = {}
         for contract_id, contract in contracts.items():
@@ -578,36 +872,52 @@ def semantic_projection_is_valid(data: dict) -> bool:
         if actual_rejects != REJECT_CODES:
             return False
 
+        def relation_is_valid(
+            relation: dict, scope: str, available: dict[str, dict],
+        ) -> bool:
+            kind = relation["kind"]
+            rule_set = relation_rules[kind]
+            operand_field = rule_set["operand_id_field"]
+            if scope != rule_set["operand_scope"]:
+                return False
+            if set(relation) != {"kind", operand_field, "result_id", "facts"}:
+                return False
+            operand_ids = relation[operand_field]
+            if (
+                len(operand_ids) not in rule_set["operand_counts"]
+                or len(operand_ids) != len(set(operand_ids))
+                or not set(operand_ids) <= set(available)
+            ):
+                return False
+            rule = resolved_rules[kind].get(relation["result_id"])
+            if rule is None or relation["facts"] != rule["facts"]:
+                return False
+            if scope == "case":
+                actual_bindings = {
+                    available[operand_id]["input_binding_id"]
+                    for operand_id in operand_ids
+                }
+                if not actual_bindings <= set(rule_set["allowed_input_binding_ids"]):
+                    return False
+            return True
+
         used_bindings = set()
         used_contracts = set()
         for pattern in patterns.values():
             if set(pattern) != {"id", "authority_kind", "relation", "case"}:
                 return False
-            case_ids = [case["id"] for case in pattern["case"]]
-            if len(case_ids) != len(set(case_ids)):
+            cases = by_id(pattern["case"])
+            if any(not relation_is_valid(relation, "pattern", cases)
+                   for relation in pattern["relation"]):
                 return False
-            for relation in pattern["relation"]:
-                refs = relation["case_ids"]
-                if set(relation) != {"kind", "value", "case_ids"}:
-                    return False
-                if relation["kind"] != "replay_relation":
-                    return False
-                if relation["value"] not in FINITE_RELATIONS["replay_relation"]:
-                    return False
-                if len(refs) not in FINITE_RELATIONS["replay_relation"][relation["value"]]:
-                    return False
-                if len(refs) != len(set(refs)) or not set(refs) <= set(case_ids):
-                    return False
             for case in pattern["case"]:
                 if set(case) != {"id", "call", "obligation"}:
                     return False
-                call_ids = [call["id"] for call in case["call"]]
-                if len(call_ids) != len(set(call_ids)):
-                    return False
+                calls = by_id(case["call"])
                 for call in case["call"]:
                     if set(call) != {
                         "id", "owner_id", "input_binding_id",
-                        "input_constant_ids", "result_contract_id",
+                        "input_constants", "result_contract_id",
                     }:
                         return False
                     binding = bindings[call["input_binding_id"]]
@@ -620,23 +930,27 @@ def semantic_projection_is_valid(data: dict) -> bool:
                         return False
                     if binding["authority_kind"] != pattern["authority_kind"]:
                         return False
-                for obligation in case["obligation"]:
-                    refs = obligation["call_ids"]
-                    if set(obligation) != {"kind", "value", "call_ids"}:
+                    constant_positions = [
+                        argument["position"] for argument in binding["arguments"]
+                        if argument["source_kind"] in {
+                            "call_constant",
+                        }
+                    ]
+                    if [row["argument_position"] for row in call["input_constants"]] != (
+                        constant_positions
+                    ):
                         return False
-                    if obligation["kind"] not in FINITE_RELATIONS:
-                        return False
-                    allowed = FINITE_RELATIONS[obligation["kind"]]
-                    if obligation["value"] not in allowed:
-                        return False
-                    if len(refs) not in allowed[obligation["value"]]:
-                        return False
-                    if len(refs) != len(set(refs)) or not set(refs) <= set(call_ids):
-                        return False
+                    for constant in call["input_constants"]:
+                        argument = binding["arguments"][constant["argument_position"]]
+                        if not constant_is_valid(constant, argument):
+                            return False
+                if any(not relation_is_valid(obligation, "case", calls)
+                       for obligation in case["obligation"]):
+                    return False
         if used_bindings != set(bindings) or used_contracts != set(contracts):
             return False
         return True
-    except (KeyError, TypeError, ValueError):
+    except (IndexError, KeyError, TypeError, ValueError):
         return False
 
 
@@ -645,6 +959,7 @@ def admitted(data: dict) -> bool:
         semantic_projection_is_valid(data),
         fixed_protocol(data) == FIXED_PROTOCOL,
         digest(pattern_projection(data)) == PATTERN_DIGEST,
+        digest(data["finite_relation"]) == FINITE_RULE_DIGEST,
         digest([data["transform"], data["predicate_mapping"]]) == TRANSFORM_DIGEST,
         digest(data["roadmap_mirror"]) == ROADMAP_DIGEST,
         digest({key: data[key] for key in SUPPORTING_KEYS}) == SUPPORTING_DIGEST,
@@ -687,12 +1002,97 @@ class CurriculumContract(unittest.TestCase):
                 binding = bindings[binding_id]
                 owner_id, arity = VARIANT_OWNER_ARITY[binding["input_variant_id"]]
                 self.assertEqual(binding["owner_id"], owner_id)
-                self.assertEqual(binding["argument_ids"], expected)
+                actual = [
+                    f"{argument['type_id']}@{argument['source_kind']}:"
+                    f"{argument['source_id']}"
+                    for argument in binding["arguments"]
+                ]
+                self.assertEqual(actual, expected)
+                self.assertEqual(
+                    [argument["type_id"] for argument in binding["arguments"]],
+                    VARIANT_ARGUMENT_TYPES[binding["input_variant_id"]],
+                )
                 self.assertEqual(len(expected), arity)
         self.assertEqual(
-            bindings["initial_replay_and_side"]["argument_ids"][0],
+            bindings["initial_replay_and_side"]["arguments"][0]["source_id"],
             "authority.replay_state_exact_0_plies",
         )
+
+    def test_finite_relation_rules_are_executable(self) -> None:
+        rules = self.data["finite_relation"]
+        self.assertEqual(
+            set(rules),
+            {
+                "candidate_move_effect", "replay_relation",
+                "en_passant_context", "material_class",
+                "opposing_pawn_ahead", "finite_mating_root_major_piece",
+            },
+        )
+        for pattern in self.data["case_pattern"]:
+            for relation in pattern["relation"]:
+                self.assertIn("facts", relation)
+                self.assertEqual(
+                    rules[relation["kind"]]["operand_id_field"], "case_ids"
+                )
+            for case in pattern["case"]:
+                for obligation in case["obligation"]:
+                    self.assertIn("facts", obligation)
+                    self.assertEqual(
+                        rules[obligation["kind"]]["operand_id_field"],
+                        "call_ids",
+                    )
+        self.assertTrue(semantic_projection_is_valid(self.data))
+        self.assertEqual(digest(rules), FINITE_RULE_DIGEST)
+
+        for relation_kind in rules:
+            for field in ("id", "type_id", "value_id"):
+                candidate = copy.deepcopy(self.data)
+                instance = next(
+                    relation
+                    for pattern in candidate["case_pattern"]
+                    for relation in (
+                        pattern["relation"]
+                        + [
+                            obligation
+                            for case in pattern["case"]
+                            for obligation in case["obligation"]
+                        ]
+                    )
+                    if relation["kind"] == relation_kind
+                )
+                instance["facts"][0][field] = "invented"
+                with self.subTest(relation=relation_kind, fact_field=field):
+                    self.assertFalse(semantic_projection_is_valid(candidate))
+
+    def test_constants_and_derivations_are_typed_and_positional(self) -> None:
+        bindings = by_id(self.data["input_binding"])
+        for binding_id, binding in bindings.items():
+            self.assertIn("arguments", binding)
+            self.assertIn("derivations", binding)
+            self.assertNotIn("argument_ids", binding)
+            self.assertNotIn("derivation_ref_ids", binding)
+            self.assertEqual(
+                [argument["position"] for argument in binding["arguments"]],
+                list(range(len(binding["arguments"]))),
+            )
+            actual_derivations = [
+                f"{row['kind_id']}:{row['operation_id']}("
+                + ", ".join(
+                    f"{type_id}@{source_id}"
+                    for type_id, source_id in zip(
+                        row["input_type_ids"], row["input_source_ids"], strict=True
+                    )
+                )
+                + f")->{row['output_type_id']}@{row['output_source_id']}"
+                for row in binding["derivations"]
+            ]
+            self.assertEqual(actual_derivations, DERIVATIONS[binding_id])
+        for pattern in self.data["case_pattern"]:
+            for case in pattern["case"]:
+                for call in case["call"]:
+                    self.assertIn("input_constants", call)
+                    self.assertNotIn("input_constant_ids", call)
+        self.assertTrue(semantic_projection_is_valid(self.data))
 
     def test_all_88_irreducible_projections_are_frozen(self) -> None:
         self.assertTrue(semantic_projection_is_valid(self.data))
@@ -725,8 +1125,13 @@ class CurriculumContract(unittest.TestCase):
         )
         self.assertEqual(content_mapping["transform_ids"], ["identity"])
         self.assertEqual(
-            by_id(self.data["input_binding"])["raw_content_bytes"]["argument_ids"],
-            ["authority.content_bytes"],
+            by_id(self.data["input_binding"])["raw_content_bytes"]["arguments"],
+            [{
+                "position": 0,
+                "type_id": "ByteSlice",
+                "source_kind": "authority",
+                "source_id": "authority.content_bytes",
+            }],
         )
 
     def test_fixed_arithmetic_gates_forms_cues_and_cuts(self) -> None:
@@ -772,6 +1177,18 @@ class CurriculumContract(unittest.TestCase):
                 b["result_contract_id"], a["result_contract_id"]
             )
 
+        def binding(data: dict, binding_id: str) -> dict:
+            return next(
+                row for row in data["input_binding"] if row["id"] == binding_id
+            )
+
+        def initial_side_call(data: dict) -> dict:
+            return pattern(data, "setup_turn.initial_side_to_move")["case"][0]["call"][0]
+
+        def use_wrong_replay_operand_field(data: dict) -> None:
+            relation = pattern(data, "setup_turn.alternating_turn")["relation"][0]
+            relation["call_ids"] = relation.pop("case_ids")
+
         mutations = {
             "terminal_mate_results_swapped": lambda data: swap_results(
                 data, ("termination_score.checkmate", 0),
@@ -806,14 +1223,64 @@ class CurriculumContract(unittest.TestCase):
             "argument_order": lambda data: next(
                 row for row in data["input_binding"]
                 if row["id"] == "source_move_slice_and_score"
-            )["argument_ids"].reverse(),
-            "initial_even_replay": lambda data: next(
-                row for row in data["input_binding"]
-                if row["id"] == "initial_replay_and_side"
-            )["argument_ids"].__setitem__(0, "authority.replay_state_even_plies"),
+            )["arguments"].reverse(),
+            "initial_even_replay": lambda data: binding(
+                data, "initial_replay_and_side"
+            )["arguments"][0].__setitem__(
+                "source_id", "authority.replay_state_even_plies"
+            ),
             "finite_relation": lambda data: pattern(
                 data, "en_passant.expiry"
-            )["case"][0]["obligation"][0].__setitem__("value", "invented"),
+            )["case"][0]["obligation"][0]["facts"][0].__setitem__(
+                "value_id", "invented"
+            ),
+            "finite_rule_fact": lambda data: data["finite_relation"]
+            ["candidate_move_effect"]["rule"][0]["facts"][0].__setitem__(
+                "value_id", "invented"
+            ),
+            "replay_uses_call_ids": use_wrong_replay_operand_field,
+            "constant_position": lambda data: initial_side_call(data)
+            ["input_constants"][0].__setitem__("argument_position", 0),
+            "constant_type": lambda data: initial_side_call(data)
+            ["input_constants"][0].__setitem__("type_id", "Score"),
+            "constant_constructor": lambda data: initial_side_call(data)
+            ["input_constants"][0].__setitem__("constructor_id", "score"),
+            "constant_value": lambda data: initial_side_call(data)
+            ["input_constants"][0]["value_ids"].__setitem__(0, "draw"),
+            "constant_missing": lambda data: initial_side_call(data)
+            ["input_constants"].clear(),
+            "constant_extra": lambda data: initial_side_call(data)
+            ["input_constants"].append({
+                "argument_position": 1,
+                "type_id": "Side",
+                "constructor_id": "side",
+                "value_ids": ["first"],
+            }),
+            "derivation_order": lambda data: binding(
+                data, "source_derived_history"
+            )["derivations"].reverse(),
+            "derivation_kind": lambda data: binding(
+                data, "source_derived_history"
+            )["derivations"][0].__setitem__("kind_id", "typed_projection"),
+            "derivation_operation": lambda data: binding(
+                data, "source_derived_history"
+            )["derivations"][0].__setitem__("operation_id", "chess.validate_local"),
+            "derivation_input_source": lambda data: binding(
+                data, "source_derived_history"
+            )["derivations"][0]["input_source_ids"].__setitem__(
+                0, "authority.other_bytes"
+            ),
+            "derivation_input_type": lambda data: binding(
+                data, "source_derived_history"
+            )["derivations"][0]["input_type_ids"].__setitem__(0, "MoveSlice"),
+            "derivation_output_source": lambda data: binding(
+                data, "source_derived_history"
+            )["derivations"][0].__setitem__(
+                "output_source_id", "derived.other_record"
+            ),
+            "derivation_output_type": lambda data: binding(
+                data, "source_derived_history"
+            )["derivations"][0].__setitem__("output_type_id", "ReplayState"),
             "ceil75_numerator": lambda data: data["formula"]["ceil75"].__setitem__("numerator", 2),
             "ceil75_denominator": lambda data: data["formula"]["ceil75"].__setitem__("denominator", 3),
             "ceil75_rounding": lambda data: data["formula"]["ceil75"].__setitem__("rounding", "floor"),
