@@ -28,6 +28,7 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[2]
 IDENTITY_FIXTURE = ROOT / "conformance" / "identity-v0.json"
 MANIFEST_FIXTURE = ROOT / "conformance" / "manifest-v0.json"
+CHESS_FIXTURE = ROOT / "conformance" / "chess-v0.json"
 MAX_REPO_TEXT_BYTES = 1_048_576
 M0_IDENTITY_VECTORS_SHA256 = (
     "19b90c4ab863ca3853a1b8229b8ae84a886e4a8cf0c3bee496157e592bf000ae"
@@ -331,6 +332,7 @@ class ManifestConformance(unittest.TestCase):
     def test_fixture_files_are_canonical(self) -> None:
         canonical_manifest.validate_canonical_manifest(IDENTITY_FIXTURE.read_bytes())
         canonical_manifest.validate_canonical_manifest(MANIFEST_FIXTURE.read_bytes())
+        canonical_manifest.validate_canonical_manifest(CHESS_FIXTURE.read_bytes())
 
     def test_depth_boundaries(self) -> None:
         depth_32 = b'{"a":' * 31 + b"{}" + b"}" * 31 + b"\n"
@@ -790,7 +792,8 @@ class SourceDoctorFast(unittest.TestCase):
 class RepoContract(unittest.TestCase):
     REQUIRED = [
         ".gitignore", ".python-version", "AGENTS.md", "Cargo.lock", "Cargo.toml",
-        "README.md", "conformance/identity-v0.json", "conformance/manifest-v0.json",
+        "README.md", "conformance/chess-v0.json", "conformance/identity-v0.json",
+        "conformance/manifest-v0.json",
         "conformance/registry.toml", "crates/gb-foundation/Cargo.toml",
         "crates/gb-foundation/src/constants.rs", "crates/gb-foundation/src/lib.rs",
         "crates/gb-foundation/tests/conformance.rs",
@@ -884,6 +887,129 @@ class RepoContract(unittest.TestCase):
                 expected_state = leading
         self.assertEqual(header_state, expected_state)
         self.assertEqual(header_milestone, expected_milestone)
+
+    def test_chess_fixture_is_registered(self) -> None:
+        registry = tomllib.loads((ROOT / "conformance/registry.toml").read_text())
+        rows = [row for row in registry["suite"] if row["id"] == "chess-v0"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            rows[0],
+            {
+                "consumers": ["python", "rust"],
+                "id": "chess-v0",
+                "path": "conformance/chess-v0.json",
+                "provenance": "hand-authored",
+                "sha256": "ef30c1726a3b9cd48889fa74fe9a2bbf4f4e447fbc98683833d1c672db9833f4",
+                "specification": "chess-v0",
+                "version": "v0",
+            },
+        )
+
+    def test_chess_fixture_shape_and_coverage_are_closed(self) -> None:
+        payload = canonical_manifest.validate_canonical_manifest(
+            repo_text_bytes(ROOT, b"conformance/chess-v0.json")
+        )
+        self.assertEqual(set(payload), {"cases", "recipes", "schema"})
+        self.assertEqual(payload["schema"], "golden-board.chess-v0-fixtures/v0")
+
+        cases = payload["cases"]
+        self.assertEqual(len(cases), 223)
+        names = [case["name"] for case in cases]
+        self.assertEqual(len(set(names)), len(names))
+        self.assertTrue(all(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) for name in names))
+        self.assertEqual(
+            {case["operation"] for case in cases},
+            {
+                "apply_event", "apply_move", "controls_square", "decode_event",
+                "decode_move", "decode_position", "evaluate_predicate", "legal_moves",
+                "pseudo_legal_moves", "repetition_key", "replay_from_start",
+                "validate_local", "validate_source_record",
+            },
+        )
+        self.assertEqual(
+            {
+                prefix: sum(name.startswith(prefix + "-") for name in names)
+                for prefix in (
+                    "wire", "structural", "local", "geometry", "castling",
+                    "en-passant", "promotion", "terminal", "history", "event",
+                    "record", "predicate", "precedence",
+                )
+            },
+            {
+                "wire": 14, "structural": 17, "local": 20, "geometry": 19,
+                "castling": 15, "en-passant": 10, "promotion": 11, "terminal": 7,
+                "history": 8, "event": 21, "record": 13, "predicate": 60,
+                "precedence": 8,
+            },
+        )
+        required = {
+            "wire-position-initial", "wire-initial-legal-moves",
+            "local-lowest-square-tie", "geometry-king-capture-removes-blocker-self-check",
+            "castling-failure-origin-safe-transit-attack",
+            "en-passant-pinned-effective-key-omitted", "promotion-immediate-checkmate",
+            "terminal-stalemate-precedes-common-dead",
+            "terminal-king-two-knights-versus-king-not-common-dead",
+            "history-pawn-move-resets-halfmove", "event-after-claimed-fifty-move-closure",
+            "record-common-dead-second-win-contradiction",
+            "predicate-correct-discovered-attack-check",
+            "predicate-correct-finite-mating-geometry", "predicate-tree-defect-depth",
+            "predicate-closed-fork-seventeen-before-resource",
+            "predicate-resource-node-count-4097", "predicate-resource-edges-per-node-257",
+            "predicate-resource-total-edges-4096",
+            *(f"precedence-layer-{letter}-{suffix}" for letter, suffix in (
+                ("a", "structure"), ("b", "local"), ("c", "closure"),
+                ("d", "resource"), ("e", "illegal-move"), ("f", "invalid-event"),
+                ("g", "finite-proof"), ("h", "source-record"),
+            )),
+        }
+        self.assertTrue(required.issubset(names))
+        for case in cases:
+            self.assertEqual(set(case), {"expected", "input", "name", "operation"})
+            self.assertIsInstance(case["input"], dict)
+            self.assertEqual(len(case["expected"]), 1)
+            self.assertIn(next(iter(case["expected"])), {"rejection", "success"})
+            if "rejection" in case["expected"]:
+                self.assertIn(case["expected"]["rejection"], range(1, 63))
+
+        def check_hex(value: object) -> None:
+            if isinstance(value, dict):
+                for key, item in value.items():
+                    if key.endswith("_hex"):
+                        values = item if isinstance(item, list) else [item]
+                        self.assertTrue(all(isinstance(part, str) for part in values))
+                        self.assertTrue(all(re.fullmatch(r"(?:[0-9a-f]{2})*", part) for part in values))
+                        if key == "moves_hex":
+                            self.assertTrue(all(len(part) % 4 == 0 for part in values))
+                    check_hex(item)
+            elif isinstance(value, list):
+                for item in value:
+                    check_hex(item)
+
+        check_hex(payload)
+        recipes = payload["recipes"]
+        self.assertEqual([recipe["name"] for recipe in recipes], [
+            "history-boundary-4095", "history-boundary-4096", "history-excess-4097",
+        ])
+        expected_recipe_facts = (
+            (4095, "", 8190, "fe083157aff7dddf8ef1d7c55d14d74836351de95367107f2382c465ba670735"),
+            (4096, "", 8192, "39b9ad3d90be853994abbf8fba476816fcc15865f9fdf99f26a33673e0972616"),
+            (4097, "4180", 8194, "b2b5803f901288658064cbd1c05ff36db5b6fe73f99d68941e85178b968c5abc"),
+        )
+        for recipe, (plies, final_move, byte_count, digest) in zip(recipes, expected_recipe_facts):
+            self.assertEqual(set(recipe), {
+                "count_cap", "expected", "input", "input_bytes", "input_sha256", "name", "recipe",
+            })
+            self.assertEqual(recipe["recipe"], "knight-cycle-history")
+            self.assertEqual(recipe["count_cap"], 4097)
+            self.assertEqual(set(recipe["input"]), {"cycle_moves_hex", "final_move_hex", "ply_count"})
+            self.assertEqual(recipe["input"]["ply_count"], plies)
+            self.assertEqual(recipe["input"]["final_move_hex"], final_move)
+            prefix_plies = plies - bool(final_move)
+            cycle = recipe["input"]["cycle_moves_hex"]
+            constructed = (cycle * ((prefix_plies + 3) // 4))[: prefix_plies * 4] + final_move
+            raw = bytes.fromhex(constructed)
+            self.assertEqual((len(raw), hashlib.sha256(raw).hexdigest()), (byte_count, digest))
+            self.assertEqual((recipe["input_bytes"], recipe["input_sha256"]), (byte_count, digest))
 
     def test_conformance_registry_mutations_fail_closed(self) -> None:
         payload = b"fixture\n"

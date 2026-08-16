@@ -1,6 +1,15 @@
 schema = "golden-board.conformance-registry/v0"
 
 [[suite]]
+id = "chess-v0"
+path = "conformance/chess-v0.json"
+specification = "chess-v0"
+version = "v0"
+sha256 = "ef30c1726a3b9cd48889fa74fe9a2bbf4f4e447fbc98683833d1c672db9833f4"
+consumers = ["python", "rust"]
+provenance = "hand-authored"
+
+[[suite]]
 id = "identity-v0"
 path = "conformance/identity-v0.json"
 specification = "identity-v0"

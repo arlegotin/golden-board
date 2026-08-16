@@ -607,6 +607,7 @@ fn manifest_fixture() {
         }
     }
     validate_canonical_manifest(&fixture("identity-v0.json")).unwrap();
+    validate_canonical_manifest(&fixture("chess-v0.json")).unwrap();
     validate_canonical_manifest(&original).unwrap();
     assert_eq!(fixture("manifest-v0.json"), original);
 }
