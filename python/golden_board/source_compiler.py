@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from collections import OrderedDict
 import re
 from typing import NoReturn
 
@@ -27,11 +26,7 @@ __all__ = (
 
 _AUTHORITY = object()
 _SCORES = frozenset((C.SCORE_FIRST_WIN, C.SCORE_SECOND_WIN, C.SCORE_DRAW))
-_SEMANTIC_CACHE: OrderedDict[
-    tuple[tuple[bytes, ...], bytes],
-    tuple[tuple[chess.Move, ...], tuple[tuple[str, str, int], ...]],
-] = OrderedDict()
-_SEMANTIC_CACHE_LIMIT = 256
+_TAG_LINE = re.compile(rb'\[([A-Za-z][A-Za-z0-9_]*) "(.*)"\]')
 
 
 class SourceReject(ValueError):
@@ -223,17 +218,15 @@ def decode_game_set(data: bytes) -> tuple[GameRecord, ...]:
             _reject(C.SOURCE_GAME_SET_TRUNCATED, len(data), len(data))
         spans.append((offset, game_end))
         offset = game_end
-    records: list[GameRecord] = []
+    records = [_decode_game_at(data, start, end) for start, end in spans]
     previous: bytes | None = None
     for start, end in spans:
         game_bytes = data[start:end]
-        record = _decode_game_at(data, start, end)
         if previous is not None and game_bytes < previous:
             _reject(C.SOURCE_GAME_SET_ORDER, start, end)
         if game_bytes == previous:
             _reject(C.SOURCE_GAME_SET_DUPLICATE, start, end)
         previous = game_bytes
-        records.append(record)
     if offset < len(data):
         _reject(C.SOURCE_GAME_SET_TRAILING, offset, offset + 1)
     return tuple(records)
@@ -249,6 +242,8 @@ class _Line:
 class _Block:
     opener: _Line
     content: tuple[_Line, ...]
+    content_start: int
+    content_end: int
     fence_end: int
 
 
@@ -373,7 +368,10 @@ def _fences(data: bytes, lines: tuple[_Line, ...]) -> tuple[_Block, ...]:
                 if fence_end - opener.start > C.SOURCE_MAX_FENCE_BYTES:
                     excess = opener.start + C.SOURCE_MAX_FENCE_BYTES
                     candidates.append((excess, C.SOURCE_FENCE_BLOCK_BYTES, excess + 1))
-                blocks.append(_Block(opener, tuple(content), fence_end))
+                content_start = content[0].start if content else line.start
+                blocks.append(
+                    _Block(opener, tuple(content), content_start, line.start, fence_end)
+                )
                 if len(blocks) > C.SOURCE_ANTHOLOGY_GAME_COUNT:
                     extra = blocks[C.SOURCE_ANTHOLOGY_GAME_COUNT].opener
                     candidates.append((extra.start, C.SOURCE_FENCE_COUNT, extra.end))
@@ -400,18 +398,13 @@ def _fences(data: bytes, lines: tuple[_Line, ...]) -> tuple[_Block, ...]:
     return tuple(blocks)
 
 
-def _parse_tag(data: bytes, line: _Line) -> tuple[bytes, bytes, tuple[int, int], tuple[int, int]] | tuple[None, tuple[int, int]]:
-    raw = data[line.start : line.end]
-    if not raw.startswith(b"["):
+def _parse_tag(data: bytes, line: _Line):
+    if not data.startswith(b"[", line.start, line.end):
         return None, (line.start, line.end)
-    match = re.fullmatch(rb'\[([A-Za-z][A-Za-z0-9_]*) "(.*)"\]', raw)
+    match = _TAG_LINE.fullmatch(data, line.start, line.end)
     if match is None:
         return None, (line.start, line.end)
-    name = match.group(1)
-    value = match.group(2)
-    name_start = line.start + 1
-    value_start = line.start + match.start(2)
-    return name, value, (name_start, name_start + len(name)), (value_start, value_start + len(value))
+    return match.span(1), match.span(2)
 
 
 def _tags(data: bytes, blocks: tuple[_Block, ...]) -> tuple[tuple[bytes, int], ...]:
@@ -431,45 +424,58 @@ def _tags(data: bytes, blocks: tuple[_Block, ...]) -> tuple[tuple[bytes, int], .
                 candidates.append((line.start, C.SOURCE_TAG_SYNTAX, line.end))
                 index += 1
                 continue
-            name, raw_value, name_span, value_span = parsed
-            if len(name) > C.SOURCE_MAX_TAG_NAME_BYTES:
+            name_span, value_span = parsed
+            name_length = name_span[1] - name_span[0]
+            value_length = value_span[1] - value_span[0]
+            oversized = False
+            if name_length > C.SOURCE_MAX_TAG_NAME_BYTES:
                 excess = name_span[0] + C.SOURCE_MAX_TAG_NAME_BYTES
                 candidates.append((excess, C.SOURCE_TAG_NAME_LENGTH, excess + 1))
-            if len(raw_value) > C.SOURCE_MAX_TAG_VALUE_BYTES:
+                oversized = True
+            if value_length > C.SOURCE_MAX_TAG_VALUE_BYTES:
                 excess = value_span[0] + C.SOURCE_MAX_TAG_VALUE_BYTES
                 candidates.append((excess, C.SOURCE_TAG_VALUE_LENGTH, excess + 1))
+                oversized = True
+            if oversized:
+                index += 1
+                continue
+            name = data[name_span[0] : name_span[1]]
             decoded = bytearray()
-            at = 0
-            while at < len(raw_value):
-                if raw_value[at] == 92:
-                    if at + 1 >= len(raw_value) or raw_value[at + 1] not in (34, 92):
-                        end = value_span[0] + min(at + 2, len(raw_value))
-                        candidates.append((value_span[0] + at, C.SOURCE_TAG_ESCAPE, end))
+            at = value_span[0]
+            decoded_ok = True
+            while at < value_span[1]:
+                if data[at] == 92:
+                    if at + 1 >= value_span[1] or data[at + 1] not in (34, 92):
+                        candidates.append(
+                            (at, C.SOURCE_TAG_ESCAPE, min(at + 2, value_span[1]))
+                        )
+                        decoded_ok = False
                         break
-                    decoded.append(raw_value[at + 1])
+                    decoded.append(data[at + 1])
                     at += 2
-                elif raw_value[at] == 34:
+                elif data[at] == 34:
                     candidates.append((line.start, C.SOURCE_TAG_SYNTAX, line.end))
+                    decoded_ok = False
                     break
                 else:
-                    decoded.append(raw_value[at])
+                    decoded.append(data[at])
                     at += 1
             if name in seen:
                 candidates.append((name_span[0], C.SOURCE_TAG_DUPLICATE, name_span[1]))
             seen.add(name)
             if name in (b"SetUp", b"FEN", b"Variant"):
                 candidates.append((name_span[0], C.SOURCE_TAG_FORBIDDEN, name_span[1]))
-            if name == b"Result":
+            if name == b"Result" and decoded_ok:
                 result = bytes(decoded)
                 if result not in (b"1-0", b"0-1", b"1/2-1/2"):
                     candidates.append((value_span[0], C.SOURCE_TAG_RESULT_VALUE, value_span[1]))
             index += 1
         if index == 0:
-            start = block.content[0].start if block.content else block.opener.end + 1
+            start = block.content_start
             end = block.content[0].end if block.content else start
             candidates.append((start, C.SOURCE_TAG_SYNTAX, end))
         separator = block.content[index] if index < len(block.content) else None
-        missing_at = separator.start if separator is not None else block.content[-1].end if block.content else block.opener.end + 1
+        missing_at = separator.start if separator is not None else block.content_end
         if result is None:
             candidates.append((missing_at, C.SOURCE_TAG_RESULT_MISSING, missing_at))
         results.append((result or b"", index))
@@ -484,7 +490,7 @@ def _framing(data: bytes, blocks: tuple[_Block, ...], tagged: tuple[tuple[bytes,
     for block, (result, index) in zip(blocks, tagged):
         separator: _Line | None = None
         if index >= len(block.content) or block.content[index].start != block.content[index].end:
-            at = block.content[index].start if index < len(block.content) else block.opener.end + 1
+            at = block.content[index].start if index < len(block.content) else block.content_end
             candidates.append((at, C.SOURCE_SEPARATOR_MISSING, at))
             lines = block.content[index:]
         else:
@@ -496,7 +502,7 @@ def _framing(data: bytes, blocks: tuple[_Block, ...], tagged: tuple[tuple[bytes,
             if separator is not None:
                 at = separator.end + (2 if data[separator.end : separator.end + 2] == b"\r\n" else 1)
             else:
-                at = block.content[-1].end if block.content else block.opener.end + 1
+                at = block.content_end
             candidates.append((at, C.SOURCE_MOVETEXT_MISSING, at))
         tokens: list[tuple[int, int]] = []
         token_count = 0
@@ -673,33 +679,11 @@ def _semantics(data: bytes, records: tuple[_Parsed, ...]) -> tuple[CompiledGame,
     compiled: list[CompiledGame] = []
     score_by_result = {b"1-0": C.SCORE_FIRST_WIN, b"0-1": C.SCORE_SECOND_WIN, b"1/2-1/2": C.SCORE_DRAW}
     for ordinal, record in enumerate(records):
-        cache_key = (tuple(data[start:end] for start, end in record.sans), record.result)
-        cached = _SEMANTIC_CACHE.get(cache_key)
-        if cached is not None:
-            cached_moves, facts = cached
-            rows = tuple(
-                (span[0], span[1], fact[0], fact[1], fact[2])
-                for span, fact in zip(record.sans, facts)
-            )
-            compiled.append(
-                _make(
-                    CompiledGame,
-                    source_ordinal=ordinal,
-                    opener_span=(record.block.opener.start, record.block.opener.end),
-                    rows=rows,
-                    record=_record(cached_moves, score_by_result[record.result]),
-                )
-            )
-            _SEMANTIC_CACHE.move_to_end(cache_key)
-            continue
         game = chess.new_game()
         moves: list[chess.Move] = []
         rows: list[tuple[int, int, str, str, int]] = []
         token_indices = {span: index for index, span in enumerate(record.tokens)}
-        knowable = True
         for span in record.sans:
-            if not knowable:
-                break
             if game.status != C.GAME_STATUS_ACTIVE:
                 by_stage[7].append((span[0], C.SOURCE_GAME_AFTER_TERMINAL, span[1]))
                 break
@@ -760,25 +744,15 @@ def _semantics(data: bytes, records: tuple[_Parsed, ...]) -> tuple[CompiledGame,
                     break
         immutable = tuple(moves)
         score = score_by_result[record.result]
-        score_ok = True
         if len(immutable) == len(record.sans) and game.status in (
             C.GAME_STATUS_CHECKMATE,
             C.GAME_STATUS_STALEMATE,
             C.GAME_STATUS_COMMON_DEAD,
         ):
             if score != game.score:
-                score_ok = False
                 by_stage[10].append((record.marker[0], C.SOURCE_TERMINAL_SCORE, record.marker[1]))
         record_value = _record(immutable, score)
         compiled.append(_make(CompiledGame, source_ordinal=ordinal, opener_span=(record.block.opener.start, record.block.opener.end), rows=tuple(rows), record=record_value))
-        if len(rows) == len(record.sans) and score_ok:
-            _SEMANTIC_CACHE[cache_key] = (
-                immutable,
-                tuple((row[2], row[3], row[4]) for row in rows),
-            )
-            _SEMANTIC_CACHE.move_to_end(cache_key)
-            if len(_SEMANTIC_CACHE) > _SEMANTIC_CACHE_LIMIT:
-                _SEMANTIC_CACHE.popitem(last=False)
     for stage in (7, 8, 9, 10):
         _best(by_stage[stage])
     return tuple(compiled)
@@ -795,12 +769,12 @@ def compile_source(raw_bytes: bytes) -> SourceCandidate:
     framed = _framing(raw_bytes, blocks, tagged)
     structured = _structure(raw_bytes, framed)
     compiled = _semantics(raw_bytes, structured)
-    streams: dict[bytes, int] = {}
+    streams: set[bytes] = set()
     for game in compiled:
         stream = b"".join(chess.encode_move(move) for move in game.record.moves)
         if stream in streams:
             start, end = game.opener_span
             _reject(C.SOURCE_DUPLICATE_MOVE_STREAM, start, end)
-        streams[stream] = game.source_ordinal
+        streams.add(stream)
     records = validate_anthology(tuple(game.record for game in compiled))
     return _make(SourceCandidate, games=compiled, game_set_bytes=encode_game_set(records))

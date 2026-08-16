@@ -436,6 +436,111 @@ class SourceCompilerApi(unittest.TestCase):
                 resource["expected"],
             )
 
+    def test_game_set_decodes_every_game_before_canonical_order(self) -> None:
+        from golden_board import source_compiler as source
+
+        short = bytes.fromhex("000131c000")
+        long = bytes.fromhex("00043550d24039e0edf001")
+        invalid = bytes.fromhex("0001000100")
+        for name, prefix in (
+            ("order", long + short),
+            ("duplicate", short + short),
+        ):
+            raw = b"\0\3" + prefix + invalid
+            invalid_start = 2 + len(prefix) + 2
+            with self.subTest(name=name):
+                self.assertEqual(
+                    _outcome(source, "decode_game_set", raw),
+                    {
+                        "rejection": {
+                            "code": C.SOURCE_GAME_MOVE,
+                            "raw_start": invalid_start,
+                            "raw_end": invalid_start + 2,
+                        }
+                    },
+                )
+
+    def test_result_escape_must_decode_before_result_value(self) -> None:
+        from golden_board import source_compiler as source
+
+        raw = LOCKED.replace(b'[Result "0-1"]', b'[Result "0\\q1"]', 1)
+        escape = raw.index(b"\\q")
+        self.assertEqual(
+            _outcome(source, "compile_source", raw),
+            {
+                "rejection": {
+                    "code": C.SOURCE_TAG_ESCAPE,
+                    "raw_start": escape,
+                    "raw_end": escape + 2,
+                }
+            },
+        )
+
+    def test_exhausted_block_missing_spans_use_content_end(self) -> None:
+        from golden_board import source_compiler as source
+
+        for newline in (b"\n", b"\r\n"):
+            valid = newline.join(
+                (
+                    b"```pgn",
+                    b'[Result "0-1"]',
+                    b"",
+                    b"1. f3 e5 2. g4 Qh4# 0-1",
+                    b"```",
+                    b"",
+                )
+            )
+            for name, tag, code in (
+                ("result", b'[Opaque "x"]', C.SOURCE_TAG_RESULT_MISSING),
+                ("separator", b'[Result "0-1"]', C.SOURCE_SEPARATOR_MISSING),
+            ):
+                bad = newline.join((b"```pgn", tag, b"```", b""))
+                content_end = bad.index(b"```", 3)
+                with self.subTest(newline=newline, name=name):
+                    self.assertEqual(
+                        _outcome(source, "compile_source", bad + valid * 63),
+                        {
+                            "rejection": {
+                                "code": code,
+                                "raw_start": content_end,
+                                "raw_end": content_end,
+                            }
+                        },
+                    )
+
+    def test_tag_value_cap_precedes_decoded_growth(self) -> None:
+        from golden_board import source_compiler as source
+
+        row = next(
+            row
+            for row in FIXTURE["recipes"]
+            if row["name"] == "tag-value-1025"
+        )
+
+        class CapGuard(bytearray):
+            def append(self, value: int) -> None:
+                if len(self) >= C.SOURCE_MAX_TAG_VALUE_BYTES:
+                    raise AssertionError("decoded beyond tag cap")
+                super().append(value)
+
+        with mock.patch.object(source, "bytearray", CapGuard, create=True):
+            self.assertEqual(
+                _outcome(source, "compile_source", _recipe_bytes(row)),
+                row["expected"],
+            )
+
+    def test_compile_source_replays_semantics_on_every_call(self) -> None:
+        from golden_board import source_compiler as source
+
+        source.compile_source(LOCKED)
+        with mock.patch.object(
+            source.chess,
+            "new_game",
+            side_effect=AssertionError("fresh semantic replay required"),
+        ):
+            with self.assertRaisesRegex(AssertionError, "fresh semantic replay required"):
+                source.compile_source(LOCKED)
+
     def test_stage_two_uses_lowest_raw_start_across_defect_families(self) -> None:
         from golden_board import source_compiler as source
 
