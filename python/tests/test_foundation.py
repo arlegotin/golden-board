@@ -32,6 +32,7 @@ IDENTITY_FIXTURE = ROOT / "conformance" / "identity-v0.json"
 MANIFEST_FIXTURE = ROOT / "conformance" / "manifest-v0.json"
 CHESS_FIXTURE = ROOT / "conformance" / "chess-v0.json"
 SOURCE_FIXTURE = ROOT / "conformance" / "source-v0.json"
+CONTENT_FIXTURE = ROOT / "conformance" / "content-v0.json"
 MAX_REPO_TEXT_BYTES = 1_048_576
 M0_IDENTITY_VECTORS_SHA256 = (
     "19b90c4ab863ca3853a1b8229b8ae84a886e4a8cf0c3bee496157e592bf000ae"
@@ -796,7 +797,7 @@ class SourceDoctorFast(unittest.TestCase):
 class RepoContract(unittest.TestCase):
     REQUIRED = [
         ".gitignore", ".python-version", "AGENTS.md", "Cargo.lock", "Cargo.toml",
-        "README.md", "conformance/chess-v0.json", "conformance/identity-v0.json",
+        "README.md", "conformance/chess-v0.json", "conformance/content-v0.json", "conformance/identity-v0.json",
         "conformance/manifest-v0.json", "conformance/source-v0.json",
         "conformance/registry.toml", "crates/gb-foundation/Cargo.toml",
         "crates/gb-foundation/src/constants.rs", "crates/gb-foundation/src/lib.rs",
@@ -924,6 +925,202 @@ class RepoContract(unittest.TestCase):
                 "specification": "source-v0",
                 "version": "v0",
             },
+        )
+
+    def test_content_fixture_is_registered_and_closed(self) -> None:
+        registry = tomllib.loads((ROOT / "conformance/registry.toml").read_text())
+        rows = [row for row in registry["suite"] if row["id"] == "content-v0"]
+        payload_bytes = repo_text_bytes(ROOT, b"conformance/content-v0.json")
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            rows[0],
+            {
+                "consumers": ["python", "rust"],
+                "id": "content-v0",
+                "path": "conformance/content-v0.json",
+                "provenance": "hand-authored",
+                "sha256": "128341c2a0b8e53b210e196b431225ee5e19d955d474891307097efafd3a9d3a",
+                "specification": "content-v0",
+                "version": "v0",
+            },
+        )
+        self.assertEqual(
+            hashlib.sha256(payload_bytes).hexdigest(),
+            "128341c2a0b8e53b210e196b431225ee5e19d955d474891307097efafd3a9d3a",
+        )
+
+        payload = canonical_manifest.validate_canonical_manifest(payload_bytes)
+        self.assertEqual(set(payload), {"bases", "cases", "recipes", "schema"})
+        self.assertEqual(payload["schema"], "golden-board.content-v0-fixtures/v0")
+        self.assertEqual(len(payload["bases"]), 1)
+        base = payload["bases"][0]
+        self.assertEqual(
+            set(base),
+            {"name", "projection", "stream_hex", "stream_length", "stream_sha256"},
+        )
+        stream = bytes.fromhex(base["stream_hex"])
+        self.assertEqual(base["name"], "generic-base")
+        self.assertEqual(base["stream_length"], len(stream))
+        self.assertEqual(base["stream_sha256"], hashlib.sha256(stream).hexdigest())
+        self.assertEqual(
+            {record["kind"] for record in base["projection"]["records"]},
+            {
+                "ATOM_SCHEMA", "ATOM_VECTOR", "FEEDBACK", "FIELD_SCHEMA",
+                "LESSON_NODE", "MATRIX", "OPAQUE_DATA", "PASSIVE_TRACE",
+                "PREDICATE_RESULT", "REGION_SET", "ROOT", "SEMANTIC_BINDING",
+                "TEXT", "TUPLE",
+            },
+        )
+        projection = base["projection"]
+        self.assertEqual(set(projection), {"records", "root_record_id", "version"})
+        self.assertEqual(projection["version"], 0)
+        self.assertEqual(projection["root_record_id"], 29)
+        self.assertEqual(
+            [record["record_id"] for record in projection["records"]],
+            list(range(1, 30)),
+        )
+        record_keys = {
+            "ATOM_VECTOR": {"atom_count", "atom_schema_ref", "atoms"},
+            "FEEDBACK": {"display_ref", "feedback_code", "predicate_result_ref"},
+            "FIELD_SCHEMA": {"field_count", "fields"},
+            "LESSON_NODE": {
+                "answer_mode", "case_count", "cases", "default_feedback_ref",
+                "default_next_node_ref", "flags", "item_event_budget",
+                "max_selections", "passive_trace_ref", "predicate_result_ref",
+                "presentation_ref", "region_set_ref", "response_shape", "role",
+            },
+            "MATRIX": {"atom_schema_ref", "cells", "columns", "rows"},
+            "OPAQUE_DATA": {"data", "data_binding_ref"},
+            "PASSIVE_TRACE": {
+                "action_count", "actions", "expected_feedback_ref",
+                "expected_next_node_ref", "expected_outcome", "limitation_text_ref",
+                "presentation_ref", "region_set_ref", "resulting_presentation_ref",
+            },
+            "PREDICATE_RESULT": {
+                "predicate_binding_ref", "result_atom_vector_ref",
+                "subject_opaque_data_ref",
+            },
+            "REGION_SET": {"region_count", "regions", "surface_matrix_ref"},
+            "ROOT": {"entry_node_ref", "global_event_budget"},
+            "SEMANTIC_BINDING": {
+                "argument", "auxiliary", "binding_class", "namespace_id",
+                "semantic_code",
+            },
+            "TEXT": {"text"},
+            "TUPLE": {"field_schema_ref", "field_values"},
+        }
+        for record in projection["records"]:
+            expected = record_keys.get(record["kind"])
+            if record["kind"] == "ATOM_SCHEMA":
+                expected = {
+                    1: {"atom_class", "atom_width", "entry_count", "max_value", "min_value"},
+                    2: {"atom_class", "atom_width", "entries", "entry_count"},
+                    3: {
+                        "allowed_mask", "atom_class", "atom_width", "entries",
+                        "entry_count",
+                    },
+                }[record["atom_class"]]
+            self.assertEqual(set(record), {"kind", "record_id", *expected})
+
+        for field in projection["records"][12]["fields"]:
+            self.assertEqual(set(field), {"count", "name_text_ref", "storage", "type"})
+        for region in projection["records"][14]["regions"]:
+            self.assertEqual(
+                set(region),
+                {
+                    "column_end", "column_start", "flags", "label_ref", "region_id",
+                    "row_end", "row_start",
+                },
+            )
+        for node in projection["records"][25:28]:
+            for case in node["cases"]:
+                self.assertEqual(
+                    set(case),
+                    {
+                        "case_class", "feedback_ref", "next_node_ref", "region_ids",
+                        "selection_count",
+                    },
+                )
+
+        rows = [*payload["cases"], *payload["recipes"]]
+        names = [row["name"] for row in rows]
+        self.assertEqual(len(names), len(set(names)))
+        self.assertTrue(all(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) for name in names))
+        for case in payload["cases"]:
+            self.assertEqual(set(case), {"covers", "expected", "input", "name", "operation"})
+        for recipe in payload["recipes"]:
+            self.assertEqual(
+                set(recipe),
+                {
+                    "count_cap", "covers", "expected", "input", "input_bytes",
+                    "input_sha256", "name", "operation", "recipe",
+                },
+            )
+            self.assertIs(type(recipe["count_cap"]), int)
+            self.assertGreater(recipe["count_cap"], 0)
+            self.assertIs(type(recipe["input_bytes"]), int)
+            self.assertGreaterEqual(recipe["input_bytes"], 0)
+            self.assertLessEqual(recipe["input_bytes"], MAX_REPO_TEXT_BYTES + 1)
+            self.assertRegex(recipe["input_sha256"], r"^[0-9a-f]{64}$")
+        self.assertEqual(
+            {recipe["recipe"] for recipe in payload["recipes"]},
+            {
+                "cases-per-node-boundary", "control-edge-boundary",
+                "enum-entries-boundary", "field-schema-fields-boundary",
+                "lesson-nodes-boundary", "matrix-cells-boundary",
+                "maximum-committed-state", "maximum-exhausted-state",
+                "maximum-selection-cap-over", "maximum-state-byte-over",
+                "maximum-support-stream",
+                "opaque-atoms-boundary", "patch-base", "per-kind-records-boundary",
+                "record-count-boundary", "record-payload-bytes-boundary",
+                "regions-boundary", "stream-byte-cap", "stream-bytes-boundary",
+                "text-bytes-boundary", "tuple-slots-boundary",
+                "typed-step-sequence", "vector-atoms-boundary",
+            },
+        )
+        for row in rows:
+            self.assertIs(type(row["covers"]), list)
+            self.assertEqual(len(row["covers"]), len(set(row["covers"])))
+            self.assertEqual(len(row["expected"]), 1)
+            if "rejection" in row["expected"]:
+                self.assertEqual(
+                    set(row["expected"]["rejection"]),
+                    {"code", "raw_end", "raw_start"},
+                )
+            if "invalid_host_state" in row["expected"]:
+                self.assertEqual(row["expected"]["invalid_host_state"], {})
+        self.assertEqual(
+            {row["operation"] for row in payload["cases"]},
+            {
+                "advance_committed", "new_run", "step", "stream_validation",
+                "validate_run_state",
+            },
+        )
+        self.assertEqual(
+            {
+                row["expected"]["rejection"]["code"]
+                for row in rows
+                if "rejection" in row["expected"]
+            },
+            set(range(1, 32)),
+        )
+        self.assertEqual(
+            {
+                row["expected"]["success"]["interaction_result"]
+                for row in payload["cases"]
+                if "success" in row["expected"]
+                and "interaction_result" in row["expected"]["success"]
+            },
+            set(range(1, 10)),
+        )
+        coverage = {label for row in rows for label in row["covers"]}
+        self.assertTrue(
+            {
+                "all-record-kinds", "all-reject-codes", "all-response-shapes",
+                "all-answer-modes", "all-feedback", "all-outcomes",
+                "all-runtime-results", "full-width-u16", "maximum-committed-state",
+                "maximum-exhausted-state", "nested-shape-closure", "precedence",
+            }.issubset(coverage)
         )
 
     def test_source_fixture_semantic_review_regressions_are_frozen(self) -> None:

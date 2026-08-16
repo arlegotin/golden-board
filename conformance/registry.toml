@@ -10,6 +10,15 @@ consumers = ["python", "rust"]
 provenance = "hand-authored"
 
 [[suite]]
+id = "content-v0"
+path = "conformance/content-v0.json"
+specification = "content-v0"
+version = "v0"
+sha256 = "128341c2a0b8e53b210e196b431225ee5e19d955d474891307097efafd3a9d3a"
+consumers = ["python", "rust"]
+provenance = "hand-authored"
+
+[[suite]]
 id = "identity-v0"
 path = "conformance/identity-v0.json"
 specification = "identity-v0"
