@@ -560,93 +560,355 @@ CANONICAL_CALL_CONSTANTS = {
     ("discovered_attack_check.discovered_check", "check", "target"): ((2, "OccupancyMatch", "exact_piece", ("opposing_side", "king")),),
 }
 
-OWNER_RESULTS = {
-    "chess.setup_turn": {"bool_false", "bool_true"},
-    "chess.occupancy": {"bool_false", "bool_true"},
-    "chess.move_legality": {"move_illegal", "move_legal"},
-    "chess.control": {"square_list"},
-    "chess.defended": {"bool_false", "bool_true"},
-    "chess.king_check": {"bool_false", "bool_true"},
-    "chess.absolute_pin": {"bool_false", "bool_true"},
-    "chess.fork_double_attack": {"bool_false", "bool_true"},
-    "chess.discovered_attack_check": {"bool_false", "bool_true"},
-    "chess.escape_square_control": {"bool_false", "bool_true"},
-    "chess.passed_pawn": {"bool_false", "bool_true"},
-    "chess.open_file": {"bool_false", "bool_true"},
-    "chess.semi_open_file": {"bool_false", "bool_true"},
-    "chess.finite_promotion_race": {"finite_race_result"},
-    "chess.finite_mating_geometry": {"finite_mating_result"},
-    "chess.terminal_transition": {
-        "terminal_none", "terminal_checkmate", "terminal_stalemate",
-        "terminal_common_dead",
-    },
-    "chess.history_claim": {"history_claim_fields"},
-    "chess.declaration_event": {
-        "declaration_accepted_game_status_agreed",
-        "declaration_accepted_game_status_claimed_50_move",
-        "declaration_accepted_game_status_claimed_threefold",
-        "declaration_accepted_game_status_resigned", "declaration_rejected",
-    },
-    "chess.source_score_relation": {"source_accepted_terminal_none"},
-    "chess.move_record_replay": {"move_decoded", "record_replayed"},
-    "content.stream_validation": {"content_accepted", "content_rejected"},
+# Complete result contract tuple: owner IDs, result variant, payload policy,
+# constraint, reject code, and span class.
+CANONICAL_RESULT_CONTRACTS = {
+    "bool_true": (("chess.setup_turn", "chess.occupancy", "chess.defended", "chess.king_check", "chess.absolute_pin", "chess.fork_double_attack", "chess.discovered_attack_check", "chess.escape_square_control", "chess.passed_pawn", "chess.open_file", "chess.semi_open_file"), "bool_true", "complete_exact_typed_value", "exact", "", "none"),
+    "bool_false": (("chess.setup_turn", "chess.occupancy", "chess.defended", "chess.king_check", "chess.absolute_pin", "chess.fork_double_attack", "chess.discovered_attack_check", "chess.escape_square_control", "chess.passed_pawn", "chess.open_file", "chess.semi_open_file"), "bool_false", "complete_exact_typed_value", "exact", "", "none"),
+    "square_list_nonempty": (("chess.control",), "square_list", "complete_exact_typed_value", "nonempty", "", "none"),
+    "square_list_contains_bound_origin": (("chess.control",), "square_list", "complete_exact_typed_value", "contains_bound_origin", "", "none"),
+    "square_list_min_two": (("chess.control",), "square_list", "complete_exact_typed_value", "cardinality_at_least_two", "", "none"),
+    "move_legal": (("chess.move_legality",), "move_legal", "complete_exact_typed_value", "exact", "", "none"),
+    "move_illegal_blocked": (("chess.move_legality",), "move_illegal", "complete_exact_typed_value", "exact", "CHESS_MOVE_BLOCKED", "none"),
+    "move_illegal_friendly_destination": (("chess.move_legality",), "move_illegal", "complete_exact_typed_value", "exact", "CHESS_MOVE_FRIENDLY_DESTINATION", "none"),
+    "move_illegal_self_check": (("chess.move_legality",), "move_illegal", "complete_exact_typed_value", "exact", "CHESS_MOVE_SELF_CHECK", "none"),
+    "move_illegal_castling_right": (("chess.move_legality",), "move_illegal", "complete_exact_typed_value", "exact", "CHESS_MOVE_CASTLING_RIGHT", "none"),
+    "move_illegal_castling_path": (("chess.move_legality",), "move_illegal", "complete_exact_typed_value", "exact", "CHESS_MOVE_CASTLING_PATH", "none"),
+    "move_illegal_castling_from_check": (("chess.move_legality",), "move_illegal", "complete_exact_typed_value", "exact", "CHESS_MOVE_CASTLING_FROM_CHECK", "none"),
+    "move_illegal_castling_through_check": (("chess.move_legality",), "move_illegal", "complete_exact_typed_value", "exact", "CHESS_MOVE_CASTLING_THROUGH_CHECK", "none"),
+    "move_illegal_castling_into_check": (("chess.move_legality",), "move_illegal", "complete_exact_typed_value", "exact", "CHESS_MOVE_CASTLING_INTO_CHECK", "none"),
+    "move_illegal_en_passant_target": (("chess.move_legality",), "move_illegal", "complete_exact_typed_value", "exact", "CHESS_MOVE_EN_PASSANT_TARGET", "none"),
+    "move_illegal_promotion_missing": (("chess.move_legality",), "move_illegal", "complete_exact_typed_value", "exact", "CHESS_MOVE_PROMOTION_MISSING", "none"),
+    "move_illegal_promotion_unneeded": (("chess.move_legality",), "move_illegal", "complete_exact_typed_value", "exact", "CHESS_MOVE_PROMOTION_UNNEEDED", "none"),
+    "terminal_none": (("chess.terminal_transition",), "terminal_none", "complete_exact_typed_value", "exact", "", "none"),
+    "terminal_checkmate": (("chess.terminal_transition",), "terminal_checkmate", "complete_exact_typed_value", "exact", "", "none"),
+    "terminal_stalemate": (("chess.terminal_transition",), "terminal_stalemate", "complete_exact_typed_value", "exact", "", "none"),
+    "terminal_common_dead": (("chess.terminal_transition",), "terminal_common_dead", "complete_exact_typed_value", "exact", "", "none"),
+    "history_exact": (("chess.history_claim",), "history_claim_fields", "complete_exact_typed_value", "exact", "", "none"),
+    "history_nominal_absent": (("chess.history_claim",), "history_claim_fields", "complete_exact_typed_value", "nominal_ep_absent", "", "none"),
+    "history_nominal_ineffective": (("chess.history_claim",), "history_claim_fields", "complete_exact_typed_value", "nominal_ep_present_effective_absent", "", "none"),
+    "history_nominal_effective": (("chess.history_claim",), "history_claim_fields", "complete_exact_typed_value", "nominal_ep_present_equals_effective", "", "none"),
+    "history_occurrence_two": (("chess.history_claim",), "history_claim_fields", "complete_exact_typed_value", "current_key_occurrences_2", "", "none"),
+    "history_occurrence_three": (("chess.history_claim",), "history_claim_fields", "complete_exact_typed_value", "current_key_occurrences_3", "", "none"),
+    "history_halfmove_99": (("chess.history_claim",), "history_claim_fields", "complete_exact_typed_value", "halfmove_99_claim_false", "", "none"),
+    "history_halfmove_100": (("chess.history_claim",), "history_claim_fields", "complete_exact_typed_value", "halfmove_100_claim_true", "", "none"),
+    "history_halfmove_nonzero": (("chess.history_claim",), "history_claim_fields", "complete_exact_typed_value", "halfmove_nonzero", "", "none"),
+    "history_halfmove_zero": (("chess.history_claim",), "history_claim_fields", "complete_exact_typed_value", "halfmove_zero", "", "none"),
+    "history_claim_available": (("chess.history_claim",), "history_claim_fields", "complete_exact_typed_value", "claim_available", "", "none"),
+    "declaration_resigned": (("chess.declaration_event",), "declaration_accepted_game_status_resigned", "complete_exact_typed_value", "exact", "", "none"),
+    "declaration_agreed": (("chess.declaration_event",), "declaration_accepted_game_status_agreed", "complete_exact_typed_value", "exact", "", "none"),
+    "declaration_threefold": (("chess.declaration_event",), "declaration_accepted_game_status_claimed_threefold", "complete_exact_typed_value", "exact", "", "none"),
+    "declaration_fifty": (("chess.declaration_event",), "declaration_accepted_game_status_claimed_50_move", "complete_exact_typed_value", "exact", "", "none"),
+    "declaration_rejected_agreement_early": (("chess.declaration_event",), "declaration_rejected", "complete_exact_typed_value", "exact", "CHESS_EVENT_AGREEMENT_TOO_EARLY", "none"),
+    "declaration_rejected_threefold": (("chess.declaration_event",), "declaration_rejected", "complete_exact_typed_value", "exact", "CHESS_EVENT_THREEFOLD_UNAVAILABLE", "none"),
+    "declaration_rejected_fifty": (("chess.declaration_event",), "declaration_rejected", "complete_exact_typed_value", "exact", "CHESS_EVENT_50_MOVE_UNAVAILABLE", "none"),
+    "declaration_rejected_game_closed": (("chess.declaration_event",), "declaration_rejected", "complete_exact_typed_value", "exact", "CHESS_GAME_CLOSED", "none"),
+    "source_terminal_none": (("chess.source_score_relation",), "source_accepted_terminal_none", "complete_exact_typed_value", "exact", "", "none"),
+    "move_decoded_exact": (("chess.move_record_replay",), "move_decoded", "complete_exact_typed_value", "exact", "", "none"),
+    "record_replayed_exact": (("chess.move_record_replay",), "record_replayed", "complete_exact_typed_value", "exact", "", "none"),
+    "content_accepted_exact": (("content.stream_validation",), "content_accepted", "complete_exact_typed_value", "exact", "", "none"),
+    "content_bad_kind_exact_field": (("content.stream_validation",), "content_rejected", "complete_exact_typed_value", "exact", "CONTENT_BAD_RECORD_KIND", "exact_field"),
+    "content_truncated_eof": (("content.stream_validation",), "content_rejected", "complete_exact_typed_value", "exact", "CONTENT_TRUNCATED", "eof"),
+    "finite_race_exact": (("chess.finite_promotion_race",), "finite_race_result", "complete_exact_typed_value", "exact", "", "none"),
+    "finite_mating_exact": (("chess.finite_mating_geometry",), "finite_mating_result", "complete_exact_typed_value", "exact", "", "none"),
 }
 
-REJECT_CODES = {
-    "move_illegal_blocked": "CHESS_MOVE_BLOCKED",
-    "move_illegal_friendly_destination": "CHESS_MOVE_FRIENDLY_DESTINATION",
-    "move_illegal_self_check": "CHESS_MOVE_SELF_CHECK",
-    "move_illegal_castling_right": "CHESS_MOVE_CASTLING_RIGHT",
-    "move_illegal_castling_path": "CHESS_MOVE_CASTLING_PATH",
-    "move_illegal_castling_from_check": "CHESS_MOVE_CASTLING_FROM_CHECK",
-    "move_illegal_castling_through_check": "CHESS_MOVE_CASTLING_THROUGH_CHECK",
-    "move_illegal_castling_into_check": "CHESS_MOVE_CASTLING_INTO_CHECK",
-    "move_illegal_en_passant_target": "CHESS_MOVE_EN_PASSANT_TARGET",
-    "move_illegal_promotion_missing": "CHESS_MOVE_PROMOTION_MISSING",
-    "move_illegal_promotion_unneeded": "CHESS_MOVE_PROMOTION_UNNEEDED",
-    "declaration_rejected_agreement_early": "CHESS_EVENT_AGREEMENT_TOO_EARLY",
-    "declaration_rejected_threefold": "CHESS_EVENT_THREEFOLD_UNAVAILABLE",
-    "declaration_rejected_fifty": "CHESS_EVENT_50_MOVE_UNAVAILABLE",
-    "declaration_rejected_game_closed": "CHESS_GAME_CLOSED",
-    "content_bad_kind_exact_field": "CONTENT_BAD_RECORD_KIND",
-    "content_truncated_eof": "CONTENT_TRUNCATED",
-}
-REJECT_SPANS = {
-    "content_bad_kind_exact_field": "exact_field",
-    "content_truncated_eof": "eof",
+CANONICAL_CALL_RESULTS = {
+    ("setup_turn.board_8x8", "initial", "setup"): "bool_true",
+    ("setup_turn.initial_piece_placement", "initial", "setup"): "bool_true",
+    ("setup_turn.initial_side_to_move", "initial", "turn"): "bool_true",
+    ("setup_turn.alternating_turn", "before", "turn"): "bool_true",
+    ("setup_turn.alternating_turn", "after", "turn"): "bool_true",
+    ("ordinary_move_capture.king_identity_and_move", "legal", "piece"): "bool_true",
+    ("ordinary_move_capture.king_identity_and_move", "legal", "legality"): "move_legal",
+    ("ordinary_move_capture.queen_identity_and_move", "legal", "piece"): "bool_true",
+    ("ordinary_move_capture.queen_identity_and_move", "legal", "legality"): "move_legal",
+    ("ordinary_move_capture.rook_identity_and_move", "legal", "piece"): "bool_true",
+    ("ordinary_move_capture.rook_identity_and_move", "legal", "legality"): "move_legal",
+    ("ordinary_move_capture.bishop_identity_and_move", "legal", "piece"): "bool_true",
+    ("ordinary_move_capture.bishop_identity_and_move", "legal", "legality"): "move_legal",
+    ("ordinary_move_capture.knight_identity_and_move", "legal", "piece"): "bool_true",
+    ("ordinary_move_capture.knight_identity_and_move", "legal", "legality"): "move_legal",
+    ("ordinary_move_capture.pawn_identity", "legal", "piece"): "bool_true",
+    ("ordinary_move_capture.pawn_identity", "legal", "legality"): "move_legal",
+    ("ordinary_move_capture.slider_blocking", "blocked", "legality"): "move_illegal_blocked",
+    ("ordinary_move_capture.knight_jump", "jump", "piece"): "bool_true",
+    ("ordinary_move_capture.knight_jump", "jump", "legality"): "move_legal",
+    ("ordinary_move_capture.pawn_forward_vs_capture", "quiet", "legality"): "move_legal",
+    ("ordinary_move_capture.pawn_forward_vs_capture", "capture", "legality"): "move_legal",
+    ("ordinary_move_capture.pawn_initial_double", "double", "legality"): "move_legal",
+    ("ordinary_move_capture.friendly_occupancy_rejection", "friendly", "legality"): "move_illegal_friendly_destination",
+    ("control_vs_legal.pawn_control", "pawn", "controllers"): "square_list_contains_bound_origin",
+    ("control_vs_legal.pawn_control", "pawn", "controller_piece"): "bool_true",
+    ("control_vs_legal.defended_friendly_target", "defended", "defended"): "bool_true",
+    ("control_vs_legal.pinned_piece_controls", "pinned", "pin"): "bool_true",
+    ("control_vs_legal.pinned_piece_controls", "pinned", "controllers"): "square_list_contains_bound_origin",
+    ("control_vs_legal.king_adjacency", "adjacent", "controllers"): "square_list_contains_bound_origin",
+    ("control_vs_legal.king_adjacency", "adjacent", "controller_piece"): "bool_true",
+    ("control_vs_legal.control_vs_move", "controlled_but_illegal", "controllers"): "square_list_contains_bound_origin",
+    ("control_vs_legal.control_vs_move", "controlled_but_illegal", "legality"): "move_illegal_en_passant_target",
+    ("king_safety.check", "checked", "check"): "bool_true",
+    ("king_safety.check_evasion", "evasion", "before"): "bool_true",
+    ("king_safety.check_evasion", "evasion", "legality"): "move_legal",
+    ("king_safety.check_evasion", "evasion", "after"): "bool_false",
+    ("king_safety.self_check", "self_check", "legality"): "move_illegal_self_check",
+    ("king_safety.king_capture_safety", "safe_capture", "legality"): "move_legal",
+    ("king_safety.king_capture_safety", "unsafe_capture", "legality"): "move_illegal_self_check",
+    ("king_safety.double_check", "double", "check"): "bool_true",
+    ("king_safety.double_check", "double", "controllers"): "square_list_min_two",
+    ("mate_stalemate.checkmate_vs_check", "check_only", "terminal"): "terminal_none",
+    ("mate_stalemate.checkmate_vs_check", "check_only", "check"): "bool_true",
+    ("mate_stalemate.checkmate_vs_check", "checkmate", "terminal"): "terminal_checkmate",
+    ("mate_stalemate.checkmate_vs_check", "checkmate", "check"): "bool_true",
+    ("mate_stalemate.stalemate", "stalemate", "terminal"): "terminal_stalemate",
+    ("mate_stalemate.legal_reply_exhaustiveness", "reply_exists", "terminal"): "terminal_none",
+    ("mate_stalemate.legal_reply_exhaustiveness", "reply_exists", "check"): "bool_true",
+    ("mate_stalemate.legal_reply_exhaustiveness", "no_reply", "terminal"): "terminal_checkmate",
+    ("mate_stalemate.legal_reply_exhaustiveness", "no_reply", "check"): "bool_true",
+    ("castling.rights", "right_present", "legality"): "move_legal",
+    ("castling.rights", "right_absent", "legality"): "move_illegal_castling_right",
+    ("castling.entitled_king_and_rook", "entitled", "legality"): "move_legal",
+    ("castling.entitled_king_and_rook", "replacement", "legality"): "move_illegal_castling_right",
+    ("castling.path_clear", "blocked_path", "legality"): "move_illegal_castling_path",
+    ("castling.from_check", "from_check", "legality"): "move_illegal_castling_from_check",
+    ("castling.through_check", "through_check", "legality"): "move_illegal_castling_through_check",
+    ("castling.into_check", "into_check", "legality"): "move_illegal_castling_into_check",
+    ("castling.lost_rights", "lost_right", "legality"): "move_illegal_castling_right",
+    ("castling.rook_relocation", "castle", "legality"): "move_legal",
+    ("castling.rook_relocation", "castle", "record"): "record_replayed_exact",
+    ("en_passant.immediate_window", "immediate", "legality"): "move_legal",
+    ("en_passant.expiry", "expired", "legality"): "move_illegal_en_passant_target",
+    ("en_passant.captured_pawn_removal", "capture", "legality"): "move_legal",
+    ("en_passant.captured_pawn_removal", "capture", "record"): "record_replayed_exact",
+    ("en_passant.self_check", "self_check", "legality"): "move_illegal_self_check",
+    ("en_passant.nominal_vs_effective", "ineffective", "history"): "history_nominal_ineffective",
+    ("en_passant.nominal_vs_effective", "effective", "history"): "history_nominal_effective",
+    ("promotion.quiet_promotion", "quiet", "legality"): "move_legal",
+    ("promotion.capture_promotion", "capture", "legality"): "move_legal",
+    ("promotion.promote_queen", "queen", "legality"): "move_legal",
+    ("promotion.promote_rook", "rook", "legality"): "move_legal",
+    ("promotion.promote_bishop", "bishop", "legality"): "move_legal",
+    ("promotion.promote_knight", "knight", "legality"): "move_legal",
+    ("promotion.check_after_promotion", "check", "legality"): "move_legal",
+    ("promotion.check_after_promotion", "check", "record"): "record_replayed_exact",
+    ("promotion.check_after_promotion", "check", "check"): "bool_true",
+    ("promotion.mate_after_promotion", "mate", "terminal"): "terminal_checkmate",
+    ("promotion.invalid_context", "missing", "legality"): "move_illegal_promotion_missing",
+    ("promotion.invalid_context", "unneeded", "legality"): "move_illegal_promotion_unneeded",
+    ("position_history_draw.same_board_different_history", "history_a", "history"): "history_exact",
+    ("position_history_draw.same_board_different_history", "history_b", "history"): "history_exact",
+    ("position_history_draw.repetition_key", "nominal_absent", "history"): "history_nominal_absent",
+    ("position_history_draw.repetition_key", "nominal_ineffective", "history"): "history_nominal_ineffective",
+    ("position_history_draw.repetition_key", "nominal_effective", "history"): "history_nominal_effective",
+    ("position_history_draw.repetition_occurrence", "two", "history"): "history_occurrence_two",
+    ("position_history_draw.repetition_occurrence", "three", "history"): "history_occurrence_three",
+    ("position_history_draw.halfmove_99_100", "ninety_nine", "history"): "history_halfmove_99",
+    ("position_history_draw.halfmove_99_100", "one_hundred", "history"): "history_halfmove_100",
+    ("position_history_draw.halfmove_pawn_reset", "before", "history"): "history_halfmove_nonzero",
+    ("position_history_draw.halfmove_pawn_reset", "after", "history"): "history_halfmove_zero",
+    ("position_history_draw.halfmove_capture_reset", "before", "history"): "history_halfmove_nonzero",
+    ("position_history_draw.halfmove_capture_reset", "after", "history"): "history_halfmove_zero",
+    ("position_history_draw.claims_not_automatic", "available_but_nonterminal", "history"): "history_claim_available",
+    ("position_history_draw.claims_not_automatic", "available_but_nonterminal", "source"): "source_terminal_none",
+    ("termination_score.checkmate", "checkmate", "terminal"): "terminal_checkmate",
+    ("termination_score.stalemate", "stalemate", "terminal"): "terminal_stalemate",
+    ("termination_score.common_dead_scope", "recognized", "terminal"): "terminal_common_dead",
+    ("termination_score.common_dead_scope", "two_knights", "terminal"): "terminal_none",
+    ("termination_score.resignation", "resign", "event"): "declaration_resigned",
+    ("termination_score.agreement", "too_early", "event"): "declaration_rejected_agreement_early",
+    ("termination_score.agreement", "accepted", "event"): "declaration_agreed",
+    ("termination_score.threefold_claim", "unavailable", "event"): "declaration_rejected_threefold",
+    ("termination_score.threefold_claim", "accepted", "event"): "declaration_threefold",
+    ("termination_score.fifty_move_claim", "unavailable", "event"): "declaration_rejected_fifty",
+    ("termination_score.fifty_move_claim", "accepted", "event"): "declaration_fifty",
+    ("termination_score.post_terminal_rejection", "closed", "event"): "declaration_rejected_game_closed",
+    ("termination_score.score_vs_cause", "nonterminal_decisive_score", "source"): "source_terminal_none",
+    ("record_replay.canonical_move_decode", "canonical", "decode"): "move_decoded_exact",
+    ("record_replay.short_replay", "short", "record"): "record_replayed_exact",
+    ("record_replay.score_atom", "first_win", "source"): "source_terminal_none",
+    ("record_replay.score_atom", "second_win", "source"): "source_terminal_none",
+    ("record_replay.score_atom", "draw", "source"): "source_terminal_none",
+    ("record_replay.logical_record_valid", "valid", "content"): "content_accepted_exact",
+    ("record_replay.logical_record_malformed", "malformed", "content"): "content_bad_kind_exact_field",
+    ("record_replay.logical_record_truncated", "truncated", "content"): "content_truncated_eof",
+    ("attacked_defended.attacked", "attacked", "controllers"): "square_list_nonempty",
+    ("attacked_defended.defended", "defended", "defended"): "bool_true",
+    ("absolute_pin.absolute_pin_to_king", "pinned", "pin"): "bool_true",
+    ("fork_double_attack.two_named_targets_after_move", "fork", "fork"): "bool_true",
+    ("discovered_attack_check.discovered_attack", "attack", "line"): "bool_true",
+    ("discovered_attack_check.discovered_attack", "attack", "target"): "bool_true",
+    ("discovered_attack_check.discovered_check", "check", "line"): "bool_true",
+    ("discovered_attack_check.discovered_check", "check", "target"): "bool_true",
+    ("escape_square_control.controlled", "controlled", "control"): "bool_true",
+    ("escape_square_control.uncontrolled", "uncontrolled", "control"): "bool_false",
+    ("passed_pawn.passed", "passed", "passed"): "bool_true",
+    ("passed_pawn.opposing_pawn_same_or_adjacent_ahead", "blocked", "passed"): "bool_false",
+    ("open_semi_open_file.open", "open", "open"): "bool_true",
+    ("open_semi_open_file.semi_open", "semi_open", "semi_open"): "bool_true",
+    ("finite_promotion_race.complete_legal_line_or_tree", "complete", "race"): "finite_race_exact",
+    ("queen_or_rook_mating_geometry.queen_geometry", "queen", "mating"): "finite_mating_exact",
+    ("queen_or_rook_mating_geometry.rook_geometry", "rook", "mating"): "finite_mating_exact",
+    ("queen_or_rook_mating_geometry.all_relevant_replies", "all_replies", "mating"): "finite_mating_exact",
 }
 
-FIXED_PROTOCOL = {
-    "ceil75": {
-        "input_min": 0, "input_max": 11, "numerator": 3,
-        "denominator": 4, "rounding": "ceil",
-        "boundary_inputs": list(range(12)),
-        "boundary_outputs": [0, 1, 2, 3, 3, 4, 5, 6, 6, 7, 8, 9],
+CANONICAL_POLICY = {
+    "formula": {
+        "ceil75": {
+            "input_min": 0,
+            "input_max": 11,
+            "numerator": 3,
+            "denominator": 4,
+            "rounding": "ceil",
+            "boundary_inputs": list(range(12)),
+            "boundary_outputs": [0, 1, 2, 3, 3, 4, 5, 6, 6, 7, 8, 9],
+        },
+        "family_acquisition": {
+            "input_min": 0,
+            "baseline_failure_min": 3,
+            "baseline_failure_max": 6,
+            "allowed_misses": 1,
+            "negative_input_result": "invalid_protocol",
+            "below_domain_result": "no_claim",
+            "inside_domain_operation": "checked_b_minus_one",
+            "above_domain_result": "invalid_protocol",
+            "boundary_inputs": list(range(8)),
+            "boundary_results": [
+                "no_claim", "no_claim", "no_claim", "2", "3", "4", "5",
+                "invalid_protocol",
+            ],
+        },
     },
-    "family_acquisition": {
-        "input_min": 0, "baseline_failure_min": 3,
-        "baseline_failure_max": 6, "allowed_misses": 1,
-        "negative_input_result": "invalid_protocol",
-        "below_domain_result": "no_claim",
-        "inside_domain_operation": "checked_b_minus_one",
-        "above_domain_result": "invalid_protocol",
-        "boundary_inputs": list(range(8)),
-        "boundary_results": [
-            "no_claim", "no_claim", "no_claim", "2", "3", "4", "5",
-            "invalid_protocol",
+    "assessment_minimums": {
+        "claimed_family_set_ids": ["E", "C"],
+        "pretest_items_per_claimed_family": 2,
+        "posttest_items_per_family": 2,
+        "posttest_counterfactual_pairs_per_family": 1,
+        "delayed_items_per_essential_family": 1,
+        "delayed_extra_only_for_otherwise_uncovered_stratum": True,
+        "assessment_only_posttest_templates_per_family": 1,
+        "counterfactual_pair_may_satisfy_posttest_minimum": True,
+        "forced_third_posttest_item": False,
+        "integrated_task_ids": [
+            "integrated_legal_sequence_pre", "integrated_legal_sequence_post",
+            "integrated_record_reading_post",
         ],
     },
-    "gates": {
-        "essential_family": [5],
-        "essential_individual": [4, ["king_safety"], "S", 2],
-        "core3_family": [4],
-        "core3_combined_individual": [4, 1],
-        "delayed": [4, 4, ["king_safety"], "S", 2],
+    "gate": {
+        "protocol": {
+            "required_family_set_ids": ["E", "C"],
+            "required_family_below_domain_result": "protocol_unclaimable",
+            "cohort_count_above_six_result": "invalid_protocol",
+            "prior_mastery_counts_for_acquisition": False,
+            "prior_mastery_counts_for_attainment": True,
+        },
+        "essential_family": {
+            "family_set_id": "E",
+            "posttest_passes_min": 5,
+            "acquisition_threshold_id": "family_acquisition",
+            "quantifier": "every_family",
+        },
+        "essential_individual": {
+            "learners_min": 4,
+            "failed_family_set_id": "E",
+            "acquired_fraction_threshold_id": "ceil75",
+            "required_acquired_family_ids": ["king_safety"],
+            "required_acquired_set_id": "S",
+            "required_acquired_set_min": 2,
+            "required_integrated_task_ids": [
+                "integrated_legal_sequence_post", "integrated_record_reading_post",
+            ],
+        },
+        "core3_family": {
+            "family_set_id": "C",
+            "posttest_passes_min": 4,
+            "acquisition_threshold_id": "family_acquisition",
+            "quantifier": "every_family",
+            "baseline_coverage_unconditional": True,
+        },
+        "core3_combined_individual": {
+            "optional_claim": True,
+            "learners_min": 4,
+            "failed_family_set_id": "C",
+            "baseline_failed_min": 1,
+            "acquired_fraction_threshold_id": "ceil75",
+        },
+        "delayed": {
+            "family_set_id": "E",
+            "family_passes_min": 4,
+            "quantifier": "every_family",
+            "learners_min": 4,
+            "individual_pass_fraction_threshold_id": "ceil75",
+            "required_passed_family_ids": ["king_safety"],
+            "required_passed_set_id": "S",
+            "required_passed_set_min": 2,
+        },
+        "unhinted": {
+            "semantic_hint_allowed": False,
+            "answer_revealing_behavior_allowed": False,
+        },
     },
-    "assessment": [2, 2, 1, 1],
-    "forms": [1, 3],
-    "cue": [1, 1, 1, 2],
+    "forms": {
+        "forms_min": 1,
+        "forms_max": 3,
+        "same_form_may_serve_multiple_learners": True,
+        "display_order_policy_owner": "later_private_assessment_manifest",
+        "display_order_seed_required_later": True,
+        "display_order_record_required_later": True,
+        "display_order_or_seed_required_in_curriculum_v0": False,
+        "display_order_or_seed_public_before_authorized_reveal": False,
+        "equal_family_burden_fields": [
+            "family_id", "split", "sorted_unique_stratum_ids",
+            "response_shape", "max_selections",
+        ],
+        "pre_post_match_fields": [
+            "family_id", "sorted_unique_stratum_ids", "response_shape",
+            "max_selections",
+        ],
+        "integrated_tasks_excluded_from_family_burden": True,
+        "integrated_equal_fields": [
+            "integrated_task_id", "response_shape", "max_selections",
+        ],
+        "assessment_only_required_family_set_ids": ["E", "C"],
+        "assessment_only_split": "posttest",
+        "assessment_only_absent_from_splits": ["teaching", "practice"],
+        "structural_template_blueprint_reuse_allowed": True,
+        "structural_template_id_is_not_case_identity": True,
+        "semantic_case_reuse_allowed": False,
+    },
+    "cue_audit": {
+        "split": "posttest",
+        "counterfactual_pairs_per_family_min": 1,
+        "pair_adjacent_allowed": False,
+        "pair_id_learner_visible": False,
+        "pair_requires_relation_flip": True,
+        "pair_requires_equal_observable_fingerprint": True,
+        "strategy_errors_per_family_min": 1,
+        "strategy_max_correct_numerator": 1,
+        "strategy_max_correct_denominator": 2,
+        "tie_break": "lowest_visible_ordinal",
+        "missing_metric_fallback": "empty_commit",
+        "no_selectable_region_fallback": "empty_commit",
+        "cap_zero_fallback": "empty_commit",
+        "whole_form_item_counting": "scheduled_item_once",
+        "success_rule": "membership_in_complete_accepted_response_set",
+        "response_timing_source": "declared_schedule_or_work_units",
+        "wall_clock_timing_allowed": False,
+        "observable_feature_ids": [
+            "visible_ordinal", "visible_option_octets", "region_area",
+            "region_count", "highlight_count", "selectable_count",
+            "record_payload_octets", "node_branch_count",
+            "visible_schema_type_labels", "focus_order", "tab_order",
+            "accessibility_attributes", "hover_cursor_clickability",
+            "disabled_state", "acknowledgement_identity",
+            "acknowledgement_schedule", "error_shape", "response_timing",
+        ],
+        "private_feature_ids": [
+            "accepted_option_ordinals", "accepted_response_cardinality",
+            "answer_sequence",
+        ],
+    },
     "cut": {
+        "future_validation_policy_only": True,
         "order": [
             "optional_alternate_presentations", "repeated_heuristic_examples",
             "nonessential_exact_relation_repetitions",
@@ -663,8 +925,8 @@ FIXED_PROTOCOL = {
             "exactly_sixty_four_complete_games", "final_reserve_and_headroom",
         ],
         "cut_must_preserve": [
-            "authoring_and_assessment_minimums",
-            "mandatory_stratum_coverage", "passive_completeness", "never_cut",
+            "authoring_and_assessment_minimums", "mandatory_stratum_coverage",
+            "passive_completeness", "never_cut",
         ],
     },
 }
@@ -695,55 +957,6 @@ def by_id(rows: list[dict]) -> dict[str, dict]:
     if len(result) != len(rows):
         raise ValueError("duplicate id")
     return result
-
-
-def fixed_protocol(data: dict) -> dict:
-    gate = data["gate"]
-    assessment = data["assessment_minimums"]
-    return {
-        "ceil75": data["formula"]["ceil75"],
-        "family_acquisition": data["formula"]["family_acquisition"],
-        "gates": {
-            "essential_family": [
-                gate["essential_family"]["posttest_passes_min"],
-            ],
-            "essential_individual": [
-                gate["essential_individual"]["learners_min"],
-                gate["essential_individual"]["required_acquired_family_ids"],
-                gate["essential_individual"]["required_acquired_set_id"],
-                gate["essential_individual"]["required_acquired_set_min"],
-            ],
-            "core3_family": [gate["core3_family"]["posttest_passes_min"]],
-            "core3_combined_individual": [
-                gate["core3_combined_individual"]["learners_min"],
-                gate["core3_combined_individual"]["baseline_failed_min"],
-            ],
-            "delayed": [
-                gate["delayed"]["family_passes_min"],
-                gate["delayed"]["learners_min"],
-                gate["delayed"]["required_passed_family_ids"],
-                gate["delayed"]["required_passed_set_id"],
-                gate["delayed"]["required_passed_set_min"],
-            ],
-        },
-        "assessment": [
-            assessment["pretest_items_per_claimed_family"],
-            assessment["posttest_items_per_family"],
-            assessment["posttest_counterfactual_pairs_per_family"],
-            assessment["delayed_items_per_essential_family"],
-        ],
-        "forms": [data["forms"]["forms_min"], data["forms"]["forms_max"]],
-        "cue": [
-            data["cue_audit"]["counterfactual_pairs_per_family_min"],
-            data["cue_audit"]["strategy_errors_per_family_min"],
-            data["cue_audit"]["strategy_max_correct_numerator"],
-            data["cue_audit"]["strategy_max_correct_denominator"],
-        ],
-        "cut": {
-            key: data["cut"][key]
-            for key in ("order", "never_cut", "cut_must_preserve")
-        },
-    }
 
 
 def pattern_projection(data: dict) -> list[dict]:
@@ -869,9 +1082,13 @@ def semantic_projection_is_valid(data: dict) -> bool:
         relation_rules = data["finite_relation"]
         if set(data) != ROOT_KEYS or REMOVED_DERIVED_KEYS & set(data):
             return False
+        if {key: data[key] for key in CANONICAL_POLICY} != CANONICAL_POLICY:
+            return False
         if set(patterns) != EXPECTED_PATTERN_IDS or len(patterns) != 88:
             return False
         if set(bindings) != set(INPUT_ARGUMENTS):
+            return False
+        if set(contracts) != set(CANONICAL_RESULT_CONTRACTS):
             return False
         if set(relation_rules) != set(RELATION_SHAPES):
             return False
@@ -974,31 +1191,19 @@ def semantic_projection_is_valid(data: dict) -> bool:
                     if produced.get(argument["source_id"]) != argument["type_id"]:
                         return False
 
-        rejecting = {"move_illegal", "declaration_rejected", "content_rejected"}
-        actual_rejects = {}
         for contract_id, contract in contracts.items():
             if set(contract) != {
                 "id", "owner_ids", "result_variant_id", "payload_policy",
                 "constraint_id", "reject_code_id", "span_class",
             }:
                 return False
-            if contract["payload_policy"] != "complete_exact_typed_value":
+            canonical_contract = (
+                tuple(contract["owner_ids"]), contract["result_variant_id"],
+                contract["payload_policy"], contract["constraint_id"],
+                contract["reject_code_id"], contract["span_class"],
+            )
+            if CANONICAL_RESULT_CONTRACTS[contract_id] != canonical_contract:
                 return False
-            if any(
-                contract["result_variant_id"] not in OWNER_RESULTS[owner]
-                for owner in contract["owner_ids"]
-            ):
-                return False
-            if bool(contract["reject_code_id"]) != (
-                contract["result_variant_id"] in rejecting
-            ):
-                return False
-            if contract["reject_code_id"]:
-                actual_rejects[contract_id] = contract["reject_code_id"]
-            if contract["span_class"] != REJECT_SPANS.get(contract_id, "none"):
-                return False
-        if actual_rejects != REJECT_CODES:
-            return False
 
         def relation_is_valid(
             relation: dict, pattern_id: str, scope_id: str, relation_index: int,
@@ -1068,6 +1273,10 @@ def semantic_projection_is_valid(data: dict) -> bool:
                     contract = contracts[call["result_contract_id"]]
                     call_key = (pattern["id"], case["id"], call["id"])
                     seen_calls.add(call_key)
+                    if CANONICAL_CALL_RESULTS.get(call_key) != (
+                        call["result_contract_id"]
+                    ):
+                        return False
                     used_bindings.add(call["input_binding_id"])
                     used_contracts.add(call["result_contract_id"])
                     if call["owner_id"] != binding["owner_id"]:
@@ -1106,6 +1315,7 @@ def semantic_projection_is_valid(data: dict) -> bool:
             used_bindings != set(bindings)
             or used_contracts != set(contracts)
             or seen_relations != set(CANONICAL_RELATIONS)
+            or seen_calls != set(CANONICAL_CALL_RESULTS)
             or not set(CANONICAL_CALL_CONSTANTS) <= seen_calls
         ):
             return False
@@ -1117,7 +1327,6 @@ def semantic_projection_is_valid(data: dict) -> bool:
 def admitted(data: dict) -> bool:
     return all((
         semantic_projection_is_valid(data),
-        fixed_protocol(data) == FIXED_PROTOCOL,
         digest(pattern_projection(data)) == PATTERN_DIGEST,
         digest(data["finite_relation"]) == FINITE_RULE_DIGEST,
         digest([data["transform"], data["predicate_mapping"]]) == TRANSFORM_DIGEST,
@@ -1314,6 +1523,79 @@ class CurriculumContract(unittest.TestCase):
             with self.subTest(call=(pattern_id, case_id, call_id)):
                 self.assertFalse(semantic_projection_is_valid(candidate))
 
+    def _call_at(
+        self, data: dict, pattern_id: str, case_id: str, call_id: str,
+    ) -> dict:
+        pattern = by_id(data["case_pattern"])[pattern_id]
+        return by_id(by_id(pattern["case"])[case_id]["call"])[call_id]
+
+    def test_policy_weakenings_are_rejected_semantically(self) -> None:
+        mutations = (
+            (("gate", "unhinted", "semantic_hint_allowed"), True),
+            (("forms", "semantic_case_reuse_allowed"), True),
+            (("cue_audit", "wall_clock_timing_allowed"), True),
+        )
+        for path, value in mutations:
+            candidate = copy.deepcopy(self.data)
+            target = candidate
+            for key in path[:-1]:
+                target = target[key]
+            target[path[-1]] = value
+            with self.subTest(path=path):
+                self.assertFalse(semantic_projection_is_valid(candidate))
+
+    def test_policy_tables_reject_extra_keys_semantically(self) -> None:
+        table_paths = (
+            ("formula", "ceil75"),
+            ("formula", "family_acquisition"),
+            ("assessment_minimums",),
+            *(("gate", gate_id) for gate_id in self.data["gate"]),
+            ("forms",),
+            ("cue_audit",),
+            ("cut",),
+        )
+        for path in table_paths:
+            candidate = copy.deepcopy(self.data)
+            target = candidate
+            for key in path:
+                target = target[key]
+            target["unexpected"] = True
+            with self.subTest(path=path):
+                self.assertFalse(semantic_projection_is_valid(candidate))
+
+    def test_result_swaps_are_rejected_semantically(self) -> None:
+        swaps = (
+            (
+                ("termination_score.checkmate", "checkmate", "terminal"),
+                ("termination_score.stalemate", "stalemate", "terminal"),
+            ),
+            (
+                ("escape_square_control.controlled", "controlled", "control"),
+                ("escape_square_control.uncontrolled", "uncontrolled", "control"),
+            ),
+            (
+                ("record_replay.logical_record_valid", "valid", "content"),
+                ("record_replay.logical_record_malformed", "malformed", "content"),
+            ),
+        )
+        for first, second in swaps:
+            candidate = copy.deepcopy(self.data)
+            first_call = self._call_at(candidate, *first)
+            second_call = self._call_at(candidate, *second)
+            first_call["result_contract_id"], second_call["result_contract_id"] = (
+                second_call["result_contract_id"],
+                first_call["result_contract_id"],
+            )
+            with self.subTest(calls=(first, second)):
+                self.assertFalse(semantic_projection_is_valid(candidate))
+
+    def test_result_contract_constraint_is_rejected_semantically(self) -> None:
+        candidate = copy.deepcopy(self.data)
+        by_id(candidate["result_contract"])["terminal_checkmate"][
+            "constraint_id"
+        ] = "invented"
+        self.assertFalse(semantic_projection_is_valid(candidate))
+
     def test_all_88_irreducible_projections_are_frozen(self) -> None:
         self.assertTrue(semantic_projection_is_valid(self.data))
         self.assertEqual(digest(pattern_projection(self.data)), PATTERN_DIGEST)
@@ -1323,12 +1605,20 @@ class CurriculumContract(unittest.TestCase):
         self.assertEqual(
             {cid: row["reject_code_id"] for cid, row in contracts.items()
              if row["reject_code_id"]},
-            REJECT_CODES,
+            {
+                contract_id: canonical[4]
+                for contract_id, canonical in CANONICAL_RESULT_CONTRACTS.items()
+                if canonical[4]
+            },
         )
         self.assertEqual(
             {cid: row["span_class"] for cid, row in contracts.items()
              if row["span_class"] != "none"},
-            REJECT_SPANS,
+            {
+                contract_id: canonical[5]
+                for contract_id, canonical in CANONICAL_RESULT_CONTRACTS.items()
+                if canonical[5] != "none"
+            },
         )
         logical = [
             row for row in self.data["case_pattern"]
@@ -1355,7 +1645,10 @@ class CurriculumContract(unittest.TestCase):
         )
 
     def test_fixed_arithmetic_gates_forms_cues_and_cuts(self) -> None:
-        self.assertEqual(fixed_protocol(self.data), FIXED_PROTOCOL)
+        self.assertEqual(
+            {key: self.data[key] for key in CANONICAL_POLICY},
+            CANONICAL_POLICY,
+        )
         ceil75 = self.data["formula"]["ceil75"]
         self.assertEqual(
             ceil75["boundary_outputs"],
