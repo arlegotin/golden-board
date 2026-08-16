@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Roadmap revision | 4 |
+| Roadmap revision | 5 |
 | Last updated | 2026-08-14 |
 | Project state | In progress |
 | Current milestone | M1 — Chess truth, source grammar, and assessment blueprint |
@@ -319,6 +319,9 @@ The selected transport, checks, interleave, shell notation, profile limits, and 
   eligibility/timing protocol, gate intent, acceptance wording, and claim ceiling;
   its formulas are a checked human-readable summary of the TOML. `spec/chess-v0.md`
   owns the executable truth of every chess predicate the curriculum references.
+  Any cohort/screening, eligibility/selection, timing, denominator, feedback,
+  help, interruption, privacy/reveal, or claim-ceiling field carried by the TOML
+  is a checked roadmap mirror, not a second protocol owner.
 - Section 13 owns mutable milestone status.
 
 When two real consumers need the same constants, a small neutral schema feeds them. Empty schemas and generated-language skeletons are forbidden; generated files never become the normative owner.
@@ -1126,7 +1129,7 @@ Before M3 authors the full curriculum, `spec/curriculum-v0.toml` freezes:
 
 - every essential Core 1/2 family;
 - every retained Core 3 family;
-- training, formative, final-transfer, delayed, and cue-control generator families;
+- training, formative, pretest, final-transfer, delayed, and cue-control generator families;
 - minimum item counts;
 - response shapes, all-or-nothing scoring rules, and evaluator-owned accepted-set
   requirements;
@@ -1153,14 +1156,16 @@ Minimum result-bearing assessment content is:
 Every mandatory stratum appears in instruction/practice and in at least one
 held-out posttest or delayed case. Self-check, castling from/through/into check,
 en-passant self-check, terminal continuation, and source score versus cause all
-appear in posttest; one multi-target item may cover several strata.
+appear in posttest. One multi-target item may cover several strata only when
+each referenced stratum's typed owner call independently recomputes and passes;
+a family or stratum label alone never proves coverage.
 
 Teaching, practice, pretest, posttest, and delayed cases are disjoint by exact
 semantic state/history, move sequence, record snippet, prompt/target, and case
 parameterization after every applicable, validity-checked chess symmetry.
 Blueprint response/prompt schemas and near-transfer templates may repeat; each
-posttest family includes at least one assessment-only structural template where
-the construct supports one. Answer order is balanced/audited rather than made
+essential/Core 3 posttest family includes at least one assessment-only
+structural template. Answer order is balanced/audited rather than made
 artificially unique. No scoring predicate, family, item-count rule, or pass
 threshold changes after the first candidate or reserve starts pretest.
 
@@ -1180,6 +1185,10 @@ Final items are constructed so that superficial metadata does not reveal answers
 The same check includes always committing empty and selecting every visible
 region up to the declared cap. `curriculum-v0.toml` makes each strategy total by
 freezing visible-order tie breaks and empty/no-label/first-item fallbacks.
+After the no-selectable-region or zero-cap empty commit, `same_as_prior`
+resolves in this exact order: an absent prior item selects first; a present
+empty prior response commits empty; a mechanically valid mapped response
+replays; and an incompatible mapping selects first.
 
 Accepted response cardinality, focus/tab order, accessibility attributes,
 pointer affordances, disabled state, acknowledgement shape, and
@@ -2005,12 +2014,14 @@ Before final protocols freeze:
 - final learner initial ceiling is `ceil(1.5 × successful integrated formative median)` rounded to half-hours, with a minimum of 4 and maximum of 8 hours across at most three sessions in seven elapsed days; and
 - each learner's short-delay assessment window is the closed interval from 36
   through 60 hours after that learner's complete valid posttest (48 hours ±12),
-  provided it finishes by the slot's frozen posttest deadline.
+  provided that posttest itself finishes by the slot's frozen posttest
+  deadline.
 
-Only a first submission inside that interval is valid. An early, late, or missed
-submission is reported and fails the affected delayed gates without retry; an
-early invalid attempt does not release feedback before that learner's +60-hour
-deadline. If posttest is not complete and valid by the frozen deadline,
+The learner's first delayed attempt is the only attempt. It is valid only inside
+that interval. An early, late, invalid, or missed first attempt is reported and
+fails the affected delayed gates without retry; an early or otherwise invalid
+attempt does not release feedback before that learner's +60-hour deadline. If
+posttest is not complete and valid by the frozen deadline,
 posttest/delayed results are missing failures, no delayed submission counts, and
 that slot's feedback embargo resolves 60 hours after the deadline.
 
@@ -2131,13 +2142,18 @@ denominator rule, and pass thresholds. Exact semantic cases, including every
 independently validated applicable symmetry, do not repeat between teaching/
 practice and result-bearing forms or between pretest/posttest/delayed forms. A
 frozen form may be used by more than one participant; all forms have equal
-per-family item counts and matched declared stratum/response-shape mixes.
-Blueprint schemas/templates may repeat. Because the repository is public,
-result-bearing payloads, usable seeds, schedules, and answer maps remain in an
-evaluator-only bundle outside learner and public-repository access until every
-delayed window resolves. A salted commitment digest to that canonical bundle is
-written to the tracked public repository before pretest; bundle and salt remain
-private until reveal.
+per-family item counts and matched declared stratum/response-shape/maximum-
+selection burden. Integrated tasks are excluded from that family multiset and
+match separately by task ID, response shape, and maximum selections. Blueprint
+schemas/structural templates may repeat but never make a semantic case reusable.
+Because the repository is public, result-bearing payloads, usable seeds,
+schedules, and answer maps remain in an evaluator-only bundle outside learner
+and public-repository access until authorized reveal. Before the first screened
+candidate or reserve starts result-bearing pretest, publish a tracked salted
+commitment that binds the frozen private protocol and assessment bundle. The
+later private assessment manifest owns the exact commitment byte framing.
+Bundle and salt remain private, and reveal follows resolution of all selected
+normal or fallback windows.
 
 The blueprint defines a family pass as correct responses to every held-out item
 in that family. Critical labels apply only to committed wrong responses and are
@@ -2169,8 +2185,9 @@ The final bounded gate is:
 6. no counted pass depends on a semantic hint or answer-revealing tool behavior.
 
 The family acquisition formula is defined only with the frozen minimum of three
-baseline failures, yielding 2/3, 3/4, 4/5, or 5/6; outside `3..6` the family has
-no acquisition claim. Individual 75% thresholds use
+baseline failures, yielding 2/3, 3/4, 4/5, or 5/6. A count below 3 has no
+acquisition claim; a count above 6 is invalid protocol. Individual 75%
+thresholds use
 integer `ceil(3 × n / 4)`; floating-point or post-hoc rounding is forbidden. The
 gate deliberately combines per-family and per-person evidence without requiring
 one perfection-defined subset to clear every family.

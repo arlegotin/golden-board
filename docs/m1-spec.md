@@ -4,7 +4,7 @@
 |---|---|
 | Status | Ready for execution |
 | Date | 2026-08-14 |
-| Roadmap | Revision 4, M1 |
+| Roadmap | Revision 5, M1 |
 | Branch | `m1` |
 | Baseline | `5d0acbd` (`M0 (#3)`) |
 | Scope | Chess truth, raw-source compilation, assessment blueprint, and the initial M2 content slice |
@@ -170,7 +170,7 @@ item accuracy. One learner clears all 24 with probability `0.95^24 = 0.292`;
 the probability that at least the same five of six do so is about `0.00964`.
 Even at 98% item accuracy it is only about `0.259`.
 
-The gate introduced in revision 3 and retained in revision 4 preserves strict
+The gate introduced in revision 3 and retained through revision 5 preserves strict
 all-or-nothing family scoring but combines:
 
 - per-family cohort gates, which expose systematic topic holes;
@@ -303,8 +303,11 @@ comparison surface; see its [core API documentation](https://python-chess.readth
 The curriculum references stable predicate and error IDs from the chess/content
 specifications. It never copies chess formulas. M3 may add the authored registry
 that binds records to those IDs, but it may not reinterpret predicate truth.
-The roadmap and this design state the gates for human review; a generated check
-must reject any drift from the executable TOML owner.
+The roadmap owns cohort/screening, eligibility/selection, timing, denominator,
+feedback, help, interruption, privacy/reveal, and claim-ceiling protocol. Any
+such field in the curriculum TOML is a checked roadmap mirror, not a second
+protocol owner. This design states the gates for human review; a generated check
+must reject drift from either owning source.
 
 ### 5.2 Required artifacts
 
@@ -1169,10 +1172,18 @@ noninterference promises.
 
 ## 14. Curriculum blueprint
 
+This section is a checked human-readable synopsis of
+[`spec/curriculum-v0.toml`](../spec/curriculum-v0.toml), which owns the closed
+concept, family, stratum, evidence, split, formula, cue, form, cap, and cut data.
+M1 verifies that blueprint with synthetic manifests only; it does not require or
+publish a concrete lesson, result-bearing form, seed, schedule, answer,
+commitment, candidate, or participant record.
+
 ### 14.1 Essential Core 1/2 families
 
 `spec/curriculum-v0.toml` freezes these eleven essential families and references
-only predicate IDs owned by chess-v0:
+only stable predicate/validation IDs owned by chess-v0 or content-v0. The
+content-v0 reference is confined to logical-record stream validity:
 
 | ID | Mandatory strata |
 |---|---|
@@ -1218,9 +1229,10 @@ For every retained concept, authoring later provides at least:
 
 - one grounded rule/relation;
 - one contrasting worked transition including a boundary/counterexample;
-- one active bounded prediction/reason selection with immediate exact feedback;
+- one active packed bounded prediction/reason selection with immediate exact
+  feedback;
 - one distinct held-out practice case; and
-- one complete passive trace of the exposed action set.
+- one complete passive trace of that packed practice's exposed action set.
 
 Support may fade by omitting a shown next step or reason in later practice. The
 blueprint does not mandate a learner-adaptive engine, rigid lesson count, or
@@ -1229,10 +1241,13 @@ actions exposed by that node, unless the node explicitly claims `all_legal_moves
 and packs that exact complete set.
 
 Every mandatory family stratum appears in teaching/practice and at least one
-held-out posttest or delayed case. Self-check, castling from/through/into check,
-en-passant self-check, post-terminal continuation, and score-versus-cause each
-appear in posttest. One well-formed multi-target item may cover several strata;
-there is no forced one-item-per-stratum bureaucracy.
+held-out posttest or delayed case; every Core 3 stratum appears in posttest
+because delayed testing covers only essential families. Self-check, castling
+from/through/into check, en-passant self-check, post-terminal continuation, and
+score-versus-cause each appear in posttest. One well-formed multi-target item
+may cover several strata only when each referenced stratum's typed owner call
+independently recomputes and passes; there is no forced one-item-per-stratum
+bureaucracy. A bare family or stratum label never proves coverage.
 
 ### 14.4 Record roles, splits, and leakage keys
 
@@ -1244,9 +1259,10 @@ assessment split:
 teaching | practice | pretest | posttest | delayed
 ```
 
-`teaching` is the training split and `practice` includes formative cases.
-`cue_control` is an orthogonal generator/pair flag, not a competing record role
-or data split; a posttest case may belong to a cue-control pair.
+Each item has exactly one nonorthogonal primary generator: `training`,
+`formative`, `pretest`, `final_transfer`, or `delayed`, mapped respectively to
+the five splits above. `cue_control` is only an optional orthogonal posttest
+generator/pair flag, not a competing record role, primary generator, or split.
 
 Result-bearing forms are blueprint-matched, not claimed statistically equivalent
 or equated. Minimums are:
@@ -1262,39 +1278,43 @@ or equated. Minimums are:
 - delayed: at least one independently held-out item per essential Core 1/2
   family, with more only to cover an otherwise absent mandatory stratum.
 
-Each item carries a `template_id` and a `case_key` derived from its exact board
-bytes plus either the complete canonical replay move sequence or explicit
-board-local authority, its move/record sequence, predicate/prompt target, and
-accepted response semantics. The split linter rejects reuse across teaching,
-practice, pretest, posttest, and delayed partitions by:
+Case equality uses the full structural tagged value, never an author-provided
+hash or opaque key. Its authority is exactly one of board-local `Position`
+bytes, complete replay `Move`s, complete game `Event`s plus derived status,
+source `GameBytes`, or content bytes. The value also includes shown moves,
+sorted unique case-pattern IDs, ordered owner-call IDs and typed argument bytes,
+semantic prompt targets, and the complete accepted semantic-response set.
+Declaration state requires complete game-event authority and is never inferred
+from replay alone.
 
-- exact case key;
-- exact board bytes plus replay sequence, or exact move sequence;
-- record snippet;
-- prompt/target set;
-- exact parameterization; and
-- every nonidentity transform that independently validates in the case's actual
-  board-local/replay/history domain and preserves the exact predicate and
-  accepted response.
+The linter applies the fixed `identity`, file-reflection,
+rank-reflection-plus-color-swap, and 180-degree-plus-color-swap candidates using
+the TOML's exact per-predicate input/result mapping. Each transformed authority
+is independently validated and must preserve predicate result and accepted
+responses; a rejected/unmappable authority is inapplicable, not an author opt
+out. None of the four transforms is globally safe. Answer order is audited as a
+cue rather than made artificially unique.
 
-Identity is the only universal chess transform. Rank reflection plus color/side
-swap is a useful candidate for some board-local cases, but it is not generally
-White-first replay/history preserving; file reflection and 180-degree color
-swap also disturb standard castling anchors. No transform enters a leakage key
-by name alone. Answer
-order is balanced/audited as a cue; it is not required to be globally unique.
-Blueprint response/prompt schemas and near-transfer `template_id` values may
-repeat. Each posttest family includes at least one assessment-only structural
-template where its construct supports one.
+Blueprint response/prompt schemas and near-transfer
+`structural_template_id` values may repeat without permitting semantic-case
+reuse. Every essential/Core 3 family includes at least one posttest
+assessment-only structural template absent from teaching and practice. Its
+counterfactual pair may satisfy the two-item posttest minimum; no third item is
+forced.
 
 Passive examples participate in leakage checks. A new glyph or shuffled order
 does not make a memorized semantic case held out. Delayed cases are disjoint
 from posttest as well as instruction. The private manifest freezes at most three
 counterbalanced forms and every screened slot assignment (six to eight) before
 result-bearing pretest. A form may serve more than one participant; every form
-uses equal per-family item counts and a declared matched pre/post stratum and
-response-shape mix. Shared schemas/templates keep the forms blueprint-matched
-without creating hundreds of one-off cases.
+uses the same multiset of family, split, sorted unique strata, response shape,
+and maximum selections. Pre/post matching omits only split. Integrated tasks are
+excluded from that family multiset and match separately by task ID, response
+shape, and maximum selections. Shared schemas/structural templates keep the
+forms blueprint-matched without creating hundreds of one-off cases.
+The later private assessment manifest owns each concrete seeded display order
+and its recorded realization; curriculum-v0 freezes only that those private
+fields will be required, not their values.
 
 ### 14.5 Response and item scoring
 
@@ -1337,6 +1357,10 @@ extra cross-family veto. Critical labels are a short closed list:
 - accepting a move/event after a terminal state; and
 - treating a source score as proof of a termination cause.
 
+The label is derived only by recomputing its typed owner predicate and exact
+wrong-response condition/rejection code. A supplied label string or family
+membership is never evidence that an error was critical.
+
 Other wrong responses remain wrong without being inflated into critical errors.
 
 ### 14.6 Eligibility and gates
@@ -1347,7 +1371,7 @@ form, including select, reset, empty commit, nonempty commit, set, and sequence.
 Inability to complete it is a setup failure before artifact exposure, not a
 chess baseline fail. Eligibility then requires:
 
-- no prior completed full legal orthodox game unaided;
+- `requires_no_prior_full_game_unaided = true`;
 - failure of the pretest integrated legal-play screening task;
 - failure of `king_safety`; and
 - failure of at least two among `castling`, `en_passant`, `promotion`, and
@@ -1366,16 +1390,17 @@ shape and adds nothing to those construct-specific criteria. Up to two reserves
 may complete the frozen pretest; predeclared eligibility/coverage rules choose
 the final six before artifact instruction/practice. Those six collectively
 supply at least three baseline failures for every essential Core 1/2 family and
-every retained Core 3 family. A combined individual Core 3 claim also requires at
-least four learners each to have one or more baseline-failed retained Core 3
-families.
+every retained Core 3 family, unconditionally. Only the requirement that at
+least four learners each have a baseline-failed retained Core 3 family is
+conditional on enabling the combined individual Core 3 claim.
 
 Family pass means every item correct; a committed critical response is already
 incorrect and separately labelled. Acquisition in a family means baseline
 family fail followed by posttest family pass. Define
-`ceil75(n) = ceil(3*n/4)` for nonnegative `n`. Define
-`family_acquisition(b) = b-1` only for `3 <= b <= 6`; outside that domain the
-family has no acquisition claim. All arithmetic is checked integer arithmetic.
+`ceil75(n) = ceil(3*n/4)` only for checked integer `0 <= n <= 11`. Define
+`family_acquisition(b)` as `no_claim` for `b < 3`, `b-1` for `3 <= b <= 6`,
+and `invalid_protocol` for `b > 6`. Any required E/C family with `b < 3` makes
+the selected protocol unclaimable. All arithmetic is checked integer arithmetic.
 
 For executable scoring, define:
 
@@ -1402,7 +1427,7 @@ The posttest integrated item IDs are exactly
 `integrated_legal_sequence_post` and `integrated_record_reading_post`; the
 eligibility screen is the disjoint `integrated_legal_sequence_pre`.
 
-The final frozen gates are exactly the revision-4 roadmap gates:
+The final frozen gates are exactly the revision-5 roadmap gates:
 
 1. for every `f in E`, `p_f >= 5` and
    `a_f >= family_acquisition(b_f)`;
@@ -1438,7 +1463,9 @@ Result-bearing feedback for every screened slot, including unused reserves, is
 withheld until every selected learner's normal or fallback feedback window
 resolves below. Before then no interface or report reveals correctness, accepted
 region/cardinality, relation label, score, answer-dependent branch, or
-answer-dependent schedule. Immediate posttesting is itself retrieval practice,
+answer-dependent schedule. Early posttest correctness contaminates delayed
+evidence; pretest or form-answer leakage invalidates the affected current and
+later evidence and the affected form. Immediate posttesting is itself retrieval practice,
 so delayed evidence is honestly described as short-delay performance after
 curriculum plus pre/post retrieval, not artifact-only or long-term retention.
 
@@ -1455,38 +1482,27 @@ logs and participant report are sufficient—no invasive monitoring is required.
 Reported/observed outside semantic study, help, sharing, or artifact reuse makes
 the affected acquisition/delayed result a fixed-denominator gate failure.
 
-A delayed submission is valid only in the closed interval from 36 through 60
-hours after that learner's complete valid posttest, provided it finishes by the
-slot's frozen posttest deadline. Early, late, and missed results are reported
-but fail every affected delayed gate. The window resolves on the first valid
-submission or at the +60-hour deadline; a no-show therefore still resolves. If
-posttest is not complete and valid by its frozen deadline, posttest/delayed
-results are missing failures, no delayed submission can count, and the feedback
-embargo for that slot resolves 60 hours after that deadline. An invalid early
-attempt is not retried and does not resolve the window early—it remains open
-only for feedback timing until +60. Feedback may be released only after the
-last selected normal or fallback window resolves.
+A learner's first delayed attempt is the only attempt. It is valid only in the
+closed interval from 36 through 60 hours after that learner's complete valid
+posttest, provided that posttest itself finishes by the slot's frozen posttest
+deadline. An early, late, invalid, or missed first attempt is reported and
+fails every affected
+delayed gate without retry. The feedback window still resolves only on a valid
+in-window completion or at the +60-hour fallback deadline. If posttest is not
+complete and valid by its frozen deadline, posttest/delayed results are missing
+failures, no delayed submission can count, and the feedback embargo for that
+slot resolves 60 hours after that deadline. Feedback may be released only after
+the last selected normal or fallback window resolves.
 
 Because this repository is public, concrete result-bearing payloads, accepted
 sets, usable seeds, and display schedules stay in one evaluator-only canonical
-bundle outside the learner bundle and public checkout. Before the first
-candidate or reserve starts result-bearing pretest, generate a private 32-byte
-salt and publish a tracked commitment whose digest is exactly:
-
-```text
-SHA256("golden-board:assessment-commitment:v0\0" ||
-       salt_32 || u32_be(bundle_length) || canonical_bundle)
-```
-
-The tracked commitment file is exact ASCII `sha256 `, the 64 lowercase hex
-digest, and LF. The later private assessment-manifest spec owns
-`canonical_bundle`, which includes candidate/protocol identities, every screened
-slot (six to eight), assignments, forms/schedules, selection rule, scoring
-manifest, timing, help,
-denominator, and thresholds and is at most 16,777,216 bytes. Keep bundle and salt
-private, then reveal and verify both only after all selected windows resolve. A
-private digest is not a commitment, and a public generator plus public seed is
-not a private form.
+bundle outside the learner bundle and public checkout before authorized reveal.
+Before the first screened candidate or reserve starts result-bearing pretest,
+publish a tracked salted commitment that binds the frozen private protocol and
+assessment bundle. Exact commitment byte framing belongs to the later private
+assessment-manifest specification. Keep the bundle and salt private, then reveal
+and verify both only after all selected windows resolve. A private digest is not
+a commitment, and a public generator plus public seed is not a private form.
 
 The deterministic cue audit covers what a learner can observe:
 
@@ -1505,10 +1521,17 @@ Pairs are not labelled or adjacent. Each predeclared strategy (`first`, `last`,
 error in every family and scores no more than one-half across each frozen form.
 Each is a total deterministic function: visible ordinal breaks ties; a missing
 feature or no selectable region falls back to empty commit; `alternating` starts
-with first; `same_as_prior` falls back to first on the first/incompatible item;
-and `select_all_visible` selects ascending visible ordinals up to the declared
-cap before commit. A small feature/strategy table is enough; no classifier
-platform is built.
+with first; and `select_all_visible` selects ascending visible ordinals up to
+the declared cap before commit. `same_as_prior` maps every prior accepted
+response to a visible-ordinal vector, sorts/uniques sets, preserves sequence
+order, and only the adversarial strategy chooses the lexicographically smallest
+vector. After the no-selectable-region or zero-cap empty commit, resolution
+order is exact: an absent prior item selects first; a present empty prior
+response commits empty; a mechanically valid mapped response replays; and an
+incompatible mapping selects first. It never creates a preferred scoring
+answer. Response timing
+is a declared deterministic schedule/work feature, never noisy wall time. A
+small feature/strategy table is enough; no classifier platform is built.
 
 The calibrated 4–8-hour initial active-time clock includes familiarization,
 pretest, artifact instruction/practice, and immediate posttest. Breaks and

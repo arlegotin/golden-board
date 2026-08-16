@@ -6,7 +6,7 @@
 | Field | Value |
 |---|---|
 | Date | 2026-08-14 |
-| Roadmap | Revision 4, M1 |
+| Roadmap | Revision 5, M1 |
 | Execution contract | [`docs/m1-spec.md`](m1-spec.md) |
 | Baseline | `5d0acbd` (`M0 (#3)`) |
 
@@ -18,9 +18,10 @@ for M2 without pulling M2–M4 work forward.
 **Architecture:** Freeze the small owning specifications and hand-authored
 vectors first. Build the Python and Rust semantic paths independently from
 those neutral inputs, converge them on exact bytes, and publish generated
-evidence only after complete candidate equality. Build the generic content and
-curriculum checks alongside that work, behind an explicit no-chess dependency
-boundary. Root checks compose already-live evidence; they never manufacture a
+evidence only after complete candidate equality. Build the generic-content
+checks alongside that work behind an explicit no-chess dependency boundary;
+compose curriculum checks after their Python source and generic-content owners
+are live. Root checks compose already-live evidence; they never manufacture a
 pass or rewrite tracked outputs.
 
 **Tech stack:** CPython 3.14.6 and `unittest` through locked `uv`; Rust 1.97.1
@@ -109,8 +110,8 @@ code-generation framework, CI platform, or governance process.
 
 - arrays, bitboards, or another bounded private board representation;
 - private helper names, module subdivision, and test-file grouping;
-- which language lane lands first, and whether content/curriculum runs in
-  parallel with chess/source work;
+- which language lane lands first, and whether generic content runs in parallel
+  with chess/source work before curriculum's declared prerequisites are live;
 - bounded deterministic property generators, seeds, and case counts, provided
   failures print enough information to replay the exact case;
 - whether a small function stays local or is extracted after a second real
@@ -185,9 +186,9 @@ P0 -> P1 -> P2
 P2 -> P3-Python chess -> P4-Python source -----------┐
 P2 -> P3-Rust chess ---> P4-Rust source -------------┼-> P5 source evidence
 P3-Python + P3-Rust -> P3 convergence/oracle --------┘
-P2 -> P6-Python content ─┐
-P2 -> P6-Rust content ───┼-> P7 root integration
-P2 -> P6 curriculum ─────┘
+P2 -> P6-Python content -> P6 curriculum ─┐
+P4-Python source -> P6 curriculum ─────────┼-> P7 root integration
+P2 -> P6-Rust content ─────────────────────┘
 P5 ------------------------------------------------------> P7
 P7 -> P8 milestone audit and status
 ```
@@ -631,8 +632,11 @@ general CLI solely to preserve these spellings.
 
 ## 13. Packet P6 — Close generic content and curriculum contracts
 
-**Depends on:** P2 content/curriculum/constants/fixture barrier. These three
-lanes may proceed while P3–P5 run.
+**Depends on:** P2 content/curriculum/constants/fixture barrier. The Python and
+Rust generic-content lanes remain independent and no-chess and may proceed
+while P3–P5 run. Curriculum composition/linting additionally depends on the
+Python source owner API from P4 and Python generic-content validation from P6.1;
+P4 already implies its Python chess prerequisites.
 
 ### 13.1 Python generic content
 
@@ -683,6 +687,9 @@ RUSTC="$(rustup which --toolchain 1.97.1 rustc)" \
 
 **Default files:** `python/golden_board/curriculum.py`,
 `python/tests/test_curriculum.py`.
+
+**Depends on:** the Python source owner API from P4 and Python generic-content
+validation from P6.1.
 
 - [ ] Parse the owning TOML with `tomllib`; reject unknown/duplicate/missing IDs,
   unresolved scored predicates, invalid dependencies, and checked-math errors.

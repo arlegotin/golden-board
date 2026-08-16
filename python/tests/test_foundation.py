@@ -654,9 +654,11 @@ class RepoContract(unittest.TestCase):
         "docs/m1-plan.md", "docs/m1-spec.md", "docs/sources.md", "inputs/source-lock.toml", "pyproject.toml",
         "python/golden_board/__init__.py", "python/golden_board/canonical_manifest.py",
         "python/golden_board/identity.py", "python/golden_board/source_doctor.py",
-        "python/tests/test_foundation.py", "reports/source-doctor.json",
+        "python/tests/test_curriculum_contract.py", "python/tests/test_foundation.py",
+        "reports/source-doctor.json",
         "rust-toolchain.toml", "scripts/check", "spec/chess-v0.md",
-        "spec/content-v0.md", "spec/identity-v0.md", "spec/source-v0.md", "uv.lock",
+        "spec/content-v0.md", "spec/curriculum-v0.toml", "spec/identity-v0.md",
+        "spec/source-v0.md", "uv.lock",
     ]
 
     def tracked(self) -> dict[str, str]:
@@ -911,6 +913,47 @@ class RepoContract(unittest.TestCase):
                 "CONTENT_BAD_PASSIVE_TRACE", "CONTENT_BUDGET_PROOF",
                 "CONTENT_BAD_RUN_STATE",
             ],
+        )
+
+    def test_m1_owner_and_plan_alignment(self) -> None:
+        chess = " ".join((ROOT / "spec/chess-v0.md").read_text().split())
+        content = " ".join((ROOT / "spec/content-v0.md").read_text().split())
+        plan = " ".join((ROOT / "docs/m1-plan.md").read_text().split())
+        design = " ".join((ROOT / "docs/m1-spec.md").read_text().split())
+        roadmap = " ".join((ROOT / "docs/roadmap.md").read_text().split())
+
+        self.assertIn("`EN_PASSANT_NONE` is numeric zero", chess)
+        self.assertIn("exactly `square_index + 1`", chess)
+        self.assertIn("`ContentRejectCode` is a constants-owned `u16`", content)
+        self.assertIn("P4-Python source -> P6 curriculum", plan)
+        self.assertIn("P6-Python content -> P6 curriculum", plan)
+        self.assertIn("Python source owner API from P4", plan)
+        self.assertIn("Python generic-content validation from P6.1", plan)
+        self.assertNotIn("P2 -> P6 curriculum", plan)
+        self.assertIn(
+            "each referenced stratum's typed owner call independently recomputes and passes",
+            design,
+        )
+        self.assertIn(
+            "each referenced stratum's typed owner call independently recomputes and passes",
+            roadmap,
+        )
+        same_as_prior = (
+            "an absent prior item selects first; a present empty prior response commits "
+            "empty; a mechanically valid mapped response replays; and an incompatible "
+            "mapping selects first"
+        )
+        self.assertIn(same_as_prior, design)
+        self.assertIn(same_as_prior, roadmap)
+        self.assertIn(
+            "Before the first screened candidate or reserve starts result-bearing pretest, "
+            "publish a tracked salted commitment",
+            design,
+        )
+        self.assertIn(
+            "Before the first screened candidate or reserve starts result-bearing pretest, "
+            "publish a tracked salted commitment",
+            roadmap,
         )
 
 

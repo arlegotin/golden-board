@@ -81,11 +81,13 @@ bits `CASTLING_FIRST_KINGSIDE`, `CASTLING_FIRST_QUEENSIDE`,
 `CASTLING_SECOND_KINGSIDE`, and `CASTLING_SECOND_QUEENSIDE`; every other bit is
 reserved.
 
-`nominal_en_passant` is `EN_PASSANT_NONE`, otherwise it is the constants-owned
-one-based encoding of a `Square`. It records the passed-over square after every
-legal double pawn push, even if no legal capture exists. Any other move clears
-it. Section 4.2 defines local coherence and Section 7.4 defines its different
-treatment in a repetition key.
+`EN_PASSANT_NONE` is numeric zero. Every other `nominal_en_passant` value is
+exactly `square_index + 1`, where `square_index` is `0..63` in the canonical
+`a1..h8` order. This chess-owned formula is a required input to constants
+generation, not an assignment left to the constants owner. The field records
+the passed-over square after every legal double pawn push, even if no legal
+capture exists. Any other move clears it. Section 4.2 defines local coherence
+and Section 7.4 defines its different treatment in a repetition key.
 
 The standard initial `Position` bytes are the concatenation of these wrapped
 hexadecimal lines, exactly 67 bytes:

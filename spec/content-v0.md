@@ -1058,10 +1058,12 @@ ContentReject {
 ```
 
 The span is zero-based, half-open, and indexes exactly the supplied content or
-run-state bytes. The constants owner reserves code zero for `CONTENT_OK` and
-assigns the nonzero codes in Section 13.2's order. Code and span are the entire
-canonical rejection. Messages, paths, record IDs, and richer context are
-optional, noncanonical, and excluded from fixture/cross-language equality.
+run-state bytes. `ContentRejectCode` is a constants-owned `u16` before
+downstream constants generation. The constants owner reserves code zero for
+`CONTENT_OK` and assigns the nonzero codes in Section 13.2's order. Code and
+span are the entire canonical rejection. Messages, paths, record IDs, and
+richer context are optional, noncanonical, and excluded from fixture/cross-
+language equality.
 
 The earliest validation stage, including an explicitly lettered substage,
 wins even if a later-stage defect starts at a lower byte. Within one leaf stage
