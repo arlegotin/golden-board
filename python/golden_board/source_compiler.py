@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
+from types import MappingProxyType
 from typing import NoReturn
 
 from . import chess
@@ -594,15 +595,15 @@ def _structure(data: bytes, records: tuple[_Parsed, ...]) -> tuple[_Parsed, ...]
     return tuple(output)
 
 
-_PIECE_KIND = {
+_PIECE_KIND = MappingProxyType({
     C.SQUARE_FIRST_PAWN: 1, C.SQUARE_FIRST_KNIGHT: 2, C.SQUARE_FIRST_BISHOP: 3,
     C.SQUARE_FIRST_ROOK: 4, C.SQUARE_FIRST_QUEEN: 5, C.SQUARE_FIRST_KING: 6,
     C.SQUARE_SECOND_PAWN: 1, C.SQUARE_SECOND_KNIGHT: 2, C.SQUARE_SECOND_BISHOP: 3,
     C.SQUARE_SECOND_ROOK: 4, C.SQUARE_SECOND_QUEEN: 5, C.SQUARE_SECOND_KING: 6,
-}
-_PIECE_LETTER = {2: b"N", 3: b"B", 4: b"R", 5: b"Q", 6: b"K"}
-_PROMOTION = {b"Q": C.PROMOTION_QUEEN, b"R": C.PROMOTION_ROOK, b"B": C.PROMOTION_BISHOP, b"N": C.PROMOTION_KNIGHT}
-_PROMOTION_LETTER = {value: key for key, value in _PROMOTION.items()}
+})
+_PIECE_LETTER = MappingProxyType({2: b"N", 3: b"B", 4: b"R", 5: b"Q", 6: b"K"})
+_PROMOTION = MappingProxyType({b"Q": C.PROMOTION_QUEEN, b"R": C.PROMOTION_ROOK, b"B": C.PROMOTION_BISHOP, b"N": C.PROMOTION_KNIGHT})
+_PROMOTION_LETTER = MappingProxyType({value: key for key, value in _PROMOTION.items()})
 
 
 def _square(raw: bytes) -> int:

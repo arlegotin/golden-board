@@ -553,6 +553,15 @@ class SourceCompilerApi(unittest.TestCase):
             {"rejection": {"code": 3, "raw_start": 0, "raw_end": 1}},
         )
 
+    def test_semantic_lookup_tables_are_read_only(self) -> None:
+        from golden_board import source_compiler as source
+
+        for name in ("_PIECE_KIND", "_PIECE_LETTER", "_PROMOTION", "_PROMOTION_LETTER"):
+            table = getattr(source, name)
+            key = next(iter(table))
+            with self.subTest(name=name), self.assertRaises(TypeError):
+                table[key] = table[key]
+
     def test_game_values_are_opaque_and_round_trip(self) -> None:
         from golden_board import source_compiler as source
 
