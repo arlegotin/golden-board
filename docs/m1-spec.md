@@ -1633,6 +1633,9 @@ or independently reproduced generator definition, never “Python output is the
 Rust expected file.” The final source trace is installed only after both
 candidates exist and compare equal.
 
+Shared source fixtures are portable raw/typed inputs; P5 owns candidate
+mismatch, and adapter-local tests own install/interruption.
+
 ### 16.3 Bounded and fail-closed behavior
 
 All public parsers and semantic operations:
@@ -1810,6 +1813,12 @@ bytes in the hand fixtures, include:
 - a failed/interrupted generation preserves the last accepted artifact; and
 - `scripts/check fast`, every live focused area, and `scripts/check full` pass
   without network after the declared environment is prepared.
+
+Literal boundary-plus-one evidence is required whenever representable. When a
+wire maximum fills its field (for example `u16` 65,535), commit the literal
+maximum encoding and test one additional host/runtime element or operation
+without encoding wrap; rejection or exhaustion is atomic with no output/state
+mutation.
 
 ## 18. Flexible execution envelope
 

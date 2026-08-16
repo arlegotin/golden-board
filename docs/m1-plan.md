@@ -142,6 +142,9 @@ These public artifacts are stable enough to plan against:
 | Accepted game set | `reports/game-set-v0.bin` |
 | Accepted source audit | `reports/source-compilation-v0.json` |
 
+Shared source fixtures are portable raw/typed inputs; P5 owns candidate
+mismatch, and adapter-local tests own install/interruption.
+
 If an owning spec needs a different public filename, settle it before a
 consumer ships and update every reference in the same change. Do not create an
 alias or migration layer for an M1 path that has never shipped.
@@ -220,6 +223,12 @@ status. A normal check must report drift without overwriting the tracked file.
 For source evidence, each producer writes a complete ignored candidate. The
 accepted pair is installed deliberately only after independent validation and
 byte equality.
+
+Literal boundary-plus-one evidence is required whenever representable. When a
+wire maximum fills its field (for example `u16` 65,535), commit the literal
+maximum encoding and test one additional host/runtime element or operation
+without encoding wrap; rejection or exhaustion is atomic with no output/state
+mutation.
 
 ## 7. Packet P0 — Preserve and verify the baseline
 

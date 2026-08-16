@@ -1322,7 +1322,15 @@ these exact rules, in order:
    trailing byte.
 4. After a complete frame with no trailing byte, perform only checks that do
    not require event replay: `state_version`; exact root ID; current-node
-   existence/kind; remaining-budget numeric bounds; phase/outcome/buffer/
+   existence/kind; then these budget checks in order:
+   `global_remaining <= root.global_event_budget`; failure spans
+   `global_remaining` `[6,8)`;
+   `local_remaining <= current_node.item_event_budget`; failure spans
+   `local_remaining` `[8,10)`;
+   `local_remaining <= global_remaining`; failure spans
+   `local_remaining` `[8,10)`. Active requires both remaining values nonzero;
+   exhausted requires at least one zero; committed permits either. A
+   phase/budget mismatch spans `phase` `[10,11)`. Then check outcome/buffer/
    committed-response structural compatibility; buffer shape,
    `max_selections`, membership, order, and repetition against the encoded
    current node; committed-response syntax and case/default-derived outcome
@@ -1373,6 +1381,12 @@ Hand-reviewed conformance evidence must include:
   valid run-state maximum, and the 466,955-byte exhausted maximum; and
 - dependency/import canaries proving both generic implementations contain no
   chess dependency or chess-derived 8x8 behavior.
+
+Literal boundary-plus-one evidence is required whenever representable. When a
+wire maximum fills its field (for example `u16` 65,535), commit the literal
+maximum encoding and test one additional host/runtime element or operation
+without encoding wrap; rejection or exhaustion is atomic with no output/state
+mutation.
 
 Large boundary cases may be deterministic bounded recipes, but expected codes,
 spans, bytes, and digests are committed literals. An implementation, external

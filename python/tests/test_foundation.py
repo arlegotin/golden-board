@@ -801,6 +801,64 @@ class RepoContract(unittest.TestCase):
             roadmap,
         )
 
+    def test_m1_portable_evidence_and_run_state_owners_are_explicit(self) -> None:
+        source = " ".join((ROOT / "spec/source-v0.md").read_text().split())
+        content = " ".join((ROOT / "spec/content-v0.md").read_text().split())
+        m1_spec = " ".join((ROOT / "docs/m1-spec.md").read_text().split())
+        m1_plan = " ".join((ROOT / "docs/m1-plan.md").read_text().split())
+
+        self.assertIn(
+            "`conformance/source-v0.json` is the portable shared fixture. It owns "
+            "exact raw-byte and typed-operation cases through "
+            "`SOURCE_EVIDENCE_CROSS_FIELD`.",
+            source,
+        )
+        self.assertIn(
+            "`SOURCE_CANDIDATE_MISMATCH` is P5 coordinator evidence constructed "
+            "only after two individually valid candidates.",
+            source,
+        )
+        self.assertIn(
+            "`SOURCE_EVIDENCE_INSTALL` is language-local host-adapter failure and "
+            "interruption evidence.",
+            source,
+        )
+        self.assertIn(
+            "Neither latter case is a portable shared-fixture input; both retain "
+            "the owner-defined canonical span `[0,0)`.",
+            source,
+        )
+        for rule in (
+            "`global_remaining <= root.global_event_budget`; failure spans "
+            "`global_remaining` `[6,8)`",
+            "`local_remaining <= current_node.item_event_budget`; failure spans "
+            "`local_remaining` `[8,10)`",
+            "`local_remaining <= global_remaining`; failure spans "
+            "`local_remaining` `[8,10)`",
+            "Active requires both remaining values nonzero; exhausted requires at "
+            "least one zero; committed permits either. A phase/budget mismatch "
+            "spans `phase` `[10,11)`.",
+        ):
+            self.assertIn(rule, content)
+        self.assertIn(
+            "Literal boundary-plus-one evidence is required whenever representable.",
+            content,
+        )
+        full_width = (
+            "When a wire maximum fills its field (for example `u16` 65,535), "
+            "commit the literal maximum encoding and test one additional "
+            "host/runtime element or operation without encoding wrap; rejection "
+            "or exhaustion is atomic with no output/state mutation."
+        )
+        self.assertIn(full_width, content)
+        for overview in (m1_spec, m1_plan):
+            self.assertIn(
+                "Shared source fixtures are portable raw/typed inputs; P5 owns "
+                "candidate mismatch, and adapter-local tests own install/interruption.",
+                overview,
+            )
+            self.assertIn(full_width, overview)
+
     def test_m1_chess_and_source_owners_are_closed(self) -> None:
         chess = (ROOT / "spec/chess-v0.md").read_text()
         source = (ROOT / "spec/source-v0.md").read_text()

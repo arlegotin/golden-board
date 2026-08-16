@@ -781,6 +781,14 @@ grammar cases, not noninterference promises.
 
 ## 12. Required evidence
 
+`conformance/source-v0.json` is the portable shared fixture. It owns exact
+raw-byte and typed-operation cases through `SOURCE_EVIDENCE_CROSS_FIELD`.
+`SOURCE_CANDIDATE_MISMATCH` is P5 coordinator evidence constructed only after
+two individually valid candidates. `SOURCE_EVIDENCE_INSTALL` is language-local
+host-adapter failure and interruption evidence. Neither latter case is a
+portable shared-fixture input; both retain the owner-defined canonical span
+`[0,0)`.
+
 Hand-authored fixtures cover exact raw bytes and expected code/span for every
 rejection above, including:
 
@@ -800,8 +808,7 @@ rejection above, including:
 - same move stream with same and different Score;
 - unclosed-at-EOF versus block-size/count precedence; and
 - game/set/report truncation, trailing data, sort, each evidence
-  shape/noncanonical/hash/cross-field partition, candidate mismatch, and
-  atomic-failure behavior.
+  shape/noncanonical/hash/cross-field partition.
 
 Large boundary inputs are deterministic hand-reviewed recipes; expected
 codes/spans/bytes/digests are committed literals, not generated from either
