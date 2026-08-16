@@ -4,8 +4,8 @@ use gb_foundation::constants::*;
 
 use crate::{
     BoardTerminal, LocallyAdmissiblePosition, Move, Score, Side, apply_move, board_terminal,
-    decode_move, destination, encode_move, file, king_in_check, legal_moves, origin, piece_kind,
-    promotion, rank, replay_from_start, validate_source_record,
+    decode_move, destination, encode_move, encode_position, file, king_in_check, legal_moves,
+    origin, piece_kind, promotion, rank, replay_from_start, validate_source_record,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -33,12 +33,11 @@ pub struct GameRecord {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SourceCandidate {
+    compiled: Vec<CompiledGame>,
     game_set: Vec<u8>,
-    game_count: usize,
-    ply_count: usize,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct Span {
     start: usize,
     end: usize,
@@ -90,13 +89,29 @@ struct SemanticToken {
     san: bool,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct TraceRow {
+    raw_span: Span,
+    move_bytes: [u8; 2],
+    post_position_bytes: [u8; 67],
+    suffix_truth_code: u8,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct CompiledGame {
+    source_ordinal: usize,
+    opener_span: Span,
+    rows: Vec<TraceRow>,
+    record: GameRecord,
+}
+
 impl SourceCandidate {
     pub fn game_count(&self) -> usize {
-        self.game_count
+        self.compiled.len()
     }
 
     pub fn ply_count(&self) -> usize {
-        self.ply_count
+        self.compiled.iter().map(|game| game.rows.len()).sum()
     }
 
     pub fn game_set_bytes(&self) -> &[u8] {
@@ -1058,9 +1073,10 @@ fn compile_games(raw: &[u8], blocks: &[StructuredBlock]) -> Result<SourceCandida
     let mut score_error = None;
     let mut compiled = Vec::with_capacity(blocks.len());
 
-    for block in blocks {
+    for (source_ordinal, block) in blocks.iter().enumerate() {
         let mut state = replay_from_start(&[]).expect("the standard initial state is valid");
         let mut moves = Vec::with_capacity(block.semantic.len());
+        let mut rows = Vec::with_capacity(block.semantic.len());
         let mut resolvable = true;
         for &semantic in &block.semantic {
             let token = semantic.token;
@@ -1119,7 +1135,8 @@ fn compile_games(raw: &[u8], blocks: &[StructuredBlock]) -> Result<SourceCandida
             let mv = *mv;
             let canonical = canonical_stem(&state, &legal, mv);
             let supplied = &bytes[..parsed.stem_end];
-            if canonical != supplied || parsed.capture != canonical.contains(&b'x') {
+            let stem_valid = canonical == supplied && parsed.capture == canonical.contains(&b'x');
+            if !stem_valid {
                 choose(
                     &mut stem_error,
                     reject(SOURCE_SAN_NONCANONICAL, token.span.start, token.span.end),
@@ -1127,13 +1144,27 @@ fn compile_games(raw: &[u8], blocks: &[StructuredBlock]) -> Result<SourceCandida
             }
             let next = apply_move(&state, mv).expect("a selected legal move applies");
             let truth = suffix_truth(&next);
-            if parsed.suffix != truth {
+            let suffix_valid = parsed.suffix == truth;
+            if !suffix_valid {
                 let (start, end) = if parsed.suffix.is_some() {
                     (token.span.end - 1, token.span.end)
                 } else {
                     (token.span.end, token.span.end)
                 };
                 choose(&mut suffix_error, reject(SOURCE_SAN_SUFFIX, start, end));
+            }
+            if stem_valid && suffix_valid {
+                rows.push(TraceRow {
+                    raw_span: token.span,
+                    move_bytes: encode_move(mv),
+                    post_position_bytes: encode_position(next.position()),
+                    suffix_truth_code: match truth {
+                        None => SUFFIX_NONE,
+                        Some(b'+') => SUFFIX_CHECK,
+                        Some(b'#') => SUFFIX_MATE,
+                        _ => unreachable!(),
+                    },
+                });
             }
             moves.push(mv);
             state = next;
@@ -1147,13 +1178,15 @@ fn compile_games(raw: &[u8], blocks: &[StructuredBlock]) -> Result<SourceCandida
                 reject(SOURCE_TERMINAL_SCORE, block.marker.start, block.marker.end),
             );
         }
-        compiled.push((
-            block.block.opener,
-            GameRecord {
+        compiled.push(CompiledGame {
+            source_ordinal,
+            opener_span: block.block.opener,
+            rows,
+            record: GameRecord {
                 moves,
                 score: block.result,
             },
-        ));
+        });
     }
 
     for error in [terminal_error, stem_error, suffix_error, score_error] {
@@ -1162,23 +1195,29 @@ fn compile_games(raw: &[u8], blocks: &[StructuredBlock]) -> Result<SourceCandida
         }
     }
     let mut seen = BTreeSet::new();
-    for (opener, game) in &compiled {
-        if !seen.insert(move_stream(game)) {
+    for game in &compiled {
+        if !seen.insert(move_stream(&game.record)) {
             return Err(reject(
                 SOURCE_DUPLICATE_MOVE_STREAM,
-                opener.start,
-                opener.end,
+                game.opener_span.start,
+                game.opener_span.end,
             ));
         }
     }
-    let games: Vec<GameRecord> = compiled.into_iter().map(|(_, game)| game).collect();
-    let ply_count = games.iter().map(|game| game.moves.len()).sum();
+    for (source_ordinal, game) in compiled.iter().enumerate() {
+        assert_eq!(game.source_ordinal, source_ordinal);
+        assert_eq!(game.rows.len(), game.record.moves.len());
+    }
+    assert_eq!(
+        compiled.iter().map(|game| game.rows.len()).sum::<usize>(),
+        compiled
+            .iter()
+            .map(|game| game.record.moves.len())
+            .sum::<usize>()
+    );
+    let games: Vec<GameRecord> = compiled.iter().map(|game| game.record.clone()).collect();
     let game_set = encode_game_set(&games)?;
-    Ok(SourceCandidate {
-        game_set,
-        game_count: games.len(),
-        ply_count,
-    })
+    Ok(SourceCandidate { compiled, game_set })
 }
 
 pub fn encode_game(game: &GameRecord) -> Vec<u8> {
@@ -1325,7 +1364,6 @@ pub fn decode_game_set(raw: &[u8]) -> Result<Vec<GameRecord>> {
     }
 
     let mut games = Vec::with_capacity(count);
-    let mut previous: Option<&[u8]> = None;
     for &(start, end) in &spans {
         let bytes = &raw[start..end];
         let game = decode_game(bytes).map_err(|error| {
@@ -1335,19 +1373,80 @@ pub fn decode_game_set(raw: &[u8]) -> Result<Vec<GameRecord>> {
                 start + error.raw_end as usize,
             )
         })?;
-        if let Some(prior) = previous {
-            if bytes < prior {
-                return Err(reject(SOURCE_GAME_SET_ORDER, start, end));
-            }
-            if bytes == prior {
-                return Err(reject(SOURCE_GAME_SET_DUPLICATE, start, end));
-            }
-        }
-        previous = Some(bytes);
         games.push(game);
+    }
+    for pair in spans.windows(2) {
+        let prior = &raw[pair[0].0..pair[0].1];
+        let (start, end) = pair[1];
+        let bytes = &raw[start..end];
+        if bytes < prior {
+            return Err(reject(SOURCE_GAME_SET_ORDER, start, end));
+        }
+        if bytes == prior {
+            return Err(reject(SOURCE_GAME_SET_DUPLICATE, start, end));
+        }
     }
     if at < raw.len() {
         return Err(reject(SOURCE_GAME_SET_TRAILING, at, at + 1));
     }
     Ok(games)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{encode_position, replay_from_start};
+
+    #[test]
+    fn source_candidate_retains_complete_private_trace_rows() {
+        let raw = b"f3 e5 g4 Qh4# 0-1";
+        let spans = [(0, 2), (3, 5), (6, 8), (9, 13)];
+        let block = StructuredBlock {
+            block: Block {
+                opener: Span { start: 0, end: 0 },
+                content: Span {
+                    start: 0,
+                    end: raw.len(),
+                },
+            },
+            result: Score::SecondWin,
+            semantic: spans
+                .iter()
+                .map(|&(start, end)| SemanticToken {
+                    token: Token {
+                        span: Span { start, end },
+                    },
+                    san: true,
+                })
+                .collect(),
+            marker: Span { start: 14, end: 17 },
+        };
+
+        let candidate = compile_games(raw, &[block]).unwrap();
+        assert_eq!(candidate.compiled.len(), 1);
+        let compiled = &candidate.compiled[0];
+        assert_eq!(compiled.source_ordinal, 0);
+        assert_eq!(compiled.opener_span, Span { start: 0, end: 0 });
+        assert_eq!(compiled.rows.len(), compiled.record.moves.len());
+        assert_eq!(compiled.rows.len(), 4);
+        assert_eq!(compiled.record.score, Score::SecondWin);
+
+        let expected_moves = [[0x35, 0x50], [0xd2, 0x40], [0x39, 0xe0], [0xed, 0xf0]];
+        let expected_suffixes = [SUFFIX_NONE, SUFFIX_NONE, SUFFIX_NONE, SUFFIX_MATE];
+        let mut state = replay_from_start(&[]).unwrap();
+        for (index, row) in compiled.rows.iter().enumerate() {
+            assert_eq!(
+                row.raw_span,
+                Span {
+                    start: spans[index].0,
+                    end: spans[index].1
+                }
+            );
+            assert_eq!(row.move_bytes, expected_moves[index]);
+            state = apply_move(&state, compiled.record.moves[index]).unwrap();
+            assert_eq!(row.post_position_bytes, encode_position(state.position()));
+            assert_eq!(row.suffix_truth_code, expected_suffixes[index]);
+        }
+        assert_eq!((candidate.game_count(), candidate.ply_count()), (1, 4));
+    }
 }

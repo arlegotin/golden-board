@@ -1,10 +1,18 @@
 use std::collections::{BTreeMap, BTreeSet};
+#[cfg(unix)]
+use std::fs;
 use std::fs::OpenOptions;
 use std::io::Read;
 #[cfg(unix)]
-use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+use std::os::unix::fs::{FileTypeExt, MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
+#[cfg(unix)]
+use std::process::{Command, Stdio};
 use std::sync::OnceLock;
+#[cfg(unix)]
+use std::thread;
+#[cfg(unix)]
+use std::time::{Duration, Instant};
 
 use gb_chess::source::{
     GameRecord, SourceReject, compile_source, decode_game, decode_game_set, encode_game,
@@ -20,6 +28,10 @@ const READ_CAP: usize = 1_048_577;
 const O_NOFOLLOW: i32 = 0x20_000;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 const O_NOFOLLOW: i32 = 0x100;
+#[cfg(any(target_os = "linux", target_os = "android"))]
+const O_NONBLOCK: i32 = 0x800;
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+const O_NONBLOCK: i32 = 0x4;
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -29,7 +41,12 @@ fn root() -> PathBuf {
 }
 
 #[cfg(unix)]
-fn safe_read(relative: &str, cap: usize) -> Vec<u8> {
+fn safe_read_from(
+    base: &Path,
+    relative: &str,
+    cap: usize,
+    before_open: impl FnOnce(&Path),
+) -> Vec<u8> {
     assert!(!relative.is_empty());
     assert!(relative.split('/').all(|part| {
         !part.is_empty()
@@ -39,7 +56,7 @@ fn safe_read(relative: &str, cap: usize) -> Vec<u8> {
                 .bytes()
                 .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.'))
     }));
-    let mut path = root();
+    let mut path = base.to_path_buf();
     let parts: Vec<_> = relative.split('/').collect();
     for part in &parts[..parts.len() - 1] {
         path.push(part);
@@ -50,9 +67,10 @@ fn safe_read(relative: &str, cap: usize) -> Vec<u8> {
     let before = path.symlink_metadata().unwrap();
     assert!(before.file_type().is_file() && !before.file_type().is_symlink());
     assert!(before.len() <= cap as u64);
+    before_open(&path);
     let file = OpenOptions::new()
         .read(true)
-        .custom_flags(O_NOFOLLOW)
+        .custom_flags(O_NOFOLLOW | O_NONBLOCK)
         .open(&path)
         .unwrap();
     let after = file.metadata().unwrap();
@@ -63,6 +81,11 @@ fn safe_read(relative: &str, cap: usize) -> Vec<u8> {
     file.take(cap as u64 + 1).read_to_end(&mut bytes).unwrap();
     assert!(bytes.len() <= cap);
     bytes
+}
+
+#[cfg(unix)]
+fn safe_read(relative: &str, cap: usize) -> Vec<u8> {
+    safe_read_from(&root(), relative, cap, |_| {})
 }
 
 #[cfg(not(unix))]
@@ -672,7 +695,7 @@ fn locked_anthology_compiles_atomically_and_deterministically() {
     let first = compile_source(&raw).unwrap();
     let second = compile_source(&raw).unwrap();
     assert_eq!((first.game_count(), first.ply_count()), (64, 4_915));
-    assert_eq!(first.game_set_bytes(), second.game_set_bytes());
+    assert_eq!(first, second);
 
     let games = decode_game_set(first.game_set_bytes()).unwrap();
     assert_eq!(games.len(), 64);
@@ -688,6 +711,81 @@ fn locked_anthology_compiles_atomically_and_deterministically() {
     for game in encoded {
         assert_eq!(encode_game(&decode_game(&game).unwrap()), game);
     }
+}
+
+#[test]
+fn game_set_decodes_all_games_before_order_check() {
+    let accepted = hex("00043550d24039e0edf001");
+    let smaller = hex("000131c000");
+    let bad_third = hex("0001000000");
+
+    let order = [vec![0, 3], accepted.clone(), smaller, bad_third.clone()].concat();
+    let error = decode_game_set(&order).unwrap_err();
+    assert_eq!((error.code, error.raw_start, error.raw_end), (51, 20, 22));
+}
+
+#[test]
+fn game_set_decodes_all_games_before_duplicate_check() {
+    let accepted = hex("00043550d24039e0edf001");
+    let bad_third = hex("0001000000");
+    let duplicate = [vec![0, 3], accepted.clone(), accepted, bad_third].concat();
+    let error = decode_game_set(&duplicate).unwrap_err();
+    assert_eq!((error.code, error.raw_start, error.raw_end), (51, 26, 28));
+}
+
+#[cfg(unix)]
+#[test]
+fn fifo_leaf_swap_child() {
+    let Some(directory) = std::env::var_os("GB_SOURCE_FIFO_SWAP_CHILD") else {
+        return;
+    };
+    safe_read_from(Path::new(&directory), "leaf", 1, |path| {
+        fs::remove_file(path).unwrap();
+        assert!(Command::new("mkfifo").arg(path).status().unwrap().success());
+    });
+}
+
+#[cfg(unix)]
+#[test]
+fn fifo_leaf_swap_is_bounded_and_fail_closed() {
+    let directory =
+        std::env::temp_dir().join(format!("golden-board-source-fifo-{}", std::process::id()));
+    fs::create_dir(&directory).unwrap();
+    fs::write(directory.join("leaf"), b"x").unwrap();
+
+    let mut child = Command::new(std::env::current_exe().unwrap())
+        .arg("--exact")
+        .arg("fifo_leaf_swap_child")
+        .arg("--nocapture")
+        .env("GB_SOURCE_FIFO_SWAP_CHILD", &directory)
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    let deadline = Instant::now() + Duration::from_secs(2);
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break Some(status);
+        }
+        if Instant::now() >= deadline {
+            child.kill().unwrap();
+            child.wait().unwrap();
+            break None;
+        }
+        thread::sleep(Duration::from_millis(10));
+    };
+
+    let leaf = directory.join("leaf");
+    let was_fifo = leaf
+        .symlink_metadata()
+        .is_ok_and(|metadata| metadata.file_type().is_fifo());
+    if leaf.exists() {
+        fs::remove_file(&leaf).unwrap();
+    }
+    fs::remove_dir(&directory).unwrap();
+    assert!(was_fifo, "child did not install the FIFO replacement");
+    let status = status.expect("FIFO replacement blocked the bounded safe reader");
+    assert!(!status.success(), "FIFO replacement was accepted");
 }
 
 fn replace_once(raw: &[u8], old: &[u8], replacement: &[u8]) -> Vec<u8> {
