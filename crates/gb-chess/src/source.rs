@@ -1,6 +1,10 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use gb_foundation::constants::*;
+use gb_foundation::{
+    MAX_MANIFEST_BYTES, ManifestValue, identity_hex, parse_manifest, serialize_manifest,
+};
+use sha2::{Digest, Sha256};
 
 use crate::{
     BoardTerminal, LocallyAdmissiblePosition, Move, Score, Side, apply_move, board_terminal,
@@ -35,6 +39,37 @@ pub struct GameRecord {
 pub struct SourceCandidate {
     compiled: Vec<CompiledGame>,
     game_set: Vec<u8>,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct EvidenceInputs<'a> {
+    pub source: &'a [u8],
+    pub chess_v0: &'a [u8],
+    pub source_v0: &'a [u8],
+    pub identity_v0: &'a [u8],
+    pub constants_v0: &'a [u8],
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ValidatedCandidate {
+    candidate_bytes: Vec<u8>,
+    game_set_bytes: Vec<u8>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RetainedEvidence {
+    report_bytes: Vec<u8>,
+    game_set_bytes: Vec<u8>,
+}
+
+impl RetainedEvidence {
+    pub fn report_bytes(&self) -> &[u8] {
+        &self.report_bytes
+    }
+
+    pub fn game_set_bytes(&self) -> &[u8] {
+        &self.game_set_bytes
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -1390,6 +1425,406 @@ pub fn decode_game_set(raw: &[u8]) -> Result<Vec<GameRecord>> {
         return Err(reject(SOURCE_GAME_SET_TRAILING, at, at + 1));
     }
     Ok(games)
+}
+
+const CANDIDATE_KEYS: &[&str] = &[
+    "constants_sha256",
+    "game_count",
+    "game_set_identity",
+    "games",
+    "initial_position_bytes",
+    "initial_position_identity",
+    "ir_bytes",
+    "ply_count",
+    "schema",
+    "score_counts",
+    "source_sha256",
+    "spec_sha256",
+];
+const GAME_KEYS: &[&str] = &["game_identity", "rows", "score", "source_ordinal"];
+const SPEC_KEYS: &[&str] = &["chess_v0", "identity_v0", "source_v0"];
+
+fn mv_object(entries: impl IntoIterator<Item = (&'static str, ManifestValue)>) -> ManifestValue {
+    ManifestValue::Object(
+        entries
+            .into_iter()
+            .map(|(key, value)| (key.to_owned(), value))
+            .collect(),
+    )
+}
+
+fn digest(bytes: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(bytes))
+}
+
+fn checked_evidence(evidence: &EvidenceInputs<'_>) -> Result<()> {
+    if [
+        evidence.source,
+        evidence.chess_v0,
+        evidence.source_v0,
+        evidence.identity_v0,
+        evidence.constants_v0,
+    ]
+    .iter()
+    .any(|value| value.len() > MAX_MANIFEST_BYTES)
+    {
+        return Err(reject(SOURCE_EVIDENCE_SHAPE, 0, 0));
+    }
+    Ok(())
+}
+
+fn candidate_value(candidate: &SourceCandidate, evidence: &EvidenceInputs<'_>) -> ManifestValue {
+    let initial = replay_from_start(&[]).expect("initial replay");
+    let initial_bytes = encode_position(initial.position());
+    let mut scores = [0u64; 3];
+    let mut ir_bytes = 0u64;
+    let mut ply_count = 0u64;
+    let games = candidate
+        .compiled
+        .iter()
+        .map(|compiled| {
+            let game_bytes = encode_game(&compiled.record);
+            scores[compiled.record.score.code() as usize] += 1;
+            ir_bytes += game_bytes.len() as u64;
+            ply_count += compiled.rows.len() as u64;
+            let rows = compiled
+                .rows
+                .iter()
+                .map(|row| {
+                    ManifestValue::Array(vec![
+                        ManifestValue::U64(row.raw_span.start as u64),
+                        ManifestValue::U64(row.raw_span.end as u64),
+                        ManifestValue::String(format!(
+                            "{:02x}{:02x}",
+                            row.move_bytes[0], row.move_bytes[1]
+                        )),
+                        ManifestValue::String(
+                            row.post_position_bytes
+                                .iter()
+                                .map(|byte| format!("{byte:02x}"))
+                                .collect(),
+                        ),
+                        ManifestValue::U64(row.suffix_truth_code as u64),
+                    ])
+                })
+                .collect();
+            mv_object([
+                (
+                    "game_identity",
+                    ManifestValue::String(
+                        identity_hex(b"golden-board:game:v0\0", &[&game_bytes]).unwrap(),
+                    ),
+                ),
+                ("rows", ManifestValue::Array(rows)),
+                (
+                    "score",
+                    ManifestValue::U64(compiled.record.score.code() as u64),
+                ),
+                (
+                    "source_ordinal",
+                    ManifestValue::U64(compiled.source_ordinal as u64),
+                ),
+            ])
+        })
+        .collect();
+    mv_object([
+        (
+            "constants_sha256",
+            ManifestValue::String(digest(evidence.constants_v0)),
+        ),
+        (
+            "game_count",
+            ManifestValue::U64(candidate.compiled.len() as u64),
+        ),
+        (
+            "game_set_identity",
+            ManifestValue::String(
+                identity_hex(b"golden-board:game-set:v0\0", &[&candidate.game_set]).unwrap(),
+            ),
+        ),
+        ("games", ManifestValue::Array(games)),
+        (
+            "initial_position_bytes",
+            ManifestValue::String(
+                initial_bytes
+                    .iter()
+                    .map(|byte| format!("{byte:02x}"))
+                    .collect(),
+            ),
+        ),
+        (
+            "initial_position_identity",
+            ManifestValue::String(
+                identity_hex(b"golden-board:position:v0\0", &[&initial_bytes]).unwrap(),
+            ),
+        ),
+        ("ir_bytes", ManifestValue::U64(ir_bytes)),
+        ("ply_count", ManifestValue::U64(ply_count)),
+        (
+            "schema",
+            ManifestValue::String("golden-board-source-candidate-v0".to_owned()),
+        ),
+        (
+            "score_counts",
+            ManifestValue::Array(scores.into_iter().map(ManifestValue::U64).collect()),
+        ),
+        (
+            "source_sha256",
+            ManifestValue::String(digest(evidence.source)),
+        ),
+        (
+            "spec_sha256",
+            mv_object([
+                ("chess_v0", ManifestValue::String(digest(evidence.chess_v0))),
+                (
+                    "identity_v0",
+                    ManifestValue::String(digest(evidence.identity_v0)),
+                ),
+                (
+                    "source_v0",
+                    ManifestValue::String(digest(evidence.source_v0)),
+                ),
+            ]),
+        ),
+    ])
+}
+
+pub fn encode_candidate_trace(
+    candidate: &SourceCandidate,
+    evidence: &EvidenceInputs<'_>,
+) -> Result<Vec<u8>> {
+    checked_evidence(evidence)?;
+    if candidate != &compile_source(evidence.source)? {
+        return Err(reject(SOURCE_EVIDENCE_CROSS_FIELD, 0, 0));
+    }
+    serialize_manifest(&candidate_value(candidate, evidence))
+        .map_err(|_| reject(SOURCE_EVIDENCE_SIZE, 0, 0))
+}
+
+fn exact_keys(fields: &BTreeMap<String, ManifestValue>, keys: &[&str]) -> bool {
+    fields.len() == keys.len() && keys.iter().all(|key| fields.contains_key(*key))
+}
+
+fn hex_string(value: Option<&ManifestValue>, length: usize) -> bool {
+    matches!(value, Some(ManifestValue::String(text)) if text.len() == length && text.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)))
+}
+
+fn bounded_u64(value: Option<&ManifestValue>, maximum: u64) -> bool {
+    matches!(value, Some(ManifestValue::U64(number)) if *number <= maximum)
+}
+
+fn candidate_shape(value: &ManifestValue) -> bool {
+    let ManifestValue::Object(fields) = value else {
+        return false;
+    };
+    let Some(ManifestValue::Object(specs)) = fields.get("spec_sha256") else {
+        return false;
+    };
+    let Some(ManifestValue::Array(scores)) = fields.get("score_counts") else {
+        return false;
+    };
+    let Some(ManifestValue::Array(games)) = fields.get("games") else {
+        return false;
+    };
+    if !exact_keys(fields, CANDIDATE_KEYS)
+        || !exact_keys(specs, SPEC_KEYS)
+        || !matches!(fields.get("schema"), Some(ManifestValue::String(value)) if value == "golden-board-source-candidate-v0")
+        || !["constants_sha256", "game_set_identity", "initial_position_identity", "source_sha256"]
+            .iter()
+            .all(|key| hex_string(fields.get(*key), 64))
+        || !SPEC_KEYS.iter().all(|key| hex_string(specs.get(*key), 64))
+        || !hex_string(fields.get("initial_position_bytes"), 134)
+        || !bounded_u64(
+            fields.get("game_count"),
+            SOURCE_ANTHOLOGY_GAME_COUNT as u64,
+        )
+        || !bounded_u64(fields.get("ply_count"), SOURCE_MAX_TOTAL_PLIES as u64)
+        || !bounded_u64(fields.get("ir_bytes"), SOURCE_MAX_GAME_SET_BYTES as u64)
+        || scores.len() != 3
+        || !scores.iter().all(|score| {
+            matches!(score, ManifestValue::U64(value) if *value <= SOURCE_ANTHOLOGY_GAME_COUNT as u64)
+        })
+        || games.len() > SOURCE_ANTHOLOGY_GAME_COUNT as usize
+    {
+        return false;
+    }
+    games.iter().all(|game| {
+        let ManifestValue::Object(game) = game else {
+            return false;
+        };
+        let Some(ManifestValue::Array(rows)) = game.get("rows") else {
+            return false;
+        };
+        exact_keys(game, GAME_KEYS)
+            && hex_string(game.get("game_identity"), 64)
+            && bounded_u64(
+                game.get("source_ordinal"),
+                SOURCE_ANTHOLOGY_GAME_COUNT as u64 - 1,
+            )
+            && matches!(game.get("score"), Some(ManifestValue::U64(value)) if *value <= SCORE_DRAW as u64)
+            && rows.len() <= SOURCE_MAX_GAME_PLIES as usize
+            && rows.iter().all(|row| {
+                let ManifestValue::Array(row) = row else {
+                    return false;
+                };
+                row.len() == 5
+                    && matches!((&row[0], &row[1]), (ManifestValue::U64(start), ManifestValue::U64(end)) if start <= end && *end <= SOURCE_MAX_INPUT_BYTES as u64)
+                    && hex_string(row.get(2), 4)
+                    && hex_string(row.get(3), 134)
+                    && matches!(&row[4], ManifestValue::U64(value) if *value <= SUFFIX_MATE as u64)
+            })
+    })
+}
+
+fn parsed_candidate(candidate_bytes: &[u8]) -> Result<ManifestValue> {
+    if candidate_bytes.len() > MAX_MANIFEST_BYTES {
+        return Err(reject(
+            SOURCE_EVIDENCE_SIZE,
+            MAX_MANIFEST_BYTES,
+            MAX_MANIFEST_BYTES + 1,
+        ));
+    }
+    let value = parse_manifest(candidate_bytes).map_err(|_| reject(SOURCE_EVIDENCE_SHAPE, 0, 0))?;
+    if !candidate_shape(&value) {
+        return Err(reject(SOURCE_EVIDENCE_SHAPE, 0, 0));
+    }
+    if serialize_manifest(&value).map_err(|_| reject(SOURCE_EVIDENCE_SHAPE, 0, 0))?
+        != candidate_bytes
+    {
+        return Err(reject(SOURCE_EVIDENCE_NONCANONICAL, 0, 0));
+    }
+    Ok(value)
+}
+
+fn string_field<'a>(fields: &'a BTreeMap<String, ManifestValue>, key: &str) -> &'a str {
+    let ManifestValue::String(value) = &fields[key] else {
+        unreachable!("shape-checked string")
+    };
+    value
+}
+
+pub fn validate_candidate_trace(
+    candidate_bytes: &[u8],
+    game_set_bytes: &[u8],
+    evidence: &EvidenceInputs<'_>,
+) -> Result<ValidatedCandidate> {
+    checked_evidence(evidence)?;
+    let value = parsed_candidate(candidate_bytes)?;
+    let ManifestValue::Object(fields) = &value else {
+        unreachable!()
+    };
+    let ManifestValue::Object(specs) = &fields["spec_sha256"] else {
+        unreachable!()
+    };
+    if string_field(fields, "constants_sha256") != digest(evidence.constants_v0)
+        || string_field(fields, "source_sha256") != digest(evidence.source)
+        || string_field(specs, "chess_v0") != digest(evidence.chess_v0)
+        || string_field(specs, "identity_v0") != digest(evidence.identity_v0)
+        || string_field(specs, "source_v0") != digest(evidence.source_v0)
+    {
+        return Err(reject(SOURCE_EVIDENCE_HASH, 0, 0));
+    }
+    let expected = compile_source(evidence.source)?;
+    let expected_bytes = serialize_manifest(&candidate_value(&expected, evidence))
+        .map_err(|_| reject(SOURCE_EVIDENCE_SIZE, 0, 0))?;
+    if candidate_bytes != expected_bytes || game_set_bytes != expected.game_set {
+        return Err(reject(SOURCE_EVIDENCE_CROSS_FIELD, 0, 0));
+    }
+    Ok(ValidatedCandidate {
+        candidate_bytes: candidate_bytes.to_vec(),
+        game_set_bytes: game_set_bytes.to_vec(),
+    })
+}
+
+pub fn coordinate_candidates(
+    first: &ValidatedCandidate,
+    second: &ValidatedCandidate,
+) -> Result<RetainedEvidence> {
+    if first != second {
+        return Err(reject(SOURCE_CANDIDATE_MISMATCH, 0, 0));
+    }
+    let ManifestValue::Object(mut value) =
+        parse_manifest(&first.candidate_bytes).map_err(|_| reject(SOURCE_EVIDENCE_SHAPE, 0, 0))?
+    else {
+        return Err(reject(SOURCE_EVIDENCE_SHAPE, 0, 0));
+    };
+    value.insert(
+        "schema".to_owned(),
+        ManifestValue::String("golden-board-source-compilation-v0".to_owned()),
+    );
+    value.insert(
+        "producer_labels".to_owned(),
+        ManifestValue::Array(vec![
+            ManifestValue::String("python".to_owned()),
+            ManifestValue::String("rust".to_owned()),
+        ]),
+    );
+    let report_bytes = serialize_manifest(&ManifestValue::Object(value))
+        .map_err(|_| reject(SOURCE_EVIDENCE_SIZE, 0, 0))?;
+    Ok(RetainedEvidence {
+        report_bytes,
+        game_set_bytes: first.game_set_bytes.clone(),
+    })
+}
+
+pub fn validate_retained_evidence(
+    report_bytes: &[u8],
+    game_set_bytes: &[u8],
+    evidence: &EvidenceInputs<'_>,
+) -> Result<RetainedEvidence> {
+    if report_bytes.len() > MAX_MANIFEST_BYTES {
+        return Err(reject(
+            SOURCE_EVIDENCE_SIZE,
+            MAX_MANIFEST_BYTES,
+            MAX_MANIFEST_BYTES + 1,
+        ));
+    }
+    let ManifestValue::Object(mut value) =
+        parse_manifest(report_bytes).map_err(|_| reject(SOURCE_EVIDENCE_SHAPE, 0, 0))?
+    else {
+        return Err(reject(SOURCE_EVIDENCE_SHAPE, 0, 0));
+    };
+    let labels = value.remove("producer_labels");
+    let schema = value.insert(
+        "schema".to_owned(),
+        ManifestValue::String("golden-board-source-candidate-v0".to_owned()),
+    );
+    if value.len() != CANDIDATE_KEYS.len()
+        || !matches!(schema, Some(ManifestValue::String(value)) if value == "golden-board-source-compilation-v0")
+        || labels
+            != Some(ManifestValue::Array(vec![
+                ManifestValue::String("python".to_owned()),
+                ManifestValue::String("rust".to_owned()),
+            ]))
+        || !candidate_shape(&ManifestValue::Object(value.clone()))
+    {
+        return Err(reject(SOURCE_EVIDENCE_SHAPE, 0, 0));
+    }
+    let mut report_value = value.clone();
+    report_value.insert(
+        "schema".to_owned(),
+        ManifestValue::String("golden-board-source-compilation-v0".to_owned()),
+    );
+    report_value.insert(
+        "producer_labels".to_owned(),
+        ManifestValue::Array(vec![
+            ManifestValue::String("python".to_owned()),
+            ManifestValue::String("rust".to_owned()),
+        ]),
+    );
+    if serialize_manifest(&ManifestValue::Object(report_value))
+        .map_err(|_| reject(SOURCE_EVIDENCE_SHAPE, 0, 0))?
+        != report_bytes
+    {
+        return Err(reject(SOURCE_EVIDENCE_NONCANONICAL, 0, 0));
+    }
+    let candidate_bytes = serialize_manifest(&ManifestValue::Object(value))
+        .map_err(|_| reject(SOURCE_EVIDENCE_SHAPE, 0, 0))?;
+    let validated = validate_candidate_trace(&candidate_bytes, game_set_bytes, evidence)?;
+    Ok(RetainedEvidence {
+        report_bytes: report_bytes.to_vec(),
+        game_set_bytes: validated.game_set_bytes,
+    })
 }
 
 #[cfg(test)]

@@ -15,9 +15,11 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use gb_chess::source::{
-    GameRecord, SourceReject, compile_source, decode_game, decode_game_set, encode_game,
-    encode_game_set, validate_anthology,
+    EvidenceInputs, GameRecord, SourceReject, compile_source, coordinate_candidates, decode_game,
+    decode_game_set, encode_candidate_trace, encode_game, encode_game_set, validate_anthology,
+    validate_candidate_trace, validate_retained_evidence,
 };
+use gb_foundation::constants::SOURCE_CANDIDATE_MISMATCH;
 use gb_foundation::{ManifestValue as V, validate_canonical_manifest};
 use sha2::{Digest, Sha256};
 
@@ -711,6 +713,81 @@ fn locked_anthology_compiles_atomically_and_deterministically() {
     for game in encoded {
         assert_eq!(encode_game(&decode_game(&game).unwrap()), game);
     }
+}
+
+#[test]
+fn candidate_evidence_is_canonical_validated_and_fail_closed() {
+    let repository = root();
+    let source_bytes = std::fs::read(repository.join("docs/64_games.md")).unwrap();
+    let chess_v0 = std::fs::read(repository.join("spec/chess-v0.md")).unwrap();
+    let source_v0 = std::fs::read(repository.join("spec/source-v0.md")).unwrap();
+    let identity_v0 = std::fs::read(repository.join("spec/identity-v0.md")).unwrap();
+    let constants_v0 = std::fs::read(repository.join("spec/constants-v0.toml")).unwrap();
+    let evidence = EvidenceInputs {
+        source: &source_bytes,
+        chess_v0: &chess_v0,
+        source_v0: &source_v0,
+        identity_v0: &identity_v0,
+        constants_v0: &constants_v0,
+    };
+    let candidate = compile_source(&source_bytes).unwrap();
+    let candidate_bytes = encode_candidate_trace(&candidate, &evidence).unwrap();
+    let manifest = validate_canonical_manifest(&candidate_bytes).unwrap();
+    let V::Object(manifest) = manifest else {
+        panic!("candidate object")
+    };
+    assert_eq!(manifest["ply_count"], V::U64(4_915));
+    let validated =
+        validate_candidate_trace(&candidate_bytes, candidate.game_set_bytes(), &evidence).unwrap();
+    let retained = coordinate_candidates(&validated, &validated).unwrap();
+    let report = validate_canonical_manifest(retained.report_bytes()).unwrap();
+    let V::Object(report) = report else {
+        panic!("report object")
+    };
+    assert_eq!(
+        report["schema"],
+        V::String("golden-board-source-compilation-v0".to_owned())
+    );
+    validate_retained_evidence(
+        retained.report_bytes(),
+        retained.game_set_bytes(),
+        &evidence,
+    )
+    .unwrap();
+
+    let (rows, _) = fixture_rows();
+    let evidence_rows: Vec<_> = rows
+        .iter()
+        .filter(|row| row.operation == "validate_candidate_trace")
+        .collect();
+    assert_eq!(evidence_rows.len(), 6);
+    for row in evidence_rows {
+        assert_outcome(
+            validate_candidate_trace(&row.raw, &[], &evidence),
+            row.wanted,
+            &row.name,
+        );
+    }
+
+    let mut changed_source = b"outer prose\n".to_vec();
+    changed_source.extend_from_slice(&source_bytes);
+    let changed_evidence = EvidenceInputs {
+        source: &changed_source,
+        ..evidence
+    };
+    let changed_candidate = compile_source(&changed_source).unwrap();
+    let changed_bytes = encode_candidate_trace(&changed_candidate, &changed_evidence).unwrap();
+    let changed_validated = validate_candidate_trace(
+        &changed_bytes,
+        changed_candidate.game_set_bytes(),
+        &changed_evidence,
+    )
+    .unwrap();
+    let mismatch = coordinate_candidates(&validated, &changed_validated).unwrap_err();
+    assert_eq!(
+        (mismatch.code, mismatch.raw_start, mismatch.raw_end),
+        (SOURCE_CANDIDATE_MISMATCH, 0, 0)
+    );
 }
 
 #[test]

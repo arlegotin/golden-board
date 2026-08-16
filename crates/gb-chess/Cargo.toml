@@ -7,9 +7,9 @@ rust-version.workspace = true
 
 [dependencies]
 gb-foundation = { path = "../gb-foundation" }
+sha2 = "0.10"
 
 [dev-dependencies]
-sha2 = "0.10"
 toml = "0.9"
 
 [[test]]
