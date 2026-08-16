@@ -60,6 +60,16 @@ class ContentReject(ValueError):
     def raw_end(self) -> int:
         return self._raw_end
 
+    def __setattr__(self, name: str, value: object) -> None:
+        if name in ContentReject.__slots__ and hasattr(self, name):
+            raise AttributeError(f"{name} is read-only")
+        super().__setattr__(name, value)
+
+    def __delattr__(self, name: str) -> None:
+        if name in ContentReject.__slots__:
+            raise AttributeError(f"{name} is read-only")
+        super().__delattr__(name)
+
 
 class InvalidHostState(ValueError):
     """A noncanonical host-programming failure."""

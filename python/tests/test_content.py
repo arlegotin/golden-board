@@ -246,10 +246,30 @@ class ContentApi(unittest.TestCase):
     def test_content_reject_is_exact_and_immutable(self) -> None:
         content = importlib.import_module("golden_board.content")
         error = content.ContentReject(C.CONTENT_TRUNCATED, 2, 3)
+        self.assertIsInstance(error, ValueError)
+        self.assertEqual(error.args, (C.CONTENT_TRUNCATED, 2, 3))
         for name, value in (("code", 31), ("raw_start", "x"), ("raw_end", 4)):
             with self.subTest(attribute=name):
                 with self.assertRaises(AttributeError):
                     setattr(error, name, value)
+        for name, value in (("_code", 31), ("_raw_start", 1), ("_raw_end", 4)):
+            with self.subTest(backing_attribute=name):
+                candidate = content.ContentReject(C.CONTENT_TRUNCATED, 2, 3)
+                with self.assertRaises(AttributeError):
+                    setattr(candidate, name, value)
+                self.assertEqual(
+                    (candidate.code, candidate.raw_start, candidate.raw_end),
+                    (C.CONTENT_TRUNCATED, 2, 3),
+                )
+        for name in ("_code", "_raw_start", "_raw_end"):
+            with self.subTest(delete_backing_attribute=name):
+                candidate = content.ContentReject(C.CONTENT_TRUNCATED, 2, 3)
+                with self.assertRaises(AttributeError):
+                    delattr(candidate, name)
+                self.assertEqual(
+                    (candidate.code, candidate.raw_start, candidate.raw_end),
+                    (C.CONTENT_TRUNCATED, 2, 3),
+                )
         for values in ((True, 0, 0), (1, False, 0), (1, 0, "1")):
             with self.subTest(values=values):
                 with self.assertRaises(TypeError):
