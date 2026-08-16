@@ -1,0 +1,13 @@
+[package]
+name = "gb-chess"
+version = "0.0.0"
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+gb-foundation = { path = "../gb-foundation" }
+
+[[test]]
+name = "chess"
+path = "tests/chess.rs"
