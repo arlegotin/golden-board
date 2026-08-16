@@ -34,13 +34,31 @@ class _AuthorityMeta(type):
 class ContentReject(ValueError):
     """The stable content-v0 rejection datum."""
 
-    __slots__ = ("code", "raw_start", "raw_end")
+    __slots__ = ("_code", "_raw_start", "_raw_end")
 
     def __init__(self, code: int, raw_start: int, raw_end: int):
-        self.code = code
-        self.raw_start = raw_start
-        self.raw_end = raw_end
+        if any(type(value) is not int for value in (code, raw_start, raw_end)):
+            raise TypeError("code and span endpoints must be exact integers")
+        if not 1 <= code <= C.CONTENT_BAD_RUN_STATE:
+            raise ValueError("code is not a content-v0 rejection")
+        if not 0 <= raw_start <= raw_end <= 0xFFFFFFFF:
+            raise ValueError("span is not a canonical u32 range")
+        self._code = code
+        self._raw_start = raw_start
+        self._raw_end = raw_end
         super().__init__(code, raw_start, raw_end)
+
+    @property
+    def code(self) -> int:
+        return self._code
+
+    @property
+    def raw_start(self) -> int:
+        return self._raw_start
+
+    @property
+    def raw_end(self) -> int:
+        return self._raw_end
 
 
 class InvalidHostState(ValueError):
@@ -518,6 +536,8 @@ def _decode_field_schema(raw: memoryview, desc: _Descriptor) -> _FieldSchema:
         if raw[offset + 3] != 0:
             _reject(C.CONTENT_RESERVED_NONZERO, offset + 3, offset + 4)
         field_type = _u16(raw, offset + 4)
+        if storage == C.FIELD_RECORD_REF and field_type not in _VALUE_KINDS:
+            _reject(C.CONTENT_BAD_TAG, offset + 4, offset + 6)
         item_count = _u16(raw, offset + 6)
         if item_count == 0:
             _reject(C.CONTENT_BAD_COUNT, offset + 6, offset + 8)
@@ -526,8 +546,6 @@ def _decode_field_schema(raw: memoryview, desc: _Descriptor) -> _FieldSchema:
         slots += item_count
         if slots > C.CONTENT_MAX_TUPLE_SLOTS:
             _reject(C.CONTENT_LIMIT_EXCEEDED, offset + 6, offset + 8)
-        if storage == C.FIELD_RECORD_REF and field_type not in _VALUE_KINDS:
-            _reject(C.CONTENT_BAD_TAG, offset + 4, offset + 6)
         fields.append(_Field(_u16(raw, offset), storage, field_type, item_count))
     return _FieldSchema(desc.record_id, desc.kind, count, tuple(fields))
 
@@ -599,15 +617,15 @@ def _decode_binding(
         _reject(C.CONTENT_BAD_VALUE, start + 2, start + 4)
     if semantic == 0:
         _reject(C.CONTENT_BAD_VALUE, start + 4, start + 6)
+    key = (binding_class, namespace, semantic)
+    if key in keys:
+        _reject(C.CONTENT_DUPLICATE, start, start + 1)
+    keys.add(key)
     if binding_class == C.BINDING_DATA:
         if auxiliary == 0:
             _reject(C.CONTENT_BAD_COUNT, start + 8, start + 10)
         if auxiliary > C.CONTENT_MAX_OPAQUE_ATOMS:
             _reject(C.CONTENT_LIMIT_EXCEEDED, start + 8, start + 10)
-    key = (binding_class, namespace, semantic)
-    if key in keys:
-        _reject(C.CONTENT_DUPLICATE, start, start + 1)
-    keys.add(key)
     return _Binding(
         desc.record_id,
         desc.kind,
@@ -1370,7 +1388,7 @@ class _EventLink:
     count: int
 
 
-@dataclass(frozen=True, slots=True, eq=False)
+@dataclass(frozen=True, slots=True)
 class _ContentProjection(metaclass=_AuthorityMeta):
     version: int
     root_record_id: int
@@ -1595,46 +1613,30 @@ def _advance(projection: _ContentProjection, state: _RunState) -> _RunState:
     )
 
 
-def _control_fields(
-    records: list[_Record], descs: dict[int, _Descriptor]
-) -> list[tuple[int, int, bool]]:
-    controls: list[tuple[int, int, bool]] = []
-    for record in records:
-        start = descs[record.record_id].payload_start
-        if isinstance(record, _Passive):
-            at = start + 14 + 4 * record.action_count
-            controls.append((at, record.expected_next_node_ref, False))
-        elif isinstance(record, _Lesson):
-            offsets, final = _lesson_case_offsets(descs[record.record_id], record)
-            for case, offset in zip(record.cases, offsets, strict=True):
-                controls.append(
-                    (offset + 6 + 2 * len(case.region_ids), case.next_node_ref, True)
-                )
-            controls.append((final + 2, record.default_next_node_ref, True))
-    controls.sort()
-    return controls
-
-
 def _validate_stage6(
     records: list[_Record],
     by_id: dict[int, _Record],
     descs: dict[int, _Descriptor],
 ) -> _Root:
-    roots = [record for record in records if isinstance(record, _Root)]
-    if not roots:
+    root = None
+    for record in records:
+        if not isinstance(record, _Root):
+            continue
+        if root is not None:
+            at = descs[record.record_id].start + 2
+            _reject(C.CONTENT_ROOT_COUNT, at, at + 2)
+        root = record
+    if root is None:
         end = descs[records[-1].record_id].payload_end if records else 4
         _reject(C.CONTENT_ROOT_COUNT, end, end)
-    if len(roots) > C.CONTENT_REQUIRED_ROOTS:
-        later = roots[1]
-        at = descs[later.record_id].start + 2
-        _reject(C.CONTENT_ROOT_COUNT, at, at + 2)
-    root = roots[0]
     if root is not records[-1]:
         at = descs[root.record_id].start + 2
         _reject(C.CONTENT_ROOT_NOT_FINAL, at, at + 2)
 
     runtime_edges = 0
-    for at, target_id, runtime in _control_fields(records, descs):
+
+    def check_control(at: int, target_id: int, runtime: bool) -> None:
+        nonlocal runtime_edges
         if target_id:
             if runtime:
                 runtime_edges += 1
@@ -1643,6 +1645,24 @@ def _validate_stage6(
             target = by_id.get(target_id)
             if not isinstance(target, _Lesson):
                 _reject(C.CONTENT_BAD_CONTROL_EDGE, at, at + 2)
+
+    for record in records:
+        start = descs[record.record_id].payload_start
+        if isinstance(record, _Passive):
+            check_control(
+                start + 14 + 4 * record.action_count,
+                record.expected_next_node_ref,
+                False,
+            )
+        elif isinstance(record, _Lesson):
+            offsets, final = _lesson_case_offsets(descs[record.record_id], record)
+            for case, offset in zip(record.cases, offsets, strict=True):
+                check_control(
+                    offset + 6 + 2 * len(case.region_ids),
+                    case.next_node_ref,
+                    True,
+                )
+            check_control(final + 2, record.default_next_node_ref, True)
 
     reached: set[int] = set()
     stack = [root.record_id]
@@ -1825,6 +1845,7 @@ def _validate_stage7b(
 def _validate_stage7c(
     records: list[_Record], projection: _ContentProjection, descs: dict[int, _Descriptor]
 ) -> None:
+    candidates: list[tuple[int, int, int]] = []
     for node in (record for record in records if isinstance(record, _Lesson)):
         if not node.passive_trace_ref:
             continue
@@ -1832,36 +1853,57 @@ def _validate_stage7c(
         assert isinstance(trace, _Passive)
         node_start = descs[node.record_id].payload_start
         trace_start = descs[trace.record_id].payload_start
-        if (
+        owned = None
+        if bool(trace.limitation_text_ref) != (node.role == C.ROLE_HEURISTIC):
+            owned = (
+                trace_start + 6,
+                C.CONTENT_BAD_PASSIVE_TRACE,
+                trace_start + 8,
+            )
+        elif trace.action_count > node.item_event_budget:
+            owned = (
+                trace_start + 8,
+                C.CONTENT_BAD_PASSIVE_TRACE,
+                trace_start + 10,
+            )
+        else:
+            state = _new_state(projection, node.record_id, passive=True)
+            for index, action in enumerate(trace.actions):
+                at = trace_start + 10 + index * 4
+                state, result = _transition(projection, state, action)
+                if index + 1 < trace.action_count:
+                    expected = (
+                        C.INTERACTION_SELECTED
+                        if action[0] == C.ACTION_SELECT
+                        else C.INTERACTION_RESET
+                    )
+                    if (
+                        action[0] not in (C.ACTION_SELECT, C.ACTION_RESET)
+                        or result != expected
+                    ):
+                        owned = (at, C.CONTENT_BAD_PASSIVE_TRACE, at + 4)
+                        break
+                elif action[0] != C.ACTION_COMMIT or result != C.INTERACTION_COMMITTED:
+                    owned = (at, C.CONTENT_BAD_PASSIVE_TRACE, at + 4)
+                    break
+            if owned is None:
+                tail = trace_start + 10 + 4 * trace.action_count
+                if state.outcome != trace.expected_outcome:
+                    owned = (tail, C.CONTENT_BAD_PASSIVE_TRACE, tail + 1)
+                elif state.feedback_ref != trace.expected_feedback_ref:
+                    owned = (tail + 2, C.CONTENT_BAD_PASSIVE_TRACE, tail + 4)
+                elif state.next_node_ref != trace.expected_next_node_ref:
+                    owned = (tail + 4, C.CONTENT_BAD_PASSIVE_TRACE, tail + 6)
+        if owned is None and (
             trace.presentation_ref != node.presentation_ref
             or trace.region_set_ref != node.region_set_ref
         ):
-            _reject(C.CONTENT_BAD_PASSIVE_TRACE, node_start + 10, node_start + 12)
-        if bool(trace.limitation_text_ref) != (node.role == C.ROLE_HEURISTIC):
-            _reject(C.CONTENT_BAD_PASSIVE_TRACE, trace_start + 6, trace_start + 8)
-        if trace.action_count > node.item_event_budget:
-            _reject(C.CONTENT_BAD_PASSIVE_TRACE, trace_start + 8, trace_start + 10)
-        state = _new_state(projection, node.record_id, passive=True)
-        for index, action in enumerate(trace.actions):
-            at = trace_start + 10 + index * 4
-            state, result = _transition(projection, state, action)
-            if index + 1 < trace.action_count:
-                expected = (
-                    C.INTERACTION_SELECTED
-                    if action[0] == C.ACTION_SELECT
-                    else C.INTERACTION_RESET
-                )
-                if action[0] not in (C.ACTION_SELECT, C.ACTION_RESET) or result != expected:
-                    _reject(C.CONTENT_BAD_PASSIVE_TRACE, at, at + 4)
-            elif action[0] != C.ACTION_COMMIT or result != C.INTERACTION_COMMITTED:
-                _reject(C.CONTENT_BAD_PASSIVE_TRACE, at, at + 4)
-        tail = trace_start + 10 + 4 * trace.action_count
-        if state.outcome != trace.expected_outcome:
-            _reject(C.CONTENT_BAD_PASSIVE_TRACE, tail, tail + 1)
-        if state.feedback_ref != trace.expected_feedback_ref:
-            _reject(C.CONTENT_BAD_PASSIVE_TRACE, tail + 2, tail + 4)
-        if state.next_node_ref != trace.expected_next_node_ref:
-            _reject(C.CONTENT_BAD_PASSIVE_TRACE, tail + 4, tail + 6)
+            owned = (node_start + 10, C.CONTENT_BAD_PASSIVE_TRACE, node_start + 12)
+        if owned is not None:
+            candidates.append(owned)
+    if candidates:
+        at, code, end = min(candidates, key=lambda item: (item[0], item[1]))
+        _reject(code, at, end)
 
 
 def _success_edges(

@@ -10,6 +10,7 @@ import sys
 import types
 from pathlib import Path
 import unittest
+from unittest import mock
 
 from golden_board import canonical_manifest
 from golden_board import constants as C
@@ -31,6 +32,15 @@ _KIND_NAMES = {
     for name, value in vars(C).items()
     if name.startswith("CONTENT_KIND_")
 }
+
+
+def _stream_record(record_id: int, kind: int, payload: bytes) -> bytes:
+    return (
+        record_id.to_bytes(2, "big")
+        + kind.to_bytes(2, "big")
+        + len(payload).to_bytes(4, "big")
+        + payload
+    )
 
 
 def _projection_value(content: object, projection: object) -> dict[str, object]:
@@ -233,6 +243,179 @@ class ContentApi(unittest.TestCase):
         with self.assertRaises(TypeError):
             content.step(projection, state, bytearray(b"\0" * 4))
 
+    def test_content_reject_is_exact_and_immutable(self) -> None:
+        content = importlib.import_module("golden_board.content")
+        error = content.ContentReject(C.CONTENT_TRUNCATED, 2, 3)
+        for name, value in (("code", 31), ("raw_start", "x"), ("raw_end", 4)):
+            with self.subTest(attribute=name):
+                with self.assertRaises(AttributeError):
+                    setattr(error, name, value)
+        for values in ((True, 0, 0), (1, False, 0), (1, 0, "1")):
+            with self.subTest(values=values):
+                with self.assertRaises(TypeError):
+                    content.ContentReject(*values)
+        for values in ((0, 0, 0), (32, 0, 0), (1, -1, 0), (1, 2, 1), (1, 0, 2**32)):
+            with self.subTest(values=values):
+                with self.assertRaises(ValueError):
+                    content.ContentReject(*values)
+
+    def test_stage4_multiply_invalid_fields_use_earlier_owner_field(self) -> None:
+        content = importlib.import_module("golden_board.content")
+        base = bytearray.fromhex(FIXTURE["bases"][0]["stream_hex"])
+        base[201:205] = b"\0" * 4
+        with self.assertRaises(content.ContentReject) as caught:
+            content.stream_validation(bytes(base))
+        self.assertEqual(
+            (caught.exception.code, caught.exception.raw_start, caught.exception.raw_end),
+            (C.CONTENT_BAD_TAG, 201, 203),
+        )
+
+    def test_stage4_duplicate_binding_precedes_auxiliary_count(self) -> None:
+        content = importlib.import_module("golden_board.content")
+        schema = bytes((C.ATOM_UNSIGNED, 1)) + b"\0\0\0\1"
+        binding = bytes((C.BINDING_DATA, 0)) + b"\0\1\0\1\0\1\0\1"
+        duplicate_zero = binding[:-2] + b"\0\0"
+        stream = b"\0\0\0\3" + b"".join(
+            (
+                _stream_record(1, C.CONTENT_KIND_ATOM_SCHEMA, schema),
+                _stream_record(2, C.CONTENT_KIND_SEMANTIC_BINDING, binding),
+                _stream_record(3, C.CONTENT_KIND_SEMANTIC_BINDING, duplicate_zero),
+            )
+        )
+        _, descriptors = content._frame(stream)
+        expected_at = descriptors[-1].payload_start
+        with self.assertRaises(content.ContentReject) as caught:
+            content.stream_validation(stream)
+        self.assertEqual(
+            (caught.exception.code, caught.exception.raw_start, caught.exception.raw_end),
+            (C.CONTENT_DUPLICATE, expected_at, expected_at + 1),
+        )
+
+    def test_stage7c_uses_lowest_governing_raw_span(self) -> None:
+        content = importlib.import_module("golden_board.content")
+        base = bytes.fromhex(FIXTURE["bases"][0]["stream_hex"])
+        _, descriptors = content._frame(base)
+        records = [base[item.start : item.payload_end] for item in descriptors[:24]]
+
+        def passive(record_id: int, feedback: int, next_node: int) -> bytes:
+            payload = b"".join(
+                (
+                    (14).to_bytes(2, "big"),
+                    (15).to_bytes(2, "big"),
+                    b"\0\0",
+                    (5).to_bytes(2, "big"),
+                    b"\0\1",
+                    bytes((C.ACTION_COMMIT, 0, 0, 0)),
+                    bytes((C.OUTCOME_NEUTRAL, 0)),
+                    feedback.to_bytes(2, "big"),
+                    next_node.to_bytes(2, "big"),
+                )
+            )
+            return _stream_record(record_id, C.CONTENT_KIND_PASSIVE_TRACE, payload)
+
+        def packed_lesson() -> bytes:
+            header = bytes(
+                (C.ROLE_PRACTICE, C.RESPONSE_SINGLE, C.ANSWER_PACKED_PRACTICE, 0)
+            ) + b"".join(
+                value.to_bytes(2, "big")
+                for value in (14, 15, 19, 26, 1, 2, 3)
+            )
+            cases = b"".join(
+                (
+                    bytes((C.CASE_ACCEPTED, 0)) + b"\0\0\0\x15\0\x1c",
+                    bytes((C.CASE_ACCEPTED, 0)) + b"\0\1\0\1\0\x15\0\x1c",
+                    bytes((C.CASE_REJECTED_SPECIAL, 0))
+                    + b"\0\1\0\2\0\x17\0\x1c",
+                )
+            )
+            return _stream_record(
+                27,
+                C.CONTENT_KIND_LESSON_NODE,
+                header + cases + b"\0\x16\0\x1c",
+            )
+
+        def heuristic_lesson() -> bytes:
+            payload = bytes(
+                (C.ROLE_HEURISTIC, C.RESPONSE_SINGLE, C.ANSWER_UNSCORED, 0)
+            ) + b"".join(
+                value.to_bytes(2, "big")
+                for value in (14, 15, 0, 25, 1, 2, 0, 24, 0)
+            )
+            return _stream_record(28, C.CONTENT_KIND_LESSON_NODE, payload)
+
+        records.extend(
+            (
+                passive(25, 20, 0),
+                passive(26, 21, 28),
+                packed_lesson(),
+                heuristic_lesson(),
+                _stream_record(
+                    29,
+                    C.CONTENT_KIND_ROOT,
+                    (27).to_bytes(2, "big") + (4).to_bytes(2, "big"),
+                ),
+            )
+        )
+        stream = b"\0\0" + len(records).to_bytes(2, "big") + b"".join(records)
+        _, descriptors = content._frame(stream)
+        expected_at = descriptors[24].payload_start + 16
+        with self.assertRaises(content.ContentReject) as caught:
+            content.stream_validation(stream)
+        self.assertEqual(
+            (caught.exception.code, caught.exception.raw_start, caught.exception.raw_end),
+            (C.CONTENT_BAD_PASSIVE_TRACE, expected_at, expected_at + 2),
+        )
+
+    def test_stage6_bounds_precede_root_and_control_materialization(self) -> None:
+        content = importlib.import_module("golden_board.content")
+
+        class TwoRoots(list):
+            def __iter__(self):
+                yield self[0]
+                yield self[1]
+                raise AssertionError("scanned beyond second root")
+
+        roots = TwoRoots(
+            (
+                content._Root(1, C.CONTENT_KIND_ROOT, 0, 1),
+                content._Root(2, C.CONTENT_KIND_ROOT, 0, 1),
+            )
+        )
+        descriptors = {
+            1: content._Descriptor(1, C.CONTENT_KIND_ROOT, 4, 8, 12, 16),
+            2: content._Descriptor(2, C.CONTENT_KIND_ROOT, 16, 20, 24, 28),
+        }
+        with self.assertRaises(content.ContentReject) as caught:
+            content._validate_stage6(
+                roots,
+                {item.record_id: item for item in roots[:]},
+                descriptors,
+            )
+        self.assertEqual(
+            (caught.exception.code, caught.exception.raw_start, caught.exception.raw_end),
+            (C.CONTENT_ROOT_COUNT, 18, 20),
+        )
+
+        row = next(
+            item
+            for item in FIXTURE["recipes"]
+            if item["name"] == "control-edges-plus-one"
+        )
+        raw = _content_recipe_bytes(FIXTURE, row)
+        expected = row["expected"]["rejection"]
+        with mock.patch.object(
+            content,
+            "_control_fields",
+            side_effect=AssertionError("materialized control fields"),
+            create=True,
+        ):
+            with self.assertRaises(content.ContentReject) as caught:
+                content.stream_validation(raw)
+        self.assertEqual(
+            (caught.exception.code, caught.exception.raw_start, caught.exception.raw_end),
+            (expected["code"], expected["raw_start"], expected["raw_end"]),
+        )
+
     def test_stream_framing_rejections_are_exact(self) -> None:
         content = importlib.import_module("golden_board.content")
         names = {
@@ -410,10 +593,7 @@ class ContentApi(unittest.TestCase):
         content = importlib.import_module("golden_board.content")
         base = bytes.fromhex(FIXTURE["bases"][0]["stream_hex"])
         projection = content.stream_validation(base)
-        self.assertEqual(
-            _projection_value(content, content.stream_validation(base)),
-            _projection_value(content, projection),
-        )
+        self.assertEqual(content.stream_validation(base), projection)
 
         for length in range(9):
             state = content.new_run(projection)
