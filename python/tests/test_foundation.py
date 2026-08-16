@@ -943,6 +943,109 @@ class RepoContract(unittest.TestCase):
         self.assertTrue(
             all(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) for name in names)
         )
+        expected_names = set(
+            """
+            raw-utf8-bom raw-utf8-invalid-lead raw-utf8-unexpected-continuation
+            raw-utf8-overlong raw-utf8-surrogate raw-utf8-out-of-range raw-utf8-truncated
+            raw-valid-multibyte-prefix raw-control-00 raw-control-01 raw-control-02
+            raw-control-03 raw-control-04 raw-control-05 raw-control-06 raw-control-07
+            raw-control-08 raw-control-0b raw-control-0c raw-control-0e raw-control-0f
+            raw-control-10 raw-control-11 raw-control-12 raw-control-13 raw-control-14
+            raw-control-15 raw-control-16 raw-control-17 raw-control-18 raw-control-19
+            raw-control-1a raw-control-1b raw-control-1c raw-control-1d raw-control-1e
+            raw-control-1f raw-control-7f raw-newline-bare-cr raw-newline-mixed-lf-then-crlf
+            raw-newline-mixed-crlf-then-lf raw-newline-final-missing fence-shape-uppercase
+            fence-shape-four-backticks fence-shape-suffix fence-shape-indented
+            fence-orphan-close fence-nested-open fence-unclosed binary-game-count-zero
+            binary-game-count-one binary-game-truncated-header binary-game-truncated-body
+            binary-game-move binary-game-score binary-game-trailing binary-game-semantic-move
+            binary-game-semantic-score binary-game-fools-mate binary-game-set-count-zero
+            binary-game-set-count-one binary-game-set-truncated-header
+            binary-game-set-truncated-game binary-game-set-order binary-game-set-duplicate
+            binary-game-set-trailing evidence-shape-malformed evidence-shape-extra-key
+            evidence-noncanonical evidence-hash evidence-cross-field raw-input-too-large
+            fence-block-bytes-excess fence-unclosed-precedes-size-and-count fence-count-63
+            fence-count-65 raw-input-max-reaches-fence-count tag-count-64-boundary tag-count-65
+            tag-name-32-boundary tag-name-33 tag-value-1024-boundary tag-value-1025
+            tag-syntax-missing-space tag-syntax-bad-name tag-syntax-trailing-space
+            tag-escape-invalid tag-escape-terminal-backslash tag-duplicate-decoded-name
+            tag-forbidden-setup tag-forbidden-fen tag-forbidden-variant tag-result-missing
+            tag-result-value-2a tag-result-value-312f32 tag-result-value-30
+            tag-result-value-312d31 framing-separator-missing framing-separator-extra
+            framing-movetext-missing framing-movetext-empty-line framing-movetext-tag-line
+            framing-movetext-leading-hws framing-movetext-trailing-hws framing-movetext-hws-only
+            resource-token-count-8192 resource-token-count-8193 resource-record-plies-4096
+            resource-record-plies-4097 structure-move-number-shape
+            structure-move-number-value-30312e structure-move-number-value-302e
+            structure-move-number-value-343239343936373239362e structure-move-number-value-322e
+            structure-move-number-position structure-position-precedes-value-at-same-token
+            structure-result-too-early-first structure-result-too-early-after-number
+            structure-result-star structure-result-missing structure-result-mismatch
+            structure-token-after-result terminal-after-checkmate
+            terminal-continuation-precedes-earlier-suffix san-shape-piece-case
+            san-shape-zero-castle san-shape-ep-suffix san-shape-double-check san-shape-lan
+            san-shape-annotation san-no-match-pawn san-no-match-capture san-ambiguous-knight
+            san-noncanonical-redundant-file san-noncanonical-redundant-rank
+            san-noncanonical-redundant-square san-noncanonical-missing-capture
+            san-noncanonical-extra-capture san-noncanonical-precedes-suffix
+            san-suffix-extra-check san-suffix-missing-check san-suffix-wrong-mate
+            san-suffix-missing-mate terminal-score-checkmate terminal-after-stalemate
+            terminal-score-stalemate terminal-after-common-dead terminal-score-common-dead
+            accept-san-no-check accept-san-zero-disambiguation accept-san-check accept-san-mate
+            accept-san-castles accept-san-queenside-castles accept-san-en-passant
+            accept-san-file-disambiguation accept-san-promotion-q accept-san-promotion-r
+            accept-san-promotion-b accept-san-promotion-n san-shape-promotion-missing
+            san-shape-promotion-unneeded accept-san-rank-disambiguation
+            accept-san-full-square-disambiguation accept-san-pinned-pseudo-mover-excluded
+            accept-opaque-tag duplicate-move-stream-same-score
+            duplicate-move-stream-different-score binary-game-count-4096 binary-game-set-size
+            binary-game-set-size-boundary binary-game-typed-4097 binary-game-set-count-65535
+            binary-game-set-count-65536 binary-game-set-total-plies-65535
+            binary-game-set-total-plies-65536 binary-anthology-count-63
+            binary-anthology-count-64 binary-anthology-count-65
+            binary-anthology-duplicate-stream resource-total-plies-65535
+            resource-total-plies-65536 accept-newline-lf accept-newline-crlf evidence-size
+            accept-locked-anthology
+            """.split()
+        )
+        self.assertEqual(set(names), expected_names)
+        expected_operations = dict.fromkeys(expected_names, "compile_source")
+        for operation, operation_names in {
+            "decode_game": """
+                binary-game-count-zero binary-game-count-one binary-game-truncated-header
+                binary-game-truncated-body binary-game-move binary-game-score
+                binary-game-trailing binary-game-semantic-move binary-game-semantic-score
+                binary-game-fools-mate binary-game-count-4096
+            """,
+            "decode_game_set": """
+                binary-game-set-count-zero binary-game-set-count-one
+                binary-game-set-truncated-header binary-game-set-truncated-game
+                binary-game-set-order binary-game-set-duplicate binary-game-set-trailing
+                binary-game-set-size binary-game-set-size-boundary
+            """,
+            "validate_candidate_trace": """
+                evidence-shape-malformed evidence-shape-extra-key evidence-noncanonical
+                evidence-hash evidence-cross-field evidence-size
+            """,
+            "encode_game": "binary-game-typed-4097",
+            "encode_game_set": """
+                binary-game-set-count-65535 binary-game-set-count-65536
+                binary-game-set-total-plies-65535 binary-game-set-total-plies-65536
+            """,
+            "validate_anthology": """
+                binary-anthology-count-63 binary-anthology-count-64
+                binary-anthology-count-65 binary-anthology-duplicate-stream
+            """,
+        }.items():
+            expected_operations.update(dict.fromkeys(operation_names.split(), operation))
+        self.assertEqual(
+            {
+                row["name"]: row["operation"]
+                for key in ("cases", "recipes")
+                for row in payload[key]
+            },
+            expected_operations,
+        )
         self.assertEqual(
             {
                 prefix: sum(name.startswith(prefix + "-") for name in names)
@@ -1040,6 +1143,35 @@ class RepoContract(unittest.TestCase):
                 "name", "operation", "recipe",
             },
         }
+        count_caps = {
+            "raw-input-too-large": 1_048_576,
+            "fence-block-bytes-excess": 65_529,
+            "fence-unclosed-precedes-size-and-count": 65_528,
+            "fence-count-63": 63,
+            "fence-count-65": 65,
+            "raw-input-max-reaches-fence-count": 1_048_575,
+            "resource-token-count-8192": 8_192,
+            "resource-token-count-8193": 8_193,
+            "resource-record-plies-4096": 4_096,
+            "resource-record-plies-4097": 4_097,
+            "binary-game-count-4096": 1_024,
+            "binary-game-set-size": 327_678,
+            "binary-game-set-size-boundary": 327_677,
+            "binary-game-typed-4097": 4_097,
+            "binary-game-set-count-65535": 65_536,
+            "binary-game-set-count-65536": 65_536,
+            "binary-game-set-total-plies-65535": 16,
+            "binary-game-set-total-plies-65536": 16,
+            "binary-anthology-count-63": 65,
+            "binary-anthology-count-64": 65,
+            "binary-anthology-count-65": 65,
+            "binary-anthology-duplicate-stream": 65,
+            "resource-total-plies-65535": 64,
+            "resource-total-plies-65536": 64,
+            "accept-newline-lf": 64,
+            "accept-newline-crlf": 64,
+            "evidence-size": 1_048_577,
+        }
         recipe_counts = {key: 0 for key in recipe_keys}
         for recipe in payload["recipes"]:
             self.assertIs(type(recipe), dict)
@@ -1048,6 +1180,11 @@ class RepoContract(unittest.TestCase):
             self.assertEqual(set(recipe), recipe_keys[kind])
             self.assertIs(type(recipe["name"]), str)
             self.assertIs(type(recipe["operation"]), str)
+            if kind == "locked-base-patch":
+                self.assertEqual(recipe["patch_cap"], 4)
+            else:
+                self.assertIn(recipe["name"], count_caps)
+                self.assertEqual(recipe["count_cap"], count_caps[recipe["name"]])
             recipe_counts[kind] += 1
             inputs = recipe["input"]
             self.assertIs(type(inputs), dict)
@@ -1195,6 +1332,113 @@ class RepoContract(unittest.TestCase):
         self.assertEqual(expected_codes, set(range(1, 69)))
         self.assertNotIn(69, expected_codes)
         self.assertNotIn(70, expected_codes)
+
+    def test_source_fixture_shape_mutations_fail_closed(self) -> None:
+        payload = canonical_manifest.validate_canonical_manifest(SOURCE_FIXTURE.read_bytes())
+        original_reader = repo_text_bytes
+
+        def row(value: dict[str, object], name: str) -> dict[str, object]:
+            return next(
+                item
+                for key in ("cases", "recipes")
+                for item in value[key]
+                if item["name"] == name
+            )
+
+        def change_cap(value: dict[str, object], name: str, field: str) -> None:
+            item = row(value, name)
+            item[field] += 1
+
+        def swap_operations(value: dict[str, object], first: str, second: str) -> None:
+            left, right = row(value, first), row(value, second)
+            left["operation"], right["operation"] = right["operation"], left["operation"]
+
+        def extra_key(value: dict[str, object]) -> None:
+            value["cases"][0]["extra"] = 1
+
+        def missing_key(value: dict[str, object]) -> None:
+            del value["cases"][0]["input_hex"]
+
+        def unknown_recipe(value: dict[str, object]) -> None:
+            value["recipes"][0]["recipe"] = "unknown"
+
+        def unknown_name(value: dict[str, object]) -> None:
+            value["cases"][0]["name"] += "-unknown"
+
+        def malformed_hex(value: dict[str, object]) -> None:
+            value["cases"][0]["input_hex"] = "0"
+
+        def base_mismatch(value: dict[str, object]) -> None:
+            row(value, "accept-locked-anthology")["input"]["base"] = "unknown"
+
+        def patch_recipe(value: dict[str, object]) -> dict[str, object]:
+            return next(item for item in value["recipes"] if item["input"].get("patches"))
+
+        def non_descending_patch(value: dict[str, object]) -> None:
+            item = patch_recipe(value)
+            item["input"]["patches"].append(copy.deepcopy(item["input"]["patches"][0]))
+
+        def overlapping_patch(value: dict[str, object]) -> None:
+            item = patch_recipe(value)
+            start = item["input"]["patches"][0]["start"]
+            base = original_reader(ROOT, b"docs/64_games.md")
+            item["input"]["patches"].append(
+                {
+                    "old_hex": base[start - 1:start + 1].hex(),
+                    "replacement_hex": "",
+                    "start": start - 1,
+                }
+            )
+
+        def wrong_old_patch(value: dict[str, object]) -> None:
+            patch = patch_recipe(value)["input"]["patches"][0]
+            old = bytes.fromhex(patch["old_hex"])
+            patch["old_hex"] = bytes((old[0] ^ 1,)).hex() + old[1:].hex()
+
+        def final_length_mismatch(value: dict[str, object]) -> None:
+            row(value, "accept-locked-anthology")["input_bytes"] += 1
+
+        def final_hash_mismatch(value: dict[str, object]) -> None:
+            row(value, "accept-locked-anthology")["input_sha256"] = "0" * 64
+
+        mutations = {
+            "raw count cap": lambda value: change_cap(value, "raw-input-too-large", "count_cap"),
+            "patch cap": lambda value: change_cap(value, "accept-locked-anthology", "patch_cap"),
+            "newline count cap": lambda value: change_cap(value, "accept-newline-lf", "count_cap"),
+            "encode Game/GameSet swap": lambda value: swap_operations(
+                value, "binary-game-typed-4097", "binary-game-set-count-65536"
+            ),
+            "decode Game/GameSet swap": lambda value: swap_operations(
+                value, "binary-game-count-zero", "binary-game-set-count-zero"
+            ),
+            "extra key": extra_key,
+            "missing key": missing_key,
+            "unknown recipe": unknown_recipe,
+            "unknown name": unknown_name,
+            "malformed hex": malformed_hex,
+            "base mismatch": base_mismatch,
+            "non-descending patch": non_descending_patch,
+            "overlapping patch": overlapping_patch,
+            "wrong old patch": wrong_old_patch,
+            "final length mismatch": final_length_mismatch,
+            "final hash mismatch": final_hash_mismatch,
+        }
+        for name, mutate in mutations.items():
+            with self.subTest(name=name):
+                mutated = copy.deepcopy(payload)
+                mutate(mutated)
+                data = canonical_manifest.serialize_manifest(mutated)
+
+                def selective_reader(root: Path, relative: bytes) -> bytes:
+                    if relative == b"conformance/source-v0.json":
+                        return data
+                    return original_reader(root, relative)
+
+                with mock.patch.object(
+                    sys.modules[__name__], "repo_text_bytes", side_effect=selective_reader
+                ):
+                    with self.assertRaises(AssertionError):
+                        self.test_source_fixture_shape_and_coverage_are_closed()
 
     def test_chess_fixture_shape_and_coverage_are_closed(self) -> None:
         payload = canonical_manifest.validate_canonical_manifest(
