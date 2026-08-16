@@ -107,11 +107,30 @@ ignored `artifacts/` for human comparison.
 
 ## Registry
 
-`conformance/registry.toml` indexes only fixture payloads that exist. Each entry
-has a unique ID, path, specification/version, payload SHA-256, consumers, and
-provenance. M0 registers only the identity and manifest suites, both consumed
-independently by Python and Rust and marked `hand-authored`.
+`conformance/registry.toml` is the closed v0 index of shared conformance
+payloads. The registry and every payload are at most 1,048,576 bytes. Each is
+opened without following links and must be a direct regular non-symlink file.
 
-Paths must exist, hashes must match, and every non-registry file directly under
-`conformance/` must be registered. Empty/future source, chess, transport,
-curriculum, damage, or browser slots are forbidden.
+The TOML has exactly the top-level keys `schema` and `suite`. `schema` is
+exactly `golden-board.conformance-registry/v0`. Every `suite` row has exactly
+the keys `id`, `path`, `specification`, `version`, `sha256`, `consumers`, and
+`provenance`, with these rules:
+
+- `id` and `path` are unique across rows;
+- `id` and `specification` are nonempty lowercase ASCII identifiers containing
+  only `a-z`, `0-9`, and interior `-` characters;
+- `path` is byte-for-byte `conformance/<id>.json`, rejecting absolute, empty,
+  dot, dot-dot, nested, backslash or platform-alias, NUL, registry-self, and
+  alternate-spelling paths;
+- `version` is exactly `v0`;
+- `sha256` is exactly 64 lowercase hexadecimal characters;
+- `consumers` is exactly `["python", "rust"]`; and
+- `provenance` is exactly `hand-authored`.
+
+Every row target exists and its SHA-256 matches. Row paths are exact-set equal
+to all direct entries under `conformance/` other than `registry.toml`; every
+such entry must itself be a regular non-symlink file. Missing, unregistered, or
+unexpected entries, including symlinks and non-regular files, fail closed.
+
+M0 registers only the identity and manifest suites. Empty future source, chess,
+transport, curriculum, damage, or browser slots are forbidden.

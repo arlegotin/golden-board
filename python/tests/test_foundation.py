@@ -88,6 +88,80 @@ def repo_text_bytes(root: Path, relative: bytes) -> bytes:
             os.close(directory_fd)
 
 
+def validate_conformance_registry(root: Path) -> None:
+    try:
+        registry = tomllib.loads(
+            repo_text_bytes(root, b"conformance/registry.toml").decode("utf-8")
+        )
+    except (AssertionError, OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
+        raise AssertionError("invalid conformance registry") from error
+    if set(registry) != {"schema", "suite"} or registry["schema"] != (
+        "golden-board.conformance-registry/v0"
+    ):
+        raise AssertionError("invalid conformance registry")
+    suites = registry["suite"]
+    if not isinstance(suites, list):
+        raise AssertionError("invalid conformance registry")
+
+    row_keys = {
+        "id",
+        "path",
+        "specification",
+        "version",
+        "sha256",
+        "consumers",
+        "provenance",
+    }
+    identifiers = set()
+    paths = set()
+    for suite in suites:
+        if not isinstance(suite, dict) or set(suite) != row_keys:
+            raise AssertionError("invalid conformance registry")
+        identifier = suite["id"]
+        specification = suite["specification"]
+        if any(
+            not isinstance(value, str)
+            or re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", value) is None
+            for value in (identifier, specification)
+        ):
+            raise AssertionError("invalid conformance registry")
+        path = suite["path"]
+        if (
+            not isinstance(path, str)
+            or path != f"conformance/{identifier}.json"
+            or identifier in identifiers
+            or path in paths
+            or suite["version"] != "v0"
+            or not isinstance(suite["sha256"], str)
+            or re.fullmatch(r"[0-9a-f]{64}", suite["sha256"]) is None
+            or suite["consumers"] != ["python", "rust"]
+            or suite["provenance"] != "hand-authored"
+        ):
+            raise AssertionError("invalid conformance registry")
+        identifiers.add(identifier)
+        paths.add(path)
+        payload = repo_text_bytes(root, path.encode("ascii"))
+        if hashlib.sha256(payload).hexdigest() != suite["sha256"]:
+            raise AssertionError("invalid conformance registry")
+
+    try:
+        inventory = set()
+        with os.scandir(root / "conformance") as entries:
+            for entry in entries:
+                if entry.name == "registry.toml":
+                    continue
+                metadata = entry.stat(follow_symlinks=False)
+                if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+                    raise AssertionError("invalid conformance registry")
+                inventory.add(f"conformance/{entry.name}")
+                if len(inventory) > len(paths):
+                    raise AssertionError("invalid conformance registry")
+    except OSError as error:
+        raise AssertionError("invalid conformance registry") from error
+    if inventory != paths:
+        raise AssertionError("invalid conformance registry")
+
+
 class FoundationModulesPresent(unittest.TestCase):
     def test_identity_and_manifest_modules_exist(self) -> None:
         self.assertIsNotNone(identity)
@@ -707,12 +781,7 @@ class RepoContract(unittest.TestCase):
                 self.assertFalse(line.endswith((b" ", b"\t")), relative)
                 self.assertFalse(line.startswith((b"<<<<<<<", b"=======", b">>>>>>>")), relative)
 
-        registry = tomllib.loads((ROOT / "conformance/registry.toml").read_text())
-        payloads = sorted(path.name for path in (ROOT / "conformance").iterdir() if path.name != "registry.toml")
-        self.assertEqual(payloads, sorted(Path(item["path"]).name for item in registry["suite"]))
-        for item in registry["suite"]:
-            payload = ROOT / item["path"]
-            self.assertEqual(hashlib.sha256(payload.read_bytes()).hexdigest(), item["sha256"])
+        validate_conformance_registry(ROOT)
 
         readme = (ROOT / "README.md").read_text()
         agents = (ROOT / "AGENTS.md").read_text()
@@ -743,6 +812,183 @@ class RepoContract(unittest.TestCase):
                 expected_state = leading
         self.assertEqual(header_state, expected_state)
         self.assertEqual(header_milestone, expected_milestone)
+
+    def test_conformance_registry_mutations_fail_closed(self) -> None:
+        payload = b"fixture\n"
+        digest = hashlib.sha256(payload).hexdigest().encode()
+        registry = (
+            b'schema = "golden-board.conformance-registry/v0"\n\n'
+            b"[[suite]]\n"
+            b'id = "identity-v0"\n'
+            b'path = "conformance/identity-v0.json"\n'
+            b'specification = "identity-v0"\n'
+            b'version = "v0"\n'
+            + b'sha256 = "' + digest + b'"\n'
+            b'consumers = ["python", "rust"]\n'
+            b'provenance = "hand-authored"\n'
+        )
+        mutations = {
+            "missing_top_key": registry.replace(
+                b'schema = "golden-board.conformance-registry/v0"\n\n', b""
+            ),
+            "missing_suite": b'schema = "golden-board.conformance-registry/v0"\n',
+            "extra_top_key": registry.replace(
+                b"\n\n[[suite]]", b"\nextra = true\n\n[[suite]]"
+            ),
+            "bad_schema": registry.replace(b"registry/v0", b"registry/v1"),
+            "missing_row_key": registry.replace(b'version = "v0"\n', b""),
+            "extra_row_key": registry + b'extra = "x"\n',
+            "bad_id_empty": registry.replace(b'id = "identity-v0"', b'id = ""'),
+            "bad_id_uppercase": registry.replace(b"identity-v0", b"Identity-v0", 1),
+            "bad_id_hyphens": registry.replace(b"identity-v0", b"identity--v0", 1),
+            "bad_specification": registry.replace(
+                b'specification = "identity-v0"', b'specification = "identity_v0"'
+            ),
+            "empty_path": registry.replace(
+                b'path = "conformance/identity-v0.json"', b'path = ""'
+            ),
+            "parent_path": registry.replace(
+                b'path = "conformance/identity-v0.json"', b'path = "../identity-v0.json"'
+            ),
+            "absolute_path": registry.replace(
+                b'path = "conformance/identity-v0.json"', b'path = "/identity-v0.json"'
+            ),
+            "nested_path": registry.replace(
+                b'path = "conformance/identity-v0.json"',
+                b'path = "conformance/nested/identity-v0.json"',
+            ),
+            "backslash_alias": registry.replace(
+                b'path = "conformance/identity-v0.json"',
+                br"path = 'conformance\identity-v0.json'",
+            ),
+            "nul_path": registry.replace(
+                b'path = "conformance/identity-v0.json"',
+                br'path = "conformance/identity-v0\u0000.json"',
+            ),
+            "dot_path": registry.replace(
+                b'path = "conformance/identity-v0.json"', b'path = "."'
+            ),
+            "dot_dot_path": registry.replace(
+                b'path = "conformance/identity-v0.json"', b'path = ".."'
+            ),
+            "alternate_path": registry.replace(
+                b'path = "conformance/identity-v0.json"',
+                b'path = "conformance/./identity-v0.json"',
+            ),
+            "registry_self_path": registry.replace(
+                b'path = "conformance/identity-v0.json"',
+                b'path = "conformance/registry.toml"',
+            ),
+            "bad_version": registry.replace(b'version = "v0"', b'version = "v1"'),
+            "bad_hash": registry.replace(digest, b"A" * 64),
+            "bad_consumers": registry.replace(
+                b'["python", "rust"]', b'["rust", "python"]'
+            ),
+            "bad_provenance": registry.replace(b"hand-authored", b"generated"),
+            "duplicate_id": registry + b"[[suite]]\n" + registry.split(b"[[suite]]\n", 1)[1],
+            "duplicate_path": registry
+            + b"[[suite]]\n"
+            + registry.split(b"[[suite]]\n", 1)[1].replace(
+                b'id = "identity-v0"', b'id = "manifest-v0"'
+            ),
+            "oversized_registry": registry
+            + b" " * (MAX_REPO_TEXT_BYTES + 1 - len(registry)),
+        }
+        for name, mutation in mutations.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory(
+                prefix="registry-contract-"
+            ) as directory:
+                root = Path(directory)
+                (root / "conformance").mkdir()
+                (root / "conformance/registry.toml").write_bytes(mutation)
+                (root / "conformance/identity-v0.json").write_bytes(payload)
+                with self.assertRaises(AssertionError):
+                    validate_conformance_registry(root)
+
+    def test_conformance_registry_tree_and_payload_bounds(self) -> None:
+        def write_valid(root: Path, payload: bytes = b"fixture\n") -> Path:
+            conformance = root / "conformance"
+            conformance.mkdir()
+            digest = hashlib.sha256(payload).hexdigest()
+            (conformance / "registry.toml").write_text(
+                'schema = "golden-board.conformance-registry/v0"\n\n'
+                "[[suite]]\n"
+                'id = "identity-v0"\n'
+                'path = "conformance/identity-v0.json"\n'
+                'specification = "identity-v0"\n'
+                'version = "v0"\n'
+                f'sha256 = "{digest}"\n'
+                'consumers = ["python", "rust"]\n'
+                'provenance = "hand-authored"\n'
+            )
+            path = conformance / "identity-v0.json"
+            path.write_bytes(payload)
+            return path
+
+        for name in (
+            "missing_target",
+            "unregistered_payload",
+            "direct_symlink",
+            "non_regular_target",
+            "hash_mismatch",
+            "inventory_mismatch",
+            "unexpected_symlink",
+            "registry_symlink",
+            "registry_non_regular",
+        ):
+            with self.subTest(name=name), tempfile.TemporaryDirectory(
+                prefix="registry-contract-"
+            ) as directory:
+                root = Path(directory)
+                path = write_valid(root)
+                if name == "missing_target":
+                    path.unlink()
+                elif name == "unregistered_payload":
+                    (root / "conformance/manifest-v0.json").write_bytes(b"extra\n")
+                elif name == "direct_symlink":
+                    path.unlink()
+                    target = root / "target.json"
+                    target.write_bytes(b"fixture\n")
+                    path.symlink_to(target)
+                elif name == "non_regular_target":
+                    path.unlink()
+                    path.mkdir()
+                elif name == "hash_mismatch":
+                    path.write_bytes(b"changed\n")
+                elif name == "inventory_mismatch":
+                    path.unlink()
+                    (root / "conformance/manifest-v0.json").write_bytes(b"fixture\n")
+                elif name == "unexpected_symlink":
+                    target = root / "target.json"
+                    target.write_bytes(b"extra\n")
+                    (root / "conformance/extra.json").symlink_to(target)
+                else:
+                    registry_path = root / "conformance/registry.toml"
+                    registry = registry_path.read_bytes()
+                    registry_path.unlink()
+                    if name == "registry_symlink":
+                        target = root / "registry.toml"
+                        target.write_bytes(registry)
+                        registry_path.symlink_to(target)
+                    else:
+                        registry_path.mkdir()
+                with self.assertRaises(AssertionError):
+                    validate_conformance_registry(root)
+
+        for size, accepted in (
+            (MAX_REPO_TEXT_BYTES, True),
+            (MAX_REPO_TEXT_BYTES + 1, False),
+        ):
+            with self.subTest(size=size), tempfile.TemporaryDirectory(
+                prefix="registry-contract-"
+            ) as directory:
+                root = Path(directory)
+                write_valid(root, b"x" * size)
+                if accepted:
+                    validate_conformance_registry(root)
+                else:
+                    with self.assertRaises(AssertionError):
+                        validate_conformance_registry(root)
 
     def test_untracked_text_scan_rejects_unsafe_files(self) -> None:
         with tempfile.TemporaryDirectory(dir=ROOT, prefix="repo-contract-") as directory:
