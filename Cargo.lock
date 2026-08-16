@@ -62,6 +62,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "gb-content"
+version = "0.0.0"
+dependencies = [
+ "gb-foundation",
+]
+
+[[package]]
 name = "gb-foundation"
 version = "0.0.0"
 dependencies = [
