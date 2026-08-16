@@ -72,6 +72,21 @@ fn hex_bytes(value: &str) -> Vec<u8> {
         .collect()
 }
 
+fn m1_identity_vector_is_closed(value: &Value) -> bool {
+    value.as_object().is_some_and(|row| {
+        row.len() == 5
+            && [
+                "domain_hex",
+                "fields_hex",
+                "identity",
+                "name",
+                "preimage_hex",
+            ]
+            .iter()
+            .all(|key| row.contains_key(*key))
+    })
+}
+
 #[cfg(unix)]
 fn direct_file_bytes(path: &Path) -> Result<Vec<u8>, String> {
     let metadata = fs::symlink_metadata(path).map_err(|error| error.to_string())?;
@@ -518,12 +533,19 @@ fn identity_fixture_and_boundaries() {
     for (case, (name, domain, field, preimage, digest)) in
         vectors[8..].iter().zip(M1_IDENTITY_VECTORS)
     {
+        assert!(m1_identity_vector_is_closed(case));
         assert_eq!(case["name"], name);
         assert_eq!(case["domain_hex"], domain);
         assert_eq!(case["fields_hex"], serde_json::json!([field]));
         assert_eq!(case["preimage_hex"], preimage);
         assert_eq!(case["identity"], digest);
     }
+    let mut extra_key = vectors[8].clone();
+    extra_key
+        .as_object_mut()
+        .unwrap()
+        .insert("extra".into(), Value::Null);
+    assert!(!m1_identity_vector_is_closed(&extra_key));
     for case in vectors {
         let domain = hex_bytes(case["domain_hex"].as_str().unwrap());
         let fields: Vec<Vec<u8>> = case["fields_hex"]
