@@ -921,7 +921,7 @@ class RepoContract(unittest.TestCase):
                 "id": "source-v0",
                 "path": "conformance/source-v0.json",
                 "provenance": "hand-authored",
-                "sha256": "e55fc0aa351013a8ceb51142da8fabc4ed49e2848c9a1921c8b382a8aee89c76",
+                "sha256": "d4fbcd8524da07a74f85734e133f56daa61f02883717b455f6d2c36117a07b46",
                 "specification": "source-v0",
                 "version": "v0",
             },
@@ -1654,6 +1654,31 @@ class RepoContract(unittest.TestCase):
         self.assertEqual(expected_codes, set(range(1, 69)))
         self.assertNotIn(69, expected_codes)
         self.assertNotIn(70, expected_codes)
+
+    def test_source_unclosed_fence_recipes_end_in_lf(self) -> None:
+        payload = canonical_manifest.validate_canonical_manifest(SOURCE_FIXTURE.read_bytes())
+        recipes = {row["name"]: row for row in payload["recipes"]}
+        expected = {
+            "fence-block-bytes-excess": (
+                65_528,
+                65_536,
+                "e57c734b09f596ddc9767cfe68e11b4c2f023269c901b95d73b604a541be3225",
+                {"code": 12, "raw_start": 65_535, "raw_end": 65_536},
+            ),
+            "fence-unclosed-precedes-size-and-count": (
+                65_527,
+                65_535,
+                "9d3d745c438ccaeaef02dd46b9ee1278af917b23c78c1028d921e5d7efb4bbd3",
+                {"code": 11, "raw_start": 65_535, "raw_end": 65_535},
+            ),
+        }
+        for name, (repeat_count, length, digest, rejection) in expected.items():
+            row = recipes[name]
+            self.assertEqual(row["input"]["suffix_hex"], "0a")
+            self.assertEqual(row["input"]["repeat_count"], repeat_count)
+            self.assertEqual(row["input_bytes"], length)
+            self.assertEqual(row["input_sha256"], digest)
+            self.assertEqual(row["expected"]["rejection"], rejection)
 
     def test_source_fixture_shape_mutations_fail_closed(self) -> None:
         payload = canonical_manifest.validate_canonical_manifest(SOURCE_FIXTURE.read_bytes())
