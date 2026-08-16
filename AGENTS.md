@@ -22,6 +22,7 @@ Root checks:
 scripts/check fast
 scripts/check focused source
 scripts/check focused identity
+scripts/check focused chess
 scripts/check focused repo
 scripts/check full
 ```

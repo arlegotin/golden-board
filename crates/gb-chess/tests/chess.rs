@@ -79,6 +79,62 @@ fn failure(code: u16) -> V {
     obj([("rejection", u(code as u64))])
 }
 
+fn neutral_cycle_observations() -> bool {
+    const POSITION: &str = concat!(
+        "0402030506030204010101010101010100000000000000000000000000000000",
+        "0000000000000000000000000000000007070707070707070a08090b0c09080a",
+        "000f00",
+    );
+    const LEGAL: &str = concat!(
+        "05000520195019702100218025102590292029a02d302db0314031c0355035d0",
+        "396039e03d703df0",
+    );
+    let cycle: Vec<_> = hex("1950fad05460b7e01950fad05460b7e0")
+        .chunks_exact(2)
+        .map(|bytes| decode_move(bytes).unwrap())
+        .collect();
+    for (plies, halfmove, occurrences, threefold) in [
+        (0usize, 0u16, 1u16, false),
+        (4, 4, 2, false),
+        (8, 8, 3, true),
+    ] {
+        let replay = replay_from_start(&cycle[..plies]).unwrap();
+        if hexed(&encode_position(replay.position())) != POSITION
+            || hexed(&repetition_key(&replay)) != POSITION
+            || hexed(
+                &legal_moves(&replay)
+                    .iter()
+                    .flat_map(|mv| encode_move(*mv))
+                    .collect::<Vec<_>>(),
+            ) != LEGAL
+            || replay.played_plies() != plies
+            || replay.halfmove_clock() != halfmove
+            || replay.current_key_occurrences() != occurrences
+            || replay.threefold_available() != threefold
+            || board_terminal(&replay) != BoardTerminal::None
+        {
+            return false;
+        }
+        let local = validate_local(replay.position()).unwrap();
+        if king_in_check(&local, Side::FIRST) || king_in_check(&local, Side::SECOND) {
+            return false;
+        }
+        let PredicateResult::History(history) =
+            evaluate_predicate(b"chess.history_claim", PredicateInput::History(replay)).unwrap()
+        else {
+            return false;
+        };
+        if history.played_plies as usize != plies
+            || history.halfmove_clock != halfmove
+            || history.current_key_occurrences != occurrences
+            || history.threefold_available != threefold
+        {
+            return false;
+        }
+    }
+    true
+}
+
 fn terminal_value(t: BoardTerminal) -> V {
     u(t.code() as u64)
 }
@@ -559,6 +615,11 @@ fn approved_direct_fixture_rows() {
         }
     }
     assert_eq!(checked, 224);
+}
+
+#[test]
+fn neutral_cycle_convergence_recipe() {
+    assert!(neutral_cycle_observations());
 }
 
 #[test]

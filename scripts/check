@@ -5,6 +5,7 @@ usage() {
         'usage: scripts/check fast' \
         '       scripts/check focused source' \
         '       scripts/check focused identity' \
+        '       scripts/check focused chess' \
         '       scripts/check focused repo' \
         '       scripts/check full' >&2
 }
@@ -13,7 +14,7 @@ case "$#:$1" in
     1:fast|1:full) mode=$1 ;;
     2:focused)
         case "$2" in
-            source|identity|repo) mode=$2 ;;
+            source|identity|chess|repo) mode=$2 ;;
             *) usage; exit 2 ;;
         esac
         ;;
@@ -86,6 +87,17 @@ identity() {
         --all-targets --locked --offline -- --skip source_report_is_canonical
 }
 
+chess() {
+    python_tests chess-python python.tests.test_chess || return 1
+    run_check chess-rust rustup run 1.97.1 cargo test -p gb-chess \
+        --test chess --locked --offline
+}
+
+chess_oracle() {
+    run_check chess-oracle uv run --locked --offline --no-python-downloads \
+        --group oracle python -m unittest -v python.tests.test_chess_oracle
+}
+
 source_full() {
     python_tests source-python \
         python.tests.test_foundation.SourceDoctorTrustBoundary \
@@ -113,8 +125,9 @@ repo() {
 
 case "$mode" in
     identity) identity ;;
+    chess) chess ;;
     source) source_full ;;
     repo) repo ;;
-    fast) repo && identity && source_fast ;;
-    full) repo && identity && source_full ;;
+    fast) repo && identity && chess && source_fast ;;
+    full) repo && identity && chess && chess_oracle && source_full ;;
 esac

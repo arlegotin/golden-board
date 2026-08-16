@@ -12,6 +12,7 @@ import unittest
 from unittest import mock
 
 from golden_board import canonical_manifest
+from golden_board import constants as C
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -113,6 +114,62 @@ def _recipe_moves(chess: object, recipe: object) -> tuple[object, ...]:
 
 FIXTURE = _load_fixture(ROOT / "conformance/chess-v0.json")
 
+_NEUTRAL_CYCLE_HEX = "1950fad05460b7e01950fad05460b7e0"
+_NEUTRAL_POSITION_HEX = (
+    "0402030506030204010101010101010100000000000000000000000000000000"
+    "0000000000000000000000000000000007070707070707070a08090b0c09080a"
+    "000f00"
+)
+_NEUTRAL_LEGAL_HEX = (
+    "05000520195019702100218025102590292029a02d302db0314031c0355035d0"
+    "396039e03d703df0"
+)
+_NEUTRAL_CHECKPOINTS = (
+    (0, 0, 1, False),
+    (4, 4, 2, False),
+    (8, 8, 3, True),
+)
+
+
+def _neutral_cycle_observations() -> bool:
+    chess = importlib.import_module("golden_board.chess")
+    cycle = _decode_moves(chess, bytes.fromhex(_NEUTRAL_CYCLE_HEX))
+    for plies, halfmove, occurrences, threefold in _NEUTRAL_CHECKPOINTS:
+        replay = chess.replay_from_start(cycle[:plies])
+        local = chess.validate_local(replay.position)
+        history = chess.evaluate_predicate(
+            b"chess.history_claim", chess.HistoryClaimInput(replay)
+        )
+        actual = {
+            "position_hex": chess.encode_position(replay.position).hex(),
+            "repetition_key_hex": chess.repetition_key(replay).hex(),
+            "legal_moves_hex": b"".join(
+                chess.encode_move(move) for move in chess.legal_moves(replay)
+            ).hex(),
+            "played_plies": history.played_plies,
+            "halfmove_clock": history.halfmove_clock,
+            "current_key_occurrences": history.current_key_occurrences,
+            "threefold_available": history.threefold_available,
+            "first_in_check": chess.king_in_check(local, C.SIDE_FIRST),
+            "second_in_check": chess.king_in_check(local, C.SIDE_SECOND),
+            "terminal": chess.board_terminal(replay).code,
+        }
+        expected = {
+            "position_hex": _NEUTRAL_POSITION_HEX,
+            "repetition_key_hex": _NEUTRAL_POSITION_HEX,
+            "legal_moves_hex": _NEUTRAL_LEGAL_HEX,
+            "played_plies": plies,
+            "halfmove_clock": halfmove,
+            "current_key_occurrences": occurrences,
+            "threefold_available": threefold,
+            "first_in_check": False,
+            "second_in_check": False,
+            "terminal": 0,
+        }
+        if actual != expected:
+            return False
+    return True
+
 
 class ChessApi(unittest.TestCase):
     def test_public_api_is_present(self) -> None:
@@ -150,6 +207,9 @@ class ChessApi(unittest.TestCase):
         }
         self.assertEqual(set(chess.__all__), public_callables)
         self.assertEqual(len(chess.__all__), len(set(chess.__all__)))
+
+    def test_neutral_cycle_convergence_recipe(self) -> None:
+        self.assertTrue(_neutral_cycle_observations())
 
     def test_wire_and_local_fixture_cases(self) -> None:
         chess = importlib.import_module("golden_board.chess")

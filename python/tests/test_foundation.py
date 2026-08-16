@@ -1927,7 +1927,8 @@ class RepoContract(unittest.TestCase):
         agents = (ROOT / "AGENTS.md").read_text()
         for command in (
             "scripts/check fast", "scripts/check focused source",
-            "scripts/check focused identity", "scripts/check focused repo",
+            "scripts/check focused identity", "scripts/check focused chess",
+            "scripts/check focused repo",
             "scripts/check full",
         ):
             self.assertIn(command, readme)
@@ -3687,12 +3688,38 @@ class RepoContract(unittest.TestCase):
         self.assertNotIn("--workspace", identity_block)
         self.assertNotIn("git diff --check -- ", repo_block)
         self.assertNotIn("git diff --cached --check -- ", repo_block)
+        self.assertIn("chess() {", check)
+        self.assertIn("python.tests.test_chess", check)
+        self.assertIn("cargo test -p gb-chess", check)
 
         roadmap = (ROOT / "docs/roadmap.md").read_text()
         self.assertIn(
             "| M1 — Chess truth, source grammar, and assessment blueprint | In progress | — |",
             roadmap,
         )
+
+    def test_m1_chess_convergence_is_live_and_oracle_is_isolated(self) -> None:
+        project = tomllib.loads((ROOT / "pyproject.toml").read_text())
+        self.assertEqual(project["dependency-groups"]["oracle"], ["chess==1.11.2"])
+
+        python_test = (ROOT / "python/tests/test_chess.py").read_text()
+        rust_test = (ROOT / "crates/gb-chess/tests/chess.rs").read_text()
+        oracle_test = (ROOT / "python/tests/test_chess_oracle.py").read_text()
+        self.assertIn("_neutral_cycle_observations", python_test)
+        self.assertIn("neutral_cycle_observations", rust_test)
+        for count in (59, 91, 74):
+            self.assertIn(f"self.assertEqual(seen, {count})", python_test)
+        self.assertIn("assert_eq!(cases.len(), 224)", rust_test)
+        self.assertIn("assert_eq!(recipes.len(), 3)", rust_test)
+        self.assertIn("import chess", oracle_test)
+        for forbidden in ("parse_san", ".fen(", ".outcome(", "push_san"):
+            self.assertNotIn(forbidden, oracle_test)
+        for production in (
+            ROOT / "python/golden_board/chess.py",
+            ROOT / "crates/gb-chess/src/lib.rs",
+        ):
+            self.assertNotIn("python-chess", production.read_text())
+            self.assertNotIn("import chess", production.read_text())
 
     def test_m1_portable_evidence_and_run_state_owners_are_explicit(self) -> None:
         source = " ".join((ROOT / "spec/source-v0.md").read_text().split())
@@ -4056,6 +4083,24 @@ class RootCheckCLI(unittest.TestCase):
             )
             self.assertEqual(failure.returncode, 1)
             self.assertIn("identity", failure.stderr)
+
+    def test_live_chess_area_is_admitted(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            copied = root / "scripts/check"
+            copied.parent.mkdir()
+            copied.write_bytes(self.SCRIPT.read_bytes())
+            copied.chmod(0o755)
+            result = subprocess.run(
+                [str(copied), "focused", "chess"],
+                cwd=root,
+                env=self.fake_environment(root, fail_child=False),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_missing_dependency_cache_fails_actionably(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
