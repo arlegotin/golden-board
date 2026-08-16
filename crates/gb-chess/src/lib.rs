@@ -1,5 +1,7 @@
 use gb_foundation::constants::*;
 
+pub mod source;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ChessReject {
     pub code: u16,

@@ -8,6 +8,10 @@ rust-version.workspace = true
 [dependencies]
 gb-foundation = { path = "../gb-foundation" }
 
+[dev-dependencies]
+sha2 = "0.10"
+toml = "0.9"
+
 [[test]]
 name = "chess"
 path = "tests/chess.rs"
