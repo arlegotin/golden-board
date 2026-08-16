@@ -4,14 +4,114 @@ from __future__ import annotations
 
 import importlib
 import hashlib
+import io
 import json
 from pathlib import Path
 import random
 import unittest
+from unittest import mock
+
+from golden_board import canonical_manifest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-FIXTURE = json.loads((ROOT / "conformance/chess-v0.json").read_bytes())
+_FIXTURE_BYTE_CAP = canonical_manifest.MAX_BYTES
+_RECIPE_FACTS = {
+    "history-boundary-4095": (
+        4095, "", 8190, "fe083157aff7dddf8ef1d7c55d14d74836351de95367107f2382c465ba670735",
+        {"success": {"played_plies": 4095}},
+    ),
+    "history-boundary-4096": (
+        4096, "", 8192, "39b9ad3d90be853994abbf8fba476816fcc15865f9fdf99f26a33673e0972616",
+        {"success": {"played_plies": 4096}},
+    ),
+    "history-excess-4097": (
+        4097, "4180", 8194, "b2b5803f901288658064cbd1c05ff36db5b6fe73f99d68941e85178b968c5abc",
+        {"rejection": 35},
+    ),
+}
+
+
+def _load_fixture(path: Path) -> object:
+    with path.open("rb") as source:
+        raw = source.read(_FIXTURE_BYTE_CAP + 1)
+    if len(raw) > _FIXTURE_BYTE_CAP:
+        raise ValueError("chess fixture exceeds repository byte cap")
+    return canonical_manifest.validate_canonical_manifest(raw)
+
+
+def _decode_moves(chess: object, raw: bytes) -> tuple[object, ...]:
+    return tuple(chess.decode_move(raw[index : index + 2]) for index in range(0, len(raw), 2))
+
+
+def _recipe_moves(chess: object, recipe: object) -> tuple[object, ...]:
+    if type(recipe) is not dict or set(recipe) != {
+        "count_cap", "expected", "input", "input_bytes", "input_sha256", "name", "recipe",
+    }:
+        raise AssertionError("closed recipe record")
+    name = recipe["name"]
+    if type(name) is not str or name not in _RECIPE_FACTS:
+        raise AssertionError("closed recipe name")
+    expected_count, expected_final, expected_bytes, expected_digest, expected_result = _RECIPE_FACTS[name]
+    data = recipe["input"]
+    if (
+        type(recipe["recipe"]) is not str
+        or recipe["recipe"] != "knight-cycle-history"
+        or type(recipe["count_cap"]) is not int
+        or recipe["count_cap"] != 4097
+        or type(data) is not dict
+        or set(data) != {"cycle_moves_hex", "final_move_hex", "ply_count"}
+        or type(recipe["input_bytes"]) is not int
+        or type(recipe["input_sha256"]) is not str
+        or type(recipe["expected"]) is not dict
+    ):
+        raise AssertionError("closed recipe shape")
+    count = data["ply_count"]
+    cycle_hex = data["cycle_moves_hex"]
+    final_hex = data["final_move_hex"]
+    result = recipe["expected"]
+    if "success" in expected_result:
+        valid_result = (
+            set(result) == {"success"}
+            and type(result["success"]) is dict
+            and set(result["success"]) == {"played_plies"}
+            and type(result["success"]["played_plies"]) is int
+        )
+    else:
+        valid_result = (
+            set(result) == {"rejection"}
+            and type(result["rejection"]) is int
+        )
+    if (
+        type(count) is not int
+        or count != expected_count
+        or not 0 <= count <= recipe["count_cap"]
+        or type(cycle_hex) is not str
+        or cycle_hex != "1950fad05460b7e0"
+        or type(final_hex) is not str
+        or final_hex != expected_final
+        or recipe["input_bytes"] != expected_bytes
+        or recipe["input_bytes"] != count * 2
+        or recipe["input_sha256"] != expected_digest
+        or len(recipe["input_sha256"]) != 64
+        or not valid_result
+        or result != expected_result
+    ):
+        raise AssertionError("closed recipe values")
+    cycle = bytes.fromhex(cycle_hex)
+    final = bytes.fromhex(final_hex)
+    if len(cycle) != 8 or len(final) not in (0, 2):
+        raise AssertionError("bounded recipe atoms")
+    cycle_plies = count - bool(final)
+    if cycle_plies < 0 or cycle_plies * 2 + len(final) != recipe["input_bytes"]:
+        raise AssertionError("bounded recipe derived length")
+    raw = (cycle * ((cycle_plies + 3) // 4))[: cycle_plies * 2] + final
+    if len(raw) != recipe["input_bytes"] or hashlib.sha256(raw).hexdigest() != recipe["input_sha256"]:
+        raise AssertionError("recipe byte identity")
+    return _decode_moves(chess, raw)
+
+
+FIXTURE = _load_fixture(ROOT / "conformance/chess-v0.json")
 
 
 class ChessApi(unittest.TestCase):
@@ -41,6 +141,15 @@ class ChessApi(unittest.TestCase):
         ):
             with self.subTest(name=name):
                 self.assertTrue(callable(getattr(chess, name)))
+        public_callables = {
+            name
+            for name, value in vars(chess).items()
+            if not name.startswith("_")
+            and callable(value)
+            and getattr(value, "__module__", None) == chess.__name__
+        }
+        self.assertEqual(set(chess.__all__), public_callables)
+        self.assertEqual(len(chess.__all__), len(set(chess.__all__)))
 
     def test_wire_and_local_fixture_cases(self) -> None:
         chess = importlib.import_module("golden_board.chess")
@@ -154,21 +263,43 @@ class ChessApi(unittest.TestCase):
         chess = importlib.import_module("golden_board.chess")
         for recipe in FIXTURE["recipes"]:
             with self.subTest(recipe=recipe["name"]):
-                cycle = bytes.fromhex(recipe["input"]["cycle_moves_hex"])
-                count = recipe["input"]["ply_count"]
-                final = bytes.fromhex(recipe["input"]["final_move_hex"])
-                cycle_plies = count - bool(final)
-                raw = (cycle * ((cycle_plies + 3) // 4))[: cycle_plies * 2] + final
-                self.assertLessEqual(count, recipe["count_cap"])
-                self.assertEqual(len(raw), recipe["input_bytes"])
-                self.assertEqual(hashlib.sha256(raw).hexdigest(), recipe["input_sha256"])
                 try:
-                    replay = chess.replay_from_start(self._moves(chess, raw.hex()))
+                    replay = chess.replay_from_start(_recipe_moves(chess, recipe))
                 except chess.ChessReject as error:
                     actual = {"rejection": error.code}
                 else:
                     actual = {"success": {"played_plies": replay.played_plies}}
                 self.assertEqual(recipe["expected"], actual)
+
+    def test_fixture_adapter_rejects_oversize_and_malformed_recipes_before_decode(self) -> None:
+        with mock.patch.object(Path, "open", return_value=io.BytesIO(b"x" * (_FIXTURE_BYTE_CAP + 1))):
+            with self.assertRaisesRegex(ValueError, "byte cap"):
+                _load_fixture(Path("ignored"))
+
+        for raw in (
+            b'{"a":' * 32 + b"{}" + b"}" * 32 + b"\n",
+            b'{"a": 1}\n',
+        ):
+            with self.subTest(adapter_bytes=raw[:16]):
+                with mock.patch.object(Path, "open", return_value=io.BytesIO(raw)):
+                    with self.assertRaises(canonical_manifest.ManifestError):
+                        _load_fixture(Path("ignored"))
+
+        class DecodeMustNotRun:
+            @staticmethod
+            def decode_move(data: bytes) -> object:
+                raise AssertionError(f"decoded attacker bytes: {len(data)}")
+
+        for mutation in (
+            {"ply_count": 10**100},
+            {"cycle_moves_hex": "00" * (_FIXTURE_BYTE_CAP + 1)},
+            {"final_move_hex": []},
+        ):
+            recipe = json.loads(json.dumps(FIXTURE["recipes"][0]))
+            recipe["input"].update(mutation)
+            with self.subTest(mutation=next(iter(mutation))):
+                with self.assertRaisesRegex(AssertionError, "recipe"):
+                    _recipe_moves(DecodeMustNotRun(), recipe)
 
     def test_bounded_reachable_state_properties(self) -> None:
         chess = importlib.import_module("golden_board.chess")
@@ -192,7 +323,16 @@ class ChessApi(unittest.TestCase):
                 legal = chess.legal_moves(replay)
                 values = tuple(int.from_bytes(chess.encode_move(move), "big") for move in legal)
                 self.assertEqual(values, tuple(sorted(set(values))), diagnostic)
-                pseudo = set(chess.pseudo_legal_moves(local))
+                pseudo_moves = chess.pseudo_legal_moves(local)
+                pseudo_values = tuple(
+                    int.from_bytes(chess.encode_move(move), "big") for move in pseudo_moves
+                )
+                self.assertEqual(pseudo_values, tuple(sorted(set(pseudo_values))), diagnostic)
+                pseudo = set(pseudo_moves)
+                for side in (0, 1):
+                    for target in range(64):
+                        controllers = chess.controls_square(replay.position, side, target)
+                        self.assertEqual(controllers, tuple(sorted(set(controllers))), diagnostic)
                 mover = replay.position.side_to_move
                 for move in legal:
                     self.assertIn(move, pseudo, diagnostic)
@@ -228,20 +368,62 @@ class ChessApi(unittest.TestCase):
                     "validate_local",
                 }:
                     value = self._run_wire_local(chess, case)
+                elif case["operation"] == "apply_move":
+                    data = case["input"]
+                    replay = chess.replay_from_start(self._moves(chess, data["moves_hex"]))
+                    replay = chess.apply_move(
+                        replay, chess.decode_move(bytes.fromhex(data["move_hex"]))
+                    )
+                    complete = {
+                        "position_hex": chess.encode_position(replay.position).hex(),
+                        "halfmove_clock": replay.halfmove_clock,
+                    }
+                    expected = case["expected"].get("success")
+                    value = complete if expected is None else {key: complete[key] for key in expected}
                 else:
                     value = self._run_replay(chess, case)
             except chess.ChessReject as error:
                 return {"rejection": error.code}
             return {"success": value}
 
+        def forced_success(name: str, replacement_move_hex: str | None = None) -> dict[str, object]:
+            data = cases[name]["input"]
+            replay = chess.replay_from_start(self._moves(chess, data["moves_hex"]))
+            move = chess.decode_move(
+                bytes.fromhex(replacement_move_hex or data["move_hex"])
+            )
+            position, pawn, capture = chess._apply_position(replay.position, move)
+            return {
+                "success": {
+                    "position_hex": chess.encode_position(position).hex(),
+                    "halfmove_clock": 0 if pawn or capture else replay.halfmove_clock + 1,
+                }
+            }
+
         kills = (
             ("pinned pieces do not control", "geometry-pinned-piece-still-controls", {"success": {"squares": []}}),
-            ("king safety checked before capture removal", "geometry-king-capture-removes-blocker-self-check", {"success": {}}),
-            ("castling skips transit", "castling-failure-origin-safe-transit-attack", {"success": {}}),
+            (
+                "king safety checked before capture removal",
+                "geometry-king-capture-removes-blocker-self-check",
+                forced_success("geometry-king-capture-removes-blocker-self-check"),
+            ),
+            (
+                "castling skips transit",
+                "castling-failure-origin-safe-transit-attack",
+                forced_success("castling-failure-origin-safe-transit-attack"),
+            ),
             ("attacked rook forbids castle", "castling-attacked-rook-allowed", {"rejection": 47}),
             ("queenside b square forbids castle", "castling-queenside-b-square-attacked-allowed", {"rejection": 46}),
-            ("en-passant pawn remains during self-check", "en-passant-pinned-self-exposing-capture", {"success": {}}),
-            ("omitted promotion becomes queen", "promotion-missing", {"success": {}}),
+            (
+                "en-passant pawn remains during self-check",
+                "en-passant-pinned-self-exposing-capture",
+                forced_success("en-passant-pinned-self-exposing-capture"),
+            ),
+            (
+                "omitted promotion becomes queen",
+                "promotion-missing",
+                forced_success("promotion-missing", "c792"),
+            ),
             ("stalemate tested as mate", "terminal-stalemate-fastest", {"success": {"common_dead": False, "terminal": 1}}),
             ("stalemate tested after dead", "terminal-stalemate-precedes-common-dead", {"success": {"common_dead": True, "terminal": 3}}),
             ("premature agreement allowed", "event-agreement-one-ply", {"success": {"status": 6}}),
@@ -328,6 +510,112 @@ class ChessApi(unittest.TestCase):
                 with self.assertRaises(chess.ChessReject) as rejected:
                     chess.evaluate_predicate(predicate_id, value)
                 self.assertEqual(rejected.exception.code, 36)
+
+    def test_transition_predicates_precheck_closure_and_resources(self) -> None:
+        chess = importlib.import_module("golden_board.chess")
+        closed = chess.replay_from_start(self._moves(chess, "3550d24039e0edf0"))
+        game = chess.new_game()
+        for move in self._moves(chess, "3550d24039e0edf0"):
+            game = chess.apply_event(game, chess.decode_event(b"\x01" + chess.encode_move(move)))
+
+        wrapped = chess.evaluate_predicate(
+            b"chess.move_legality", chess.MoveLegalityInput(closed, object())
+        )
+        self.assertEqual((wrapped.kind, wrapped.code), ("illegal", 34))
+        declaration = chess.evaluate_predicate(
+            b"chess.declaration_event", chess.DeclarationEventInput(game, object())
+        )
+        self.assertEqual((declaration.kind, declaration.code), ("rejected", 34))
+        for predicate_id, value in (
+            (b"chess.fork_double_attack", chess.ForkDoubleAttackInput(closed, object(), ())),
+            (
+                b"chess.discovered_attack_check",
+                chess.DiscoveredLineInput(closed, object(), object(), object()),
+            ),
+            (b"chess.terminal_transition", chess.TerminalTransitionInput(closed, object())),
+        ):
+            with self.subTest(predicate_id=predicate_id, precedence="closed"):
+                with self.assertRaises(chess.ChessReject) as rejected:
+                    chess.evaluate_predicate(predicate_id, value)
+                self.assertEqual(rejected.exception.code, 34)
+
+        cycle = "1950fad05460b7e0" * 1024
+        full = chess.replay_from_start(self._moves(chess, cycle))
+        wrapped = chess.evaluate_predicate(
+            b"chess.move_legality", chess.MoveLegalityInput(full, object())
+        )
+        self.assertEqual((wrapped.kind, wrapped.code), ("illegal", 35))
+        for predicate_id, value in (
+            (b"chess.fork_double_attack", chess.ForkDoubleAttackInput(full, object(), ())),
+            (
+                b"chess.discovered_attack_check",
+                chess.DiscoveredLineInput(full, object(), object(), object()),
+            ),
+            (b"chess.terminal_transition", chess.TerminalTransitionInput(full, object())),
+        ):
+            with self.subTest(predicate_id=predicate_id, precedence="history-resource"):
+                with self.assertRaises(chess.ChessReject) as rejected:
+                    chess.evaluate_predicate(predicate_id, value)
+                self.assertEqual(rejected.exception.code, 35)
+
+    def test_finite_tree_aggregate_resources_precede_row_shape(self) -> None:
+        chess = importlib.import_module("golden_board.chess")
+        initial = chess.replay_from_start(())
+        oversized_nodes = (object(),) * 4097
+        oversized_edges = (chess.PredicateNode((object(),) * 257),)
+        oversized_total = tuple(chess.PredicateNode((object(),) * 256) for _ in range(16))
+        for predicate_id, value in (
+            (
+                b"chess.finite_promotion_race",
+                chess.FinitePromotionTree(object(), oversized_nodes),
+            ),
+            (
+                b"chess.finite_mating_geometry",
+                chess.FiniteMatingTree(initial, True, oversized_nodes),
+            ),
+            (
+                b"chess.finite_promotion_race",
+                chess.FinitePromotionTree(object(), oversized_edges),
+            ),
+            (
+                b"chess.finite_mating_geometry",
+                chess.FiniteMatingTree(initial, True, oversized_total),
+            ),
+        ):
+            with self.subTest(predicate_id=predicate_id, nodes=len(value.nodes)):
+                with self.assertRaises(chess.ChessReject) as rejected:
+                    chess.evaluate_predicate(predicate_id, value)
+                self.assertEqual(rejected.exception.code, 36)
+
+    def test_predicate_primitives_reject_without_coercion_or_host_exceptions(self) -> None:
+        chess = importlib.import_module("golden_board.chess")
+        position = chess.replay_from_start(()).position
+
+        class HostileEquality:
+            def __eq__(self, other: object) -> bool:
+                raise RuntimeError(f"unexpected equality with {other!r}")
+
+        malformed = (
+            (b"chess.setup_turn", chess.SetupCurrentSideInput(chess.replay_from_start(()), HostileEquality())),
+            (b"chess.occupancy", chess.OccupancyInput(position, True, chess.OccupancyMatch("occupied"))),
+            (b"chess.occupancy", chess.OccupancyInput(position, "e2", chess.OccupancyMatch("occupied"))),
+            (b"chess.occupancy", chess.OccupancyInput(position, 0, chess.OccupancyMatch(HostileEquality()))),
+            (b"chess.occupancy", chess.OccupancyInput(position, 0, chess.OccupancyMatch(True))),
+            (b"chess.defended", chess.DefendedInput(position, 0, chess.Defender(HostileEquality()))),
+            (b"chess.defended", chess.DefendedInput(position, 0, chess.Defender(True))),
+            (b"chess.defended", chess.DefendedInput(position, 16, chess.Defender("unknown"))),
+            (b"chess.defended", chess.DefendedInput(position, 16, chess.Defender("exact", "a1"))),
+            (b"chess.control", chess.ControlInput(position, HostileEquality(), 0)),
+            (
+                b"chess.source_score_relation",
+                chess.SourceScoreInput((), HostileEquality()),
+            ),
+        )
+        for predicate_id, value in malformed:
+            with self.subTest(predicate_id=predicate_id, value=value):
+                with self.assertRaises(chess.ChessReject) as rejected:
+                    chess.evaluate_predicate(predicate_id, value)
+                self.assertEqual(rejected.exception.code, 15)
 
     def test_deterministic_update_properties(self) -> None:
         chess = importlib.import_module("golden_board.chess")
@@ -424,7 +712,7 @@ class ChessApi(unittest.TestCase):
     @staticmethod
     def _moves(chess: object, moves_hex: str) -> tuple[object, ...]:
         data = bytes.fromhex(moves_hex)
-        return tuple(chess.decode_move(data[index : index + 2]) for index in range(0, len(data), 2))
+        return _decode_moves(chess, data)
 
     @classmethod
     def _run_replay(cls, chess: object, case: dict[str, object]) -> dict[str, object]:

@@ -9,6 +9,25 @@ from typing import NoReturn
 from . import constants as C
 
 
+__all__ = (
+    "AbsolutePinInput", "BoardTerminal", "ChessReject", "ClosureCause", "ControlInput",
+    "DeclarationEventInput", "DeclarationEventResult", "DefendedInput", "Defender",
+    "DiscoveredLineInput", "EnPassantFact", "EscapeControlInput", "Event",
+    "FiniteMatingResult", "FiniteMatingTree", "FinitePromotionTree", "FiniteRaceResult",
+    "ForkDoubleAttackInput", "GameState", "HistoryClaimInput", "HistoryClaimResult",
+    "KingCheckInput", "LocallyAdmissiblePosition", "Move", "MoveBytesInput",
+    "MoveLegalityInput", "MoveLegalityResult", "MoveRecordInput", "MoveRecordResult",
+    "OccupancyInput", "OccupancyMatch", "OpenFileInput", "PassedPawnInput", "PredicateEdge",
+    "PredicateNode", "RecordResult", "ReplayState", "SemiOpenFileInput", "SetupCurrentSideInput",
+    "SetupInitialInput", "SourceScoreInput", "SourceScoreResult", "TerminalTransitionInput",
+    "WirePosition", "apply_event", "apply_move", "board_terminal", "common_dead",
+    "controls_square", "decode_event", "decode_move", "decode_position", "encode_event",
+    "encode_move", "encode_position", "evaluate_predicate", "king_in_check", "legal_moves",
+    "new_game", "pseudo_legal_moves", "repetition_key", "replay_from_start",
+    "validate_local", "validate_source_record",
+)
+
+
 _AUTHORITY = object()
 _INITIAL_BYTES = bytes.fromhex(
     "0402030506030204010101010101010100000000000000000000000000000000"
@@ -1167,6 +1186,22 @@ def _predicate_signature(condition: bool) -> None:
         _reject(C.CHESS_PREDICATE_SIGNATURE)
 
 
+def _transition_replay(replay: object) -> ReplayState:
+    _predicate_signature(type(replay) is ReplayState)
+    if board_terminal(replay).code != C.BOARD_TERMINAL_NONE:
+        _reject(C.CHESS_GAME_CLOSED)
+    if replay.played_plies >= C.MAX_HISTORY_PLIES:
+        _reject(C.CHESS_RESOURCE_HISTORY_PLIES)
+    return replay
+
+
+def _transition_game(game: object) -> GameState:
+    _predicate_signature(type(game) is GameState)
+    if game.status != C.GAME_STATUS_ACTIVE or board_terminal(game.replay).code != C.BOARD_TERMINAL_NONE:
+        _reject(C.CHESS_GAME_CLOSED)
+    return game
+
+
 def _absolute_pin(value: AbsolutePinInput) -> bool:
     wire = value.position.position
     _require_square(value.origin)
@@ -1185,18 +1220,6 @@ def _absolute_pin(value: AbsolutePinInput) -> bool:
 
 
 def _fork(value: ForkDoubleAttackInput) -> bool:
-    if board_terminal(value.replay).code != C.BOARD_TERMINAL_NONE:
-        _reject(C.CHESS_GAME_CLOSED)
-    if type(value.targets) is not tuple:
-        _reject(C.CHESS_PREDICATE_SIGNATURE)
-    if len(value.targets) > C.CHESS_MAX_FORK_TARGETS:
-        _reject(C.CHESS_RESOURCE_PREDICATE_INPUT)
-    if (
-        len(value.targets) < C.CHESS_MIN_FORK_TARGETS
-        or any(type(target) is not int or not 0 <= target < 64 for target in value.targets)
-        or tuple(sorted(set(value.targets))) != value.targets
-    ):
-        _reject(C.CHESS_PREDICATE_SIGNATURE)
     side = value.replay.position.side_to_move
     replay = apply_move(value.replay, value.move)
     origin = value.move.destination
@@ -1251,15 +1274,6 @@ def _passed_pawn(value: PassedPawnInput) -> bool:
 def _tree_states(
     root: ReplayState, nodes: tuple[PredicateNode, ...]
 ) -> tuple[tuple[ReplayState, ...], tuple[int, ...], tuple[Move | None, ...]]:
-    if type(nodes) is not tuple:
-        _reject(C.CHESS_PREDICATE_SIGNATURE)
-    if len(nodes) > C.CHESS_MAX_PREDICATE_NODES:
-        _reject(C.CHESS_RESOURCE_PREDICATE_INPUT)
-    if any(type(node) is not PredicateNode or type(node.edges) is not tuple for node in nodes):
-        _reject(C.CHESS_PREDICATE_TREE)
-    edge_counts = tuple(len(node.edges) for node in nodes)
-    if any(count > C.CHESS_MAX_PREDICATE_EDGES_PER_NODE for count in edge_counts) or sum(edge_counts) > C.CHESS_MAX_PREDICATE_EDGES:
-        _reject(C.CHESS_RESOURCE_PREDICATE_INPUT)
     if not nodes:
         _reject(C.CHESS_PREDICATE_TREE)
     parents = [-1] * len(nodes)
@@ -1295,6 +1309,27 @@ def _tree_states(
         except ChessReject:
             _reject(C.CHESS_PREDICATE_TREE)
     return tuple(states), tuple(depths), tuple(parent_moves)
+
+
+def _tree_resource_screen(nodes: object) -> tuple[PredicateNode, ...]:
+    _predicate_signature(type(nodes) is tuple)
+    if len(nodes) > C.CHESS_MAX_PREDICATE_NODES:
+        _reject(C.CHESS_RESOURCE_PREDICATE_INPUT)
+    invalid_shape = False
+    total_edges = 0
+    for node in nodes:
+        if type(node) is not PredicateNode or type(node.edges) is not tuple:
+            invalid_shape = True
+            continue
+        edge_count = len(node.edges)
+        if edge_count > C.CHESS_MAX_PREDICATE_EDGES_PER_NODE:
+            _reject(C.CHESS_RESOURCE_PREDICATE_INPUT)
+        total_edges += edge_count
+        if total_edges > C.CHESS_MAX_PREDICATE_EDGES:
+            _reject(C.CHESS_RESOURCE_PREDICATE_INPUT)
+    if invalid_shape:
+        _reject(C.CHESS_PREDICATE_TREE)
+    return nodes
 
 
 def _promotion_tree(value: FinitePromotionTree) -> FiniteRaceResult:
@@ -1383,7 +1418,13 @@ def evaluate_predicate(predicate_id: bytes, value: object) -> object:
         )
         return value.replay.position.side_to_move == value.side
     if isinstance(value, OccupancyInput):
-        _predicate_signature(type(value.position) is WirePosition and 0 <= value.square < 64 and type(value.match) is OccupancyMatch)
+        _predicate_signature(
+            type(value.position) is WirePosition
+            and type(value.square) is int
+            and 0 <= value.square < 64
+            and type(value.match) is OccupancyMatch
+            and type(value.match.kind) is str
+        )
         code = value.position._bytes[value.square]
         if value.match.kind == "empty":
             _predicate_signature(value.match.side is None and value.match.piece is None)
@@ -1400,7 +1441,12 @@ def evaluate_predicate(predicate_id: bytes, value: object) -> object:
         )
         return code == _square_code(value.match.side, value.match.piece)
     if isinstance(value, MoveLegalityInput):
-        _predicate_signature(type(value.replay) is ReplayState and type(value.move) is Move)
+        _predicate_signature(type(value.replay) is ReplayState)
+        try:
+            _transition_replay(value.replay)
+        except ChessReject as error:
+            return MoveLegalityResult("illegal", error.code)
+        _predicate_signature(type(value.move) is Move)
         try:
             apply_move(value.replay, value.move)
         except ChessReject as error:
@@ -1421,15 +1467,22 @@ def evaluate_predicate(predicate_id: bytes, value: object) -> object:
             and type(value.target) is int
             and 0 <= value.target < 64
             and type(value.defender) is Defender
+            and type(value.defender.kind) is str
         )
+        if value.defender.kind == "any":
+            _predicate_signature(value.defender.square is None)
+        else:
+            _predicate_signature(
+                value.defender.kind == "exact"
+                and type(value.defender.square) is int
+                and 0 <= value.defender.square < 64
+            )
         code = value.position._bytes[value.target]
         if code == C.SQUARE_EMPTY:
             return False
         origins = tuple(origin for origin in controls_square(value.position, _piece_side(code), value.target) if origin != value.target)
         if value.defender.kind == "any":
-            _predicate_signature(value.defender.square is None)
             return bool(origins)
-        _predicate_signature(value.defender.kind == "exact" and type(value.defender.square) is int and 0 <= value.defender.square < 64)
         return value.defender.square in origins
     if isinstance(value, KingCheckInput):
         _predicate_signature(
@@ -1446,14 +1499,22 @@ def evaluate_predicate(predicate_id: bytes, value: object) -> object:
         )
         return _absolute_pin(value)
     if isinstance(value, ForkDoubleAttackInput):
-        _predicate_signature(type(value.replay) is ReplayState and type(value.move) is Move)
+        _transition_replay(value.replay)
+        _predicate_signature(type(value.targets) is tuple)
+        if len(value.targets) > C.CHESS_MAX_FORK_TARGETS:
+            _reject(C.CHESS_RESOURCE_PREDICATE_INPUT)
+        _predicate_signature(
+            type(value.move) is Move
+            and len(value.targets) >= C.CHESS_MIN_FORK_TARGETS
+            and all(type(target) is int and 0 <= target < 64 for target in value.targets)
+            and tuple(sorted(set(value.targets))) == value.targets
+        )
         return _fork(value)
     if isinstance(value, DiscoveredLineInput):
-        _predicate_signature(type(value.replay) is ReplayState and type(value.move) is Move)
-        if board_terminal(value.replay).code != C.BOARD_TERMINAL_NONE:
-            _reject(C.CHESS_GAME_CLOSED)
+        _transition_replay(value.replay)
         _predicate_signature(
-            type(value.slider_origin) is int
+            type(value.move) is Move
+            and type(value.slider_origin) is int
             and 0 <= value.slider_origin < 64
             and type(value.target) is int
             and 0 <= value.target < 64
@@ -1489,19 +1550,27 @@ def evaluate_predicate(predicate_id: bytes, value: object) -> object:
         pawns = tuple(_piece_side(value.position._bytes[square]) for square in range(value.file, 64, 8) if _piece_kind(value.position._bytes[square]) == 1)
         return value.side not in pawns and 1 - value.side in pawns
     if isinstance(value, FinitePromotionTree):
+        _tree_resource_screen(value.nodes)
         _predicate_signature(type(value.root) is ReplayState)
         return _promotion_tree(value)
     if isinstance(value, FiniteMatingTree):
+        _tree_resource_screen(value.nodes)
         _predicate_signature(type(value.root) is ReplayState)
         return _mating_tree(value)
     if isinstance(value, TerminalTransitionInput):
-        _predicate_signature(type(value.replay) is ReplayState and type(value.move) is Move)
+        _transition_replay(value.replay)
+        _predicate_signature(type(value.move) is Move)
         return board_terminal(apply_move(value.replay, value.move))
     if isinstance(value, HistoryClaimInput):
         _predicate_signature(type(value.replay) is ReplayState)
         return _history_claim(value.replay)
     if isinstance(value, DeclarationEventInput):
-        _predicate_signature(type(value.game) is GameState and type(value.event) is Event)
+        _predicate_signature(type(value.game) is GameState)
+        try:
+            _transition_game(value.game)
+        except ChessReject as error:
+            return DeclarationEventResult("rejected", code=error.code)
+        _predicate_signature(type(value.event) is Event)
         try:
             game = apply_event(value.game, value.event)
         except ChessReject as error:
