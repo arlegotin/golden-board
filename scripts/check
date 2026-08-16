@@ -6,6 +6,8 @@ usage() {
         '       scripts/check focused source' \
         '       scripts/check focused identity' \
         '       scripts/check focused chess' \
+        '       scripts/check focused curriculum' \
+        '       scripts/check focused content' \
         '       scripts/check focused repo' \
         '       scripts/check full' >&2
 }
@@ -14,7 +16,7 @@ case "$#:$1" in
     1:fast|1:full) mode=$1 ;;
     2:focused)
         case "$2" in
-            source|identity|chess|repo) mode=$2 ;;
+            source|identity|chess|curriculum|content|repo) mode=$2 ;;
             *) usage; exit 2 ;;
         esac
         ;;
@@ -102,13 +104,30 @@ source_full() {
     python_tests source-python \
         python.tests.test_foundation.SourceDoctorTrustBoundary \
         python.tests.test_foundation.SourceDoctorScanner \
-        python.tests.test_foundation.SourceDoctorEvidence || return 1
-    run_check source-rust rustup run 1.97.1 cargo test --workspace \
-        --all-targets --locked --offline source_report_is_canonical
+        python.tests.test_foundation.SourceDoctorEvidence \
+        python.tests.test_source_compiler || return 1
+    run_check source-doctor-rust rustup run 1.97.1 cargo test -p gb-foundation \
+        --test conformance --locked --offline source_report_is_canonical || return 1
+    run_check source-rust rustup run 1.97.1 cargo test -p gb-chess \
+        --test source --locked --offline
 }
 
 source_fast() {
-    python_tests source-current python.tests.test_foundation.SourceDoctorFast
+    python_tests source-current \
+        python.tests.test_foundation.SourceDoctorFast \
+        python.tests.test_source_compiler.SourceCompilerApi.test_fixture_operation_inventory_is_closed
+}
+
+curriculum() {
+    python_tests curriculum-python \
+        python.tests.test_curriculum_contract \
+        python.tests.test_curriculum
+}
+
+content() {
+    python_tests content-python python.tests.test_content || return 1
+    run_check content-rust rustup run 1.97.1 cargo test -p gb-content \
+        --test content --locked --offline
 }
 
 repo() {
@@ -119,15 +138,16 @@ repo() {
     python_tests repo-python \
         python.tests.test_foundation.RepoContract \
         python.tests.test_foundation.RootCheckCLI \
-        python.tests.test_constants.ConstantsCodegen \
-        python.tests.test_curriculum_contract.CurriculumContract
+        python.tests.test_constants.ConstantsCodegen
 }
 
 case "$mode" in
     identity) identity ;;
     chess) chess ;;
     source) source_full ;;
+    curriculum) curriculum ;;
+    content) content ;;
     repo) repo ;;
-    fast) repo && identity && chess && source_fast ;;
-    full) repo && identity && chess && chess_oracle && source_full ;;
+    fast) repo && identity && chess && source_fast && curriculum && content ;;
+    full) repo && identity && chess && chess_oracle && source_full && curriculum && content ;;
 esac

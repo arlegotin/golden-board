@@ -1862,13 +1862,22 @@ class RepoContract(unittest.TestCase):
         "conformance/registry.toml", "crates/gb-foundation/Cargo.toml",
         "crates/gb-foundation/src/constants.rs", "crates/gb-foundation/src/lib.rs",
         "crates/gb-foundation/tests/conformance.rs",
+        "crates/gb-chess/Cargo.toml", "crates/gb-chess/src/lib.rs",
+        "crates/gb-chess/src/source.rs", "crates/gb-chess/tests/chess.rs",
+        "crates/gb-chess/tests/source.rs", "crates/gb-content/Cargo.toml",
+        "crates/gb-content/src/lib.rs", "crates/gb-content/tests/content.rs",
         "docs/64_games.md", "docs/m0-plan.md", "docs/m0-spec.md", "docs/roadmap.md",
         "docs/m1-plan.md", "docs/m1-spec.md", "docs/sources.md", "inputs/source-lock.toml", "pyproject.toml",
         "python/golden_board/__init__.py", "python/golden_board/canonical_manifest.py",
         "python/golden_board/constants.py", "python/golden_board/constants_codegen.py",
-        "python/golden_board/identity.py", "python/golden_board/source_doctor.py",
-        "python/tests/test_constants.py", "python/tests/test_curriculum_contract.py",
-        "python/tests/test_foundation.py",
+        "python/golden_board/chess.py", "python/golden_board/content.py",
+        "python/golden_board/curriculum.py", "python/golden_board/identity.py",
+        "python/golden_board/source_compiler.py", "python/golden_board/source_doctor.py",
+        "python/tests/test_chess.py", "python/tests/test_chess_oracle.py",
+        "python/tests/test_constants.py", "python/tests/test_content.py",
+        "python/tests/test_curriculum.py", "python/tests/test_curriculum_contract.py",
+        "python/tests/test_foundation.py", "python/tests/test_source_compiler.py",
+        "reports/game-set-v0.bin", "reports/source-compilation-v0.json",
         "reports/source-doctor.json",
         "rust-toolchain.toml", "scripts/check", "spec/chess-v0.md",
         "spec/constants-v0.toml", "spec/content-v0.md", "spec/curriculum-v0.toml", "spec/identity-v0.md",
@@ -1928,6 +1937,7 @@ class RepoContract(unittest.TestCase):
         for command in (
             "scripts/check fast", "scripts/check focused source",
             "scripts/check focused identity", "scripts/check focused chess",
+            "scripts/check focused curriculum", "scripts/check focused content",
             "scripts/check focused repo",
             "scripts/check full",
         ):
@@ -3691,6 +3701,15 @@ class RepoContract(unittest.TestCase):
         self.assertIn("chess() {", check)
         self.assertIn("python.tests.test_chess", check)
         self.assertIn("cargo test -p gb-chess", check)
+        self.assertIn("content() {", check)
+        self.assertIn("python.tests.test_content", check)
+        self.assertIn("cargo test -p gb-content", check)
+        self.assertIn("curriculum() {", check)
+        self.assertIn("python.tests.test_curriculum", check)
+        self.assertIn("source-python", check)
+        self.assertIn("python.tests.test_source_compiler", check)
+        self.assertIn("source-rust", check)
+        self.assertIn("--test source", check)
 
         roadmap = (ROOT / "docs/roadmap.md").read_text()
         self.assertIn(
@@ -4084,23 +4103,26 @@ class RootCheckCLI(unittest.TestCase):
             self.assertEqual(failure.returncode, 1)
             self.assertIn("identity", failure.stderr)
 
-    def test_live_chess_area_is_admitted(self) -> None:
+    def test_live_m1_areas_are_admitted(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             copied = root / "scripts/check"
             copied.parent.mkdir()
             copied.write_bytes(self.SCRIPT.read_bytes())
             copied.chmod(0o755)
-            result = subprocess.run(
-                [str(copied), "focused", "chess"],
-                cwd=root,
-                env=self.fake_environment(root, fail_child=False),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                check=False,
-            )
-            self.assertEqual(result.returncode, 0, result.stderr)
+            environment = self.fake_environment(root, fail_child=False)
+            for area in ("chess", "content", "curriculum"):
+                with self.subTest(area=area):
+                    result = subprocess.run(
+                        [str(copied), "focused", area],
+                        cwd=root,
+                        env=environment,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                        check=False,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_missing_dependency_cache_fails_actionably(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

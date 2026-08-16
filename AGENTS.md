@@ -23,6 +23,8 @@ scripts/check fast
 scripts/check focused source
 scripts/check focused identity
 scripts/check focused chess
+scripts/check focused curriculum
+scripts/check focused content
 scripts/check focused repo
 scripts/check full
 ```
