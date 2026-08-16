@@ -529,8 +529,6 @@ _CONTENT_RECIPE_INPUT_KEYS = {
     "cases-per-node-boundary": ({"boundary", "case_count"},),
     "record-payload-bytes-boundary": ({"boundary", "declared_payload_bytes"},),
     "control-edge-boundary": ({"control_edges", "lesson_nodes"},),
-    "typed-record-sequence": ({"host_count"},),
-    "typed-vector-sequence": ({"host_count"},),
 }
 
 _CONTENT_DIRECT_NAMES = {
@@ -657,11 +655,62 @@ _CONTENT_RECIPE_NAMES = {
     "stream-bytes-boundary": frozenset("stream-bytes-exact stream-bytes-plus-one".split()),
     "text-bytes-boundary": frozenset("text-bytes-exact text-bytes-plus-one".split()),
     "tuple-slots-boundary": frozenset("tuple-slots-exact tuple-slots-plus-one".split()),
-    "typed-record-sequence": frozenset("typed-record-65536-rejects-without-wrap".split()),
     "typed-step-sequence": frozenset("typed-step-65536-does-not-wrap".split()),
-    "typed-vector-sequence": frozenset("typed-vector-atom-65536-rejects-without-wrap".split()),
     "vector-atoms-boundary": frozenset("vector-atoms-exact".split()),
 }
+
+_CONTENT_BOUNDARY_TAGS = frozenset({
+    "cases-per-node-boundary", "enum-entries-boundary",
+    "field-schema-fields-boundary", "lesson-nodes-boundary",
+    "matrix-cells-boundary", "opaque-atoms-boundary",
+    "per-kind-records-boundary", "record-count-boundary",
+    "record-id-boundary", "record-payload-bytes-boundary",
+    "regions-boundary", "stream-bytes-boundary", "text-bytes-boundary",
+    "tuple-slots-boundary", "vector-atoms-boundary",
+})
+
+_CONTENT_RECIPE_CAPS = dict.fromkeys(
+    _CONTENT_RECIPE_NAMES["patch-base"], MAX_REPO_TEXT_BYTES
+)
+_CONTENT_RECIPE_CAPS.update({
+    "cases-per-node-exact": 41_006,
+    "cases-per-node-plus-one": 41_016,
+    "committed-run-state-first-byte-over": 466_959,
+    "control-edges-exact": 16_384,
+    "control-edges-plus-one": 16_385,
+    "enum-entries-exact": 53_276,
+    "enum-entries-plus-one": 53_280,
+    "exhausted-run-state-first-byte-over": 466_956,
+    "field-schema-fields-exact": 5_052,
+    "field-schema-fields-plus-one": 5_072,
+    "lesson-nodes-exact": 122_896,
+    "lesson-nodes-plus-one": 122_926,
+    "matrix-cells-exact": 65_579,
+    "matrix-cells-plus-one": 65_580,
+    "maximum-committed-run-state": 466_958,
+    "maximum-exhausted-run-state": 466_955,
+    "maximum-selection-cap-plus-one": 86_252,
+    "maximum-support-content-stream": 86_252,
+    "opaque-atoms-exact": 4_154,
+    "opaque-atoms-plus-one": 4_097,
+    "per-kind-records-exact": 36_880,
+    "per-kind-records-plus-one": 36_889,
+    "record-count-exact": 65_535,
+    "record-id-65535-exact": 65_535,
+    "record-payload-bytes-exact": 1_048_576,
+    "record-payload-bytes-plus-one": 1_048_577,
+    "regions-exact": 61_508,
+    "regions-plus-one": 61_522,
+    "stream-byte-cap-plus-one": 1_048_577,
+    "stream-bytes-exact": 1_048_576,
+    "stream-bytes-plus-one": 1_048_577,
+    "text-bytes-exact": 4_120,
+    "text-bytes-plus-one": 4_097,
+    "tuple-slots-exact": 8_248,
+    "tuple-slots-plus-one": 4_097,
+    "typed-step-65536-does-not-wrap": 65_536,
+    "vector-atoms-exact": 65_577,
+})
 
 
 def _content_hex(value: object) -> bytes:
@@ -673,18 +722,24 @@ def _content_hex(value: object) -> bytes:
 def _content_recipe_bytes(payload: dict[str, object], recipe: dict[str, object]) -> bytes:
     tag = recipe["recipe"]
     data = recipe["input"]
+    name = recipe["name"]
     if tag not in _CONTENT_RECIPE_INPUT_KEYS or set(data) not in _CONTENT_RECIPE_INPUT_KEYS[tag]:
         raise AssertionError("invalid content recipe input")
     for value in data.values():
         if type(value) not in {int, str, list}:
             raise AssertionError("invalid content recipe value")
+    if recipe["count_cap"] != _CONTENT_RECIPE_CAPS.get(name):
+        raise AssertionError("invalid content recipe cap")
     integer_values = [value for value in data.values() if type(value) is int]
     if integer_values and max(integer_values) > recipe["count_cap"]:
         raise AssertionError("content recipe exceeds declared cap")
+    if tag in _CONTENT_BOUNDARY_TAGS and data["boundary"] != (
+        "plus-one" if name.endswith("-plus-one") else "exact"
+    ):
+        raise AssertionError("invalid content recipe boundary")
 
     base_row = payload["bases"][0]
     base = _content_hex(base_row["stream_hex"])
-    name = recipe["name"]
     support_sha = None
     if tag in {
         "maximum-support-stream", "maximum-selection-cap-over",
@@ -734,10 +789,6 @@ def _content_recipe_bytes(payload: dict[str, object], recipe: dict[str, object])
         "support_stream_sha256": support_sha,
     }:
         raise AssertionError("invalid typed-step descriptor")
-    if tag in {"typed-record-sequence", "typed-vector-sequence"} and data != {
-        "host_count": 65536
-    }:
-        raise AssertionError("invalid typed full-width descriptor")
     if tag == "control-edge-boundary" and data not in (
         {"control_edges": 16384, "lesson_nodes": 4096},
         {"control_edges": 16385, "lesson_nodes": 4096},
@@ -783,8 +834,6 @@ def _content_recipe_bytes(payload: dict[str, object], recipe: dict[str, object])
             b"".join(b"\x01\0" + _content_u16(index) for index in range(1, 4097))
             + b"\0" * 4 * 61439 + b"\x03\0\0\0"
         )
-    if tag in {"typed-record-sequence", "typed-vector-sequence"}:
-        return b""
     if tag == "stream-bytes-boundary":
         return b"\0" * 4 + b"a" * (data["byte_count"] - 4)
     if tag == "record-count-boundary":
@@ -1141,14 +1190,13 @@ def validate_content_fixture_contract(payload: object) -> None:
             "final_state_bytes", "final_state_sha256", "last_interaction_result",
             "state_unchanged",
         }),
-        frozenset({"accepted_count", "excess_rejected", "output_bytes", "state_unchanged"}),
     }
     integer_success = {
-        "accepted_count", "feedback_ref", "final_state_bytes", "interaction_result",
-        "last_interaction_result", "next_node_ref", "outcome", "output_bytes",
+        "feedback_ref", "final_state_bytes", "interaction_result",
+        "last_interaction_result", "next_node_ref", "outcome",
         "state_length", "stream_length",
     }
-    boolean_success = {"excess_rejected", "state_unchanged"}
+    boolean_success = {"state_unchanged"}
 
     for case in payload["cases"]:
         if type(case) is not dict or set(case) != {"covers", "expected", "input", "name", "operation"}:
@@ -1217,6 +1265,10 @@ def validate_content_fixture_contract(payload: object) -> None:
         tag = recipe["recipe"]
         if type(tag) is not str or tag_operations.get(tag) != recipe["operation"]:
             raise AssertionError("invalid content recipe dispatch")
+        if type(recipe["covers"]) is not list or len(recipe["covers"]) != len(
+            set(recipe["covers"])
+        ) or any(type(label) is not str for label in recipe["covers"]):
+            raise AssertionError("invalid content coverage")
         if (
             type(recipe["count_cap"]) is not int
             or not 0 < recipe["count_cap"] <= MAX_REPO_TEXT_BYTES + 1
@@ -1947,14 +1999,14 @@ class RepoContract(unittest.TestCase):
                 "id": "content-v0",
                 "path": "conformance/content-v0.json",
                 "provenance": "hand-authored",
-                "sha256": "6d7c20defc2d53e57562d73e707b826d0ce074b9a696832272e2e2ab672d1aa9",
+                "sha256": "e6a142c4239c174ea354aeb61c970781491eaaf9420b8d9622eb8f5c43921c78",
                 "specification": "content-v0",
                 "version": "v0",
             },
         )
         self.assertEqual(
             hashlib.sha256(payload_bytes).hexdigest(),
-            "6d7c20defc2d53e57562d73e707b826d0ce074b9a696832272e2e2ab672d1aa9",
+            "e6a142c4239c174ea354aeb61c970781491eaaf9420b8d9622eb8f5c43921c78",
         )
 
         payload = canonical_manifest.validate_canonical_manifest(payload_bytes)
@@ -2052,6 +2104,7 @@ class RepoContract(unittest.TestCase):
                 )
 
         rows = [*payload["cases"], *payload["recipes"]]
+        self.assertEqual((len(payload["cases"]), len(payload["recipes"])), (55, 173))
         names = [row["name"] for row in rows]
         self.assertEqual(len(names), len(set(names)))
         self.assertTrue(all(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) for name in names))
@@ -2085,13 +2138,13 @@ class RepoContract(unittest.TestCase):
                 "record-payload-bytes-boundary",
                 "regions-boundary", "stream-byte-cap", "stream-bytes-boundary",
                 "text-bytes-boundary", "tuple-slots-boundary",
-                "typed-record-sequence", "typed-step-sequence",
-                "typed-vector-sequence", "vector-atoms-boundary",
+                "typed-step-sequence", "vector-atoms-boundary",
             },
         )
         for row in rows:
             self.assertIs(type(row["covers"]), list)
             self.assertEqual(len(row["covers"]), len(set(row["covers"])))
+            self.assertTrue(all(type(label) is str for label in row["covers"]))
             self.assertEqual(len(row["expected"]), 1)
             if "rejection" in row["expected"]:
                 self.assertEqual(
@@ -2191,12 +2244,30 @@ class RepoContract(unittest.TestCase):
             )
             recipe["input"]["support_stream_sha256"] = "0" * 64
 
-        def wrapped_host_count(value: dict[str, object]) -> None:
+        def wrapped_operation_count(value: dict[str, object]) -> None:
             recipe = next(
                 row for row in value["recipes"]
-                if row["name"] == "typed-record-65536-rejects-without-wrap"
+                if row["name"] == "typed-step-65536-does-not-wrap"
             )
-            recipe["input"]["host_count"] = 0
+            recipe["input"]["operation_count"] = 0
+
+        def unknown_boundary(value: dict[str, object]) -> None:
+            recipe = next(
+                row for row in value["recipes"]
+                if row["name"] == "vector-atoms-exact"
+            )
+            recipe["input"]["boundary"] = "unknown"
+
+        def non_string_coverage(value: dict[str, object]) -> None:
+            recipe = next(row for row in value["recipes"] if not row["covers"])
+            recipe["covers"] = [1]
+
+        def inflated_cap(value: dict[str, object]) -> None:
+            recipe = next(
+                row for row in value["recipes"]
+                if row["name"] == "enum-entries-exact"
+            )
+            recipe["count_cap"] = MAX_REPO_TEXT_BYTES + 1
 
         for name, mutate in {
             "nested type": nested_type,
@@ -2211,7 +2282,10 @@ class RepoContract(unittest.TestCase):
             "unknown name": unknown_name,
             "unknown recipe": unknown_recipe,
             "bad support receipt": bad_support_receipt,
-            "wrapped host count": wrapped_host_count,
+            "wrapped operation count": wrapped_operation_count,
+            "unknown symbolic boundary": unknown_boundary,
+            "non-string recipe coverage": non_string_coverage,
+            "inflated exact cap": inflated_cap,
         }.items():
             with self.subTest(name=name):
                 mutated = copy.deepcopy(payload)
@@ -2263,26 +2337,11 @@ class RepoContract(unittest.TestCase):
                     }},
                 )
 
-        full_width = {
-            "success": {
-                "accepted_count": 65535,
-                "excess_rejected": True,
-                "output_bytes": 0,
-                "state_unchanged": True,
-            }
-        }
-        for name in (
+        self.assertEqual(len(payload["recipes"]), 173)
+        self.assertFalse({
             "typed-record-65536-rejects-without-wrap",
             "typed-vector-atom-65536-rejects-without-wrap",
-        ):
-            with self.subTest(name=name):
-                self.assertEqual(rows[name]["input"], {"host_count": 65536})
-                self.assertEqual(rows[name]["expected"], full_width)
-                self.assertEqual(rows[name]["input_bytes"], 0)
-                self.assertEqual(
-                    rows[name]["input_sha256"],
-                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                )
+        }.intersection(rows))
 
     def test_source_fixture_semantic_review_regressions_are_frozen(self) -> None:
         payload = canonical_manifest.validate_canonical_manifest(
