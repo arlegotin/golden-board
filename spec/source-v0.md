@@ -167,10 +167,10 @@ later reached without a closer. When an under-limit opener is unclosed, its
 zero-width EOF error ties a short fence count at EOF and the printed Stage 3
 code order selects `SOURCE_FENCE_UNCLOSED`.
 
-Exactly 64 structurally valid opener/closer pairs are required. Bytes outside
-valid pairs are ignored after byte/fence validation. They may contain Unicode,
-headings, prose, comments, SAN-looking words, and trailing HWS. There is no
-general Markdown interpretation.
+Exactly `SOURCE_ANTHOLOGY_GAME_COUNT` structurally valid opener/closer pairs
+are required. Bytes outside valid pairs are ignored after byte/fence
+validation. They may contain Unicode, headings, prose, comments, SAN-looking
+words, and trailing HWS. There is no general Markdown interpretation.
 
 ## 4. Block content, tags, and tokenization
 
@@ -462,9 +462,9 @@ SOURCE_FENCE_BLOCK_BYTES
 SOURCE_FENCE_COUNT
 ```
 
-For more than 64 pairs, count points at the 65th opener. For fewer, it is
-zero-width at EOF. Block-bytes points at the first byte beyond 65,535 measured
-from the opener.
+For more than `SOURCE_ANTHOLOGY_GAME_COUNT` pairs, count points at opener
+number `SOURCE_ANTHOLOGY_GAME_COUNT + 1`. For fewer, it is zero-width at EOF.
+Block-bytes points at the first byte beyond 65,535 measured from the opener.
 
 **Stage 4 — tags**
 
@@ -822,8 +822,9 @@ codes/spans/bytes/digests are committed literals, not generated from either
 production compiler. Later semantic cases may patch raw spans in a locked valid
 base fixture, but the patch recipe itself is bounded and reviewed.
 
-The locked source acceptance requires 64 records and complete equality of both
-candidate manifests and game sets. Current reconnaissance counts and opaque
-metadata are diagnostic observations, never hard-coded semantic expected
-answers. A disagreement between lanes or with the diagnostic oracle blocks M1
-until the smallest owning spec or implementation defect is resolved.
+The locked source acceptance requires `SOURCE_ANTHOLOGY_GAME_COUNT` records
+and complete equality of both candidate manifests and game sets. Current
+reconnaissance counts and opaque metadata are diagnostic observations, never
+hard-coded semantic expected answers. A disagreement between lanes or with the
+diagnostic oracle blocks M1 until the smallest owning spec or implementation
+defect is resolved.

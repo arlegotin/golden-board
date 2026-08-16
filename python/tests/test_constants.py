@@ -623,6 +623,54 @@ values = [{ name = "FLAG_ONE", value = 1 }]
                     constants_codegen._read(path, 10)
 
     @unittest.skipIf(constants_codegen is None, "implementation not present")
+    def test_read_rejects_same_inode_during_read_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input"
+            path.write_bytes(b"abcd")
+            before = path.stat()
+            real_read = os.read
+            mutated = False
+
+            def read_then_mutate(descriptor: int, length: int) -> bytes:
+                nonlocal mutated
+                data = real_read(descriptor, length)
+                if data and not mutated:
+                    path.write_bytes(b"wxyz")
+                    os.utime(
+                        path,
+                        ns=(before.st_atime_ns, before.st_mtime_ns + 1_000_000_000),
+                    )
+                    mutated = True
+                return data
+
+            with mock.patch.object(constants_codegen.os, "read", read_then_mutate):
+                with self.assertRaises(constants_codegen.ConstantsError):
+                    constants_codegen._read(path, 10)
+
+    @unittest.skipIf(constants_codegen is None, "implementation not present")
+    def test_read_rejects_post_fstat_path_replacement(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "input"
+            replacement = root / "replacement"
+            path.write_bytes(b"abcd")
+            replacement.write_bytes(b"wxyz")
+            real_fstat = os.fstat
+            calls = 0
+
+            def fstat_then_replace(descriptor: int) -> os.stat_result:
+                nonlocal calls
+                snapshot = real_fstat(descriptor)
+                calls += 1
+                if calls == 2:
+                    os.replace(replacement, path)
+                return snapshot
+
+            with mock.patch.object(constants_codegen.os, "fstat", fstat_then_replace):
+                with self.assertRaises(constants_codegen.ConstantsError):
+                    constants_codegen._read(path, 10)
+
+    @unittest.skipIf(constants_codegen is None, "implementation not present")
     def test_actual_owner_and_semantic_agreement(self) -> None:
         model = constants_codegen._parse(constants_codegen._read(OWNER))
         names = [
@@ -680,6 +728,8 @@ values = [{ name = "FLAG_ONE", value = 1 }]
         scalar_names = tuple(value["name"] for value in model["constant"])
         self.assertIn("SOURCE_ANTHOLOGY_GAME_COUNT", scalar_names)
         self.assertNotIn("SOURCE_REQUIRED_BLOCKS", scalar_names)
+        scalar_values = {value["name"]: value["value"] for value in model["constant"]}
+        self.assertEqual(scalar_values["SOURCE_ANTHOLOGY_GAME_COUNT"], 64)
         source_flat = " ".join(specs["source"].split())
         for fragment in (
             "SourceCandidate { SOURCE_ANTHOLOGY_GAME_COUNT CompiledGames",
@@ -690,6 +740,9 @@ values = [{ name = "FLAG_ONE", value = 1 }]
             "ordinals `0..SOURCE_ANTHOLOGY_GAME_COUNT - 1`",
             "`game_count` is `SOURCE_ANTHOLOGY_GAME_COUNT`",
             "sums to `SOURCE_ANTHOLOGY_GAME_COUNT`",
+            "Exactly `SOURCE_ANTHOLOGY_GAME_COUNT` structurally valid opener/closer pairs are required.",
+            "For more than `SOURCE_ANTHOLOGY_GAME_COUNT` pairs, count points at opener number `SOURCE_ANTHOLOGY_GAME_COUNT + 1`.",
+            "locked source acceptance requires `SOURCE_ANTHOLOGY_GAME_COUNT` records",
         ):
             with self.subTest(source_binding=fragment):
                 self.assertIn(fragment, source_flat)
