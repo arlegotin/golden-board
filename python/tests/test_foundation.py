@@ -31,6 +31,7 @@ ROOT = Path(__file__).resolve().parents[2]
 IDENTITY_FIXTURE = ROOT / "conformance" / "identity-v0.json"
 MANIFEST_FIXTURE = ROOT / "conformance" / "manifest-v0.json"
 CHESS_FIXTURE = ROOT / "conformance" / "chess-v0.json"
+SOURCE_FIXTURE = ROOT / "conformance" / "source-v0.json"
 MAX_REPO_TEXT_BYTES = 1_048_576
 M0_IDENTITY_VECTORS_SHA256 = (
     "19b90c4ab863ca3853a1b8229b8ae84a886e4a8cf0c3bee496157e592bf000ae"
@@ -335,6 +336,7 @@ class ManifestConformance(unittest.TestCase):
         canonical_manifest.validate_canonical_manifest(IDENTITY_FIXTURE.read_bytes())
         canonical_manifest.validate_canonical_manifest(MANIFEST_FIXTURE.read_bytes())
         canonical_manifest.validate_canonical_manifest(CHESS_FIXTURE.read_bytes())
+        canonical_manifest.validate_canonical_manifest(SOURCE_FIXTURE.read_bytes())
 
     def test_depth_boundaries(self) -> None:
         depth_32 = b'{"a":' * 31 + b"{}" + b"}" * 31 + b"\n"
@@ -795,7 +797,7 @@ class RepoContract(unittest.TestCase):
     REQUIRED = [
         ".gitignore", ".python-version", "AGENTS.md", "Cargo.lock", "Cargo.toml",
         "README.md", "conformance/chess-v0.json", "conformance/identity-v0.json",
-        "conformance/manifest-v0.json",
+        "conformance/manifest-v0.json", "conformance/source-v0.json",
         "conformance/registry.toml", "crates/gb-foundation/Cargo.toml",
         "crates/gb-foundation/src/constants.rs", "crates/gb-foundation/src/lib.rs",
         "crates/gb-foundation/tests/conformance.rs",
@@ -906,6 +908,293 @@ class RepoContract(unittest.TestCase):
                 "version": "v0",
             },
         )
+
+    def test_source_fixture_is_registered(self) -> None:
+        registry = tomllib.loads((ROOT / "conformance/registry.toml").read_text())
+        rows = [row for row in registry["suite"] if row["id"] == "source-v0"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(
+            rows[0],
+            {
+                "consumers": ["python", "rust"],
+                "id": "source-v0",
+                "path": "conformance/source-v0.json",
+                "provenance": "hand-authored",
+                "sha256": "669e5550d225d3c4669e1c0902d6b05d83855b3a941a9b4c1ff1e8fbe11cfbec",
+                "specification": "source-v0",
+                "version": "v0",
+            },
+        )
+
+    def test_source_fixture_shape_and_coverage_are_closed(self) -> None:
+        payload = canonical_manifest.validate_canonical_manifest(
+            repo_text_bytes(ROOT, b"conformance/source-v0.json")
+        )
+        self.assertEqual(set(payload), {"bases", "cases", "recipes", "schema"})
+        self.assertEqual(payload["schema"], "golden-board.source-v0-fixtures/v0")
+        self.assertEqual(
+            payload["bases"],
+            [{"id": "locked-anthology", "source_lock_id": "anthology"}],
+        )
+        self.assertEqual(len(payload["cases"]), 71)
+        self.assertEqual(len(payload["recipes"]), 115)
+        names = [row["name"] for key in ("cases", "recipes") for row in payload[key]]
+        self.assertEqual(len(names), len(set(names)))
+        self.assertTrue(
+            all(re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) for name in names)
+        )
+        self.assertEqual(
+            {
+                prefix: sum(name.startswith(prefix + "-") for name in names)
+                for prefix in (
+                    "raw", "fence", "tag", "framing", "resource", "structure",
+                    "terminal", "san", "duplicate", "binary", "evidence", "accept",
+                )
+            },
+            {
+                "raw": 44, "fence": 11, "tag": 20, "framing": 8,
+                "resource": 6, "structure": 13, "terminal": 7, "san": 21,
+                "duplicate": 2, "binary": 29, "evidence": 6, "accept": 19,
+            },
+        )
+        self.assertEqual(
+            {row["operation"] for key in ("cases", "recipes") for row in payload[key]},
+            {
+                "compile_source", "decode_game", "decode_game_set", "encode_game",
+                "encode_game_set", "validate_anthology", "validate_candidate_trace",
+            },
+        )
+
+        source_lock = tomllib.loads((ROOT / "inputs/source-lock.toml").read_text())
+        receipts = [row for row in source_lock["source"] if row["id"] == "anthology"]
+        self.assertEqual(len(receipts), 1)
+        receipt = receipts[0]
+        base = repo_text_bytes(ROOT, receipt["path"].encode("ascii"))
+        self.assertEqual(len(base), receipt["bytes"])
+        self.assertEqual(hashlib.sha256(base).hexdigest(), receipt["sha256"])
+
+        lowercase_hex = re.compile(r"(?:[0-9a-f]{2})*")
+        expected_codes = set()
+
+        def checked_hex(value: object) -> bytes:
+            self.assertIs(type(value), str)
+            self.assertIsNotNone(lowercase_hex.fullmatch(value))
+            self.assertLessEqual(len(value), 2 * (MAX_REPO_TEXT_BYTES + 1))
+            return bytes.fromhex(value)
+
+        def check_expected(expected: object, input_length: int) -> None:
+            self.assertIs(type(expected), dict)
+            self.assertIn(set(expected), ({"accept"}, {"rejection"}))
+            if "accept" in expected:
+                self.assertEqual(expected["accept"], {})
+                return
+            rejection = expected["rejection"]
+            self.assertIs(type(rejection), dict)
+            self.assertEqual(set(rejection), {"code", "raw_end", "raw_start"})
+            self.assertIs(type(rejection["code"]), int)
+            self.assertIn(rejection["code"], range(1, 69))
+            expected_codes.add(rejection["code"])
+            for key in ("raw_start", "raw_end"):
+                self.assertIs(type(rejection[key]), int)
+            self.assertLessEqual(0, rejection["raw_start"])
+            self.assertLessEqual(rejection["raw_start"], rejection["raw_end"])
+            self.assertLessEqual(rejection["raw_end"], input_length)
+
+        for case in payload["cases"]:
+            self.assertIs(type(case), dict)
+            self.assertEqual(
+                set(case), {"expected", "input_hex", "name", "operation"}
+            )
+            self.assertIs(type(case["name"]), str)
+            self.assertIs(type(case["operation"]), str)
+            raw = checked_hex(case["input_hex"])
+            check_expected(case["expected"], len(raw))
+
+        recipe_keys = {
+            "literal-repeat": {
+                "count_cap", "expected", "input", "input_bytes", "input_sha256",
+                "name", "operation", "recipe",
+            },
+            "locked-base-patch": {
+                "expected", "input", "input_bytes", "input_sha256", "name",
+                "operation", "patch_cap", "recipe",
+            },
+            "knight-cycle-corpus": {
+                "count_cap", "expected", "input", "input_bytes", "input_sha256",
+                "name", "operation", "recipe",
+            },
+            "typed-game-plies": {
+                "count_cap", "expected", "input", "input_bytes", "input_sha256",
+                "name", "operation", "recipe",
+            },
+            "typed-game-set-games": {
+                "count_cap", "expected", "input", "input_bytes", "input_sha256",
+                "name", "operation", "recipe",
+            },
+            "typed-game-set-total-plies": {
+                "count_cap", "expected", "input", "input_bytes", "input_sha256",
+                "name", "operation", "recipe",
+            },
+            "typed-anthology": {
+                "count_cap", "expected", "input", "input_bytes", "input_sha256",
+                "name", "operation", "recipe",
+            },
+        }
+        recipe_counts = {key: 0 for key in recipe_keys}
+        for recipe in payload["recipes"]:
+            self.assertIs(type(recipe), dict)
+            kind = recipe["recipe"]
+            self.assertIn(kind, recipe_keys)
+            self.assertEqual(set(recipe), recipe_keys[kind])
+            self.assertIs(type(recipe["name"]), str)
+            self.assertIs(type(recipe["operation"]), str)
+            recipe_counts[kind] += 1
+            inputs = recipe["input"]
+            self.assertIs(type(inputs), dict)
+            if kind == "literal-repeat":
+                self.assertEqual(
+                    set(inputs), {"prefix_hex", "repeat_count", "repeat_hex", "suffix_hex"}
+                )
+                self.assertIs(type(recipe["count_cap"]), int)
+                self.assertIs(type(inputs["repeat_count"]), int)
+                self.assertLessEqual(0, inputs["repeat_count"])
+                self.assertLessEqual(inputs["repeat_count"], recipe["count_cap"])
+                prefix = checked_hex(inputs["prefix_hex"])
+                repeated = checked_hex(inputs["repeat_hex"])
+                suffix = checked_hex(inputs["suffix_hex"])
+                expanded_length = (
+                    len(prefix) + len(repeated) * inputs["repeat_count"] + len(suffix)
+                )
+                self.assertLessEqual(expanded_length, MAX_REPO_TEXT_BYTES + 1)
+                raw = (
+                    prefix + repeated * inputs["repeat_count"] + suffix
+                )
+            elif kind == "locked-base-patch":
+                self.assertEqual(set(inputs), {"base", "patches"})
+                self.assertEqual(inputs["base"], "locked-anthology")
+                self.assertIs(type(inputs["patches"]), list)
+                self.assertIs(type(recipe["patch_cap"]), int)
+                self.assertLessEqual(len(inputs["patches"]), recipe["patch_cap"])
+                raw_buffer = bytearray(base)
+                prior_start = len(base) + 1
+                expanded_length = len(base)
+                for patch in inputs["patches"]:
+                    self.assertIs(type(patch), dict)
+                    self.assertEqual(
+                        set(patch), {"old_hex", "replacement_hex", "start"}
+                    )
+                    self.assertIs(type(patch["start"]), int)
+                    old = checked_hex(patch["old_hex"])
+                    replacement = checked_hex(patch["replacement_hex"])
+                    start = patch["start"]
+                    self.assertLessEqual(0, start)
+                    self.assertLessEqual(start + len(old), len(base))
+                    self.assertLess(start, prior_start)
+                    self.assertLessEqual(start + len(old), prior_start)
+                    self.assertEqual(base[start:start + len(old)], old)
+                    self.assertEqual(raw_buffer[start:start + len(old)], old)
+                    expanded_length += len(replacement) - len(old)
+                    self.assertLessEqual(expanded_length, MAX_REPO_TEXT_BYTES + 1)
+                    raw_buffer[start:start + len(old)] = replacement
+                    prior_start = start
+                raw = bytes(raw_buffer)
+            elif kind == "knight-cycle-corpus":
+                self.assertIn(
+                    set(inputs),
+                    (
+                        {"cycle", "ply_counts", "result"},
+                        {"cycle", "newline_hex", "ply_counts", "result"},
+                    ),
+                )
+                self.assertEqual(inputs["cycle"], ["Nf3", "Nf6", "Ng1", "Ng8"])
+                self.assertEqual(inputs["result"], "1/2-1/2")
+                self.assertIs(type(inputs["ply_counts"]), list)
+                self.assertLessEqual(len(inputs["ply_counts"]), recipe["count_cap"])
+                self.assertTrue(all(type(count) is int for count in inputs["ply_counts"]))
+                self.assertLessEqual(sum(inputs["ply_counts"]), 65_536)
+                newline = checked_hex(inputs.get("newline_hex", "0a"))
+                self.assertIn(newline, (b"\n", b"\r\n"))
+                blocks = []
+                cycle = [token.encode("ascii") for token in inputs["cycle"]]
+                for count in inputs["ply_counts"]:
+                    self.assertIn(count, range(1, 4097))
+                    tokens = []
+                    for ply in range(count):
+                        if ply % 2 == 0:
+                            tokens.append(f"{ply // 2 + 1}.".encode("ascii"))
+                        tokens.append(cycle[ply % 4])
+                    tokens.append(b"1/2-1/2")
+                    blocks.append(
+                        newline.join(
+                            (b"```pgn", b'[Result "1/2-1/2"]', b"",
+                             b" ".join(tokens), b"```", b"")
+                        )
+                    )
+                raw = b"".join(blocks)
+            elif kind in {"typed-game-plies", "typed-game-set-games"}:
+                self.assertEqual(set(inputs), {"count", "unit_hex"})
+                self.assertIs(type(inputs["count"]), int)
+                self.assertLessEqual(0, inputs["count"])
+                self.assertLessEqual(inputs["count"], recipe["count_cap"])
+                unit = checked_hex(inputs["unit_hex"])
+                self.assertLessEqual(
+                    len(unit) * inputs["count"], MAX_REPO_TEXT_BYTES + 1
+                )
+                raw = unit * inputs["count"]
+            elif kind == "typed-game-set-total-plies":
+                self.assertEqual(set(inputs), {"move_hex", "ply_counts", "score"})
+                move = checked_hex(inputs["move_hex"])
+                self.assertEqual(len(move), 2)
+                self.assertIs(type(inputs["ply_counts"]), list)
+                self.assertLessEqual(len(inputs["ply_counts"]), recipe["count_cap"])
+                self.assertTrue(all(type(count) is int for count in inputs["ply_counts"]))
+                self.assertLessEqual(sum(inputs["ply_counts"]), 65_536)
+                self.assertIs(type(inputs["score"]), int)
+                self.assertIn(inputs["score"], (0, 1, 2))
+                pieces = []
+                for count in inputs["ply_counts"]:
+                    self.assertIn(count, range(1, 4097))
+                    pieces.append(count.to_bytes(2, "big") + move * count + bytes([inputs["score"]]))
+                raw = b"".join(pieces)
+            else:
+                self.assertEqual(
+                    set(inputs), {"cycle_moves_hex", "ply_counts", "score"}
+                )
+                cycle = checked_hex(inputs["cycle_moves_hex"])
+                self.assertEqual(len(cycle), 8)
+                self.assertIs(type(inputs["ply_counts"]), list)
+                self.assertLessEqual(len(inputs["ply_counts"]), recipe["count_cap"])
+                self.assertTrue(all(type(count) is int for count in inputs["ply_counts"]))
+                self.assertLessEqual(sum(inputs["ply_counts"]), 65_536)
+                self.assertIs(type(inputs["score"]), int)
+                self.assertIn(inputs["score"], (0, 1, 2))
+                pieces = []
+                for count in inputs["ply_counts"]:
+                    self.assertIn(count, range(1, 4097))
+                    moves = (cycle * ((count + 3) // 4))[:count * 2]
+                    pieces.append(count.to_bytes(2, "big") + moves + bytes([inputs["score"]]))
+                raw = b"".join(pieces)
+
+            self.assertLessEqual(len(raw), MAX_REPO_TEXT_BYTES + 1)
+            self.assertIs(type(recipe["input_bytes"]), int)
+            self.assertEqual(len(raw), recipe["input_bytes"])
+            self.assertIs(type(recipe["input_sha256"]), str)
+            self.assertIsNotNone(re.fullmatch(r"[0-9a-f]{64}", recipe["input_sha256"]))
+            self.assertEqual(hashlib.sha256(raw).hexdigest(), recipe["input_sha256"])
+            check_expected(recipe["expected"], len(raw))
+
+        self.assertEqual(
+            recipe_counts,
+            {
+                "literal-repeat": 14, "locked-base-patch": 88,
+                "knight-cycle-corpus": 4, "typed-game-plies": 1,
+                "typed-game-set-games": 2, "typed-game-set-total-plies": 2,
+                "typed-anthology": 4,
+            },
+        )
+        self.assertEqual(expected_codes, set(range(1, 69)))
+        self.assertNotIn(69, expected_codes)
+        self.assertNotIn(70, expected_codes)
 
     def test_chess_fixture_shape_and_coverage_are_closed(self) -> None:
         payload = canonical_manifest.validate_canonical_manifest(

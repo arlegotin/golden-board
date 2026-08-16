@@ -588,6 +588,7 @@ fn identity_fixture_and_boundaries() {
 
 #[test]
 fn manifest_fixture() {
+    validate_canonical_manifest(&fixture("source-v0.json")).unwrap();
     let original = fixture("manifest-v0.json");
     let data: Value = serde_json::from_slice(&original).unwrap();
     for case in data["cases"].as_array().unwrap() {
