@@ -271,9 +271,6 @@ enum Detail {
     RegionSet {
         regions: Vec<RegionMeta>,
     },
-    SemanticBinding {
-        class_span: Span,
-    },
     OpaqueData {
         data_start: usize,
     },
@@ -1102,7 +1099,6 @@ fn decode_binding(
             .into_iter()
             .filter(|field| !(class == BINDING_DATA && field.span == auxiliary_span))
             .collect(),
-            detail: Detail::SemanticBinding { class_span },
             ..Meta::default()
         },
     ))
@@ -1598,13 +1594,13 @@ fn validate_ref(records: &[DecodedRecord], owner: u16, field: RefField) -> Resul
     Ok(())
 }
 
-fn schema(
-    records: &[DecodedRecord],
+fn schema<'a>(
+    records: &'a [DecodedRecord],
     id: u16,
 ) -> (
     u8,
     u8,
-    Vec<AtomEntry>,
+    &'a [AtomEntry],
     Option<u32>,
     Option<u32>,
     Option<u32>,
@@ -1624,7 +1620,7 @@ fn schema(
     (
         *atom_class,
         *atom_width,
-        entries.clone(),
+        entries,
         *min_value,
         *max_value,
         *allowed_mask,
@@ -1640,6 +1636,14 @@ fn atom_valid(records: &[DecodedRecord], schema_id: u16, value: u32) -> bool {
             .is_ok(),
         ATOM_MASK => value & !mask.unwrap() == 0,
         _ => false,
+    }
+}
+
+fn retain_earliest(best: &mut Option<ContentReject>, candidate: ContentReject) {
+    if best.as_ref().is_none_or(|current| {
+        (candidate.raw_start, candidate.code) < (current.raw_start, current.code)
+    }) {
+        *best = Some(candidate);
     }
 }
 
@@ -1798,23 +1802,6 @@ fn presentation_summary(
 }
 
 fn validate_derived(raw: &[u8], records: &mut [DecodedRecord]) -> Result<()> {
-    let mut binding_keys = BTreeSet::new();
-    for record in records.iter() {
-        if let RecordPayload::SemanticBinding {
-            binding_class,
-            namespace_id,
-            semantic_code,
-            ..
-        } = record.record.payload
-        {
-            if !binding_keys.insert((binding_class, namespace_id, semantic_code)) {
-                let Detail::SemanticBinding { class_span, .. } = record.meta.detail else {
-                    unreachable!()
-                };
-                return Err(reject(CONTENT_DUPLICATE, class_span.start, class_span.end));
-            }
-        }
-    }
     for record in records.iter() {
         for &field in &record.meta.refs {
             validate_ref(records, record.record.record_id, field)?;
@@ -1822,6 +1809,7 @@ fn validate_derived(raw: &[u8], records: &mut [DecodedRecord]) -> Result<()> {
     }
     validate_lengths_and_tuple_refs(raw, records)?;
 
+    let mut stage_five = None;
     for index in 0..records.len() {
         let payload = records[index].record.payload.clone();
         match (payload, records[index].meta.detail.clone()) {
@@ -1836,7 +1824,10 @@ fn validate_derived(raw: &[u8], records: &mut [DecodedRecord]) -> Result<()> {
                 for (at, value) in atoms.iter().enumerate() {
                     if !atom_valid(records, atom_schema_ref, *value) {
                         let start = data_start + at * width as usize;
-                        return Err(reject(CONTENT_BAD_VALUE, start, start + width as usize));
+                        retain_earliest(
+                            &mut stage_five,
+                            reject(CONTENT_BAD_VALUE, start, start + width as usize),
+                        );
                     }
                 }
                 let RecordPayload::AtomVector { atoms: target, .. } =
@@ -1860,7 +1851,10 @@ fn validate_derived(raw: &[u8], records: &mut [DecodedRecord]) -> Result<()> {
                 for (at, value) in cells.iter().enumerate() {
                     if !atom_valid(records, atom_schema_ref, *value) {
                         let start = data_start + at * width as usize;
-                        return Err(reject(CONTENT_BAD_VALUE, start, start + width as usize));
+                        retain_earliest(
+                            &mut stage_five,
+                            reject(CONTENT_BAD_VALUE, start, start + width as usize),
+                        );
                     }
                 }
                 let RecordPayload::Matrix { cells: target, .. } =
@@ -1891,7 +1885,10 @@ fn validate_derived(raw: &[u8], records: &mut [DecodedRecord]) -> Result<()> {
                         let width = schema(records, field.type_code).1 as usize;
                         for atom in atoms {
                             if !atom_valid(records, field.type_code, atom) {
-                                return Err(reject(CONTENT_BAD_VALUE, at, at + width));
+                                retain_earliest(
+                                    &mut stage_five,
+                                    reject(CONTENT_BAD_VALUE, at, at + width),
+                                );
                             }
                             at += width;
                         }
@@ -1920,7 +1917,10 @@ fn validate_derived(raw: &[u8], records: &mut [DecodedRecord]) -> Result<()> {
                 for (at, atom) in data.iter().enumerate() {
                     if !atom_valid(records, argument, *atom) {
                         let start = data_start + at * width as usize;
-                        return Err(reject(CONTENT_BAD_VALUE, start, start + width as usize));
+                        retain_earliest(
+                            &mut stage_five,
+                            reject(CONTENT_BAD_VALUE, start, start + width as usize),
+                        );
                     }
                 }
                 let RecordPayload::OpaqueData { data: target, .. } =
@@ -1945,18 +1945,20 @@ fn validate_derived(raw: &[u8], records: &mut [DecodedRecord]) -> Result<()> {
                     unreachable!()
                 };
                 if text.contains('\n') {
-                    return Err(reject(
-                        CONTENT_SCHEMA_MISMATCH,
-                        meta.name_span.start,
-                        meta.name_span.end,
-                    ));
+                    retain_earliest(
+                        &mut stage_five,
+                        reject(
+                            CONTENT_SCHEMA_MISMATCH,
+                            meta.name_span.start,
+                            meta.name_span.end,
+                        ),
+                    );
                 }
                 if !names.insert(text.as_bytes()) {
-                    return Err(reject(
-                        CONTENT_DUPLICATE,
-                        meta.name_span.start,
-                        meta.name_span.end,
-                    ));
+                    retain_earliest(
+                        &mut stage_five,
+                        reject(CONTENT_DUPLICATE, meta.name_span.start, meta.name_span.end),
+                    );
                 }
             }
         }
@@ -1997,11 +1999,10 @@ fn validate_derived(raw: &[u8], records: &mut [DecodedRecord]) -> Result<()> {
                 unreachable!()
             };
             if data_binding_ref != argument || atom_schema_ref != auxiliary || atoms.len() != 1 {
-                return Err(reject(
-                    CONTENT_SCHEMA_MISMATCH,
-                    result_span.start,
-                    result_span.end,
-                ));
+                retain_earliest(
+                    &mut stage_five,
+                    reject(CONTENT_SCHEMA_MISMATCH, result_span.start, result_span.end),
+                );
             }
         }
     }
@@ -2021,18 +2022,24 @@ fn validate_derived(raw: &[u8], records: &mut [DecodedRecord]) -> Result<()> {
             };
             for (region, meta) in regions.iter().zip(metas) {
                 if region.row_end > rows {
-                    return Err(reject(
-                        CONTENT_BAD_VALUE,
-                        meta.row_end_span.start,
-                        meta.row_end_span.end,
-                    ));
+                    retain_earliest(
+                        &mut stage_five,
+                        reject(
+                            CONTENT_BAD_VALUE,
+                            meta.row_end_span.start,
+                            meta.row_end_span.end,
+                        ),
+                    );
                 }
                 if region.column_end > columns {
-                    return Err(reject(
-                        CONTENT_BAD_VALUE,
-                        meta.column_end_span.start,
-                        meta.column_end_span.end,
-                    ));
+                    retain_earliest(
+                        &mut stage_five,
+                        reject(
+                            CONTENT_BAD_VALUE,
+                            meta.column_end_span.start,
+                            meta.column_end_span.end,
+                        ),
+                    );
                 }
             }
             for later in 1..regions.len() {
@@ -2046,11 +2053,14 @@ fn validate_derived(raw: &[u8], records: &mut [DecodedRecord]) -> Result<()> {
                         && earlier.column_start < regions[later].column_end
                         && regions[later].column_start < earlier.column_end
                     {
-                        return Err(reject(
-                            CONTENT_BAD_VALUE,
-                            metas[later].id_span.start,
-                            metas[later].id_span.end,
-                        ));
+                        retain_earliest(
+                            &mut stage_five,
+                            reject(
+                                CONTENT_BAD_VALUE,
+                                metas[later].id_span.start,
+                                metas[later].id_span.end,
+                            ),
+                        );
                     }
                 }
             }
@@ -2085,25 +2095,37 @@ fn validate_derived(raw: &[u8], records: &mut [DecodedRecord]) -> Result<()> {
         }
     }
     for record in records.iter() {
-        let (presentation, region_set, span) = match (&record.record.payload, &record.meta.detail) {
-            (
-                RecordPayload::PassiveTrace {
-                    presentation_ref,
-                    region_set_ref,
-                    ..
-                },
-                _,
-            ) => (*presentation_ref, *region_set_ref, record.meta.refs[0].span),
-            (
-                RecordPayload::LessonNode {
-                    presentation_ref,
-                    region_set_ref,
-                    ..
-                },
-                Detail::LessonNode(_),
-            ) => (*presentation_ref, *region_set_ref, record.meta.refs[0].span),
-            _ => continue,
-        };
+        let (presentation, region_set, span, resulting) =
+            match (&record.record.payload, &record.meta.detail) {
+                (
+                    RecordPayload::PassiveTrace {
+                        presentation_ref,
+                        region_set_ref,
+                        resulting_presentation_ref,
+                        ..
+                    },
+                    _,
+                ) => (
+                    *presentation_ref,
+                    *region_set_ref,
+                    record.meta.refs[0].span,
+                    Some((*resulting_presentation_ref, record.meta.refs[2].span)),
+                ),
+                (
+                    RecordPayload::LessonNode {
+                        presentation_ref,
+                        region_set_ref,
+                        ..
+                    },
+                    Detail::LessonNode(_),
+                ) => (
+                    *presentation_ref,
+                    *region_set_ref,
+                    record.meta.refs[0].span,
+                    None,
+                ),
+                _ => continue,
+            };
         let region = &records[find_record(records, region_set).unwrap()].record;
         let RecordPayload::RegionSet {
             surface_matrix_ref, ..
@@ -2112,10 +2134,26 @@ fn validate_derived(raw: &[u8], records: &mut [DecodedRecord]) -> Result<()> {
             unreachable!()
         };
         if presentation_summary(records, &summaries, presentation) != (1, surface_matrix_ref) {
-            return Err(reject(CONTENT_SCHEMA_MISMATCH, span.start, span.end));
+            retain_earliest(
+                &mut stage_five,
+                reject(CONTENT_SCHEMA_MISMATCH, span.start, span.end),
+            );
+        }
+        if let Some((resulting, resulting_span)) = resulting
+            && resulting != 0
+            && presentation_summary(records, &summaries, resulting) != (1, surface_matrix_ref)
+        {
+            retain_earliest(
+                &mut stage_five,
+                reject(
+                    CONTENT_SCHEMA_MISMATCH,
+                    resulting_span.start,
+                    resulting_span.end,
+                ),
+            );
         }
     }
-    Ok(())
+    stage_five.map_or(Ok(()), Err)
 }
 
 fn feedback(records: &[DecodedRecord], id: u16) -> (u16, u16) {
@@ -2363,35 +2401,27 @@ fn validate_lessons(records: &[DecodedRecord]) -> Result<()> {
                 meta.mode_span.end,
             ));
         }
-        let forbidden = match (role, answer_mode) {
-            (ROLE_EXACT_RULE | ROLE_OBSERVABLE_RELATION, ANSWER_UNSCORED) => {
-                predicate_result_ref == 0 || !cases.is_empty()
-            }
-            (ROLE_WORKED_EXAMPLE, ANSWER_UNSCORED) => {
-                predicate_result_ref == 0 || passive_trace_ref == 0 || !cases.is_empty()
-            }
-            (ROLE_HEURISTIC, ANSWER_UNSCORED) => predicate_result_ref != 0 || !cases.is_empty(),
-            (ROLE_PRACTICE, ANSWER_PACKED_PRACTICE) => {
-                predicate_result_ref == 0 || passive_trace_ref == 0
-            }
-            (ROLE_PRACTICE, ANSWER_EXTERNAL) => {
-                predicate_result_ref != 0 || passive_trace_ref != 0 || !cases.is_empty()
-            }
-            _ => false,
+        let requirements = match (role, answer_mode) {
+            (ROLE_EXACT_RULE | ROLE_OBSERVABLE_RELATION, ANSWER_UNSCORED) => (true, None, false),
+            (ROLE_WORKED_EXAMPLE, ANSWER_UNSCORED) => (true, Some(true), false),
+            (ROLE_HEURISTIC, ANSWER_UNSCORED) => (false, None, false),
+            (ROLE_PRACTICE, ANSWER_PACKED_PRACTICE) => (true, Some(true), true),
+            (ROLE_PRACTICE, ANSWER_EXTERNAL) => (false, Some(false), false),
+            _ => unreachable!(),
         };
-        if forbidden {
-            let span = if predicate_result_ref == 0
-                || predicate_result_ref != 0 && role == ROLE_HEURISTIC
-                || answer_mode == ANSWER_EXTERNAL && predicate_result_ref != 0
-            {
-                meta.predicate_span
-            } else if passive_trace_ref == 0
-                || passive_trace_ref != 0 && answer_mode == ANSWER_EXTERNAL
-            {
-                meta.trace_span
-            } else {
-                meta.case_count_span
-            };
+        let bad_span = if (predicate_result_ref != 0) != requirements.0 {
+            Some(meta.predicate_span)
+        } else if requirements
+            .1
+            .is_some_and(|required| (passive_trace_ref != 0) != required)
+        {
+            Some(meta.trace_span)
+        } else if !requirements.2 && !cases.is_empty() {
+            Some(meta.case_count_span)
+        } else {
+            None
+        };
+        if let Some(span) = bad_span {
             return Err(reject(CONTENT_FORBIDDEN_ANSWER_DATA, span.start, span.end));
         }
         if answer_mode == ANSWER_PACKED_PRACTICE
@@ -2656,7 +2686,19 @@ fn validate_budgets(records: &[DecodedRecord], root_id: u16) -> Result<()> {
 pub fn stream_validation(raw: &[u8]) -> Result<ContentProjection> {
     let framed = frame(raw)?;
     let mut records = Vec::with_capacity(framed.len());
+    let mut binding_keys = BTreeSet::new();
     for record in framed {
+        if record.kind == CONTENT_KIND_SEMANTIC_BINDING {
+            let start = record.payload.start;
+            let class = raw[start];
+            if matches!(class, BINDING_DATA | BINDING_PREDICATE) {
+                let namespace = u16::from_be_bytes([raw[start + 2], raw[start + 3]]);
+                let semantic = u16::from_be_bytes([raw[start + 4], raw[start + 5]]);
+                if !binding_keys.insert((class, namespace, semantic)) {
+                    return Err(reject(CONTENT_DUPLICATE, start, start + 1));
+                }
+            }
+        }
         let (payload, meta) = decode_local(raw, record)?;
         records.push(DecodedRecord {
             record: Record {
@@ -2977,6 +3019,49 @@ fn state_u16(raw: &[u8], at: &mut usize) -> Result<(u16, Span)> {
     ))
 }
 
+fn validate_selection(
+    shape: u8,
+    flags: u8,
+    maximum: u16,
+    selectable: &BTreeSet<u16>,
+    ids: &[u16],
+    count_span: Span,
+    spans: &[Span],
+) -> Result<()> {
+    if (shape == RESPONSE_SINGLE && ids.len() > 1) || ids.len() > maximum as usize {
+        return Err(bad_state(count_span.start, count_span.end));
+    }
+    let mut seen = BTreeSet::new();
+    for (index, id) in ids.iter().enumerate() {
+        let span = spans[index];
+        if *id == 0 || !selectable.contains(id) {
+            return Err(bad_state(span.start, span.end));
+        }
+        if shape == RESPONSE_SET && index > 0 && ids[index - 1] >= *id {
+            return Err(bad_state(span.start, span.end));
+        }
+        if (shape != RESPONSE_SEQUENCE || flags & LESSON_ALLOW_REPEATED_SELECTIONS == 0)
+            && !seen.insert(*id)
+        {
+            return Err(bad_state(span.start, span.end));
+        }
+    }
+    Ok(())
+}
+
+fn retain_candidates(
+    candidates: &mut Vec<RunState>,
+    span: Span,
+    matches: impl Fn(&RunState) -> bool,
+) -> Result<()> {
+    candidates.retain(matches);
+    if candidates.is_empty() {
+        Err(bad_state(span.start, span.end))
+    } else {
+        Ok(())
+    }
+}
+
 pub fn validate_run_state(projection: &ContentProjection, raw: &[u8]) -> Result<RunState> {
     if raw.len() > CONTENT_MAX_RUN_STATE_BYTES as usize {
         return Err(reject(
@@ -3017,13 +3102,14 @@ pub fn validate_run_state(projection: &ContentProjection, raw: &[u8]) -> Result<
     if buffer_count as usize > CONTENT_MAX_SELECTIONS as usize {
         return Err(bad_state(buffer_count_span.start, buffer_count_span.end));
     }
-    let mut buffer = Vec::with_capacity(buffer_count as usize);
-    let mut buffer_spans = Vec::with_capacity(buffer_count as usize);
-    for _ in 0..buffer_count {
-        let (id, span) = state_u16(raw, &mut at)?;
-        buffer.push(id);
-        buffer_spans.push(span);
+    let buffer_start = at;
+    let buffer_bytes = (buffer_count as usize)
+        .checked_mul(2)
+        .ok_or_else(|| bad_state(buffer_count_span.start, buffer_count_span.end))?;
+    if raw.len().saturating_sub(at) < buffer_bytes {
+        return Err(bad_state(raw.len(), raw.len()));
     }
+    at += buffer_bytes;
     let (response_length, response_length_span) = state_u16(raw, &mut at)?;
     if response_length > 8195 {
         return Err(bad_state(
@@ -3038,29 +3124,47 @@ pub fn validate_run_state(projection: &ContentProjection, raw: &[u8]) -> Result<
         start: at,
         end: at + response_length as usize,
     };
-    let response = raw[response_span.start..response_span.end].to_vec();
     at = response_span.end;
     let (event_count, event_count_span) = state_u16(raw, &mut at)?;
+    let events_start = at;
+    let event_bytes = (event_count as usize)
+        .checked_mul(CONTENT_EVENT_BYTES as usize)
+        .ok_or_else(|| bad_state(event_count_span.start, event_count_span.end))?;
+    if raw.len().saturating_sub(at) < event_bytes {
+        return Err(bad_state(raw.len(), raw.len()));
+    }
+    at += event_bytes;
+    if at != raw.len() {
+        return Err(bad_state(at, at + 1));
+    }
+
+    let mut buffer = Vec::with_capacity(buffer_count as usize);
+    let mut buffer_spans = Vec::with_capacity(buffer_count as usize);
+    for start in (buffer_start..buffer_start + buffer_bytes).step_by(2) {
+        buffer.push(u16::from_be_bytes([raw[start], raw[start + 1]]));
+        buffer_spans.push(Span {
+            start,
+            end: start + 2,
+        });
+    }
+    let response = raw[response_span.start..response_span.end].to_vec();
     let mut events = Vec::with_capacity(event_count as usize);
     let mut event_spans = Vec::with_capacity(event_count as usize);
-    for _ in 0..event_count {
-        if raw.len().saturating_sub(at) < CONTENT_EVENT_BYTES as usize {
-            return Err(bad_state(raw.len(), raw.len()));
-        }
-        let start = at;
-        let node_id = u16::from_be_bytes([raw[at], raw[at + 1]]);
-        let action = [raw[at + 2], raw[at + 3], raw[at + 4], raw[at + 5]];
-        let result = raw[at + 6];
-        at += CONTENT_EVENT_BYTES as usize;
+    for start in (events_start..events_start + event_bytes).step_by(CONTENT_EVENT_BYTES as usize) {
+        let node_id = u16::from_be_bytes([raw[start], raw[start + 1]]);
+        let action = [
+            raw[start + 2],
+            raw[start + 3],
+            raw[start + 4],
+            raw[start + 5],
+        ];
+        let result = raw[start + 6];
         events.push(Event {
             node_id,
             action,
             result,
         });
         event_spans.push(start);
-    }
-    if at != raw.len() {
-        return Err(bad_state(at, at + 1));
     }
 
     if version != CONTENT_VERSION as u16 {
@@ -3151,22 +3255,15 @@ pub fn validate_run_state(projection: &ContentProjection, raw: &[u8]) -> Result<
             .collect::<Vec<_>>(),
         *region_set_ref,
     );
-    for (index, id) in buffer.iter().enumerate() {
-        if *id == 0 || !selectable.contains(id) {
-            let span = buffer_spans[index];
-            return Err(bad_state(span.start, span.end));
-        }
-        if *response_shape == RESPONSE_SET && index > 0 && buffer[index - 1] >= *id {
-            let span = buffer_spans[index];
-            return Err(bad_state(span.start, span.end));
-        }
-        if *response_shape != RESPONSE_SEQUENCE || *flags & LESSON_ALLOW_REPEATED_SELECTIONS == 0 {
-            if buffer[..index].contains(id) {
-                let span = buffer_spans[index];
-                return Err(bad_state(span.start, span.end));
-            }
-        }
-    }
+    validate_selection(
+        *response_shape,
+        *flags,
+        *max_selections,
+        &selectable,
+        &buffer,
+        buffer_count_span,
+        &buffer_spans,
+    )?;
 
     let (feedback_ref, next_node_ref) = if phase == PHASE_COMMITTED {
         if response.first() != Some(response_shape) {
@@ -3174,6 +3271,25 @@ pub fn validate_run_state(projection: &ContentProjection, raw: &[u8]) -> Result<
         }
         let decoded = decode_response(*response_shape, &response)
             .ok_or_else(|| bad_state(response_span.start, response_span.end))?;
+        let response_count_span = Span {
+            start: response_span.start + 1,
+            end: response_span.start + 3,
+        };
+        let response_spans = (0..decoded.len())
+            .map(|index| Span {
+                start: response_span.start + 3 + index * 2,
+                end: response_span.start + 5 + index * 2,
+            })
+            .collect::<Vec<_>>();
+        validate_selection(
+            *response_shape,
+            *flags,
+            *max_selections,
+            &selectable,
+            &decoded,
+            response_count_span,
+            &response_spans,
+        )?;
         let chosen = cases.iter().find(|case| case.region_ids == decoded);
         let (class, feedback, next) = chosen
             .map_or((0, *default_feedback_ref, *default_next_node_ref), |case| {
@@ -3232,34 +3348,45 @@ pub fn validate_run_state(projection: &ContentProjection, raw: &[u8]) -> Result<
     if replay.phase == PHASE_COMMITTED && replay.next_node_ref != 0 {
         candidates.push(advance_committed(projection, &replay).unwrap());
     }
-    candidates.retain(|candidate| {
+    retain_candidates(&mut candidates, current_span, |candidate| {
         candidate.current_node_id == current_id
-            && candidate.global_remaining == global
-            && candidate.local_remaining == local
-            && candidate.phase == phase
-            && candidate.outcome == outcome
-            && candidate.buffer == buffer
-            && candidate.committed_response == response
-    });
-    if candidates.is_empty() {
-        let expected = encode_run_state(&replay);
-        let limit = expected.len().min(raw.len());
-        let mismatch = (2..limit)
-            .find(|index| expected[*index] != raw[*index])
-            .unwrap_or(2);
-        let span = match mismatch {
-            2..=3 => Span { start: 2, end: 4 },
-            4..=5 => current_span,
-            6..=7 => global_span,
-            8..=9 => local_span,
-            10 => Span { start: 10, end: 11 },
-            11 => outcome_span,
-            _ => Span {
-                start: mismatch,
-                end: mismatch + 1,
+    })?;
+    retain_candidates(&mut candidates, global_span, |candidate| {
+        candidate.global_remaining == global
+    })?;
+    retain_candidates(&mut candidates, local_span, |candidate| {
+        candidate.local_remaining == local
+    })?;
+    retain_candidates(&mut candidates, Span { start: 10, end: 11 }, |candidate| {
+        candidate.phase == phase
+    })?;
+    retain_candidates(&mut candidates, outcome_span, |candidate| {
+        candidate.outcome == outcome
+    })?;
+    retain_candidates(&mut candidates, buffer_count_span, |candidate| {
+        candidate.buffer.len() == buffer.len()
+    })?;
+    for (index, span) in buffer_spans.iter().copied().enumerate() {
+        retain_candidates(&mut candidates, span, |candidate| {
+            candidate.buffer[index] == buffer[index]
+        })?;
+    }
+    retain_candidates(&mut candidates, response_length_span, |candidate| {
+        candidate.committed_response.len() == response.len()
+    })?;
+    for (index, (actual, span)) in response
+        .iter()
+        .zip(response_span.start..response_span.end)
+        .enumerate()
+    {
+        retain_candidates(
+            &mut candidates,
+            Span {
+                start: span,
+                end: span + 1,
             },
-        };
-        return Err(bad_state(span.start, span.end));
+            |candidate| candidate.committed_response[index] == *actual,
+        )?;
     }
     let mut state = candidates.remove(0);
     state.feedback_ref = feedback_ref;

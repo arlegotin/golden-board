@@ -1,3 +1,5 @@
+use std::alloc::{GlobalAlloc, Layout, System};
+use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::OpenOptions;
 use std::io::Read;
@@ -19,6 +21,40 @@ const O_NOFOLLOW: i32 = 0x100;
 const O_NONBLOCK: i32 = 0x800;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 const O_NONBLOCK: i32 = 0x4;
+
+struct TrackingAllocator;
+
+thread_local! {
+    static TRACK_ALLOCATIONS: Cell<bool> = const { Cell::new(false) };
+    static LARGEST_ALLOCATION: Cell<usize> = const { Cell::new(0) };
+}
+
+unsafe impl GlobalAlloc for TrackingAllocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        TRACK_ALLOCATIONS.with(|tracking| {
+            if tracking.get() {
+                LARGEST_ALLOCATION.with(|largest| largest.set(largest.get().max(layout.size())));
+            }
+        });
+        unsafe { System.alloc(layout) }
+    }
+
+    unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+        unsafe { System.dealloc(pointer, layout) }
+    }
+}
+
+#[global_allocator]
+static ALLOCATOR: TrackingAllocator = TrackingAllocator;
+
+fn largest_allocation_during<T>(work: impl FnOnce() -> T) -> (T, usize) {
+    LARGEST_ALLOCATION.with(|largest| largest.set(0));
+    TRACK_ALLOCATIONS.with(|tracking| tracking.set(true));
+    let result = work();
+    TRACK_ALLOCATIONS.with(|tracking| tracking.set(false));
+    let largest = LARGEST_ALLOCATION.with(Cell::get);
+    (result, largest)
+}
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -48,17 +84,34 @@ fn safe_read(relative: &str, cap: usize) -> Vec<u8> {
     let before = path.symlink_metadata().unwrap();
     assert!(before.file_type().is_file() && !before.file_type().is_symlink());
     assert!(before.len() <= cap as u64);
-    let file = OpenOptions::new()
+    let mut file = OpenOptions::new()
         .read(true)
         .custom_flags(O_NOFOLLOW | O_NONBLOCK)
-        .open(path)
+        .open(&path)
         .unwrap();
     let after = file.metadata().unwrap();
     assert!(after.file_type().is_file());
     assert_eq!((before.dev(), before.ino()), (after.dev(), after.ino()));
     let mut bytes = Vec::with_capacity(after.len() as usize);
-    file.take(cap as u64 + 1).read_to_end(&mut bytes).unwrap();
+    file.by_ref()
+        .take(cap as u64 + 1)
+        .read_to_end(&mut bytes)
+        .unwrap();
     assert!(bytes.len() <= cap);
+    let opened = file.metadata().unwrap();
+    let current = path.symlink_metadata().unwrap();
+    assert!(current.file_type().is_file() && !current.file_type().is_symlink());
+    let identity = |metadata: &std::fs::Metadata| {
+        (
+            metadata.dev(),
+            metadata.ino(),
+            metadata.len(),
+            metadata.mtime(),
+            metadata.mtime_nsec(),
+        )
+    };
+    assert_eq!(identity(&after), identity(&opened));
+    assert_eq!(identity(&opened), identity(&current));
     bytes
 }
 
@@ -495,8 +548,19 @@ fn sha256(bytes: &[u8]) -> String {
 fn fixture() -> V {
     let bytes = safe_read("conformance/content-v0.json", FIXTURE_BYTES);
     assert_eq!(bytes.len(), FIXTURE_BYTES);
+    let digest = sha256(&bytes);
+    assert_eq!(
+        digest,
+        "b3f4279e95854e77bd3ce25c05e8580b1298ffccc164ac40a6010e86091a038b"
+    );
+    let registry = safe_read("conformance/registry.toml", 16_384);
+    let registry = std::str::from_utf8(&registry).unwrap();
+    let owned_row = "id = \"content-v0\"\npath = \"conformance/content-v0.json\"\nspecification = \"content-v0\"\nversion = \"v0\"\nsha256 = \"b3f4279e95854e77bd3ce25c05e8580b1298ffccc164ac40a6010e86091a038b\"\nconsumers = [\"python\", \"rust\"]";
+    assert_eq!(registry.matches(owned_row).count(), 1);
     validate_canonical_manifest(&bytes).unwrap();
-    parse_manifest(&bytes).unwrap()
+    let fixture = parse_manifest(&bytes).unwrap();
+    review_fixture_contract(&fixture).unwrap();
+    fixture
 }
 
 fn expected_rejection(expected: &V) -> Option<ContentReject> {
@@ -535,6 +599,7 @@ fn generic_base(top: &BTreeMap<String, V>) -> Vec<u8> {
     assert_eq!(text(field(base, "name")), "generic-base");
     let bytes = hex(text(field(base, "stream_hex")));
     assert_eq!(bytes.len(), number(field(base, "stream_length")));
+    assert_eq!(sha256(&bytes), text(field(base, "stream_sha256")));
     bytes
 }
 
@@ -585,6 +650,203 @@ fn stream_records(records: &[Vec<u8>]) -> Vec<u8> {
         bytes.extend_from_slice(row);
     }
     bytes
+}
+
+fn passive_presentation_stream(result_as_tuple: bool, case_count: u16) -> (Vec<u8>, usize, usize) {
+    let text = record_bytes(1, 1, b"x");
+    let atom_schema = schema(2);
+    let surface = matrix(3, 2, 1, 1, 1);
+    let mut records = vec![text, atom_schema, surface];
+    let resulting = if case_count != 0 {
+        3
+    } else if result_as_tuple {
+        let other = matrix(4, 2, 1, 1, 1);
+        let mut fields = Vec::new();
+        push_u16(&mut fields, 1);
+        push_u16(&mut fields, 1);
+        fields.extend_from_slice(&[2, 0]);
+        push_u16(&mut fields, 4);
+        push_u16(&mut fields, 1);
+        records.extend([other, record_bytes(5, 5, &fields)]);
+        let mut tuple = Vec::new();
+        push_u16(&mut tuple, 5);
+        push_u16(&mut tuple, 4);
+        records.push(record_bytes(6, 6, &tuple));
+        6
+    } else {
+        records.push(matrix(4, 2, 1, 1, 1));
+        4
+    };
+    let region_id = records.len() as u16 + 1;
+    let mut regions = Vec::new();
+    push_u16(&mut regions, 3);
+    push_u16(&mut regions, 1);
+    for value in [1, 1, 0, 1, 0, 1] {
+        push_u16(&mut regions, value);
+    }
+    regions.extend_from_slice(&[1, 0]);
+    records.push(record_bytes(region_id, 7, &regions));
+    let feedback_id = region_id + 1;
+    let mut feedback = Vec::new();
+    for value in [5, 1, 0] {
+        push_u16(&mut feedback, value);
+    }
+    records.push(record_bytes(feedback_id, 11, &feedback));
+    let trace_id = feedback_id + 1;
+    let mut trace = Vec::new();
+    for value in [3, region_id, resulting, 1, 1] {
+        push_u16(&mut trace, value);
+    }
+    trace.extend_from_slice(&[3, 0, 0, 0, 3, 0]);
+    push_u16(&mut trace, feedback_id);
+    push_u16(&mut trace, 0);
+    records.push(record_bytes(trace_id, 12, &trace));
+    let lesson_id = trace_id + 1;
+    let mut lesson = vec![4, 1, 3, 0];
+    for value in [3, region_id, 0, trace_id, 1, 1, case_count] {
+        push_u16(&mut lesson, value);
+    }
+    if case_count == 1 {
+        lesson.extend_from_slice(&[1, 0]);
+        push_u16(&mut lesson, 0);
+        push_u16(&mut lesson, feedback_id);
+        push_u16(&mut lesson, 0);
+    }
+    push_u16(&mut lesson, feedback_id);
+    push_u16(&mut lesson, 0);
+    records.push(record_bytes(lesson_id, 13, &lesson));
+    let mut root_payload = Vec::new();
+    push_u16(&mut root_payload, lesson_id);
+    push_u16(&mut root_payload, 2);
+    records.push(record_bytes(lesson_id + 1, 14, &root_payload));
+    let stream = stream_records(&records);
+    let trace_payload = records[..records.len() - 3]
+        .iter()
+        .map(Vec::len)
+        .sum::<usize>()
+        + 4
+        + 8;
+    let resulting_span = trace_payload + 4;
+    let lesson_payload = records[..records.len() - 2]
+        .iter()
+        .map(Vec::len)
+        .sum::<usize>()
+        + 4
+        + 8;
+    let case_count_span = lesson_payload + 16;
+    (stream, resulting_span, case_count_span)
+}
+
+fn review_fixture_contract(fixture: &V) -> Result<(), &'static str> {
+    let V::Object(top) = fixture else {
+        return Err("top");
+    };
+    if top.keys().map(String::as_str).collect::<BTreeSet<_>>()
+        != ["bases", "cases", "recipes", "schema"]
+            .into_iter()
+            .collect()
+    {
+        return Err("top keys");
+    }
+    let Some(V::Array(recipes)) = top.get("recipes") else {
+        return Err("recipes");
+    };
+    if recipes.len() != 173 {
+        return Err("recipe count");
+    }
+    let expected = [
+        (
+            "maximum-support-content-stream",
+            "stream_validation",
+            "maximum-support-stream",
+        ),
+        (
+            "maximum-selection-cap-plus-one",
+            "stream_validation",
+            "maximum-selection-cap-over",
+        ),
+        (
+            "maximum-committed-run-state",
+            "validate_run_state",
+            "maximum-committed-state",
+        ),
+        (
+            "maximum-exhausted-run-state",
+            "validate_run_state",
+            "maximum-exhausted-state",
+        ),
+        (
+            "committed-run-state-first-byte-over",
+            "validate_run_state",
+            "maximum-state-byte-over",
+        ),
+        (
+            "exhausted-run-state-first-byte-over",
+            "validate_run_state",
+            "maximum-state-byte-over",
+        ),
+        (
+            "typed-step-65536-does-not-wrap",
+            "step",
+            "typed-step-sequence",
+        ),
+    ];
+    let mut names = BTreeSet::new();
+    let mut maximum = BTreeSet::new();
+    for row in recipes {
+        let V::Object(fields) = row else {
+            return Err("recipe row");
+        };
+        let Some(V::String(name)) = fields.get("name") else {
+            return Err("recipe name");
+        };
+        if !names.insert(name.as_str()) {
+            return Err("duplicate recipe name");
+        }
+        if let Some((_, operation, tag)) = expected.iter().find(|(wanted, _, _)| name == wanted) {
+            if !matches!(fields.get("operation"), Some(V::String(value)) if value == operation)
+                || !matches!(fields.get("recipe"), Some(V::String(value)) if value == tag)
+            {
+                return Err("maximum recipe identity");
+            }
+            maximum.insert(name.as_str());
+        }
+    }
+    if maximum != expected.iter().map(|(name, _, _)| *name).collect() {
+        return Err("maximum recipe inventory");
+    }
+    Ok(())
+}
+
+fn named_recipe<'a>(top: &'a BTreeMap<String, V>, name: &str) -> &'a BTreeMap<String, V> {
+    let row = array(field(top, "recipes"))
+        .iter()
+        .find(|row| matches!(row, V::Object(fields) if text(field(fields, "name")) == name))
+        .unwrap();
+    object(
+        row,
+        &[
+            "count_cap",
+            "covers",
+            "expected",
+            "input",
+            "input_bytes",
+            "input_sha256",
+            "name",
+            "operation",
+            "recipe",
+        ],
+    )
+}
+
+fn assert_covers(recipe: &BTreeMap<String, V>, expected: &[&str]) {
+    let covers = array(field(recipe, "covers"));
+    let actual = covers.iter().map(text).collect::<Vec<_>>();
+    assert_eq!(actual, expected);
+    assert_eq!(
+        actual.iter().copied().collect::<BTreeSet<_>>().len(),
+        actual.len()
+    );
 }
 
 fn schema(id: u16) -> Vec<u8> {
@@ -1172,10 +1434,55 @@ fn all_literal_runtime_cases_match_exact_bytes_and_rejections() {
 
 #[test]
 fn maximum_support_and_run_state_boundaries_are_typed_and_bounded() {
+    let fixture = fixture();
+    let top = object(&fixture, &["bases", "cases", "recipes", "schema"]);
+    let support_row = named_recipe(top, "maximum-support-content-stream");
+    assert_eq!(text(field(support_row, "operation")), "stream_validation");
+    assert_eq!(text(field(support_row, "recipe")), "maximum-support-stream");
+    assert_covers(support_row, &["full-width-u16"]);
+    assert_eq!(number(field(support_row, "count_cap")), 86_252);
+    let support_input = object(
+        field(support_row, "input"),
+        &[
+            "accepted_selection_count",
+            "event_budget",
+            "matrix_columns",
+            "matrix_rows",
+            "record_count",
+            "region_count",
+            "selection_cap",
+        ],
+    );
+    for (key, wanted) in [
+        ("accepted_selection_count", 4096),
+        ("event_budget", 65535),
+        ("matrix_columns", 64),
+        ("matrix_rows", 64),
+        ("record_count", 14),
+        ("region_count", 4096),
+        ("selection_cap", 4096),
+    ] {
+        assert_eq!(number(field(support_input, key)), wanted);
+    }
     let stream = maximum_support_stream();
     assert_eq!(
         sha256(&stream),
         "a211f3d3cba3344b62f96b80c2759789e66a72dbc0cc517a86ca8fd1ff902c83"
+    );
+    assert_eq!(stream.len(), number(field(support_row, "input_bytes")));
+    assert_eq!(sha256(&stream), text(field(support_row, "input_sha256")));
+    let support_expected = object(field(support_row, "expected"), &["success"]);
+    let support_success = object(
+        field(support_expected, "success"),
+        &["stream_length", "stream_sha256"],
+    );
+    assert_eq!(
+        number(field(support_success, "stream_length")),
+        stream.len()
+    );
+    assert_eq!(
+        text(field(support_success, "stream_sha256")),
+        sha256(&stream)
     );
     let projection = stream_validation(&stream).unwrap();
     assert_eq!(projection.records().len(), 14);
@@ -1184,6 +1491,36 @@ fn maximum_support_and_run_state_boundaries_are_typed_and_bounded() {
     assert_eq!(
         sha256(&cap_over),
         "144d0ad6c31afb9ca4459ac97dccf4ee0f756529cb771fd54256d52de3bbe14f"
+    );
+    let selection_row = named_recipe(top, "maximum-selection-cap-plus-one");
+    assert_eq!(text(field(selection_row, "operation")), "stream_validation");
+    assert_eq!(
+        text(field(selection_row, "recipe")),
+        "maximum-selection-cap-over"
+    );
+    assert_covers(selection_row, &["cap-response-buffer-selections"]);
+    assert_eq!(number(field(selection_row, "count_cap")), 86_252);
+    let selection_input = object(
+        field(selection_row, "input"),
+        &["base_stream_sha256", "selection_cap"],
+    );
+    assert_eq!(number(field(selection_input, "selection_cap")), 4097);
+    assert_eq!(
+        text(field(selection_input, "base_stream_sha256")),
+        sha256(&stream)
+    );
+    assert_eq!(cap_over.len(), number(field(selection_row, "input_bytes")));
+    assert_eq!(
+        sha256(&cap_over),
+        text(field(selection_row, "input_sha256"))
+    );
+    assert_eq!(
+        expected_rejection(field(selection_row, "expected")),
+        Some(ContentReject {
+            code: 26,
+            raw_start: 78_030,
+            raw_end: 78_032
+        })
     );
     assert_eq!(
         stream_validation(&cap_over).unwrap_err(),
@@ -1209,10 +1546,64 @@ fn maximum_support_and_run_state_boundaries_are_typed_and_bounded() {
     let (committed, result) = step(&projection, committed, &[3, 0, 0, 0]);
     assert_eq!(result, 3);
     let committed_bytes = encode_run_state(&committed);
+    let committed_row = named_recipe(top, "maximum-committed-run-state");
+    assert_eq!(
+        text(field(committed_row, "operation")),
+        "validate_run_state"
+    );
+    assert_eq!(
+        text(field(committed_row, "recipe")),
+        "maximum-committed-state"
+    );
+    assert_covers(
+        committed_row,
+        &["maximum-committed-state", "full-width-u16"],
+    );
+    assert_eq!(number(field(committed_row, "count_cap")), 466_958);
+    let committed_input = object(
+        field(committed_row, "input"),
+        &[
+            "event_count",
+            "invalid_action_count",
+            "selection_count",
+            "support_stream_sha256",
+        ],
+    );
+    assert_eq!(number(field(committed_input, "event_count")), 65_535);
+    assert_eq!(
+        number(field(committed_input, "invalid_action_count")),
+        61_438
+    );
+    assert_eq!(number(field(committed_input, "selection_count")), 4096);
+    assert_eq!(
+        text(field(committed_input, "support_stream_sha256")),
+        sha256(&stream)
+    );
     assert_eq!(committed_bytes.len(), 466_958);
     assert_eq!(
         sha256(&committed_bytes),
         "db2c72090a0f01c9cde48f131f69009c3a66339a351ec75c917b75c82af5facb"
+    );
+    assert_eq!(
+        committed_bytes.len(),
+        number(field(committed_row, "input_bytes"))
+    );
+    assert_eq!(
+        sha256(&committed_bytes),
+        text(field(committed_row, "input_sha256"))
+    );
+    let committed_expected = object(field(committed_row, "expected"), &["success"]);
+    let committed_success = object(
+        field(committed_expected, "success"),
+        &["state_length", "state_sha256"],
+    );
+    assert_eq!(
+        number(field(committed_success, "state_length")),
+        committed_bytes.len()
+    );
+    assert_eq!(
+        text(field(committed_success, "state_sha256")),
+        sha256(&committed_bytes)
     );
     assert_eq!(
         encode_run_state(&validate_run_state(&projection, &committed_bytes).unwrap()),
@@ -1220,6 +1611,32 @@ fn maximum_support_and_run_state_boundaries_are_typed_and_bounded() {
     );
     let mut over = committed_bytes.clone();
     over.push(0);
+    let committed_over_row = named_recipe(top, "committed-run-state-first-byte-over");
+    assert_eq!(
+        text(field(committed_over_row, "recipe")),
+        "maximum-state-byte-over"
+    );
+    assert_covers(committed_over_row, &["precedence"]);
+    assert_eq!(number(field(committed_over_row, "count_cap")), 466_959);
+    let committed_over_input = object(
+        field(committed_over_row, "input"),
+        &["append_hex", "base_state"],
+    );
+    assert_eq!(text(field(committed_over_input, "append_hex")), "00");
+    assert_eq!(text(field(committed_over_input, "base_state")), "committed");
+    assert_eq!(over.len(), number(field(committed_over_row, "input_bytes")));
+    assert_eq!(
+        sha256(&over),
+        text(field(committed_over_row, "input_sha256"))
+    );
+    assert_eq!(
+        expected_rejection(field(committed_over_row, "expected")),
+        Some(ContentReject {
+            code: 1,
+            raw_start: 466_958,
+            raw_end: 466_959
+        })
+    );
     assert_eq!(
         validate_run_state(&projection, &over).unwrap_err(),
         ContentReject {
@@ -1238,10 +1655,60 @@ fn maximum_support_and_run_state_boundaries_are_typed_and_bounded() {
         exhausted = step(&projection, exhausted, &[]).0;
     }
     let exhausted_bytes = encode_run_state(&exhausted);
+    let exhausted_row = named_recipe(top, "maximum-exhausted-run-state");
+    assert_eq!(
+        text(field(exhausted_row, "recipe")),
+        "maximum-exhausted-state"
+    );
+    assert_covers(
+        exhausted_row,
+        &["maximum-exhausted-state", "full-width-u16"],
+    );
+    assert_eq!(number(field(exhausted_row, "count_cap")), 466_955);
+    let exhausted_input = object(
+        field(exhausted_row, "input"),
+        &[
+            "event_count",
+            "invalid_action_count",
+            "selection_count",
+            "support_stream_sha256",
+        ],
+    );
+    assert_eq!(number(field(exhausted_input, "event_count")), 65_535);
+    assert_eq!(
+        number(field(exhausted_input, "invalid_action_count")),
+        61_439
+    );
+    assert_eq!(number(field(exhausted_input, "selection_count")), 4096);
+    assert_eq!(
+        text(field(exhausted_input, "support_stream_sha256")),
+        sha256(&stream)
+    );
     assert_eq!(exhausted_bytes.len(), 466_955);
     assert_eq!(
         sha256(&exhausted_bytes),
         "db7f9bb5b5980599e5ace4b88cbb7841476cc01c83bb7f5a76d3b97e5d830c43"
+    );
+    assert_eq!(
+        exhausted_bytes.len(),
+        number(field(exhausted_row, "input_bytes"))
+    );
+    assert_eq!(
+        sha256(&exhausted_bytes),
+        text(field(exhausted_row, "input_sha256"))
+    );
+    let exhausted_expected = object(field(exhausted_row, "expected"), &["success"]);
+    let exhausted_success = object(
+        field(exhausted_expected, "success"),
+        &["state_length", "state_sha256"],
+    );
+    assert_eq!(
+        number(field(exhausted_success, "state_length")),
+        exhausted_bytes.len()
+    );
+    assert_eq!(
+        text(field(exhausted_success, "state_sha256")),
+        sha256(&exhausted_bytes)
     );
     assert_eq!(
         encode_run_state(&validate_run_state(&projection, &exhausted_bytes).unwrap()),
@@ -1252,6 +1719,35 @@ fn maximum_support_and_run_state_boundaries_are_typed_and_bounded() {
     assert_eq!(unchanged, exhausted);
     let mut exhausted_over = exhausted_bytes.clone();
     exhausted_over.push(0);
+    let exhausted_over_row = named_recipe(top, "exhausted-run-state-first-byte-over");
+    assert_eq!(
+        text(field(exhausted_over_row, "operation")),
+        "validate_run_state"
+    );
+    assert_covers(exhausted_over_row, &["precedence"]);
+    assert_eq!(number(field(exhausted_over_row, "count_cap")), 466_956);
+    let exhausted_over_input = object(
+        field(exhausted_over_row, "input"),
+        &["append_hex", "base_state"],
+    );
+    assert_eq!(text(field(exhausted_over_input, "append_hex")), "00");
+    assert_eq!(text(field(exhausted_over_input, "base_state")), "exhausted");
+    assert_eq!(
+        exhausted_over.len(),
+        number(field(exhausted_over_row, "input_bytes"))
+    );
+    assert_eq!(
+        sha256(&exhausted_over),
+        text(field(exhausted_over_row, "input_sha256"))
+    );
+    assert_eq!(
+        expected_rejection(field(exhausted_over_row, "expected")),
+        Some(ContentReject {
+            code: 1,
+            raw_start: 466_955,
+            raw_end: 466_956
+        })
+    );
     assert_eq!(
         validate_run_state(&projection, &exhausted_over).unwrap_err(),
         ContentReject {
@@ -1267,11 +1763,65 @@ fn maximum_support_and_run_state_boundaries_are_typed_and_bounded() {
     }
     actions.resize(actions.len() + 61_439 * 4, 0);
     actions.extend_from_slice(&[3, 0, 0, 0]);
+    let typed_row = named_recipe(top, "typed-step-65536-does-not-wrap");
+    assert_eq!(text(field(typed_row, "operation")), "step");
+    assert_eq!(text(field(typed_row, "recipe")), "typed-step-sequence");
+    assert_covers(typed_row, &["full-width-u16", "all-runtime-results"]);
+    assert_eq!(number(field(typed_row, "count_cap")), 65_536);
+    let typed_input = object(
+        field(typed_row, "input"),
+        &[
+            "first_4096",
+            "last",
+            "next_61439",
+            "operation_count",
+            "support_stream_sha256",
+        ],
+    );
+    assert_eq!(
+        text(field(typed_input, "first_4096")),
+        "select-region-ids-1-through-4096"
+    );
+    assert_eq!(text(field(typed_input, "last")), "commit");
+    assert_eq!(
+        text(field(typed_input, "next_61439")),
+        "invalid-action-sentinel"
+    );
+    assert_eq!(number(field(typed_input, "operation_count")), 65_536);
+    assert_eq!(
+        text(field(typed_input, "support_stream_sha256")),
+        sha256(&stream)
+    );
     assert_eq!(actions.len() / 4, 65_536);
     assert_eq!(
         sha256(&actions),
         "f73e21fa418d3720bf49fe7535ba26910061f779913ded2be610811ca6abf341"
     );
+    assert_eq!(actions.len(), number(field(typed_row, "input_bytes")));
+    assert_eq!(sha256(&actions), text(field(typed_row, "input_sha256")));
+    let typed_expected = object(field(typed_row, "expected"), &["success"]);
+    let typed_success = object(
+        field(typed_expected, "success"),
+        &[
+            "final_state_bytes",
+            "final_state_sha256",
+            "last_interaction_result",
+            "state_unchanged",
+        ],
+    );
+    assert_eq!(
+        number(field(typed_success, "final_state_bytes")),
+        exhausted_bytes.len()
+    );
+    assert_eq!(
+        text(field(typed_success, "final_state_sha256")),
+        sha256(&exhausted_bytes)
+    );
+    assert_eq!(number(field(typed_success, "last_interaction_result")), 9);
+    assert!(matches!(
+        field(typed_success, "state_unchanged"),
+        V::Bool(true)
+    ));
 }
 
 #[test]
@@ -1385,6 +1935,235 @@ fn both_control_edge_recipes_are_bounded_before_graph_traversal() {
         executed += 1;
     }
     assert_eq!(executed, 2);
+}
+
+#[test]
+fn review_passive_resulting_presentation_must_match_region_surface() {
+    for tuple in [false, true] {
+        let (bytes, start, _) = passive_presentation_stream(tuple, 0);
+        assert_eq!(
+            stream_validation(&bytes).unwrap_err(),
+            ContentReject {
+                code: 21,
+                raw_start: start as u32,
+                raw_end: start as u32 + 2,
+            }
+        );
+    }
+}
+
+#[test]
+fn review_stage_four_duplicate_precedes_later_local_error() {
+    let fixture = fixture();
+    let top = object(&fixture, &["bases", "cases", "recipes", "schema"]);
+    let mut bytes = generic_base(top);
+    bytes[323] = 1;
+    bytes[327..329].copy_from_slice(&1u16.to_be_bytes());
+    bytes[541] = 0;
+    assert_eq!(
+        stream_validation(&bytes).unwrap_err(),
+        ContentReject {
+            code: 16,
+            raw_start: 323,
+            raw_end: 324,
+        }
+    );
+    bytes[541] = 4;
+    bytes[324] = 1;
+    assert_eq!(
+        stream_validation(&bytes).unwrap_err(),
+        ContentReject {
+            code: 16,
+            raw_start: 323,
+            raw_end: 324,
+        }
+    );
+}
+
+#[test]
+fn review_stage_five_relations_choose_lowest_raw_span() {
+    let fixture = fixture();
+    let top = object(&fixture, &["bases", "cases", "recipes", "schema"]);
+    let mut bytes = generic_base(top);
+    bytes[197..199].copy_from_slice(&2u16.to_be_bytes());
+    bytes[314] = 6;
+    assert_eq!(
+        stream_validation(&bytes).unwrap_err(),
+        ContentReject {
+            code: 16,
+            raw_start: 197,
+            raw_end: 199,
+        }
+    );
+}
+
+#[test]
+fn review_forbidden_answer_data_blames_the_forbidden_field() {
+    let (bytes, _, start) = passive_presentation_stream(false, 1);
+    assert_eq!(
+        stream_validation(&bytes).unwrap_err(),
+        ContentReject {
+            code: 27,
+            raw_start: start as u32,
+            raw_end: start as u32 + 2,
+        }
+    );
+}
+
+#[test]
+fn review_run_state_framing_completes_before_count_driven_allocation() {
+    let fixture = fixture();
+    let top = object(&fixture, &["bases", "cases", "recipes", "schema"]);
+    let projection = stream_validation(&generic_base(top)).unwrap();
+    let mut truncated = vec![0; 14];
+    truncated[10] = 1;
+    truncated[12..14].copy_from_slice(&4096u16.to_be_bytes());
+    let (result, largest) =
+        largest_allocation_during(|| validate_run_state(&projection, &truncated));
+    assert_eq!(
+        result.unwrap_err(),
+        ContentReject {
+            code: 31,
+            raw_start: 14,
+            raw_end: 14
+        }
+    );
+    assert!(
+        largest < 4096,
+        "allocated {largest} bytes before framing EOF"
+    );
+}
+
+#[test]
+fn review_committed_responses_and_replay_candidates_are_fieldwise() {
+    let fixture = fixture();
+    let top = object(&fixture, &["bases", "cases", "recipes", "schema"]);
+    let projection = stream_validation(&generic_base(top)).unwrap();
+    let invalid_response = hex("0000001d001a00070001020200000005010001ffff0001001a0300000003");
+    assert_eq!(
+        validate_run_state(&projection, &invalid_response).unwrap_err(),
+        ContentReject {
+            code: 31,
+            raw_start: 19,
+            raw_end: 21
+        }
+    );
+    let hybrid = hex("0000001d001b000700020100000000000001001a0300000003");
+    assert_eq!(
+        validate_run_state(&projection, &hybrid).unwrap_err(),
+        ContentReject {
+            code: 31,
+            raw_start: 8,
+            raw_end: 10
+        }
+    );
+}
+
+fn response_layout(state: &[u8]) -> (usize, usize) {
+    let buffer_count = u16::from_be_bytes([state[12], state[13]]) as usize;
+    let length_at = 14 + buffer_count * 2;
+    let length = u16::from_be_bytes([state[length_at], state[length_at + 1]]) as usize;
+    (length_at + 2, length)
+}
+
+#[test]
+fn review_committed_response_cardinality_order_duplicate_and_repeat_are_closed() {
+    let fixture = fixture();
+    let top = object(&fixture, &["bases", "cases", "recipes", "schema"]);
+    let base = generic_base(top);
+    let projection = stream_validation(&base).unwrap();
+
+    let selected = step(&projection, new_run(&projection), &[1, 0, 0, 1]).0;
+    let single = encode_run_state(&step(&projection, selected, &[3, 0, 0, 0]).0);
+    let (response_start, response_length) = response_layout(&single);
+    let mut overfull = single;
+    overfull[response_start + 1..response_start + 3].copy_from_slice(&2u16.to_be_bytes());
+    overfull.splice(
+        response_start + response_length..response_start + response_length,
+        [0, 2],
+    );
+    let length_at = response_start - 2;
+    overfull[length_at..length_at + 2]
+        .copy_from_slice(&((response_length + 2) as u16).to_be_bytes());
+    assert_eq!(
+        validate_run_state(&projection, &overfull).unwrap_err(),
+        ContentReject {
+            code: 31,
+            raw_start: (response_start + 1) as u32,
+            raw_end: (response_start + 3) as u32,
+        }
+    );
+
+    let committed = step(&projection, new_run(&projection), &[3, 0, 0, 0]).0;
+    let mut set = advance_committed(&projection, &committed).unwrap();
+    set = step(&projection, set, &[1, 0, 0, 1]).0;
+    set = step(&projection, set, &[1, 0, 0, 2]).0;
+    let set = encode_run_state(&step(&projection, set, &[3, 0, 0, 0]).0);
+    let (set_response, _) = response_layout(&set);
+    for second in [1u16, 0] {
+        let mut invalid = set.clone();
+        if second == 0 {
+            invalid[set_response + 3..set_response + 5].copy_from_slice(&2u16.to_be_bytes());
+            invalid[set_response + 5..set_response + 7].copy_from_slice(&1u16.to_be_bytes());
+        } else {
+            invalid[set_response + 5..set_response + 7].copy_from_slice(&second.to_be_bytes());
+        }
+        assert_eq!(
+            validate_run_state(&projection, &invalid).unwrap_err(),
+            ContentReject {
+                code: 31,
+                raw_start: (set_response + 5) as u32,
+                raw_end: (set_response + 7) as u32,
+            }
+        );
+    }
+
+    let mut no_repeats = base;
+    no_repeats[544] = 0;
+    let no_repeats = stream_validation(&no_repeats).unwrap();
+    let committed = step(&no_repeats, new_run(&no_repeats), &[3, 0, 0, 0]).0;
+    let node_27 = advance_committed(&no_repeats, &committed).unwrap();
+    let committed = step(&no_repeats, node_27, &[3, 0, 0, 0]).0;
+    let mut sequence = advance_committed(&no_repeats, &committed).unwrap();
+    sequence = step(&no_repeats, sequence, &[1, 0, 0, 1]).0;
+    sequence = step(&no_repeats, sequence, &[1, 0, 0, 2]).0;
+    let sequence = encode_run_state(&step(&no_repeats, sequence, &[3, 0, 0, 0]).0);
+    let (sequence_response, _) = response_layout(&sequence);
+    let mut repeated = sequence;
+    repeated[sequence_response + 5..sequence_response + 7].copy_from_slice(&1u16.to_be_bytes());
+    assert_eq!(
+        validate_run_state(&no_repeats, &repeated).unwrap_err(),
+        ContentReject {
+            code: 31,
+            raw_start: (sequence_response + 5) as u32,
+            raw_end: (sequence_response + 7) as u32,
+        }
+    );
+}
+
+#[test]
+fn review_fixture_contract_rejects_a_replaced_maximum_recipe() {
+    let mut fixture = fixture();
+    let V::Object(top) = &mut fixture else {
+        panic!("top")
+    };
+    let V::Array(recipes) = top.get_mut("recipes").unwrap() else {
+        panic!("recipes")
+    };
+    let row = recipes
+        .iter_mut()
+        .find(|row| {
+            matches!(row, V::Object(fields) if text(field(fields, "name")) == "maximum-support-content-stream")
+        })
+        .unwrap();
+    let V::Object(fields) = row else {
+        panic!("row")
+    };
+    fields.insert(
+        "name".to_owned(),
+        s("maximum-support-content-stream-replaced"),
+    );
+    assert!(review_fixture_contract(&fixture).is_err());
 }
 
 #[test]
