@@ -27,6 +27,15 @@ fn num(v: &V) -> u64 {
     let V::U64(x) = v else { panic!("u64") };
     *x
 }
+fn side_value(v: &V) -> Side {
+    Side::from_code(num(v) as u8).unwrap()
+}
+fn square_value(v: &V) -> Square {
+    Square::from_index(num(v) as u8).unwrap()
+}
+fn square_field(v: &V) -> Option<Square> {
+    u8::try_from(num(v)).ok().and_then(Square::from_index)
+}
 fn array(v: &V) -> &[V] {
     let V::Array(x) = v else { panic!("array") };
     x
@@ -88,7 +97,7 @@ fn replay_facts(r: &ReplayState, expected: &V) -> V {
                         "common_dead" => b(common_dead(r)),
                         "terminal" => terminal_value(terminal),
                         "winning_side" => match terminal {
-                            BoardTerminal::Checkmate(x) => u(x as u64),
+                            BoardTerminal::Checkmate(x) => u(x.code() as u64),
                             _ => panic!(),
                         },
                         "played_plies" => u(r.played_plies() as u64),
@@ -101,20 +110,19 @@ fn replay_facts(r: &ReplayState, expected: &V) -> V {
 }
 fn cause_value(c: ClosureCause) -> V {
     match c {
-        ClosureCause::Board(BoardTerminal::Checkmate(side)) => obj([
+        ClosureCause::Board(BoardClosure::Checkmate(side)) => obj([
             ("kind", s("board")),
             ("terminal", u(1)),
-            ("winning_side", u(side as u64)),
+            ("winning_side", u(side.code() as u64)),
         ]),
-        ClosureCause::Board(BoardTerminal::Stalemate) => {
+        ClosureCause::Board(BoardClosure::Stalemate) => {
             obj([("kind", s("board")), ("terminal", u(2))])
         }
-        ClosureCause::Board(BoardTerminal::CommonDead) => {
+        ClosureCause::Board(BoardClosure::CommonDead) => {
             obj([("kind", s("board")), ("terminal", u(3))])
         }
-        ClosureCause::Board(BoardTerminal::None) => panic!(),
         ClosureCause::Resignation(side) => {
-            obj([("kind", s("resignation")), ("side", u(side as u64))])
+            obj([("kind", s("resignation")), ("side", u(side.code() as u64))])
         }
         ClosureCause::DrawAgreement => obj([("kind", s("draw-agreement"))]),
         ClosureCause::ClaimThreefold => obj([("kind", s("claim-threefold"))]),
@@ -156,14 +164,14 @@ fn predicate_input(v: &V) -> PredicateInput {
                 "empty" => OccupancyMatch::Empty,
                 "occupied" => OccupancyMatch::Occupied,
                 "exact" => OccupancyMatch::Exact {
-                    side: num(field(m, "side")) as u8,
+                    side: side_value(field(m, "side")),
                     piece: num(field(m, "piece")) as u8,
                 },
                 _ => panic!(),
             };
             PredicateInput::Occupancy(
                 position(field(v, "position_hex")),
-                num(field(v, "square")) as u8,
+                square_value(field(v, "square")),
                 mode,
             )
         }
@@ -173,51 +181,52 @@ fn predicate_input(v: &V) -> PredicateInput {
         ),
         "control" => PredicateInput::Control(
             position(field(v, "position_hex")),
-            num(field(v, "side")) as u8,
-            num(field(v, "target")) as u8,
+            side_value(field(v, "side")),
+            square_value(field(v, "target")),
         ),
         "defended" => {
             let d = field(v, "defender");
             let d = match text(field(d, "kind")) {
                 "any" => Defender::Any,
-                "exact" => Defender::Exact(num(field(d, "square")) as u8),
+                "exact" => Defender::Exact(square_value(field(d, "square"))),
                 _ => panic!(),
             };
             PredicateInput::Defended(
                 position(field(v, "position_hex")),
-                num(field(v, "target")) as u8,
+                square_value(field(v, "target")),
                 d,
             )
         }
-        "king-check" => {
-            PredicateInput::KingCheck(local(field(v, "position_hex")), num(field(v, "side")) as u8)
-        }
+        "king-check" => PredicateInput::KingCheck(
+            local(field(v, "position_hex")),
+            side_value(field(v, "side")),
+        ),
         "absolute-pin" => PredicateInput::AbsolutePin(
             local(field(v, "position_hex")),
-            num(field(v, "origin")) as u8,
+            square_value(field(v, "origin")),
         ),
         "fork-double-attack" => PredicateInput::Fork(
             replay(field(v, "moves_hex")),
             decode_move(&hex(text(field(v, "move_hex")))).unwrap(),
             array(field(v, "targets"))
                 .iter()
-                .map(|x| num(x) as u8)
+                .map(square_field)
                 .collect(),
         ),
         "discovered-line" => PredicateInput::Discovered(
             replay(field(v, "moves_hex")),
             decode_move(&hex(text(field(v, "move_hex")))).unwrap(),
-            num(field(v, "slider_origin")) as u8,
-            num(field(v, "target")) as u8,
+            square_field(field(v, "slider_origin")),
+            square_field(field(v, "target")),
         ),
         "escape-control" => PredicateInput::Escape(
             position(field(v, "position_hex")),
-            num(field(v, "side")) as u8,
-            num(field(v, "candidate")) as u8,
+            side_value(field(v, "side")),
+            square_value(field(v, "candidate")),
         ),
         "passed-pawn" => PredicateInput::PassedPawn(
             local(field(v, "position_hex")),
-            num(field(v, "pawn_square")) as u8,
+            square_value(field(v, "pawn_square")),
         ),
         "open-file" => PredicateInput::OpenFile(
             position(field(v, "position_hex")),
@@ -225,7 +234,7 @@ fn predicate_input(v: &V) -> PredicateInput {
         ),
         "semi-open-file" => PredicateInput::SemiOpenFile(
             position(field(v, "position_hex")),
-            num(field(v, "side")) as u8,
+            side_value(field(v, "side")),
             num(field(v, "file")) as u8,
         ),
         "finite-promotion-tree" => PredicateInput::PromotionTree(
@@ -234,7 +243,7 @@ fn predicate_input(v: &V) -> PredicateInput {
         ),
         "finite-mating-tree" => PredicateInput::MatingTree(
             replay(field(v, "moves_hex")),
-            num(field(v, "mating_side")) as u8,
+            Side::from_code(num(field(v, "mating_side")) as u8),
             tree_nodes(field(v, "nodes")),
         ),
         "terminal-transition" => PredicateInput::TerminalTransition(
@@ -260,10 +269,10 @@ fn predicate_input(v: &V) -> PredicateInput {
         _ => panic!("variant {variant}"),
     }
 }
-fn ep_value(x: Option<u8>) -> V {
+fn ep_value(x: Option<Square>) -> V {
     match x {
         None => obj([("kind", s("none"))]),
-        Some(square) => obj([("kind", s("square")), ("square", u(square as u64))]),
+        Some(square) => obj([("kind", s("square")), ("square", u(square.index() as u64))]),
     }
 }
 fn predicate_value(value: PredicateResult) -> V {
@@ -271,7 +280,7 @@ fn predicate_value(value: PredicateResult) -> V {
         PredicateResult::Bool(value) => obj([("value", b(value))]),
         PredicateResult::Squares(xs) => obj([(
             "squares",
-            V::Array(xs.into_iter().map(|x| u(x as u64)).collect()),
+            V::Array(xs.into_iter().map(|x| u(x.index() as u64)).collect()),
         )]),
         PredicateResult::MoveLegality(Ok(())) => obj([("kind", s("legal"))]),
         PredicateResult::MoveLegality(Err(code)) => {
@@ -297,14 +306,14 @@ fn predicate_value(value: PredicateResult) -> V {
             max_plies,
         } => obj([
             ("all_branches_mate", b(all_branches_mate)),
-            ("mating_side", u(mating_side as u64)),
+            ("mating_side", u(mating_side.code() as u64)),
             ("max_plies", u(max_plies as u64)),
         ]),
         PredicateResult::Terminal(t) => {
             let mut m = BTreeMap::new();
             m.insert("terminal".into(), terminal_value(t));
             if let BoardTerminal::Checkmate(x) = t {
-                m.insert("winning_side".into(), u(x as u64));
+                m.insert("winning_side".into(), u(x.code() as u64));
             }
             V::Object(m)
         }
@@ -392,11 +401,11 @@ fn run_direct(case: &V) -> Option<V> {
                 V::Array(
                     controls_square(
                         &p,
-                        num(field(input, "side")) as u8,
-                        num(field(input, "target")) as u8,
+                        side_value(field(input, "side")),
+                        square_value(field(input, "target")),
                     )
                     .into_iter()
-                    .map(|x| u(x as u64))
+                    .map(|x| u(x.index() as u64))
                     .collect(),
                 ),
             )]))
@@ -451,7 +460,11 @@ fn run_direct(case: &V) -> Option<V> {
                                         "terminal" => terminal_value(board_terminal(&r)),
                                         "king_in_check" => {
                                             let l = validate_local(r.position()).unwrap();
-                                            b(king_in_check(&l, encode_position(r.position())[64]))
+                                            b(king_in_check(
+                                                &l,
+                                                Side::from_code(encode_position(r.position())[64])
+                                                    .unwrap(),
+                                            ))
                                         }
                                         _ => panic!("apply fact {k}"),
                                     },
@@ -608,7 +621,7 @@ fn bounded_deterministic_legal_walk_properties() {
                 .wrapping_add(1442695040888963407);
             let mv = legal[(seed as usize) % legal.len()];
             assert_eq!(decode_move(&encode_move(mv)).unwrap(), mv);
-            let mover = encode_position(state.position())[64];
+            let mover = Side::from_code(encode_position(state.position())[64]).unwrap();
             state = apply_move(&state, mv).unwrap();
             let rejected_snapshot = state.clone();
             assert!(apply_move(&state, mv).is_err());
@@ -621,6 +634,118 @@ fn bounded_deterministic_legal_walk_properties() {
                 "seed={seed:x} case={case} ply={ply}"
             );
         }
+    }
+}
+
+fn changed_indices(before: &[u8; 67], after: &[u8; 67]) -> Vec<usize> {
+    before
+        .iter()
+        .zip(after)
+        .enumerate()
+        .filter_map(|(index, (left, right))| (left != right).then_some(index))
+        .collect()
+}
+
+#[test]
+fn bounded_controller_pseudo_legal_and_replay_properties() {
+    let prefixes = [
+        "",
+        "31c0",
+        "31c0fad0",
+        "31c0d2401950e6a014c0fad0",
+        "2180e6a06200def08280be70a3109df0",
+    ];
+    for (case, encoded) in prefixes.into_iter().enumerate() {
+        let moves = move_list(encoded);
+        let replay = replay_from_start(&moves).unwrap();
+        assert_eq!(replay, replay_from_start(&moves).unwrap(), "case={case}");
+        let local = validate_local(replay.position()).unwrap();
+        let pseudo = pseudo_legal_moves(&local);
+        let legal = legal_moves(&replay);
+        assert!(
+            pseudo.windows(2).all(|pair| pair[0] < pair[1]),
+            "case={case}"
+        );
+        assert!(
+            legal.windows(2).all(|pair| pair[0] < pair[1]),
+            "case={case}"
+        );
+        assert!(
+            legal.iter().all(|mv| pseudo.binary_search(mv).is_ok()),
+            "case={case}"
+        );
+
+        let bytes = encode_position(replay.position());
+        let opposing_king = if bytes[64] == 0 { 12 } else { 6 };
+        for mv in &pseudo {
+            let packed = u16::from_be_bytes(encode_move(*mv));
+            let destination = ((packed as u32 & 0x03f0) >> 4) as usize;
+            assert_ne!(bytes[destination], opposing_king, "case={case}");
+        }
+        for side in [Side::FIRST, Side::SECOND] {
+            for target in 0..64u8 {
+                let controllers =
+                    controls_square(replay.position(), side, Square::from_index(target).unwrap());
+                assert!(
+                    controllers.windows(2).all(|pair| pair[0] < pair[1]),
+                    "case={case} side={} target={target}",
+                    side.code()
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn exact_state_field_and_promotion_properties() {
+    let initial = replay_from_start(&[]).unwrap();
+    let e4 = apply_move(&initial, decode_move(&hex("31c0")).unwrap()).unwrap();
+    let initial_bytes = encode_position(initial.position());
+    let e4_bytes = encode_position(e4.position());
+    assert_eq!(changed_indices(&initial_bytes, &e4_bytes), [12, 28, 64, 66]);
+    assert_eq!((e4_bytes[64], e4_bytes[65], e4_bytes[66]), (1, 15, 21));
+    assert_eq!(e4.halfmove_clock(), 0);
+    let key = repetition_key(&e4);
+    assert_eq!(&key[..66], &e4_bytes[..66]);
+    assert_eq!(key[66], 0);
+
+    let nf6 = apply_move(&e4, decode_move(&hex("fad0")).unwrap()).unwrap();
+    let nf6_bytes = encode_position(nf6.position());
+    assert_eq!(changed_indices(&e4_bytes, &nf6_bytes), [45, 62, 64, 66]);
+    assert_eq!((nf6_bytes[64], nf6_bytes[65], nf6_bytes[66]), (0, 15, 0));
+    assert_eq!(nf6.halfmove_clock(), 1);
+    assert_eq!(repetition_key(&nf6), nf6_bytes);
+
+    let rook_return = replay_from_start(&move_list("3d70c2801cf0a2003c70c690")).unwrap();
+    assert_eq!(encode_position(rook_return.position())[65], 14);
+    let effective_ep = replay_from_start(&move_list("2100ce3041808db031c0")).unwrap();
+    assert_eq!(
+        repetition_key(&effective_ep),
+        encode_position(effective_ep.position())
+    );
+    assert_eq!(
+        replay_from_start(&move_list("1950fad05460b7e0"))
+            .unwrap()
+            .halfmove_clock(),
+        4
+    );
+    assert_eq!(
+        replay_from_start(&move_list("31c0ce307230"))
+            .unwrap()
+            .halfmove_clock(),
+        0
+    );
+
+    let promotion_root = replay_from_start(&move_list("2180e6a06200def08280be70a3109df0")).unwrap();
+    let legal = legal_moves(&promotion_root);
+    let choices = ["c792", "c794", "c796", "c798"];
+    for (encoded, piece) in choices.into_iter().zip([5, 4, 3, 2]) {
+        let mv = decode_move(&hex(encoded)).unwrap();
+        assert!(legal.binary_search(&mv).is_ok());
+        let promoted = apply_move(&promotion_root, mv).unwrap();
+        let bytes = encode_position(promoted.position());
+        assert_eq!(bytes[57], piece);
+        assert_eq!(promoted.halfmove_clock(), 0);
     }
 }
 
@@ -716,4 +841,112 @@ fn named_chess_event_mutants_are_killed_directly() {
             "mutant: premature agreement allowed"
         );
     }
+}
+
+fn move_list(encoded: &str) -> Vec<Move> {
+    hex(encoded)
+        .chunks_exact(2)
+        .map(|bytes| decode_move(bytes).unwrap())
+        .collect()
+}
+
+#[test]
+fn public_side_codes_are_closed() {
+    assert_eq!(Side::from_code(0).unwrap().code(), 0);
+    assert_eq!(Side::from_code(1).unwrap().code(), 1);
+    assert_eq!(Side::from_code(2), None);
+}
+
+#[test]
+fn public_square_indices_are_closed() {
+    assert_eq!(Square::from_index(0).unwrap().index(), 0);
+    assert_eq!(Square::from_index(63).unwrap().index(), 63);
+    assert_eq!(Square::from_index(64), None);
+}
+
+#[test]
+fn public_terminal_and_closure_payloads_use_validated_side() {
+    let first = Side::FIRST;
+    let mate = BoardTerminal::Checkmate(first);
+    assert_eq!(mate.code(), 1);
+    let cause = ClosureCause::Board(BoardClosure::Checkmate(first));
+    assert!(matches!(
+        cause,
+        ClosureCause::Board(BoardClosure::Checkmate(side)) if side == first
+    ));
+}
+
+#[test]
+fn local_count_precedence_checks_both_kings_first() {
+    let mut bytes = encode_position(&position(&s(
+        "0402030506030204010101010101010100000000000000000000000000000000\
+         0000000000000000000000000000000007070707070707070a08090b0c09080a\
+         000f00",
+    )));
+    bytes[60] = 0;
+    bytes[20] = 1;
+    assert_eq!(
+        validate_local(&decode_position(&bytes).unwrap())
+            .unwrap_err()
+            .code,
+        17
+    );
+}
+
+#[test]
+fn off_home_two_file_king_move_is_geometry() {
+    let state = replay_from_start(&move_list("3960dae03140c28010c0a200")).unwrap();
+    let error = apply_move(&state, decode_move(&hex("30e0")).unwrap()).unwrap_err();
+    assert_eq!(error.code, 50);
+}
+
+#[test]
+fn occupied_pawn_double_destination_is_pawn_advance() {
+    let state = replay_from_start(&move_list("2100d240418091c0")).unwrap();
+    let error = apply_move(&state, decode_move(&hex("31c0")).unwrap()).unwrap_err();
+    assert_eq!(error.code, 52);
+}
+
+#[test]
+fn closed_discovered_transition_precedes_square_shape() {
+    let state = replay_from_start(&move_list("3550d24039e0edf0")).unwrap();
+    let result = evaluate_predicate(
+        b"chess.discovered_attack_check",
+        PredicateInput::Discovered(state, decode_move(&hex("4180")).unwrap(), None, None),
+    );
+    assert_eq!(result.unwrap_err().code, 34);
+}
+
+#[test]
+fn mating_aggregate_resources_precede_side_and_material() {
+    let initial = replay_from_start(&[]).unwrap();
+    let nodes = vec![TreeNode { edges: vec![] }; 4097];
+    assert_eq!(
+        evaluate_predicate(
+            b"chess.finite_mating_geometry",
+            PredicateInput::MatingTree(initial.clone(), None, nodes),
+        )
+        .unwrap_err()
+        .code,
+        36
+    );
+    let edge = TreeEdge {
+        mv: decode_move(&hex("4180")).unwrap(),
+        child: 0,
+    };
+    assert_eq!(
+        evaluate_predicate(
+            b"chess.finite_mating_geometry",
+            PredicateInput::MatingTree(
+                initial,
+                Some(Side::FIRST),
+                vec![TreeNode {
+                    edges: vec![edge; 257]
+                }],
+            ),
+        )
+        .unwrap_err()
+        .code,
+        36
+    );
 }

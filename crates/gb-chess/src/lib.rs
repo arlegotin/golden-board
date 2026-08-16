@@ -21,7 +21,7 @@ pub struct Event {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum EventKind {
     Move(Move),
-    Resignation(u8),
+    Resignation(Side),
     DrawAgreement,
     ClaimThreefold,
     ClaimFiftyMove,
@@ -49,6 +49,47 @@ impl Score {
             _ => None,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Side(u8);
+
+impl Side {
+    pub const FIRST: Self = Self(SIDE_FIRST);
+    pub const SECOND: Self = Self(SIDE_SECOND);
+
+    pub fn from_code(code: u8) -> Option<Self> {
+        match code {
+            SIDE_FIRST => Some(Self::FIRST),
+            SIDE_SECOND => Some(Self::SECOND),
+            _ => None,
+        }
+    }
+
+    pub fn code(self) -> u8 {
+        self.0
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+pub struct Square(u8);
+
+impl Square {
+    pub fn from_index(index: u8) -> Option<Self> {
+        (index < CHESS_SQUARE_COUNT as u8).then_some(Self(index))
+    }
+
+    pub fn index(self) -> u8 {
+        self.0
+    }
+}
+
+fn side(code: u8) -> Side {
+    Side(code)
+}
+
+fn square(index: u8) -> Square {
+    Square(index)
 }
 
 fn reject(code: u16) -> ChessReject {
@@ -137,7 +178,7 @@ pub fn decode_event(bytes: &[u8]) -> Result<Event> {
             }
             (
                 Event {
-                    kind: EventKind::Resignation(bytes[1]),
+                    kind: EventKind::Resignation(side(bytes[1])),
                 },
                 2,
             )
@@ -173,7 +214,7 @@ pub fn encode_event(event: Event) -> Vec<u8> {
             let b = encode_move(m);
             vec![EVENT_MOVE, b[0], b[1]]
         }
-        EventKind::Resignation(s) => vec![EVENT_RESIGNATION, s],
+        EventKind::Resignation(s) => vec![EVENT_RESIGNATION, s.code()],
         EventKind::DrawAgreement => vec![EVENT_DRAW_AGREEMENT],
         EventKind::ClaimThreefold => vec![EVENT_CLAIM_THREEFOLD],
         EventKind::ClaimFiftyMove => vec![EVENT_CLAIM_50_MOVE],
@@ -196,15 +237,22 @@ pub struct ReplayState {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BoardTerminal {
     None,
-    Checkmate(u8),
+    Checkmate(Side),
+    Stalemate,
+    CommonDead,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BoardClosure {
+    Checkmate(Side),
     Stalemate,
     CommonDead,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ClosureCause {
-    Board(BoardTerminal),
-    Resignation(u8),
+    Board(BoardClosure),
+    Resignation(Side),
     DrawAgreement,
     ClaimThreefold,
     ClaimFiftyMove,
@@ -237,8 +285,8 @@ impl ReplayState {
     pub fn halfmove_clock(&self) -> u16 {
         self.halfmove
     }
-    pub fn nominal_en_passant(&self) -> Option<u8> {
-        self.position.bytes[66].checked_sub(1)
+    pub fn nominal_en_passant(&self) -> Option<Square> {
+        self.position.bytes[66].checked_sub(1).map(square)
     }
     pub fn current_key_occurrences(&self) -> u16 {
         let k = repetition_key(self);
@@ -325,33 +373,33 @@ fn make_move(a: u8, b: u8, p: u8) -> Move {
 
 pub fn validate_local(wire: &WirePosition) -> Result<LocallyAdmissiblePosition> {
     let b = &wire.bytes;
-    for (side, king_err, pawn_err, piece_err) in [
-        (
-            SIDE_FIRST,
-            CHESS_LOCAL_FIRST_KING_COUNT,
-            CHESS_LOCAL_FIRST_PAWN_COUNT,
-            CHESS_LOCAL_FIRST_PIECE_COUNT,
-        ),
-        (
-            SIDE_SECOND,
-            CHESS_LOCAL_SECOND_KING_COUNT,
-            CHESS_LOCAL_SECOND_PAWN_COUNT,
-            CHESS_LOCAL_SECOND_PIECE_COUNT,
-        ),
+    for (side, error) in [
+        (SIDE_FIRST, CHESS_LOCAL_FIRST_KING_COUNT),
+        (SIDE_SECOND, CHESS_LOCAL_SECOND_KING_COUNT),
     ] {
         if b[..64].iter().filter(|&&x| x == code(side, 6)).count() != 1 {
-            return Err(reject(king_err));
+            return Err(reject(error));
         }
+    }
+    for (side, error) in [
+        (SIDE_FIRST, CHESS_LOCAL_FIRST_PAWN_COUNT),
+        (SIDE_SECOND, CHESS_LOCAL_SECOND_PAWN_COUNT),
+    ] {
         if b[..64].iter().filter(|&&x| x == code(side, 1)).count() > CHESS_MAX_SIDE_PAWNS as usize {
-            return Err(reject(pawn_err));
+            return Err(reject(error));
         }
+    }
+    for (side, error) in [
+        (SIDE_FIRST, CHESS_LOCAL_FIRST_PIECE_COUNT),
+        (SIDE_SECOND, CHESS_LOCAL_SECOND_PIECE_COUNT),
+    ] {
         if b[..64]
             .iter()
             .filter(|&&x| piece_side(x) == Some(side))
             .count()
             > CHESS_MAX_SIDE_PIECES as usize
         {
-            return Err(reject(piece_err));
+            return Err(reject(error));
         }
     }
     for s in 0..64 {
@@ -370,8 +418,8 @@ pub fn validate_local(wire: &WirePosition) -> Result<LocallyAdmissiblePosition> 
     if (file(k1) - file(k2)).abs() <= 1 && (rank(k1) - rank(k2)).abs() <= 1 {
         return Err(reject(CHESS_LOCAL_KINGS_ADJACENT));
     }
-    let c1 = !controls_square(wire, SIDE_SECOND, k1).is_empty();
-    let c2 = !controls_square(wire, SIDE_FIRST, k2).is_empty();
+    let c1 = !controls_square_raw(wire, SIDE_SECOND, k1).is_empty();
+    let c2 = !controls_square_raw(wire, SIDE_FIRST, k2).is_empty();
     if c1 && c2 {
         return Err(reject(CHESS_LOCAL_BOTH_KINGS_CHECKED));
     }
@@ -479,7 +527,7 @@ fn controls_from(w: &WirePosition, from: u8, to: u8) -> bool {
         _ => false,
     }
 }
-pub fn controls_square(w: &WirePosition, side: u8, target: u8) -> Vec<u8> {
+fn controls_square_raw(w: &WirePosition, side: u8, target: u8) -> Vec<u8> {
     let mut v = Vec::new();
     for s in 0..64u8 {
         if piece_side(w.bytes[s as usize]) == Some(side) && controls_from(w, s, target) {
@@ -488,12 +536,21 @@ pub fn controls_square(w: &WirePosition, side: u8, target: u8) -> Vec<u8> {
     }
     v
 }
-pub fn king_in_check(p: &LocallyAdmissiblePosition, side: u8) -> bool {
+pub fn controls_square(w: &WirePosition, side: Side, target: Square) -> Vec<Square> {
+    controls_square_raw(w, side.code(), target.index())
+        .into_iter()
+        .map(square)
+        .collect()
+}
+fn king_in_check_raw(p: &LocallyAdmissiblePosition, side: u8) -> bool {
     let k = p.wire.bytes[..64]
         .iter()
         .position(|&x| x == code(side, 6))
         .unwrap() as u8;
-    !controls_square(&p.wire, 1 - side, k).is_empty()
+    !controls_square_raw(&p.wire, 1 - side, k).is_empty()
+}
+pub fn king_in_check(p: &LocallyAdmissiblePosition, side: Side) -> bool {
+    king_in_check_raw(p, side.code())
 }
 
 fn pseudo_for(w: &WirePosition, from: u8) -> Vec<Move> {
@@ -715,7 +772,7 @@ fn checked_after(w: &WirePosition, m: Move) -> Option<(WirePosition, bool)> {
     }
     n.bytes[64] = 1 - side;
     let king = n.bytes[..64].iter().position(|&x| x == code(side, 6))? as u8;
-    if !controls_square(&n, 1 - side, king).is_empty() {
+    if !controls_square_raw(&n, 1 - side, king).is_empty() {
         return None;
     }
     Some((n, capture))
@@ -728,14 +785,14 @@ fn castle_safe(w: &WirePosition, m: Move) -> bool {
     if piece_kind(w.bytes[a as usize]) != 6 || (file(a) - file(b)).abs() != 2 {
         return true;
     }
-    if !controls_square(w, 1 - side, a).is_empty() {
+    if !controls_square_raw(w, 1 - side, a).is_empty() {
         return false;
     }
     let transit = if b > a { a + 1 } else { a - 1 };
     let mut probe = w.clone();
     probe.bytes[a as usize] = 0;
     probe.bytes[transit as usize] = code(side, 6);
-    if !controls_square(&probe, 1 - side, transit).is_empty() {
+    if !controls_square_raw(&probe, 1 - side, transit).is_empty() {
         return false;
     }
     true
@@ -769,8 +826,8 @@ pub fn board_terminal(state: &ReplayState) -> BoardTerminal {
         let local = LocallyAdmissiblePosition {
             wire: state.position.clone(),
         };
-        if king_in_check(&local, side) {
-            BoardTerminal::Checkmate(1 - side)
+        if king_in_check_raw(&local, side) {
+            BoardTerminal::Checkmate(Side(1 - side))
         } else {
             BoardTerminal::Stalemate
         }
@@ -815,7 +872,12 @@ fn diagnose(state: &ReplayState, m: Move) -> u16 {
     if prom != 0 && (k != 1 || rank(b) != if side == 0 { 7 } else { 0 }) {
         return CHESS_MOVE_PROMOTION_UNNEEDED;
     }
-    if k == 6 && (file(a) - file(b)).abs() == 2 {
+    if k == 6
+        && matches!(
+            (side, a, b),
+            (SIDE_FIRST, 4, 6) | (SIDE_FIRST, 4, 2) | (SIDE_SECOND, 60, 62) | (SIDE_SECOND, 60, 58)
+        )
+    {
         let bit = match (side, b > a) {
             (0, true) => CASTLING_FIRST_KINGSIDE,
             (0, false) => CASTLING_FIRST_QUEENSIDE,
@@ -837,14 +899,14 @@ fn diagnose(state: &ReplayState, m: Move) -> u16 {
         {
             return CHESS_MOVE_CASTLING_PATH;
         }
-        if !controls_square(w, 1 - side, a).is_empty() {
+        if !controls_square_raw(w, 1 - side, a).is_empty() {
             return CHESS_MOVE_CASTLING_FROM_CHECK;
         }
         let transit = if b > a { a + 1 } else { a - 1 };
         let mut p = w.clone();
         p.bytes[a as usize] = 0;
         p.bytes[transit as usize] = code(side, 6);
-        if !controls_square(&p, 1 - side, transit).is_empty() {
+        if !controls_square_raw(&p, 1 - side, transit).is_empty() {
             return CHESS_MOVE_CASTLING_THROUGH_CHECK;
         }
         return CHESS_MOVE_CASTLING_INTO_CHECK;
@@ -879,6 +941,9 @@ fn diagnose(state: &ReplayState, m: Move) -> u16 {
     }
     if k == 1 {
         if df == 0 {
+            if dest != 0 {
+                return CHESS_MOVE_PAWN_ADVANCE;
+            }
             if dr.abs() == 2 {
                 return CHESS_MOVE_PAWN_DOUBLE;
             }
@@ -966,25 +1031,25 @@ pub fn new_game() -> GameState {
 fn close_board(mut game: GameState) -> GameState {
     match board_terminal(&game.replay) {
         BoardTerminal::None => game,
-        terminal @ BoardTerminal::Checkmate(winner) => {
+        BoardTerminal::Checkmate(winner) => {
             game.status = GAME_STATUS_CHECKMATE;
-            game.cause = Some(ClosureCause::Board(terminal));
-            game.score = Some(if winner == SIDE_FIRST {
+            game.cause = Some(ClosureCause::Board(BoardClosure::Checkmate(winner)));
+            game.score = Some(if winner == Side::FIRST {
                 Score::FirstWin
             } else {
                 Score::SecondWin
             });
             game
         }
-        terminal @ BoardTerminal::Stalemate => {
+        BoardTerminal::Stalemate => {
             game.status = GAME_STATUS_STALEMATE;
-            game.cause = Some(ClosureCause::Board(terminal));
+            game.cause = Some(ClosureCause::Board(BoardClosure::Stalemate));
             game.score = Some(Score::Draw);
             game
         }
-        terminal @ BoardTerminal::CommonDead => {
+        BoardTerminal::CommonDead => {
             game.status = GAME_STATUS_COMMON_DEAD;
-            game.cause = Some(ClosureCause::Board(terminal));
+            game.cause = Some(ClosureCause::Board(BoardClosure::CommonDead));
             game.score = Some(Score::Draw);
             game
         }
@@ -1005,7 +1070,7 @@ pub fn apply_event(game: &GameState, event: Event) -> Result<GameState> {
             let mut next = game.clone();
             next.status = GAME_STATUS_RESIGNED;
             next.cause = Some(ClosureCause::Resignation(side));
-            next.score = Some(if side == SIDE_FIRST {
+            next.score = Some(if side == Side::FIRST {
                 Score::SecondWin
             } else {
                 Score::FirstWin
@@ -1054,7 +1119,7 @@ pub fn validate_source_record(moves: &[Move], score: Score) -> Result<RecordResu
     match terminal {
         BoardTerminal::Checkmate(winner)
             if score
-                != if winner == SIDE_FIRST {
+                != if winner == Side::FIRST {
                     Score::FirstWin
                 } else {
                     Score::SecondWin
@@ -1080,12 +1145,12 @@ pub fn validate_source_record(moves: &[Move], score: Score) -> Result<RecordResu
 pub enum OccupancyMatch {
     Empty,
     Occupied,
-    Exact { side: u8, piece: u8 },
+    Exact { side: Side, piece: u8 },
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Defender {
     Any,
-    Exact(u8),
+    Exact(Square),
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TreeEdge {
@@ -1099,21 +1164,21 @@ pub struct TreeNode {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PredicateInput {
     Initial(WirePosition),
-    CurrentSide(ReplayState, u8),
-    Occupancy(WirePosition, u8, OccupancyMatch),
+    CurrentSide(ReplayState, Side),
+    Occupancy(WirePosition, Square, OccupancyMatch),
     MoveLegality(ReplayState, Move),
-    Control(WirePosition, u8, u8),
-    Defended(WirePosition, u8, Defender),
-    KingCheck(LocallyAdmissiblePosition, u8),
-    AbsolutePin(LocallyAdmissiblePosition, u8),
-    Fork(ReplayState, Move, Vec<u8>),
-    Discovered(ReplayState, Move, u8, u8),
-    Escape(WirePosition, u8, u8),
-    PassedPawn(LocallyAdmissiblePosition, u8),
+    Control(WirePosition, Side, Square),
+    Defended(WirePosition, Square, Defender),
+    KingCheck(LocallyAdmissiblePosition, Side),
+    AbsolutePin(LocallyAdmissiblePosition, Square),
+    Fork(ReplayState, Move, Vec<Option<Square>>),
+    Discovered(ReplayState, Move, Option<Square>, Option<Square>),
+    Escape(WirePosition, Side, Square),
+    PassedPawn(LocallyAdmissiblePosition, Square),
     OpenFile(WirePosition, u8),
-    SemiOpenFile(WirePosition, u8, u8),
+    SemiOpenFile(WirePosition, Side, u8),
     PromotionTree(ReplayState, Vec<TreeNode>),
-    MatingTree(ReplayState, u8, Vec<TreeNode>),
+    MatingTree(ReplayState, Option<Side>, Vec<TreeNode>),
     TerminalTransition(ReplayState, Move),
     History(ReplayState),
     Declaration(GameState, Event),
@@ -1130,8 +1195,8 @@ pub enum RaceOutcome {
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HistoryClaimResult {
-    pub nominal_ep: Option<u8>,
-    pub effective_ep: Option<u8>,
+    pub nominal_ep: Option<Square>,
+    pub effective_ep: Option<Square>,
     pub current_key_occurrences: u16,
     pub halfmove_clock: u16,
     pub played_plies: u16,
@@ -1147,11 +1212,11 @@ pub enum MoveRecordResult {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PredicateResult {
     Bool(bool),
-    Squares(Vec<u8>),
+    Squares(Vec<Square>),
     MoveLegality(std::result::Result<(), u16>),
     Race(Vec<RaceOutcome>),
     Mating {
-        mating_side: u8,
+        mating_side: Side,
         all_branches_mate: bool,
         max_plies: u8,
     },
@@ -1162,9 +1227,6 @@ pub enum PredicateResult {
     MoveRecord(MoveRecordResult),
 }
 
-fn valid_side(side: u8) -> bool {
-    matches!(side, SIDE_FIRST | SIDE_SECOND)
-}
 fn absolute_pin(p: &LocallyAdmissiblePosition, at: u8) -> bool {
     if at >= 64 {
         return false;
@@ -1173,7 +1235,7 @@ fn absolute_pin(p: &LocallyAdmissiblePosition, at: u8) -> bool {
     let Some(side) = piece_side(pc) else {
         return false;
     };
-    if piece_kind(pc) == 6 || king_in_check(p, side) {
+    if piece_kind(pc) == 6 || king_in_check_raw(p, side) {
         return false;
     }
     let king = p.wire.bytes[..64]
@@ -1182,7 +1244,7 @@ fn absolute_pin(p: &LocallyAdmissiblePosition, at: u8) -> bool {
         .unwrap() as u8;
     let mut removed = p.wire.clone();
     removed.bytes[at as usize] = 0;
-    controls_square(&removed, 1 - side, king)
+    controls_square_raw(&removed, 1 - side, king)
         .into_iter()
         .any(|from| matches!(piece_kind(removed.bytes[from as usize]), 3 | 4 | 5))
 }
@@ -1248,18 +1310,27 @@ fn discovered(state: &ReplayState, mv: Move, slider: u8, target: u8) -> Result<b
     Ok(first == Some(moved) && controls_from(&next.position, slider, target))
 }
 
-fn derive_tree(
-    root: &ReplayState,
-    nodes: &[TreeNode],
-) -> Result<Vec<(ReplayState, u8, Option<u8>)>> {
+fn tree_resource_screen(nodes: &[TreeNode]) -> Result<()> {
     if nodes.len() > CHESS_MAX_PREDICATE_NODES as usize {
         return Err(reject(CHESS_RESOURCE_PREDICATE_INPUT));
     }
+    let mut checked_size = nodes
+        .len()
+        .checked_mul(std::mem::size_of::<TreeNode>())
+        .ok_or_else(|| reject(CHESS_RESOURCE_PREDICATE_INPUT))?;
     let mut total = 0usize;
     for n in nodes {
         if n.edges.len() > CHESS_MAX_PREDICATE_EDGES_PER_NODE as usize {
             return Err(reject(CHESS_RESOURCE_PREDICATE_INPUT));
         }
+        let edge_size = n
+            .edges
+            .len()
+            .checked_mul(std::mem::size_of::<TreeEdge>())
+            .ok_or_else(|| reject(CHESS_RESOURCE_PREDICATE_INPUT))?;
+        checked_size = checked_size
+            .checked_add(edge_size)
+            .ok_or_else(|| reject(CHESS_RESOURCE_PREDICATE_INPUT))?;
         total = total
             .checked_add(n.edges.len())
             .ok_or_else(|| reject(CHESS_RESOURCE_PREDICATE_INPUT))?;
@@ -1267,6 +1338,13 @@ fn derive_tree(
     if total > CHESS_MAX_PREDICATE_EDGES as usize {
         return Err(reject(CHESS_RESOURCE_PREDICATE_INPUT));
     }
+    Ok(())
+}
+
+fn derive_tree_screened(
+    root: &ReplayState,
+    nodes: &[TreeNode],
+) -> Result<Vec<(ReplayState, u8, Option<u8>)>> {
     if nodes.is_empty() {
         return Err(reject(CHESS_PREDICATE_TREE));
     }
@@ -1320,6 +1398,13 @@ fn derive_tree(
     }
     Ok(derived.into_iter().map(Option::unwrap).collect())
 }
+fn derive_tree(
+    root: &ReplayState,
+    nodes: &[TreeNode],
+) -> Result<Vec<(ReplayState, u8, Option<u8>)>> {
+    tree_resource_screen(nodes)?;
+    derive_tree_screened(root, nodes)
+}
 fn promotion_tree(root: &ReplayState, nodes: &[TreeNode]) -> Result<Vec<RaceOutcome>> {
     let states = derive_tree(root, nodes)?;
     let mut out = Vec::new();
@@ -1336,26 +1421,27 @@ fn promotion_tree(root: &ReplayState, nodes: &[TreeNode]) -> Result<Vec<RaceOutc
     out.dedup();
     Ok(out)
 }
-fn mating_tree(root: &ReplayState, mating_side: u8, nodes: &[TreeNode]) -> Result<(bool, u8)> {
-    if !valid_side(mating_side) {
-        return Err(reject(CHESS_PREDICATE_SIGNATURE));
-    }
-    let material: Vec<_> = root.position.bytes[..64]
+fn mating_tree(root: &ReplayState, mating_side: Side, nodes: &[TreeNode]) -> Result<(bool, u8)> {
+    let side = mating_side.code();
+    if root.position.bytes[..64]
         .iter()
-        .copied()
-        .filter(|&x| x != 0)
-        .collect();
-    if material.len() != 3
-        || material.iter().filter(|&&x| piece_kind(x) == 6).count() != 2
-        || material
+        .filter(|&&x| x != 0)
+        .count()
+        != 3
+        || root.position.bytes[..64]
             .iter()
-            .filter(|&&x| piece_side(x) == Some(mating_side) && matches!(piece_kind(x), 4 | 5))
+            .filter(|&&x| piece_kind(x) == 6)
+            .count()
+            != 2
+        || root.position.bytes[..64]
+            .iter()
+            .filter(|&&x| piece_side(x) == Some(side) && matches!(piece_kind(x), 4 | 5))
             .count()
             != 1
     {
         return Err(reject(CHESS_PREDICATE_TREE));
     }
-    let states = derive_tree(root, nodes)?;
+    let states = derive_tree_screened(root, nodes)?;
     let mut all = true;
     let mut max = 0;
     for (i, (state, depth, _)) in states.iter().enumerate() {
@@ -1368,7 +1454,7 @@ fn mating_tree(root: &ReplayState, mating_side: u8, nodes: &[TreeNode]) -> Resul
                 return Err(reject(CHESS_PREDICATE_TREE));
             }
             all &= term == BoardTerminal::Checkmate(mating_side)
-        } else if state.position.bytes[64] == mating_side {
+        } else if state.position.bytes[64] == side {
             if supplied.len() != 1 {
                 return Err(reject(CHESS_PREDICATE_TREE));
             }
@@ -1408,18 +1494,16 @@ pub fn evaluate_predicate(id: &[u8], input: PredicateInput) -> Result<PredicateR
     let signature = || reject(CHESS_PREDICATE_SIGNATURE);
     match (which, input) {
         (0, PredicateInput::Initial(p)) => Ok(PredicateResult::Bool(p == initial())),
-        (0, PredicateInput::CurrentSide(r, s)) if valid_side(s) => {
-            Ok(PredicateResult::Bool(r.position.bytes[64] == s))
+        (0, PredicateInput::CurrentSide(r, s)) => {
+            Ok(PredicateResult::Bool(r.position.bytes[64] == s.code()))
         }
-        (1, PredicateInput::Occupancy(p, sq, m)) if sq < 64 => {
-            let pc = p.bytes[sq as usize];
+        (1, PredicateInput::Occupancy(p, sq, m)) => {
+            let pc = p.bytes[sq.index() as usize];
             let value = match m {
                 OccupancyMatch::Empty => pc == 0,
                 OccupancyMatch::Occupied => pc != 0,
-                OccupancyMatch::Exact { side, piece }
-                    if valid_side(side) && (1..=6).contains(&piece) =>
-                {
-                    pc == code(side, piece)
+                OccupancyMatch::Exact { side, piece } if (1..=6).contains(&piece) => {
+                    pc == code(side.code(), piece)
                 }
                 _ => return Err(signature()),
             };
@@ -1428,35 +1512,29 @@ pub fn evaluate_predicate(id: &[u8], input: PredicateInput) -> Result<PredicateR
         (2, PredicateInput::MoveLegality(r, m)) => Ok(PredicateResult::MoveLegality(
             apply_move(&r, m).map(|_| ()).map_err(|e| e.code),
         )),
-        (3, PredicateInput::Control(p, s, t)) if valid_side(s) && t < 64 => {
+        (3, PredicateInput::Control(p, s, t)) => {
             Ok(PredicateResult::Squares(controls_square(&p, s, t)))
         }
-        (4, PredicateInput::Defended(p, t, d))
-            if t < 64
-                && match d {
-                    Defender::Any => true,
-                    Defender::Exact(y) => y < 64,
-                } =>
-        {
-            let pc = p.bytes[t as usize];
-            let v = if let Some(side) = piece_side(pc) {
-                controls_square(&p, side, t).into_iter().any(|x| {
-                    x != t
-                        && match d {
-                            Defender::Any => true,
-                            Defender::Exact(y) => x == y,
-                        }
-                })
+        (4, PredicateInput::Defended(p, t, d)) => {
+            let pc = p.bytes[t.index() as usize];
+            let v = if let Some(piece_side) = piece_side(pc) {
+                controls_square(&p, side(piece_side), t)
+                    .into_iter()
+                    .any(|x| {
+                        x != t
+                            && match d {
+                                Defender::Any => true,
+                                Defender::Exact(y) => x == y,
+                            }
+                    })
             } else {
                 false
             };
             Ok(PredicateResult::Bool(v))
         }
-        (5, PredicateInput::KingCheck(p, s)) if valid_side(s) => {
-            Ok(PredicateResult::Bool(king_in_check(&p, s)))
-        }
-        (6, PredicateInput::AbsolutePin(p, s)) if s < 64 => {
-            Ok(PredicateResult::Bool(absolute_pin(&p, s)))
+        (5, PredicateInput::KingCheck(p, s)) => Ok(PredicateResult::Bool(king_in_check(&p, s))),
+        (6, PredicateInput::AbsolutePin(p, s)) => {
+            Ok(PredicateResult::Bool(absolute_pin(&p, s.index())))
         }
         (7, PredicateInput::Fork(r, m, targets)) => {
             if board_terminal(&r) != BoardTerminal::None {
@@ -1466,7 +1544,7 @@ pub fn evaluate_predicate(id: &[u8], input: PredicateInput) -> Result<PredicateR
                 return Err(reject(CHESS_RESOURCE_PREDICATE_INPUT));
             }
             if targets.len() < CHESS_MIN_FORK_TARGETS as usize
-                || targets.iter().any(|&x| x >= 64)
+                || targets.iter().any(Option::is_none)
                 || targets.windows(2).any(|w| w[0] >= w[1])
             {
                 return Err(signature());
@@ -1475,25 +1553,38 @@ pub fn evaluate_predicate(id: &[u8], input: PredicateInput) -> Result<PredicateR
             let next = apply_move(&r, m)?;
             let at = destination(m);
             Ok(PredicateResult::Bool(targets.into_iter().all(|t| {
+                let t = t.unwrap().index();
                 piece_side(next.position.bytes[t as usize]) == Some(1 - side)
                     && controls_from(&next.position, at, t)
             })))
         }
-        (8, PredicateInput::Discovered(r, m, s, t)) if s < 64 && t < 64 => {
-            Ok(PredicateResult::Bool(discovered(&r, m, s, t)?))
+        (8, PredicateInput::Discovered(r, m, s, t)) => {
+            if board_terminal(&r) != BoardTerminal::None {
+                return Err(reject(CHESS_GAME_CLOSED));
+            }
+            let (Some(s), Some(t)) = (s, t) else {
+                return Err(signature());
+            };
+            Ok(PredicateResult::Bool(discovered(
+                &r,
+                m,
+                s.index(),
+                t.index(),
+            )?))
         }
-        (9, PredicateInput::Escape(p, s, t)) if valid_side(s) && t < 64 => {
+        (9, PredicateInput::Escape(p, s, t)) => {
             Ok(PredicateResult::Bool(!controls_square(&p, s, t).is_empty()))
         }
-        (10, PredicateInput::PassedPawn(p, s)) if s < 64 => {
-            Ok(PredicateResult::Bool(passed_pawn(&p, s)))
+        (10, PredicateInput::PassedPawn(p, s)) => {
+            Ok(PredicateResult::Bool(passed_pawn(&p, s.index())))
         }
         (11, PredicateInput::OpenFile(p, f)) if f < 8 => Ok(PredicateResult::Bool(
             (0..64u8)
                 .filter(|s| file(*s) == f as i8)
                 .all(|s| piece_kind(p.bytes[s as usize]) != 1),
         )),
-        (12, PredicateInput::SemiOpenFile(p, s, f)) if valid_side(s) && f < 8 => {
+        (12, PredicateInput::SemiOpenFile(p, s, f)) if f < 8 => {
+            let s = s.code();
             let pawns: Vec<_> = (0..64u8)
                 .filter(|x| file(*x) == f as i8 && piece_kind(p.bytes[*x as usize]) == 1)
                 .collect();
@@ -1510,6 +1601,10 @@ pub fn evaluate_predicate(id: &[u8], input: PredicateInput) -> Result<PredicateR
             Ok(PredicateResult::Race(promotion_tree(&r, &n)?))
         }
         (14, PredicateInput::MatingTree(r, s, n)) => {
+            tree_resource_screen(&n)?;
+            let Some(s) = s else {
+                return Err(signature());
+            };
             let (a, m) = mating_tree(&r, s, &n)?;
             Ok(PredicateResult::Mating {
                 mating_side: s,
