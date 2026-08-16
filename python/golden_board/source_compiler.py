@@ -3,25 +3,33 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 import re
 from types import MappingProxyType
 from typing import NoReturn
 
-from . import chess
+from . import canonical_manifest, chess, identity
 from . import constants as C
 
 
 __all__ = (
     "CompiledGame",
+    "EvidenceInputs",
     "GameRecord",
+    "RetainedEvidence",
     "SourceCandidate",
     "SourceReject",
+    "ValidatedCandidate",
     "compile_source",
+    "coordinate_candidates",
     "decode_game",
     "decode_game_set",
+    "encode_candidate_trace",
     "encode_game",
     "encode_game_set",
+    "validate_candidate_trace",
     "validate_anthology",
+    "validate_retained_evidence",
 )
 
 
@@ -84,6 +92,43 @@ class SourceCandidate:
     def __new__(cls, *, _token: object | None = None) -> SourceCandidate:
         if _token is not _AUTHORITY:
             raise TypeError("SourceCandidate is created by compile_source")
+        return object.__new__(cls)
+
+    def __init__(self, *, _token: object | None = None) -> None:
+        del _token
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceInputs:
+    source: bytes
+    chess_v0: bytes
+    source_v0: bytes
+    identity_v0: bytes
+    constants_v0: bytes
+
+
+@dataclass(frozen=True, slots=True, init=False)
+class ValidatedCandidate:
+    candidate_bytes: bytes
+    game_set_bytes: bytes
+
+    def __new__(cls, *, _token: object | None = None) -> ValidatedCandidate:
+        if _token is not _AUTHORITY:
+            raise TypeError("ValidatedCandidate is created by evidence validation")
+        return object.__new__(cls)
+
+    def __init__(self, *, _token: object | None = None) -> None:
+        del _token
+
+
+@dataclass(frozen=True, slots=True, init=False)
+class RetainedEvidence:
+    report_bytes: bytes
+    game_set_bytes: bytes
+
+    def __new__(cls, *, _token: object | None = None) -> RetainedEvidence:
+        if _token is not _AUTHORITY:
+            raise TypeError("RetainedEvidence is created by candidate coordination")
         return object.__new__(cls)
 
     def __init__(self, *, _token: object | None = None) -> None:
@@ -779,3 +824,278 @@ def compile_source(raw_bytes: bytes) -> SourceCandidate:
         streams.add(stream)
     records = validate_anthology(tuple(game.record for game in compiled))
     return _make(SourceCandidate, games=compiled, game_set_bytes=encode_game_set(records))
+
+
+_CANDIDATE_KEYS = frozenset(
+    {
+        "constants_sha256", "game_count", "game_set_identity", "games",
+        "initial_position_bytes", "initial_position_identity", "ir_bytes",
+        "ply_count", "schema", "score_counts", "source_sha256",
+        "spec_sha256",
+    }
+)
+_GAME_KEYS = frozenset({"game_identity", "rows", "score", "source_ordinal"})
+_SPEC_KEYS = frozenset({"chess_v0", "identity_v0", "source_v0"})
+_HEX64 = re.compile(r"[0-9a-f]{64}\Z")
+_HEX134 = re.compile(r"[0-9a-f]{134}\Z")
+_HEX4 = re.compile(r"[0-9a-f]{4}\Z")
+
+
+def _checked_evidence(value: object) -> EvidenceInputs:
+    if type(value) is not EvidenceInputs or any(
+        type(getattr(value, name)) is not bytes
+        or len(getattr(value, name)) > canonical_manifest.MAX_BYTES
+        for name in ("source", "chess_v0", "source_v0", "identity_v0", "constants_v0")
+    ):
+        _reject(C.SOURCE_EVIDENCE_SHAPE, 0, 0)
+    return value
+
+
+def _digest(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _candidate_object(candidate: SourceCandidate, evidence: EvidenceInputs) -> dict[str, object]:
+    initial = chess.encode_position(chess.new_game().replay.position)
+    games = []
+    scores = [0, 0, 0]
+    ir_bytes = 0
+    ply_count = 0
+    for compiled in candidate.games:
+        game_bytes = encode_game(compiled.record)
+        scores[compiled.record.score] += 1
+        ir_bytes += len(game_bytes)
+        ply_count += len(compiled.rows)
+        games.append(
+            {
+                "game_identity": identity.identity_hex(
+                    b"golden-board:game:v0\0", (game_bytes,)
+                ),
+                "rows": [list(row) for row in compiled.rows],
+                "score": compiled.record.score,
+                "source_ordinal": compiled.source_ordinal,
+            }
+        )
+    return {
+        "constants_sha256": _digest(evidence.constants_v0),
+        "game_count": len(games),
+        "game_set_identity": identity.identity_hex(
+            b"golden-board:game-set:v0\0", (candidate.game_set_bytes,)
+        ),
+        "games": games,
+        "initial_position_bytes": initial.hex(),
+        "initial_position_identity": identity.identity_hex(
+            b"golden-board:position:v0\0", (initial,)
+        ),
+        "ir_bytes": ir_bytes,
+        "ply_count": ply_count,
+        "schema": "golden-board-source-candidate-v0",
+        "score_counts": scores,
+        "source_sha256": _digest(evidence.source),
+        "spec_sha256": {
+            "chess_v0": _digest(evidence.chess_v0),
+            "identity_v0": _digest(evidence.identity_v0),
+            "source_v0": _digest(evidence.source_v0),
+        },
+    }
+
+
+def encode_candidate_trace(
+    candidate: SourceCandidate, evidence: EvidenceInputs
+) -> bytes:
+    evidence = _checked_evidence(evidence)
+    if type(candidate) is not SourceCandidate or candidate != compile_source(evidence.source):
+        _reject(C.SOURCE_EVIDENCE_CROSS_FIELD, 0, 0)
+    try:
+        return canonical_manifest.serialize_manifest(_candidate_object(candidate, evidence))
+    except canonical_manifest.ManifestError:
+        _reject(C.SOURCE_EVIDENCE_SIZE, 0, 0)
+
+
+def _candidate_shape(value: object) -> bool:
+    if type(value) is not dict or set(value) != _CANDIDATE_KEYS:
+        return False
+    specs = value["spec_sha256"]
+    scores = value["score_counts"]
+    games = value["games"]
+    if (
+        value["schema"] != "golden-board-source-candidate-v0"
+        or type(specs) is not dict
+        or set(specs) != _SPEC_KEYS
+        or any(type(digest) is not str or _HEX64.fullmatch(digest) is None for digest in specs.values())
+        or any(
+            type(value[key]) is not str or _HEX64.fullmatch(value[key]) is None
+            for key in (
+                "constants_sha256", "game_set_identity",
+                "initial_position_identity", "source_sha256",
+            )
+        )
+        or type(value["initial_position_bytes"]) is not str
+        or _HEX134.fullmatch(value["initial_position_bytes"]) is None
+        or type(value["game_count"]) is not int
+        or not 0 <= value["game_count"] <= C.SOURCE_ANTHOLOGY_GAME_COUNT
+        or type(value["ply_count"]) is not int
+        or not 0 <= value["ply_count"] <= C.SOURCE_MAX_TOTAL_PLIES
+        or type(value["ir_bytes"]) is not int
+        or not 0 <= value["ir_bytes"] <= C.SOURCE_MAX_GAME_SET_BYTES
+        or type(scores) is not list
+        or len(scores) != 3
+        or any(type(count) is not int or not 0 <= count <= C.SOURCE_ANTHOLOGY_GAME_COUNT for count in scores)
+        or type(games) is not list
+        or len(games) > C.SOURCE_ANTHOLOGY_GAME_COUNT
+    ):
+        return False
+    for game in games:
+        if type(game) is not dict or set(game) != _GAME_KEYS:
+            return False
+        rows = game["rows"]
+        if (
+            type(game["game_identity"]) is not str
+            or _HEX64.fullmatch(game["game_identity"]) is None
+            or type(game["source_ordinal"]) is not int
+            or not 0 <= game["source_ordinal"] < C.SOURCE_ANTHOLOGY_GAME_COUNT
+            or type(game["score"]) is not int
+            or game["score"] not in _SCORES
+            or type(rows) is not list
+            or len(rows) > C.SOURCE_MAX_GAME_PLIES
+        ):
+            return False
+        for row in rows:
+            if (
+                type(row) is not list
+                or len(row) != 5
+                or type(row[0]) is not int
+                or type(row[1]) is not int
+                or not 0 <= row[0] <= row[1] <= C.SOURCE_MAX_INPUT_BYTES
+                or type(row[2]) is not str
+                or _HEX4.fullmatch(row[2]) is None
+                or type(row[3]) is not str
+                or _HEX134.fullmatch(row[3]) is None
+                or type(row[4]) is not int
+                or row[4] not in {C.SUFFIX_NONE, C.SUFFIX_CHECK, C.SUFFIX_MATE}
+            ):
+                return False
+    return True
+
+
+def _parsed_candidate(candidate_bytes: bytes) -> dict[str, object]:
+    if type(candidate_bytes) is not bytes:
+        _reject(C.SOURCE_EVIDENCE_SHAPE, 0, 0)
+    if len(candidate_bytes) > canonical_manifest.MAX_BYTES:
+        _reject(
+            C.SOURCE_EVIDENCE_SIZE,
+            canonical_manifest.MAX_BYTES,
+            canonical_manifest.MAX_BYTES + 1,
+        )
+    try:
+        value = canonical_manifest.parse_manifest(candidate_bytes)
+    except canonical_manifest.ManifestError:
+        _reject(C.SOURCE_EVIDENCE_SHAPE, 0, 0)
+    if not _candidate_shape(value):
+        _reject(C.SOURCE_EVIDENCE_SHAPE, 0, 0)
+    try:
+        canonical = canonical_manifest.serialize_manifest(value)
+    except canonical_manifest.ManifestError:
+        _reject(C.SOURCE_EVIDENCE_SHAPE, 0, 0)
+    if canonical != candidate_bytes:
+        _reject(C.SOURCE_EVIDENCE_NONCANONICAL, 0, 0)
+    return value
+
+
+def validate_candidate_trace(
+    candidate_bytes: bytes, game_set_bytes: bytes, evidence: EvidenceInputs
+) -> ValidatedCandidate:
+    evidence = _checked_evidence(evidence)
+    value = _parsed_candidate(candidate_bytes)
+    expected_hashes = {
+        "constants_sha256": _digest(evidence.constants_v0),
+        "source_sha256": _digest(evidence.source),
+        "spec_sha256": {
+            "chess_v0": _digest(evidence.chess_v0),
+            "identity_v0": _digest(evidence.identity_v0),
+            "source_v0": _digest(evidence.source_v0),
+        },
+    }
+    if any(value[key] != expected for key, expected in expected_hashes.items()):
+        _reject(C.SOURCE_EVIDENCE_HASH, 0, 0)
+    expected = compile_source(evidence.source)
+    expected_bytes = canonical_manifest.serialize_manifest(
+        _candidate_object(expected, evidence)
+    )
+    if (
+        type(game_set_bytes) is not bytes
+        or candidate_bytes != expected_bytes
+        or game_set_bytes != expected.game_set_bytes
+    ):
+        _reject(C.SOURCE_EVIDENCE_CROSS_FIELD, 0, 0)
+    return _make(
+        ValidatedCandidate,
+        candidate_bytes=candidate_bytes,
+        game_set_bytes=game_set_bytes,
+    )
+
+
+def coordinate_candidates(
+    first: ValidatedCandidate, second: ValidatedCandidate
+) -> RetainedEvidence:
+    if type(first) is not ValidatedCandidate or type(second) is not ValidatedCandidate:
+        raise TypeError("expected validated candidates")
+    if (
+        first.candidate_bytes != second.candidate_bytes
+        or first.game_set_bytes != second.game_set_bytes
+    ):
+        _reject(C.SOURCE_CANDIDATE_MISMATCH, 0, 0)
+    value = canonical_manifest.validate_canonical_manifest(first.candidate_bytes)
+    value["schema"] = "golden-board-source-compilation-v0"
+    value["producer_labels"] = ["python", "rust"]
+    try:
+        report = canonical_manifest.serialize_manifest(value)
+    except canonical_manifest.ManifestError:
+        _reject(C.SOURCE_EVIDENCE_SIZE, 0, 0)
+    return _make(
+        RetainedEvidence,
+        report_bytes=report,
+        game_set_bytes=first.game_set_bytes,
+    )
+
+
+def validate_retained_evidence(
+    report_bytes: bytes, game_set_bytes: bytes, evidence: EvidenceInputs
+) -> RetainedEvidence:
+    if type(report_bytes) is not bytes:
+        _reject(C.SOURCE_EVIDENCE_SHAPE, 0, 0)
+    if len(report_bytes) > canonical_manifest.MAX_BYTES:
+        _reject(
+            C.SOURCE_EVIDENCE_SIZE,
+            canonical_manifest.MAX_BYTES,
+            canonical_manifest.MAX_BYTES + 1,
+        )
+    try:
+        value = canonical_manifest.parse_manifest(report_bytes)
+    except canonical_manifest.ManifestError:
+        _reject(C.SOURCE_EVIDENCE_SHAPE, 0, 0)
+    if (
+        type(value) is not dict
+        or set(value) != _CANDIDATE_KEYS | {"producer_labels"}
+        or value.get("schema") != "golden-board-source-compilation-v0"
+        or value.get("producer_labels") != ["python", "rust"]
+    ):
+        _reject(C.SOURCE_EVIDENCE_SHAPE, 0, 0)
+    candidate_value = dict(value)
+    del candidate_value["producer_labels"]
+    candidate_value["schema"] = "golden-board-source-candidate-v0"
+    if not _candidate_shape(candidate_value):
+        _reject(C.SOURCE_EVIDENCE_SHAPE, 0, 0)
+    try:
+        canonical = canonical_manifest.serialize_manifest(value)
+    except canonical_manifest.ManifestError:
+        _reject(C.SOURCE_EVIDENCE_SHAPE, 0, 0)
+    if canonical != report_bytes:
+        _reject(C.SOURCE_EVIDENCE_NONCANONICAL, 0, 0)
+    candidate_bytes = canonical_manifest.serialize_manifest(candidate_value)
+    validated = validate_candidate_trace(candidate_bytes, game_set_bytes, evidence)
+    return _make(
+        RetainedEvidence,
+        report_bytes=report_bytes,
+        game_set_bytes=validated.game_set_bytes,
+    )

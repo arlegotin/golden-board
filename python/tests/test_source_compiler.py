@@ -268,6 +268,60 @@ def _locked_blocks() -> tuple[bytes, ...]:
 
 
 class SourceCompilerApi(unittest.TestCase):
+    def test_candidate_evidence_is_canonical_validated_and_fail_closed(self) -> None:
+        from golden_board import source_compiler as source
+
+        evidence = source.EvidenceInputs(
+            source=LOCKED,
+            chess_v0=_read_bounded(ROOT / "spec/chess-v0.md"),
+            source_v0=_read_bounded(ROOT / "spec/source-v0.md"),
+            identity_v0=_read_bounded(ROOT / "spec/identity-v0.md"),
+            constants_v0=_read_bounded(ROOT / "spec/constants-v0.toml"),
+        )
+        candidate = source.compile_source(LOCKED)
+        candidate_bytes = source.encode_candidate_trace(candidate, evidence)
+        self.assertEqual(validate_canonical_manifest(candidate_bytes)["ply_count"], 4_915)
+        validated = source.validate_candidate_trace(
+            candidate_bytes, candidate.game_set_bytes, evidence
+        )
+        retained = source.coordinate_candidates(validated, validated)
+        report = validate_canonical_manifest(retained.report_bytes)
+        self.assertEqual(report["schema"], "golden-board-source-compilation-v0")
+        self.assertEqual(report["producer_labels"], ["python", "rust"])
+        source.validate_retained_evidence(
+            retained.report_bytes, retained.game_set_bytes, evidence
+        )
+
+        rows = [
+            row for key in ("cases", "recipes") for row in FIXTURE[key]
+            if row["operation"] == "validate_candidate_trace"
+        ]
+        self.assertEqual(len(rows), 6)
+        for row in rows:
+            raw = bytes.fromhex(row["input_hex"]) if "input_hex" in row else _recipe_bytes(row)
+            with self.subTest(row["name"]), self.assertRaises(source.SourceReject) as caught:
+                source.validate_candidate_trace(raw, b"", evidence)
+            self.assertEqual(
+                (caught.exception.code, caught.exception.raw_start, caught.exception.raw_end),
+                (
+                    row["expected"]["rejection"]["code"],
+                    row["expected"]["rejection"]["raw_start"],
+                    row["expected"]["rejection"]["raw_end"],
+                ),
+            )
+
+        mismatched = source._make(
+            source.ValidatedCandidate,
+            candidate_bytes=candidate_bytes + b" ",
+            game_set_bytes=candidate.game_set_bytes,
+        )
+        with self.assertRaises(source.SourceReject) as caught:
+            source.coordinate_candidates(validated, mismatched)
+        self.assertEqual(
+            (caught.exception.code, caught.exception.raw_start, caught.exception.raw_end),
+            (C.SOURCE_CANDIDATE_MISMATCH, 0, 0),
+        )
+
     def test_fixture_operation_inventory_is_closed(self) -> None:
         rows = [*FIXTURE["cases"], *FIXTURE["recipes"]]
         portable_operations = {
