@@ -12,7 +12,7 @@ learning claims. Current milestone status is maintained only in
 
 ## Bootstrap
 
-M0 uses these exact project tools:
+M0 and M1 use these exact project tools:
 
 - [uv 0.11.29](https://github.com/astral-sh/uv/releases/tag/0.11.29);
 - CPython 3.14.6, selected by `.python-version`; and
@@ -80,8 +80,8 @@ PYTHONPATH="$PWD/python" uv run --locked --offline --no-python-downloads \
 - `docs/64_games.md` — authoritative, immutable-for-M0 anthology input
 - `inputs/source-lock.toml` — exact input and reference receipts
 - `spec/identity-v0.md` — sole identity/canonical-manifest byte contract
-- `conformance/` — hand-authored shared identity/manifest fixtures
-- `python/` and `crates/gb-foundation/` — independent implementations and tests
-- `reports/source-doctor.json` — deterministic lexical reconnaissance evidence
-- `scripts/check` — M0 root check dispatcher
+- `conformance/` — hand-authored shared identity, chess, source, and content fixtures
+- `python/` and `crates/` — independent identity, chess, source, and content implementations
+- `reports/` — retained source-doctor and agreed source-compilation evidence
+- `scripts/check` — M0/M1 root check dispatcher
 - `AGENTS.md` — concise repository safety rules
