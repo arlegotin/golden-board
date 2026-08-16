@@ -75,19 +75,19 @@ Every rejection returns no partial accepted record, trace, report, or set.
 
 ### 2.1 Resource limits
 
-| Resource | Inclusive limit |
-|---|---:|
-| Raw source bytes | 1,048,576 |
-| Recognized blocks | exactly 64 |
-| One block fence span, opener through closer newline | 65,535 bytes |
-| Tag lines per block | 64 |
-| Tag name | 32 raw ASCII bytes |
-| Raw tag value between quotes, before escape decoding | 1,024 bytes |
-| Movetext tokens per block | 8,192 |
-| Potential or accepted ply tokens per block | 4,096 |
-| Potential or accepted ply tokens over the source | 65,535 |
-| Decoded/encoded plies over one general game set | 65,535 |
-| Candidate or retained canonical manifest, including final LF | 1,048,576 bytes |
+| Resource | Inclusive limit | Constant |
+|---|---:|---|
+| Raw source bytes | 1,048,576 | `SOURCE_MAX_INPUT_BYTES` |
+| Recognized blocks | exactly 64 | `SOURCE_REQUIRED_BLOCKS` |
+| One block fence span, opener through closer newline | 65,535 bytes | `SOURCE_MAX_FENCE_BYTES` |
+| Tag lines per block | 64 | `SOURCE_MAX_TAG_LINES` |
+| Tag name | 32 raw ASCII bytes | `SOURCE_MAX_TAG_NAME_BYTES` |
+| Raw tag value between quotes, before escape decoding | 1,024 bytes | `SOURCE_MAX_TAG_VALUE_BYTES` |
+| Movetext tokens per block | 8,192 | `SOURCE_MAX_TOKENS_PER_BLOCK` |
+| Potential or accepted ply tokens per block | 4,096 | `SOURCE_MAX_PLIES_PER_BLOCK` |
+| Potential or accepted ply tokens over the source | 65,535 | `SOURCE_MAX_TOTAL_PLIES` |
+| Decoded/encoded plies over one general game set | 65,535 | `SOURCE_MAX_GAME_SET_PLIES` |
+| Candidate or retained canonical manifest, including final LF | 1,048,576 bytes | `SOURCE_MAX_EVIDENCE_BYTES` |
 
 Limits are checked before multiplication, allocation, collection growth, chess
 replay, or output. A scanner may retain spans/indices into the immutable input;
@@ -365,7 +365,7 @@ Canonical GameBytes are:
 u16_be(ply_count) || ply_count * encode_move(move) || u8(score_code)
 ```
 
-`1 <= ply_count <= 4,096`. The byte length is exactly
+`1 <= ply_count <= 4,096` (`SOURCE_MAX_GAME_PLIES`). The byte length is exactly
 `2 + 2 * ply_count + 1`. `decode_game` uses this exact pipeline: fewer than two
 bytes is `SOURCE_GAME_TRUNCATED` at EOF; otherwise count outside `1..4,096` is
 `SOURCE_GAME_COUNT` over bytes 0..2; checked expected-length arithmetic follows;
@@ -385,7 +385,8 @@ Canonical GameSetBytes are:
 u16_be(game_count) || sorted_game_0 || ... || sorted_game_(game_count - 1)
 ```
 
-The general `encode_game_set` accepts `1..65,535` already valid GameRecords,
+The general `encode_game_set` accepts `1..65,535`
+(`SOURCE_MAX_GAME_SET_GAMES`) already valid GameRecords,
 requires their complete GameBytes to be unique, sorts those bytes by unsigned
 lexicographic order, and emits them without a per-game length wrapper because
 each leading ply count is self-delimiting. `decode_game_set` requires the same
@@ -394,9 +395,11 @@ bytes, and validates each game. At adjacent records, a later record bytewise
 less than its predecessor is an order error and equality is a duplicate error;
 thus those cases do not overlap.
 Both operations require the sum of all declared ply counts to be at most
-65,535, checked while reading counts and before collection, sorting, allocation,
-or output. With the count and total-ply bounds, the maximum container is 327,677
-bytes. Implementations may stream the already length-checked output instead of
+65,535 (`SOURCE_MAX_GAME_SET_PLIES`), checked while reading counts and before
+collection, sorting, allocation, or output. With the count and total-ply
+bounds, the maximum container is 327,677 bytes (`SOURCE_MAX_GAME_SET_BYTES`).
+Implementations may stream
+the already length-checked output instead of
 retaining two copies.
 
 This general operation deliberately permits a one-game identity vector. It

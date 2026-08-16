@@ -107,6 +107,7 @@ repo() {
     python_tests repo-python \
         python.tests.test_foundation.RepoContract \
         python.tests.test_foundation.RootCheckCLI \
+        python.tests.test_constants.ConstantsCodegen \
         python.tests.test_curriculum_contract.CurriculumContract
 }
 

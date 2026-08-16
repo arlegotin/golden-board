@@ -96,7 +96,8 @@ markup engine, URL action, script support, callback, or generic VM.
 
 ### 1.3 Canonical projection
 
-`ContentProjection` is an immutable value containing `version = 0`, the root
+`ContentProjection` is an immutable value containing version 0
+(`CONTENT_VERSION`), the root
 record ID, and the ordered record sequence. Each projected record contains its
 `record_id`, symbolic `record_kind`, and the named typed payload fields printed
 in Sections 3–6. Raw length fields, reserved zeros, and source offsets are not
@@ -115,8 +116,8 @@ does not define a JSON projection or give JSON key order canonical status.
 
 ```text
 ContentStream :=
-    u16 content_version       # exactly 0
-    u16 record_count          # 2..65535
+    u16 content_version       # exactly 0 (CONTENT_VERSION)
+    u16 record_count          # 2..65535 (CONTENT_MIN_RECORDS..CONTENT_MAX_RECORDS)
     Record[record_count]
 
 Record :=
@@ -126,7 +127,8 @@ Record :=
     u8  payload[payload_length]
 ```
 
-The complete input is at most 1,048,576 bytes. The validator bounds and indexes
+The complete input is at most 1,048,576 bytes (`CONTENT_MAX_STREAM_BYTES`).
+The validator bounds and indexes
 the complete frame before exposing or locally decoding any record. It then
 validates records in ascending ID order, references, graph invariants, and
 budgets. A declared record payload is contiguous; padding and trailing bytes
@@ -466,7 +468,7 @@ assertion rather than a chess-specific feedback code.
 
 ### 6.1 Canonical actions and responses
 
-Canonical action bytes are exactly four bytes:
+Canonical action bytes are exactly four bytes (`CONTENT_ACTION_BYTES`):
 
 ```text
 u8  action_code
@@ -893,7 +895,8 @@ Event :=
 
 The root ID is exactly the projection's final root and the current node is an
 existing lesson node. Event count is at most 65,535 and at most the root's
-initial global budget. Each consumed call contributes one seven-byte event;
+initial global budget. Each consumed call contributes one seven-byte event
+(`CONTENT_EVENT_BYTES`);
 immutable terminal calls and `advance_committed` contribute none.
 
 Active and exhausted states have outcome `OUTCOME_NONE` and no committed
@@ -929,22 +932,24 @@ sentinel deterministically yields `INTERACTION_INVALID_ACTION`.
 
 ### 9.3 Exact size maxima
 
-The fixed fields outside buffer, response, and events occupy 18 bytes. The
+The fixed fields outside buffer, response, and events occupy 18 bytes
+(`CONTENT_RUN_STATE_FIXED_BYTES`). The
 largest buffer has 4,096 IDs (`8,192` bytes). The largest committed response
-has one shape byte, a two-byte count, and 4,096 IDs (`8,195` bytes). The largest
+has one shape byte, a two-byte count, and 4,096 IDs (8,195 bytes,
+`CONTENT_MAX_COMMITTED_RESPONSE_BYTES`). The largest
 event log has 65,535 seven-byte events (`458,745` bytes).
 
 A committed state cannot also carry a buffer, so the exact maximum valid
 run-state size is:
 
 ```text
-18 + 8,195 + 458,745 = 466,958 bytes
+18 + 8,195 + 458,745 = 466,958 bytes (`CONTENT_MAX_RUN_STATE_BYTES`)
 ```
 
 An exhausted state carries no committed response. Its exact buffer maximum is:
 
 ```text
-18 + 8,192 + 458,745 = 466,955 bytes
+18 + 8,192 + 458,745 = 466,955 bytes (`CONTENT_MAX_EXHAUSTED_RUN_STATE_BYTES`)
 ```
 
 These maxima are attainable at the format bounds through budget-consuming
@@ -958,27 +963,28 @@ variable fields. Evidence includes each boundary and its one-byte-over case.
 These are inclusive pre-profile parser/runtime safety limits, not promises
 about final artifact capacity:
 
-| Resource | Limit |
-|---|---:|
-| Raw content stream | 1,048,576 bytes |
-| Records / highest possible ID | 65,535 |
-| One declared payload | 1,048,576 bytes and within remaining stream |
-| Records of any one non-root kind | 4,096 |
-| Text payload | 4,096 bytes |
-| Enum entries | 4,096 |
-| Vector atoms | 65,535 |
-| Matrix cells | 65,535 |
-| Field-schema fields | 256 |
-| Tuple inline atoms plus reference slots | 4,096 |
-| Opaque-data atoms | 4,096 |
-| Regions in one set | 4,096 |
-| Lesson nodes | 4,096 |
-| Cases in one node | 4,096 |
-| Nonzero lesson case/default control edges | 16,384 |
-| Global/local event budget and logged events | 65,535 |
-| Canonical run state | 466,958 bytes |
-| Exhausted canonical run state | 466,955 bytes |
-| Root records | exactly one |
+| Resource | Limit | Constant |
+|---|---:|---|
+| Raw content stream | 1,048,576 bytes | `CONTENT_MAX_STREAM_BYTES` |
+| Records / highest possible ID | 65,535 | `CONTENT_MAX_RECORDS` |
+| One declared payload | 1,048,576 bytes and within remaining stream | `CONTENT_MAX_PAYLOAD_BYTES` |
+| Records of any one non-root kind | 4,096 | `CONTENT_MAX_RECORDS_PER_NON_ROOT_KIND` |
+| Text payload | 4,096 bytes | `CONTENT_MAX_TEXT_BYTES` |
+| Enum entries | 4,096 | `CONTENT_MAX_ENUM_ENTRIES` |
+| Vector atoms | 65,535 | `CONTENT_MAX_VECTOR_ATOMS` |
+| Matrix cells | 65,535 | `CONTENT_MAX_MATRIX_CELLS` |
+| Field-schema fields | 256 | `CONTENT_MAX_FIELD_SCHEMA_FIELDS` |
+| Tuple inline atoms plus reference slots | 4,096 | `CONTENT_MAX_TUPLE_SLOTS` |
+| Opaque-data atoms | 4,096 | `CONTENT_MAX_OPAQUE_ATOMS` |
+| Regions in one set | 4,096 | `CONTENT_MAX_REGIONS` |
+| Lesson nodes | 4,096 | `CONTENT_MAX_LESSON_NODES` |
+| Cases in one node | 4,096 | `CONTENT_MAX_CASES_PER_NODE` |
+| Nonzero lesson case/default control edges | 16,384 | `CONTENT_MAX_CONTROL_EDGES` |
+| Response-buffer selections | 4,096 | `CONTENT_MAX_SELECTIONS` |
+| Global/local event budget and logged events | 65,535 | `CONTENT_MAX_EVENT_BUDGET` |
+| Canonical run state | 466,958 bytes | `CONTENT_MAX_RUN_STATE_BYTES` |
+| Exhausted canonical run state | 466,955 bytes | `CONTENT_MAX_EXHAUSTED_RUN_STATE_BYTES` |
+| Root records | exactly one | `CONTENT_REQUIRED_ROOTS` |
 
 Structural minima and smaller per-field limits win. A payload still must fit
 inside the already bounded stream. Counts/products are rejected before loops;

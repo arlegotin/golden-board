@@ -57,7 +57,8 @@ integer encoding and are duplicate-free.
 
 ### 3.1 Position
 
-Canonical `Position` is exactly 67 bytes:
+Canonical `Position` is exactly 67 bytes (`CHESS_POSITION_BYTES`), with 64
+squares (`CHESS_SQUARE_COUNT`):
 
 ```text
 64 * u8 square_code, in a1..h8 order
@@ -116,6 +117,12 @@ bits  3..1   promotion code
 bit      0   reserved zero
 ```
 
+Its width is `CHESS_MOVE_BYTES`. The origin uses
+`CHESS_MOVE_ORIGIN_SHIFT` and `CHESS_MOVE_ORIGIN_MASK`; the destination uses
+`CHESS_MOVE_DESTINATION_SHIFT` and `CHESS_MOVE_DESTINATION_MASK`; promotion
+uses `CHESS_MOVE_PROMOTION_SHIFT` and `CHESS_MOVE_PROMOTION_MASK`; and the low
+reserved bit is `CHESS_MOVE_RESERVED_MASK`.
+
 Promotion is exactly `PROMOTION_NONE`, `PROMOTION_QUEEN`, `PROMOTION_ROOK`,
 `PROMOTION_BISHOP`, or `PROMOTION_KNIGHT`. The constants owner assigns the
 codes and reserves all other three-bit values. Origin equal to destination,
@@ -145,7 +152,8 @@ EVENT_CLAIM_THREEFOLD                          # one byte
 EVENT_CLAIM_50_MOVE                            # one byte
 ```
 
-No event has padding or trailing data. Unknown event or side codes reject.
+No event has padding or trailing data, and its maximum encoded width is
+`CHESS_EVENT_MAX_BYTES`. Unknown event or side codes reject.
 These bytes are semantic fixture/content atoms; no event identity is registered
 in v0.
 
@@ -232,10 +240,14 @@ second side. Where a square is reported, the lowest Square wins.
 
 1. exactly one first-side king (`CHESS_LOCAL_FIRST_KING_COUNT`);
 2. exactly one second-side king (`CHESS_LOCAL_SECOND_KING_COUNT`);
-3. at most eight first-side pawns (`CHESS_LOCAL_FIRST_PAWN_COUNT`);
-4. at most eight second-side pawns (`CHESS_LOCAL_SECOND_PAWN_COUNT`);
-5. at most sixteen first-side pieces (`CHESS_LOCAL_FIRST_PIECE_COUNT`);
-6. at most sixteen second-side pieces (`CHESS_LOCAL_SECOND_PIECE_COUNT`);
+3. at most eight first-side pawns (`CHESS_MAX_SIDE_PAWNS`, rejecting
+   `CHESS_LOCAL_FIRST_PAWN_COUNT`);
+4. at most eight second-side pawns (`CHESS_MAX_SIDE_PAWNS`, rejecting
+   `CHESS_LOCAL_SECOND_PAWN_COUNT`);
+5. at most sixteen first-side pieces (`CHESS_MAX_SIDE_PIECES`, rejecting
+   `CHESS_LOCAL_FIRST_PIECE_COUNT`);
+6. at most sixteen second-side pieces (`CHESS_MAX_SIDE_PIECES`, rejecting
+   `CHESS_LOCAL_SECOND_PIECE_COUNT`);
 7. no pawn on displayed rank 1 or 8 (`CHESS_LOCAL_PAWN_ON_LAST_RANK`);
 8. kings are not adjacent (`CHESS_LOCAL_KINGS_ADJACENT`);
 9. both kings are not controlled simultaneously
@@ -296,8 +308,10 @@ evaluate_predicate(PredicateId, PredicateInput) -> PredicateResult | ChessReject
 ```
 
 `MoveSlice` is an immutable indexed sequence with a known `u32` length.
-`SquareList` is an immutable list of `0..64` distinct Squares;
-`MoveList` is an immutable list of `0..512` distinct Moves. Both list types are
+`SquareList` is an immutable list of `0..64` distinct Squares
+(`CHESS_SQUARE_COUNT`); `MoveList` is an immutable list of `0..512` distinct
+Moves (`CHESS_MAX_MOVE_LIST`).
+Both list types are
 ascending by unsigned canonical encoding. The finite 64-square orthodox board
 and the locally admissible 16-piece-per-side bound make these capacities total;
 they are not truncation limits.
@@ -521,8 +535,9 @@ king does not preserve the field. Halfmove clock, occurrence counts, played
 plies, status, score, record identity, and transport state never enter the key.
 
 The initial key has occurrence count one. Threefold is currently claimable
-when the current key count is at least three. The practical 50-move draw is
-currently claimable when the halfmove clock is at least 100. Neither condition
+when the current key count is at least three (`CHESS_THREEFOLD_OCCURRENCES`).
+The practical 50-move draw is currently claimable when the halfmove clock is
+at least 100 (`CHESS_FIFTY_MOVE_PLIES`). Neither condition
 ends the game without its accepted event. Source records may continue while a
 claim is available.
 
@@ -543,7 +558,8 @@ board-terminal. While active:
   status, and winning-side Score; stalemate/common-dead store that board cause,
   matching status, and draw Score;
 - either named side may resign and the other side wins;
-- agreement requires at least two played plies, otherwise
+- agreement requires at least two played plies (`CHESS_AGREEMENT_MIN_PLIES`),
+  otherwise
   `CHESS_EVENT_AGREEMENT_TOO_EARLY`;
 - a threefold claim requires current availability, otherwise
   `CHESS_EVENT_THREEFOLD_UNAVAILABLE`;
@@ -651,17 +667,21 @@ closed, or over-history Move escapes with its ordinary transition rejection;
 Finite-tree transition failures instead use the closed tree code below.
 
 For fork input, the tagged variant is checked first, then ordinary closure as
-specified in Section 9.3. A target length above 16 is
+specified in Section 9.3. A target length above 16
+(`CHESS_MAX_FORK_TARGETS`) is
 `CHESS_RESOURCE_PREDICATE_INPUT` without inspecting an element. After that
-resource check, a length below 2, any value outside `0..63`, a duplicate, or a
-nonascending sequence is `CHESS_PREDICATE_SIGNATURE`. Thus an accepted target
-list is exactly `2..16` distinct ascending Squares, while a closed-state fork
-input with 17 targets returns `CHESS_GAME_CLOSED` before the resource code.
+resource check, a length below 2 (`CHESS_MIN_FORK_TARGETS`), any value outside
+`0..63`, a duplicate, or a nonascending sequence is
+`CHESS_PREDICATE_SIGNATURE`. Thus an accepted target list is bounded by those
+two constants, while a closed-state fork input with 17 targets returns
+`CHESS_GAME_CLOSED` before the resource code.
 
 `FinitePromotionTree` is exactly `(root: ReplayState, nodes: NodeSlice)`.
 NodeSlice and each Node's EdgeSlice are immutable indexed sequences with known
-`u32` lengths. The accepted node length is `1..4,096`; `nodes[0]` represents
-root. A Node stores only an EdgeSlice whose accepted length is `0..256`; each
+`u32` lengths. The accepted node length is `1..4,096`
+(`CHESS_MAX_PREDICATE_NODES`); `nodes[0]` represents root. A Node stores only
+an EdgeSlice whose accepted length is `0..256`
+(`CHESS_MAX_PREDICATE_EDGES_PER_NODE`); each
 edge is `(move: Move, child_index: u16)`, Moves are distinct and sorted, and no
 child Position, ReplayState, status, terminal value, or result is stored. Every
 child index is in range and greater than its parent index. Starting at node 0
@@ -671,13 +691,15 @@ and every node must be visited. Derived state 0 is root, and each other state is
 uniquely `apply_move(derived parent state, edge move)`.
 
 Before traversal or transition, checked aggregate validation returns
-`CHESS_RESOURCE_PREDICATE_INPUT` for more than 4,096 nodes, more than 256 edges
-in any node, more than 4,095 total edges, or collection-size arithmetic
+`CHESS_RESOURCE_PREDICATE_INPUT` for more than 4,096
+(`CHESS_MAX_PREDICATE_NODES`) nodes, more than 256
+(`CHESS_MAX_PREDICATE_EDGES_PER_NODE`) edges in any node, more than 4,095
+(`CHESS_MAX_PREDICATE_EDGES`) total edges, or collection-size arithmetic
 overflow, without traversing an edge. After that resource screen, zero nodes,
 an invalid index/order/parent/depth shape, or any closed, over-history, or
 illegal edge transition is `CHESS_PREDICATE_TREE`; no other transition code
 escapes from a finite-tree predicate. A closed root with no edge is simply a
-leaf. Depth is at most 64. A branch stops at its first
+leaf. Depth is at most 64 (`CHESS_MAX_PREDICATE_DEPTH`). A branch stops at its first
 promotion and records that mover; a node reached by promotion must be a leaf. A
 leaf reached without promotion records no-promotion. The result is the sorted
 set union of all reached leaf outcomes. The tree claims only its explicitly
