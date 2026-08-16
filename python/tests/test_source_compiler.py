@@ -269,16 +269,20 @@ def _locked_blocks() -> tuple[bytes, ...]:
 
 class SourceCompilerApi(unittest.TestCase):
     def test_candidate_evidence_is_canonical_validated_and_fail_closed(self) -> None:
-        from golden_board import source_compiler as source
+        from golden_board import source_compiler as source, source_doctor
 
+        opened = source_doctor.read_locked_source(
+            ROOT, source_doctor.load_source_lock(ROOT)
+        )
+        self.assertTrue(opened.lock_match)
         evidence = source.EvidenceInputs(
-            source=LOCKED,
+            source=opened.data,
             chess_v0=_read_bounded(ROOT / "spec/chess-v0.md"),
             source_v0=_read_bounded(ROOT / "spec/source-v0.md"),
             identity_v0=_read_bounded(ROOT / "spec/identity-v0.md"),
             constants_v0=_read_bounded(ROOT / "spec/constants-v0.toml"),
         )
-        candidate = source.compile_source(LOCKED)
+        candidate = source.compile_source(opened.data)
         candidate_bytes = source.encode_candidate_trace(candidate, evidence)
         self.assertEqual(validate_canonical_manifest(candidate_bytes)["ply_count"], 4_915)
         validated = source.validate_candidate_trace(
@@ -291,6 +295,28 @@ class SourceCompilerApi(unittest.TestCase):
         source.validate_retained_evidence(
             retained.report_bytes, retained.game_set_bytes, evidence
         )
+        tracked_report = _read_bounded(ROOT / "reports/source-compilation-v0.json")
+        tracked_set = _read_bounded(ROOT / "reports/game-set-v0.bin")
+        self.assertEqual(tracked_report, retained.report_bytes)
+        self.assertEqual(tracked_set, retained.game_set_bytes)
+        source.validate_retained_evidence(tracked_report, tracked_set, evidence)
+
+        for report_bytes, game_set_bytes, code in (
+            (tracked_report + b" ", tracked_set, C.SOURCE_EVIDENCE_NONCANONICAL),
+            (
+                tracked_report,
+                tracked_set[:-1] + bytes([tracked_set[-1] ^ 1]),
+                C.SOURCE_EVIDENCE_CROSS_FIELD,
+            ),
+        ):
+            with self.assertRaises(source.SourceReject) as caught:
+                source.validate_retained_evidence(
+                    report_bytes, game_set_bytes, evidence
+                )
+            self.assertEqual(
+                (caught.exception.code, caught.exception.raw_start, caught.exception.raw_end),
+                (code, 0, 0),
+            )
 
         rows = [
             row for key in ("cases", "recipes") for row in FIXTURE[key]

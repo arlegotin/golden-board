@@ -19,7 +19,9 @@ use gb_chess::source::{
     decode_game_set, encode_candidate_trace, encode_game, encode_game_set, validate_anthology,
     validate_candidate_trace, validate_retained_evidence,
 };
-use gb_foundation::constants::SOURCE_CANDIDATE_MISMATCH;
+use gb_foundation::constants::{
+    SOURCE_CANDIDATE_MISMATCH, SOURCE_EVIDENCE_CROSS_FIELD, SOURCE_EVIDENCE_NONCANONICAL,
+};
 use gb_foundation::{ManifestValue as V, validate_canonical_manifest};
 use sha2::{Digest, Sha256};
 
@@ -717,12 +719,11 @@ fn locked_anthology_compiles_atomically_and_deterministically() {
 
 #[test]
 fn candidate_evidence_is_canonical_validated_and_fail_closed() {
-    let repository = root();
-    let source_bytes = std::fs::read(repository.join("docs/64_games.md")).unwrap();
-    let chess_v0 = std::fs::read(repository.join("spec/chess-v0.md")).unwrap();
-    let source_v0 = std::fs::read(repository.join("spec/source-v0.md")).unwrap();
-    let identity_v0 = std::fs::read(repository.join("spec/identity-v0.md")).unwrap();
-    let constants_v0 = std::fs::read(repository.join("spec/constants-v0.toml")).unwrap();
+    let source_bytes = locked_anthology();
+    let chess_v0 = safe_read("spec/chess-v0.md", 1_048_576);
+    let source_v0 = safe_read("spec/source-v0.md", 1_048_576);
+    let identity_v0 = safe_read("spec/identity-v0.md", 1_048_576);
+    let constants_v0 = safe_read("spec/constants-v0.toml", 1_048_576);
     let evidence = EvidenceInputs {
         source: &source_bytes,
         chess_v0: &chess_v0,
@@ -754,6 +755,34 @@ fn candidate_evidence_is_canonical_validated_and_fail_closed() {
         &evidence,
     )
     .unwrap();
+    let tracked_report = safe_read("reports/source-compilation-v0.json", 1_048_576);
+    let tracked_set = safe_read("reports/game-set-v0.bin", 327_677);
+    assert_eq!(tracked_report, retained.report_bytes());
+    assert_eq!(tracked_set, retained.game_set_bytes());
+    validate_retained_evidence(&tracked_report, &tracked_set, &evidence).unwrap();
+
+    let mut noncanonical = tracked_report.clone();
+    noncanonical.push(b' ');
+    assert_outcome(
+        validate_retained_evidence(&noncanonical, &tracked_set, &evidence),
+        Some(SourceReject {
+            code: SOURCE_EVIDENCE_NONCANONICAL,
+            raw_start: 0,
+            raw_end: 0,
+        }),
+        "retained report tamper",
+    );
+    let mut changed_set = tracked_set.clone();
+    *changed_set.last_mut().unwrap() ^= 1;
+    assert_outcome(
+        validate_retained_evidence(&tracked_report, &changed_set, &evidence),
+        Some(SourceReject {
+            code: SOURCE_EVIDENCE_CROSS_FIELD,
+            raw_start: 0,
+            raw_end: 0,
+        }),
+        "retained game set tamper",
+    );
 
     let (rows, _) = fixture_rows();
     let evidence_rows: Vec<_> = rows
