@@ -920,11 +920,140 @@ class RepoContract(unittest.TestCase):
                 "id": "source-v0",
                 "path": "conformance/source-v0.json",
                 "provenance": "hand-authored",
-                "sha256": "669e5550d225d3c4669e1c0902d6b05d83855b3a941a9b4c1ff1e8fbe11cfbec",
+                "sha256": "e55fc0aa351013a8ceb51142da8fabc4ed49e2848c9a1921c8b382a8aee89c76",
                 "specification": "source-v0",
                 "version": "v0",
             },
         )
+
+    def test_source_fixture_semantic_review_regressions_are_frozen(self) -> None:
+        payload = canonical_manifest.validate_canonical_manifest(
+            repo_text_bytes(ROOT, b"conformance/source-v0.json")
+        )
+        rows = {
+            row["name"]: row
+            for key in ("cases", "recipes")
+            for row in payload[key]
+        }
+
+        with self.subTest(finding="raw game count, not forged typed encoder input"):
+            self.assertFalse("binary-game-typed-4097" in rows)
+            name = "binary-game-count-4097"
+            self.assertIn(name, rows)
+            if name in rows:
+                self.assertEqual(
+                    rows[name],
+                    {
+                        "count_cap": 1,
+                        "expected": {
+                            "rejection": {"code": 49, "raw_end": 2, "raw_start": 0}
+                        },
+                        "input": {
+                            "prefix_hex": "",
+                            "repeat_count": 1,
+                            "repeat_hex": "1001",
+                            "suffix_hex": "",
+                        },
+                        "input_bytes": 2,
+                        "input_sha256": (
+                            "27c24fcb8474773e2af799d0848495ff053272d33c432dc26277993df45c9276"
+                        ),
+                        "name": name,
+                        "operation": "decode_game",
+                        "recipe": "literal-repeat",
+                    },
+                )
+
+        cycle = "1950fad05460b7e0"
+        for name, expected_hash in (
+            (
+                "binary-game-set-total-plies-65535",
+                "b9ed9c501fba4549cb8f5f2803ca3583999eb1bbd6631b51e5321bf909ec7798",
+            ),
+            (
+                "binary-game-set-total-plies-65536",
+                "4534aa261bf8f36534ec0faf68f3984716e5881f40dd3ccb80f84f9142e6f3ce",
+            ),
+        ):
+            with self.subTest(finding="legal typed game-set cycle", name=name):
+                self.assertEqual(rows[name]["input"].get("cycle_moves_hex"), cycle)
+                self.assertNotIn("move_hex", rows[name]["input"])
+                self.assertEqual(rows[name]["input_sha256"], expected_hash)
+
+        source_lock = tomllib.loads((ROOT / "inputs/source-lock.toml").read_text())
+        receipt = next(row for row in source_lock["source"] if row["id"] == "anthology")
+        base = repo_text_bytes(ROOT, receipt["path"].encode("ascii"))
+
+        def expanded(name: str) -> bytes:
+            recipe = rows[name]
+            patches = recipe["input"]["patches"]
+            self.assertLessEqual(len(patches), recipe["patch_cap"])
+            value = bytearray(base)
+            for patch in patches:
+                start = patch["start"]
+                old = bytes.fromhex(patch["old_hex"])
+                replacement = bytes.fromhex(patch["replacement_hex"])
+                self.assertEqual(value[start:start + len(old)], old)
+                value[start:start + len(old)] = replacement
+            self.assertLessEqual(len(value), MAX_REPO_TEXT_BYTES + 1)
+            return bytes(value)
+
+        with self.subTest(finding="missing capture token span"):
+            raw = expanded("san-noncanonical-missing-capture")
+            rejection = rows["san-noncanonical-missing-capture"]["expected"]["rejection"]
+            self.assertEqual(rejection, {"code": 45, "raw_end": 12413, "raw_start": 12411})
+            self.assertEqual(raw[12405:12407], b"d5")
+            self.assertEqual(raw[12408:12413], b"2. d5")
+
+        terminal_rows = {
+            "terminal-score-checkmate": (
+                164274,
+                "b2fe08f4dc7d76e66ebcda1497db8d1777c533d435efd26e49d9fad45723f732",
+                {"code": 47, "raw_end": 12422, "raw_start": 12419},
+                None,
+            ),
+            "terminal-after-stalemate": (
+                164375,
+                "dfde2615e14afde446b24436dd575d6406a1d2210458438b0fd6684bdf126f7c",
+                {"code": 41, "raw_end": 12515, "raw_start": 12513},
+                (12459, b"Qxd7+"),
+            ),
+            "terminal-score-stalemate": (
+                164364,
+                "f97fe97cdf517783cd2383d4d84494aa4a0bb0338a0ed0933f685ed953d3f34d",
+                {"code": 47, "raw_end": 12512, "raw_start": 12509},
+                (12455, b"Qxd7+"),
+            ),
+            "terminal-after-common-dead": (
+                164488,
+                "f6afec6817e55db9f411cc806ae031bf18909f7f1b406afa0e661dfd72b3d3d3",
+                {"code": 41, "raw_end": 12628, "raw_start": 12625},
+                (12597, b"Rxf2"),
+            ),
+            "terminal-score-common-dead": (
+                164476,
+                "75a07e38155b5e6e9bb0957e3cca3a1abb2556dc4e4eae92d7fa7859cc5ef1cd",
+                {"code": 47, "raw_end": 12624, "raw_start": 12621},
+                (12593, b"Rxf2"),
+            ),
+        }
+        for name, (length, digest, rejection, capture) in terminal_rows.items():
+            with self.subTest(finding="terminal capture and marker", name=name):
+                raw = expanded(name)
+                self.assertEqual(len(raw), length)
+                self.assertEqual(hashlib.sha256(raw).hexdigest(), digest)
+                self.assertEqual(rows[name]["input_bytes"], length)
+                self.assertEqual(rows[name]["input_sha256"], digest)
+                self.assertEqual(rows[name]["expected"]["rejection"], rejection)
+                if capture is not None:
+                    start, token = capture
+                    self.assertEqual(raw[start:start + len(token)], token)
+                if rejection["code"] == 47:
+                    self.assertEqual(raw[12392:12395], b"1-0")
+                    self.assertNotEqual(rejection["raw_start"], 12392)
+                    self.assertEqual(
+                        raw[rejection["raw_start"]:rejection["raw_end"]], b"1-0"
+                    )
 
     def test_source_fixture_shape_and_coverage_are_closed(self) -> None:
         payload = canonical_manifest.validate_canonical_manifest(
@@ -999,7 +1128,7 @@ class RepoContract(unittest.TestCase):
             accept-san-full-square-disambiguation accept-san-pinned-pseudo-mover-excluded
             accept-opaque-tag duplicate-move-stream-same-score
             duplicate-move-stream-different-score binary-game-count-4096 binary-game-set-size
-            binary-game-set-size-boundary binary-game-typed-4097 binary-game-set-count-65535
+            binary-game-set-size-boundary binary-game-count-4097 binary-game-set-count-65535
             binary-game-set-count-65536 binary-game-set-total-plies-65535
             binary-game-set-total-plies-65536 binary-anthology-count-63
             binary-anthology-count-64 binary-anthology-count-65
@@ -1015,7 +1144,7 @@ class RepoContract(unittest.TestCase):
                 binary-game-count-zero binary-game-count-one binary-game-truncated-header
                 binary-game-truncated-body binary-game-move binary-game-score
                 binary-game-trailing binary-game-semantic-move binary-game-semantic-score
-                binary-game-fools-mate binary-game-count-4096
+                binary-game-fools-mate binary-game-count-4096 binary-game-count-4097
             """,
             "decode_game_set": """
                 binary-game-set-count-zero binary-game-set-count-one
@@ -1027,7 +1156,6 @@ class RepoContract(unittest.TestCase):
                 evidence-shape-malformed evidence-shape-extra-key evidence-noncanonical
                 evidence-hash evidence-cross-field evidence-size
             """,
-            "encode_game": "binary-game-typed-4097",
             "encode_game_set": """
                 binary-game-set-count-65535 binary-game-set-count-65536
                 binary-game-set-total-plies-65535 binary-game-set-total-plies-65536
@@ -1063,7 +1191,7 @@ class RepoContract(unittest.TestCase):
         self.assertEqual(
             {row["operation"] for key in ("cases", "recipes") for row in payload[key]},
             {
-                "compile_source", "decode_game", "decode_game_set", "encode_game",
+                "compile_source", "decode_game", "decode_game_set",
                 "encode_game_set", "validate_anthology", "validate_candidate_trace",
             },
         )
@@ -1126,10 +1254,6 @@ class RepoContract(unittest.TestCase):
                 "count_cap", "expected", "input", "input_bytes", "input_sha256",
                 "name", "operation", "recipe",
             },
-            "typed-game-plies": {
-                "count_cap", "expected", "input", "input_bytes", "input_sha256",
-                "name", "operation", "recipe",
-            },
             "typed-game-set-games": {
                 "count_cap", "expected", "input", "input_bytes", "input_sha256",
                 "name", "operation", "recipe",
@@ -1157,7 +1281,7 @@ class RepoContract(unittest.TestCase):
             "binary-game-count-4096": 1_024,
             "binary-game-set-size": 327_678,
             "binary-game-set-size-boundary": 327_677,
-            "binary-game-typed-4097": 4_097,
+            "binary-game-count-4097": 1,
             "binary-game-set-count-65535": 65_536,
             "binary-game-set-count-65536": 65_536,
             "binary-game-set-total-plies-65535": 16,
@@ -1268,7 +1392,7 @@ class RepoContract(unittest.TestCase):
                         )
                     )
                 raw = b"".join(blocks)
-            elif kind in {"typed-game-plies", "typed-game-set-games"}:
+            elif kind == "typed-game-set-games":
                 self.assertEqual(set(inputs), {"count", "unit_hex"})
                 self.assertIs(type(inputs["count"]), int)
                 self.assertLessEqual(0, inputs["count"])
@@ -1279,9 +1403,9 @@ class RepoContract(unittest.TestCase):
                 )
                 raw = unit * inputs["count"]
             elif kind == "typed-game-set-total-plies":
-                self.assertEqual(set(inputs), {"move_hex", "ply_counts", "score"})
-                move = checked_hex(inputs["move_hex"])
-                self.assertEqual(len(move), 2)
+                self.assertEqual(set(inputs), {"cycle_moves_hex", "ply_counts", "score"})
+                cycle = checked_hex(inputs["cycle_moves_hex"])
+                self.assertEqual(cycle, bytes.fromhex("1950fad05460b7e0"))
                 self.assertIs(type(inputs["ply_counts"]), list)
                 self.assertLessEqual(len(inputs["ply_counts"]), recipe["count_cap"])
                 self.assertTrue(all(type(count) is int for count in inputs["ply_counts"]))
@@ -1291,7 +1415,8 @@ class RepoContract(unittest.TestCase):
                 pieces = []
                 for count in inputs["ply_counts"]:
                     self.assertIn(count, range(1, 4097))
-                    pieces.append(count.to_bytes(2, "big") + move * count + bytes([inputs["score"]]))
+                    moves = (cycle * ((count + 3) // 4))[:count * 2]
+                    pieces.append(count.to_bytes(2, "big") + moves + bytes([inputs["score"]]))
                 raw = b"".join(pieces)
             else:
                 self.assertEqual(
@@ -1323,8 +1448,8 @@ class RepoContract(unittest.TestCase):
         self.assertEqual(
             recipe_counts,
             {
-                "literal-repeat": 14, "locked-base-patch": 88,
-                "knight-cycle-corpus": 4, "typed-game-plies": 1,
+                "literal-repeat": 15, "locked-base-patch": 88,
+                "knight-cycle-corpus": 4,
                 "typed-game-set-games": 2, "typed-game-set-total-plies": 2,
                 "typed-anthology": 4,
             },
@@ -1405,9 +1530,9 @@ class RepoContract(unittest.TestCase):
             "raw count cap": lambda value: change_cap(value, "raw-input-too-large", "count_cap"),
             "patch cap": lambda value: change_cap(value, "accept-locked-anthology", "patch_cap"),
             "newline count cap": lambda value: change_cap(value, "accept-newline-lf", "count_cap"),
-            "encode Game/GameSet swap": lambda value: swap_operations(
-                value, "binary-game-typed-4097", "binary-game-set-count-65536"
-            ),
+            "forged typed Game encoder": lambda value: row(
+                value, "binary-game-count-4097"
+            ).update(operation="encode_game"),
             "decode Game/GameSet swap": lambda value: swap_operations(
                 value, "binary-game-count-zero", "binary-game-set-count-zero"
             ),

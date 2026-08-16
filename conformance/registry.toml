@@ -32,6 +32,6 @@ id = "source-v0"
 path = "conformance/source-v0.json"
 specification = "source-v0"
 version = "v0"
-sha256 = "669e5550d225d3c4669e1c0902d6b05d83855b3a941a9b4c1ff1e8fbe11cfbec"
+sha256 = "e55fc0aa351013a8ceb51142da8fabc4ed49e2848c9a1921c8b382a8aee89c76"
 consumers = ["python", "rust"]
 provenance = "hand-authored"
