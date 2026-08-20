@@ -2,10 +2,10 @@
 
 | Field | Value |
 |---|---|
-| Roadmap revision | 2 |
+| Roadmap revision | 5 |
 | Last updated | 2026-08-14 |
 | Project state | In progress |
-| Current milestone | M1 — Chess truth, source grammar, and assessment blueprint |
+| Current milestone | M2 — Full-carrier bootstrap and transport feasibility |
 | Delivery model | One implementation track, one final square bitplane |
 | Canonical anthology source | `docs/64_games.md` |
 | Mutable status authority | Section 13 |
@@ -59,7 +59,8 @@ The final candidate MUST satisfy all of the following:
 - the generic learning interface has no hidden chess rules, move generator, answer database, or board-size constant;
 - independent Python and Rust implementations agree on canonical wire data, chess semantics, source compilation, lesson records, recovery states, and game replay;
 - every exact lesson answer is computed from a frozen finite predicate or explicit accepted set;
-- every interactive lesson has a complete passive route and a finite event budget;
+- every packed interactive lesson has a complete passive route, and every
+  interaction has finite local/global event budgets;
 - all sixty-four game records originate from `docs/64_games.md`, replay legally from the standard initial position, and carry no descriptive source metadata;
 - damaged observations never yield silently accepted wrong canonical bytes in the frozen damage corpus;
 - final dimensions are chosen from the complete actual shell, curriculum, anthology, integrity, redundancy, and reserve ledger;
@@ -71,7 +72,8 @@ The final candidate MUST satisfy all of the following:
 Golden Board may claim only that:
 
 - it is self-describing for the technical recipient model in Section 2, not universally understandable;
-- its teaching effectiveness is demonstrated only for the tested learner population and assessment;
+- its teaching evidence is limited to the selected participants, frozen assessment,
+  and protocol actually run; it is not a population or causal-efficacy claim;
 - its damage tolerance covers only the named observation channels, operators, and bounds;
 - its integrity checks detect accidental inconsistency and do not authenticate origin or intent;
 - it teaches a practical orthodox-chess rules profile, not every tournament or arbiter procedure; and
@@ -145,10 +147,11 @@ Generic prior knowledge of checksums, error-correcting codes, or chess is record
 The learning claim assumes a person who:
 
 - has not previously completed a legal orthodox game unaided;
-- does not already meet the final rules-assessment threshold;
+- meets the frozen Section 10.6 eligibility criteria;
 - uses only the exact generic content stream recovered from the final bitplane;
 - receives neutral instructions about interface mechanics, not chess semantics; and
-- responds through finite artifact-defined selections, move construction, or `none`.
+- responds through finite artifact-defined selections, move construction, and
+  explicit commit/reset actions; an empty committed response represents none.
 
 The learner is not required to implement the transport decoder. Technical reconstruction and chess learning are separate claims joined by the compositional bridge below.
 
@@ -197,10 +200,12 @@ It MUST NOT contain:
 - piece identities or movement rules;
 - attack, legal-move, terminal, or source-score logic;
 - a chess engine or chess library;
-- hidden accepted answers for final held-out transfer cases; or
+- hidden accepted answers for pretest, posttest, or delayed held-out cases; or
 - a parallel decoded copy of the artifact.
 
-Practice answers packed in the artifact may drive artifact-authored feedback. Final transfer cases are separate evaluator fixtures whose answers are not present in B.
+Practice answers packed in the artifact may drive artifact-authored feedback.
+Pretest, final-transfer, and delayed cases are separate evaluator fixtures whose
+answers are not present in B.
 
 #### C — guided explorer
 
@@ -296,15 +301,27 @@ The selected transport, checks, interleave, shell notation, profile limits, and 
 - This roadmap owns mission, scope, milestone order, acceptance wording, and status.
 - `spec/identity-v0.md` owns developer hash framing and canonical manifest syntax.
 - `spec/chess-v0.md` owns chess types, APIs, rules, and rejection precedence.
-- `spec/source-v0.md` owns the exact accepted source grammar.
-- `spec/content-v0.md` owns generic record bytes.
+- `spec/source-v0.md` owns the exact accepted source grammar and source-parser
+  safety limits.
+- `spec/content-v0.md` owns generic record bytes and pre-profile parser-safety
+  limits.
 - `spec/bootstrap-v0.md` owns shell grounding and recipe notation.
 - `spec/profile-policy-v0.toml` owns the bounded candidate set and selection metrics.
 - `spec/profile-v0.md` owns final physical/wire constants.
-- `spec/profile-limits-v0.toml` owns every count, length, allocation, and work ceiling.
+- `spec/profile-limits-v0.toml` owns M2-and-later artifact/runtime counts,
+  lengths, allocations, and work ceilings once measured; it does not retroactively
+  own M1 source-language or pre-profile parser limits.
 - `spec/damage-policy-v0.toml` owns candidate-independent damage operators and promises.
 - each final candidate owns a generated candidate-specific damage manifest and capacity ledger.
-- `spec/curriculum-v0.toml` owns teaching concepts, predicates, assessment families, and cut order.
+- `spec/curriculum-v0.toml` owns teaching-concept inclusion, exact family/stratum/
+  split IDs, predicate references, item/family scoring, executable gate formulas
+  and threshold constants, and cut order. This roadmap owns cohort size,
+  eligibility/timing protocol, gate intent, acceptance wording, and claim ceiling;
+  its formulas are a checked human-readable summary of the TOML. `spec/chess-v0.md`
+  owns the executable truth of every chess predicate the curriculum references.
+  Any cohort/screening, eligibility/selection, timing, denominator, feedback,
+  help, interruption, privacy/reveal, or claim-ceiling field carried by the TOML
+  is a checked roadmap mirror, not a second protocol owner.
 - Section 13 owns mutable milestone status.
 
 When two real consumers need the same constants, a small neutral schema feeds them. Empty schemas and generated-language skeletons are forbidden; generated files never become the normative owner.
@@ -354,6 +371,10 @@ A deferred value is not permission to guess. It is permission to measure and dec
 
 `spec/chess-v0.md` freezes the standard initial position and the selected practical rules from the FIDE Laws snapshot. The specification must be readable without consulting code.
 
+This Section 4 is the roadmap-owned product-scope and gate synopsis. The live
+chess specification is the sole owner of exact types, bytes, operation
+signatures, predicate definitions, rejection names, and precedence.
+
 Tournament-only procedure omitted by Section 1.5 MUST NOT leak back into APIs, curriculum, or source validation as an implicit requirement.
 
 ### 4.2 Semantic types
@@ -373,14 +394,28 @@ Only these fields affect legal board moves.
 
 - halfmove clock for the practical 50-move condition;
 - canonical repetition keys and occurrence counts; and
-- completed-move count for source/lesson display.
+- played-ply count for source/lesson display; completed full moves and the next
+  display move number are derived rather than stored independently.
+
+History is capped at 4,096 played plies (4,097 stored keys including the
+initial key). Attempting another move rejects atomically with the history-limit
+code; it never truncates or wraps a counter.
+
+#### `ReplayState`
+
+- one `Position` reached by closure-aware legal replay from the standard start;
+  and
+- its inseparable `HistoryState` from that same replay.
+
+`ReplayState` is opaque: public APIs cannot construct one by pairing separately
+valid position and history values.
 
 #### `GameState`
 
-- `Position`;
-- `HistoryState`;
+- `ReplayState`;
 - active, checkmate, stalemate, common-dead draw, resigned, agreed draw, claimed threefold, or claimed 50-move status; and
-- result when the game is closed.
+- exact board-terminal or declaration cause and its derived result when the
+  game is closed.
 
 #### `RecordContext`
 
@@ -437,10 +472,17 @@ Canonical chess operations use typed validation layers:
 
 1. **`WirePosition`** — field widths, codes, and occupancy decode canonically.
 2. **`LocallyAdmissiblePosition`** — exactly one king per side, at most eight pawns and sixteen total pieces per side, kings nonadjacent, no pawn on rank 1 or 8, no simultaneous check of both kings, the side not to move is not in check, castling-right pieces occupy their required home squares, and nominal en-passant geometry is coherent.
-3. **`ReplayPosition`** — produced by legal replay from the standard start or by a verified construction sequence.
-4. **`ArtifactPosition`** — the exact replay/construction identity and dependencies are verified in the candidate.
+3. **`ReplayState`** — the opaque position/history pair produced only by
+   closure-aware legal replay from the standard start.
+4. **artifact-bound input** — verified content retains whether its input is a
+   full `ReplayState` or only a locally admissible board-local diagram; binding
+   it into a candidate never upgrades its authority.
 
-`legal_moves`, `apply_move`, scored predicates, source replay, and packed lessons accept only `ReplayPosition` or `ArtifactPosition`. A developer-only geometry utility may operate on a lower layer, but its output is explicitly nonauthoritative and cannot enter canonical content.
+`legal_moves`, `apply_move`, history/claim predicates, source replay, and any
+stateful packed lesson accept only `ReplayState`. A locally admissible diagram
+may enter canonical content only for explicitly board-local occupancy/control
+predicates that do not claim legal reachability, legal moves, history, a
+declaration, or a source record.
 
 No API silently clears bad castling rights, repairs en-passant state, inserts a king, or normalizes an impossible field.
 
@@ -450,9 +492,9 @@ The core defines:
 
 ```text
 controls_square(wire_position, controlling_side, target_square)
-king_in_check(wire_position, side)
+king_in_check(locally_admissible_position, side)
 pseudo_legal_moves(locally_admissible_position)
-legal_moves(replay_position)
+legal_moves(replay_state)
 ```
 
 `controls_square` is total over structurally decoded `WirePosition` occupancy and uses capture geometry and blockers, not legal-move filtering. This lets local validation inspect attack relationships without first pretending the position is legal:
@@ -463,9 +505,14 @@ legal_moves(replay_position)
 - sliding control includes and stops at the first occupied square; and
 - a target occupied by the controlling side is still reported as controlled/defended, while a legal move can never capture a friendly piece.
 
-A king move or capture is tested on the fully applied candidate position. For castling, the origin square is tested in the current position; the transit probe places the king on the transit square with the rook still on its original square; and the destination probe uses the fully applied castling position with the rook relocated. This prevents the king's origin from hiding a sliding attack while keeping probe occupancy deterministic. En-passant legality removes the captured pawn before checking king safety.
+A king move or capture is tested on the fully applied candidate position. For castling, the origin square is tested in the current position; the transit probe places the king on the transit square with the rook still on its original square; and the destination probe uses the fully applied castling position with the rook relocated. This keeps every probe occupancy deterministic. En-passant legality removes the captured pawn before checking king safety.
 
 A pseudo-legal move is legal only when the resulting position leaves the moving side's king uncontrolled by the opponent.
+
+The public `legal_moves(ReplayState)` returns an empty set after checkmate,
+stalemate, or a selected `common_dead` ending. A private mechanical generator may
+be used to determine terminal truth before that profile-level closure, but it
+cannot authorize continuation or produce a new `ReplayState` afterward.
 
 ### 4.7 Movement and special moves
 
@@ -538,6 +585,10 @@ The runtime does not attempt a universal dead-position classifier. Profile v0 im
 
 ### 4.10 Game-event order
 
+The exact public event sum is
+`move(Move) | resignation(side) | draw_agreement | claim_threefold | claim_50_move`.
+`new_game()` is the only public initial `GameState` constructor.
+
 For an ordinary move:
 
 1. reject if the game is closed;
@@ -548,28 +599,39 @@ For an ordinary move:
 6. else if the resulting position is in one of the closed `common_dead` classes, set a draw;
 7. otherwise remain active and report current threefold/50-move claim availability.
 
-A resignation or draw agreement is accepted only while active. In the practical v0 profile, resignation is an explicit concession and awards the opponent the win. Agreement and accepted threefold/50-move claims produce a draw. A current claim is accepted only when its condition is present. Rare official resignation edge cases that require a general mating-possibility adjudication are outside profile v0 rather than approximated. Incorrect-claim tournament penalties are also out of scope.
+A resignation naming either side is accepted only while active and awards the
+other side the win; resignation is not restricted to the side to move. A draw agreement is accepted only
+while active and after both sides have made at least one move. In the practical
+v0 profile, agreement and accepted threefold/50-move claims produce a draw. A current
+claim is accepted only when its condition is present. Rare official resignation
+edge cases that require a general mating-possibility adjudication are outside
+profile v0 rather than approximated. Incorrect-claim tournament penalties are
+also out of scope.
 
 ### 4.11 Public APIs
 
-The normative logical API is:
+The exact closed operation names are `decode_position`, `encode_position`,
+`decode_move`, `encode_move`, `decode_event`, `encode_event`, `validate_local`,
+`controls_square`, `king_in_check`, `pseudo_legal_moves`, `replay_from_start`,
+`legal_moves`, `apply_move`, `repetition_key`, `board_terminal`, `common_dead`,
+`new_game`, `apply_event`, `validate_source_record`, and `evaluate_predicate`.
+`spec/chess-v0.md` owns their exact argument/result types and sorting.
 
-```text
-validate_wire_position(bytes) -> WirePosition | Reject
-validate_local_position(WirePosition) -> LocallyAdmissiblePosition | Reject
-replay_from_start(moves) -> ReplayPosition + HistoryState | Reject
-controls_square(WirePosition, side, square) -> ordered controllers
-legal_moves(ReplayPosition) -> canonical ordered moves
-board_terminal(ReplayPosition) -> none | checkmate(winning_side) | stalemate | common_dead
-apply_move(ReplayPosition, HistoryState, Move) -> next ReplayPosition + next HistoryState | Reject
-common_dead(ReplayPosition) -> bool for the frozen closed material classes
-apply_event(GameState, Event) -> GameState | Reject
-validate_source_record(moves, score) -> RecordResult | Reject
-```
+`replay_from_start` and `apply_move` are closure-aware: they reject the first
+move after checkmate, stalemate, or a selected common-dead state, and reject the
+4,097th played ply without changing state. `apply_move` returns the complete
+next replay state; no hidden mutable state is consulted.
 
-`apply_move` returns all information needed to update history; no hidden mutable state is consulted.
+`apply_event` is the authoritative ordinary-game transition and rejects every
+move/declaration after board or declaration closure. `apply_move` is only the
+replay-level board/history transition and cannot observe a resignation,
+agreement, or accepted claim stored in `GameState`.
 
-Validation precedence is fixed in `spec/chess-v0.md`: malformed encoding, unsupported version/code, local incoherence, missing replay authority, illegal move, invalid event, and record contradiction. Python and Rust return the same primary rejection code for multiply invalid fixtures.
+Validation precedence is fixed in `spec/chess-v0.md`: malformed encoding or
+invalid encoded code, local incoherence, closed state, resource limit, illegal
+move, invalid event, and record contradiction. Python and Rust return the same
+primary rejection code for multiply invalid fixtures. Generic content binding
+authority and its mismatch rejection remain content-v0-owned.
 
 ### 4.12 Chess conformance corpus
 
@@ -581,7 +643,8 @@ The corpus MUST include focused valid and invalid cases for:
 - each movement family and blocker geometry;
 - pinned controllers versus legal moves;
 - adjacent kings and king captures opening a sliding line;
-- castling through or into attack, including x-rays exposed by vacating the origin;
+- castling from, through, or into attack, including a transit-only attack while
+  the origin is safe;
 - en-passant discovered checks and expiration;
 - every promotion code and misuse context;
 - checkmate, stalemate, and every closed `common_dead` class;
@@ -600,6 +663,10 @@ Hand-audited microvectors, Python/Rust differential tests, an independent develo
 ### 5.1 Source authority
 
 `docs/64_games.md` is the sole anthology source. The roadmap neither copies nor enumerates its games. The raw source SHA-256 belongs to developer verification only and never enters the canonical bitplane or blind learning material.
+
+This Section 5 owns anthology product scope and milestone intent.
+`spec/source-v0.md` is the sole owner of exact raw grammar, project SAN, spans,
+compiler operations/rejections, general game/set bytes, and evidence schema.
 
 ### 5.2 Immediate source doctor
 
@@ -636,7 +703,16 @@ The source doctor is observational: it inventories mechanically recognized struc
 
 If the M0 doctor demonstrates that the exact file differs, the coding agent may widen or narrow only the explicit affected grammar rule before canonical compilation. Every admitted form receives positive, negative, and boundary tests. No silent repair is allowed.
 
-`spec/source-v0.md` also freezes byte-level tokenization and one deterministic primary-error order: encoding/control bytes, fence structure/count, tag syntax/duplicates, separator/movetext framing, move-number/result-token syntax, SAN resolution, chess legality, result consistency, and trailing data. Multiply invalid source fixtures MUST produce the same primary code and raw byte span in Python and Rust.
+`spec/source-v0.md` also freezes byte-level tokenization and one deterministic
+primary-error order: encoding/control bytes, fence structure/count, tag
+syntax/duplicates, separator/movetext framing, move-number/result-token syntax
+including any token after a result marker, terminal continuation, SAN shape and
+legal-set resolution, canonical suffix truth, result consistency, and duplicate
+move streams. SAN is
+resolved against the legal move set, so there is no fictitious second
+"legality" phase after a unique legal match; direct chess APIs retain their own
+illegal-move rejection. Multiply invalid source fixtures MUST produce the same
+primary code and raw byte span in Python and Rust.
 
 ### 5.4 SAN import profile
 
@@ -649,10 +725,18 @@ It admits only source-needed forms for:
 - required file, rank, or full-square disambiguation;
 - `O-O` and `O-O-O` using letter `O`;
 - promotion `=Q`, `=R`, `=B`, or `=N`;
-- optional `+` or `#`; when present it MUST match the resulting position; and
+- an exact suffix: no suffix when the move gives no check, `+` for check without
+  mate, and `#` for checkmate; and
 - final result markers.
 
-Each full move begins with a standalone ASCII decimal token `n.` immediately before White's SAN; `n` starts at 1, has no leading zero, and increments by one. Black's SAN follows without a separate move-number token, and a record may end after either side's move. Whitespace may separate tokens and wrap lines but may not attach the move number to SAN. Ellipsis starts, attached annotations, `0-0`, `e.p.`, `++`, LAN/UCI moves, omitted required disambiguation, incorrect suffixes, and moves after the result marker reject.
+Each full move begins with a standalone ASCII decimal token `n.` immediately
+before White's SAN; `n` starts at 1, has no leading zero, and increments by one.
+Black's SAN follows without a separate move-number token, and a record may end
+after either side's move. Whitespace may separate tokens and wrap lines but may
+not attach the move number to SAN. Ellipsis starts, attached annotations,
+`0-0`, `e.p.`, `++`, LAN/UCI moves, omitted or unnecessary disambiguation,
+omitted or incorrect check/mate suffixes, and moves after the result marker
+reject.
 
 The compiler resolves every SAN token by matching it against the legal move set from the current replay state. It never derives moves by string pattern alone.
 
@@ -687,6 +771,12 @@ u8 score_code
 ```
 
 No name, date, event, site, round, rating, opening code, source collection, critical move, FEN, annotation, prose, chronology, source ordinal, path, or filename is visible to the canonical serializer.
+
+The canonical anthology set is `u16_be(64)` followed by the sixty-four sorted,
+self-delimiting game IR byte strings. M1 registers domain-separated identities
+for semantic positions, repetition keys, individual games, and this game set in
+`spec/identity-v0.md`; source hashes and source ordinals never enter those
+semantic identity preimages.
 
 The serializer accepts only the minimal IR type. Metadata noninterference tests mutate every excluded field, outer prose, line ending, filename, and source order while holding moves and score constant; canonical game bytes MUST remain identical.
 
@@ -736,7 +826,7 @@ Threefold or 50-move eligibility does not automatically end a source record, bec
 The artifact must teach enough for a learner to:
 
 1. set up the standard board and identify side to move;
-2. explain and apply every ordinary piece move and capture rule;
+2. identify and apply every ordinary piece move and capture rule;
 3. distinguish attack, check, pseudo-legality, and legal movement;
 4. play without leaving or moving into check;
 5. apply castling, en passant, and all promotion choices;
@@ -806,8 +896,12 @@ The mandatory scored Core 3 families are: attacked/defended, absolute pin, fork/
 
 ### 6.3 Generic content grammar
 
-`spec/content-v0.md` defines only generic record primitives that have a live consumer:
+This subsection is a checked product-level synopsis.
+`spec/content-v0.md` is the sole normative owner of generic content bytes,
+record semantics, interaction state, rejection order, and M1 pre-profile
+limits. It defines only primitives with a live consumer:
 
+- bounded literal text;
 - bounded unsigned scalar;
 - fixed-width enum;
 - bit set/mask;
@@ -818,14 +912,20 @@ The mandatory scored Core 3 families are: attacked/defended, absolute pin, fork/
 - exact predicate/result identifier and payload;
 - finite-choice lesson node;
 - feedback node;
-- passive trace; and
-- bounded construction sequence.
+- passive trace;
+- opaque fixed-width semantic data with an earlier schema/binding reference; and
+- one final four-byte content-root record naming the entry lesson node and an
+  independent global event budget.
 
 Verified Core 0 schemas compose these primitives into chess positions, history records, transitions, lessons, and atomic game records. The blind transducer renders and traverses those compositions generically; it has no built-in chess record class, field name, board size, or rule. Python/Rust semantic validators separately recognize the canonical schema identities and enforce chess truth.
 
 There is no arbitrary map, recursive object graph, expression evaluator, embedded script, dynamic type, or general-purpose VM.
 
-Every parser limit is generated from `spec/profile-limits-v0.toml` and checked before multiplication, allocation, recursion, iteration, or output growth.
+M1 source/content specifications own their pre-profile parser-safety ceilings.
+Once M2 measures and freezes artifact/runtime limits,
+`spec/profile-limits-v0.toml` generates those later limits. Every applicable
+limit is checked before multiplication, allocation, recursion, iteration, or
+output growth.
 
 ### 6.4 Record roles
 
@@ -833,13 +933,13 @@ Every curriculum record has one role:
 
 | Role | Meaning | May define a scored answer? |
 |---|---|---|
-| `exact_rule` | legality, transition, terminal, score, or record fact | yes |
-| `observable_relation` | exact finite relation over the shown state | yes |
-| `worked_example` | demonstrated rule/relation application | only through its cited exact predicate |
+| `exact_rule` | legality, transition, terminal, score, or record fact | no; exact assertion only |
+| `observable_relation` | exact finite relation over the shown state | no; exact assertion only |
+| `worked_example` | demonstrated rule/relation application | no; exact assertion and trace |
 | `heuristic` | practical tendency with limitations | no move-quality score |
-| `practice` | finite prompt with explicit accepted set | yes |
-| `feedback` | exact relation/match result | yes |
-| `passive_trace` | deterministic noninteractive path | not independently scored |
+| `practice` | finite prompt, packed for feedback or evaluator-side | yes |
+| `feedback` | exact relation/match result | embodied by feedback records, not a lesson role |
+| `passive_trace` | deterministic noninteractive path | embodied by trace records, not a lesson role |
 
 The curriculum linter rejects:
 
@@ -848,7 +948,7 @@ The curriculum linter rejects:
 - a one-answer exercise when several selections satisfy the predicate;
 - a relation name with no executable definition;
 - feedback not derivable from the shown verified state and predicate;
-- a practice record without a passive trace; and
+- a packed-practice record without a passive trace; and
 - a heuristic without at least one limitation or counterexample.
 
 ### 6.5 Grounding sequence
@@ -891,7 +991,12 @@ Profile v0 scored predicates are deliberately small and finite:
 - an elementary king-and-queen or king-and-rook mating-net step with all relevant legal replies enumerated; and
 - checkmate/stalemate transition with all legal replies enumerated.
 
-Terms such as `direct threat`, `forcing move`, `overload`, `prophylaxis`, `activity`, and `favourable exchange` MUST NOT appear as scored predicates unless M3 supplies a complete finite definition and counterexample corpus. Otherwise they remain unscored explanatory heuristics or are omitted.
+Terms such as `direct threat`, `forcing move`, `overload`, `prophylaxis`,
+`activity`, and `favourable exchange` MUST NOT appear as scored predicates
+unless M1 is explicitly reopened and `spec/chess-v0.md` supplies a complete
+finite definition and counterexample corpus. M3 may bind authored records only
+to predicates already frozen by M1. Otherwise these terms remain unscored
+explanatory heuristics or are omitted.
 
 ### 6.7 Heuristics
 
@@ -925,26 +1030,47 @@ The routine has no unrestricted search, numerical evaluation, principal variatio
 
 ### 6.9 Interaction protocol
 
-The only canonical learner response is:
+This subsection is a checked product-level synopsis;
+`spec/content-v0.md` owns the exact action/response bytes, role/mode table,
+local/global budgets, transitions, outcomes, and run-state replay.
+
+The only canonical learner actions are:
 
 ```text
-select(region_id) | none | reset
+select(region_id) | commit | reset
 ```
 
 A lesson graph defines:
 
+- response shape (`single`, unordered `set`, or ordered `sequence`), maximum
+  selection count, and uniqueness rules;
 - all visible/selectable region IDs;
-- accepted selections;
+- packed-practice accepted selections; external accepted alternatives remain
+  evaluator-side;
 - legal-but-outside-objective selections;
-- malformed, duplicate, absent, `none`, and reset behavior;
+- malformed, duplicate, empty-commit, over-limit, and reset behavior;
 - promotion subchoice;
 - exact feedback code;
 - next node or termination; and
-- a per-run event budget.
+- a node-local item-event budget, under the root's separate global run budget.
 
-Every call has fixed work/allocation bounds. Accepted completion paths and passive traces terminate within a generated bound. Repeated `none`, malformed input, or reset cannot create unbounded state: they consume the per-run event budget or start a new host-visible run ID. Budget exhaustion returns a stable terminal code.
+`select` buffers a response without revealing whether it is accepted. `reset`
+clears only an uncommitted buffer. The first `commit` terminates the response;
+an empty committed buffer is the explicit `none` response. Exact scoring uses
+the committed canonical response, not an intermediate click. Every call has
+fixed work/allocation bounds. Accepted completion paths and passive traces
+terminate within the content-owned checked bounds. Repeated malformed input,
+selection, reset, or rejected/default cycles cannot create unbounded state:
+each active attempt consumes both remaining budgets, and each node's local
+budget is at least `max_selections + 1`. Budget exhaustion returns a stable
+terminal code. Canonical set responses sort fixed `u16` region IDs; sequence
+responses preserve selection order; the event log always preserves action
+order.
 
-Canonical regions use integer logical coordinates and half-open bounds. Host adapters map pointer or keyboard events to region IDs through one shared fixture set; ambiguous/off-board input maps to `none`.
+Canonical regions use integer logical coordinates and half-open bounds. Host
+adapters map pointer or keyboard events to region IDs through one shared fixture
+set; ambiguous/off-board input produces the stable invalid-input result, does
+not change the buffer, and consumes one event.
 
 ### 6.10 No opponent
 
@@ -956,13 +1082,17 @@ Practice consists only of:
 - finite branch lessons whose complete graph is packed; and
 - passive worked sequences.
 
-Any opposing reply is a predeclared edge. The runtime never selects a reply by search, evaluation, randomness, or preference. A legal move outside the lesson objective receives neutral feedback such as `legal_not_targeted`, never `bad move`.
+Any opposing reply is a predeclared edge. The runtime never selects a reply by
+search, evaluation, randomness, or preference. In packed practice, a legal move
+outside the lesson objective receives exact `FEEDBACK_ALTERNATIVE` with its own
+assertion, never an invented `bad move` judgment. External practice keeps every
+alternative evaluator-side and its public commit neutral.
 
 Every lesson graph is exhaustively model-checked for totality, legal transitions, reference validity, and bounded completion.
 
 ### 6.11 Passive completeness
 
-Every practice lesson has a passive trace containing:
+Every packed-practice lesson has a passive trace containing:
 
 - prompt state;
 - complete finite alternatives available in that lesson state;
@@ -980,11 +1110,18 @@ Destroying or omitting the interaction adapter cannot remove any required rule o
 
 Every packed state is either:
 
-- reached by replay from the standard initial position;
-- accompanied by a bounded construction sequence from the standard start; or
-- a board-local diagram whose answer depends only on local geometry and whose reachability was build-verified.
+- a `ReplayState` reached by bounded, closure-aware legal replay from the
+  standard initial position; or
+- a locally admissible board-local diagram whose scored answer is restricted to
+  occupancy/control geometry and makes no reachability, legal-move, history,
+  declaration, terminal, or source-record claim.
 
-A lesson that depends on castling, en-passant, repetition, or halfmove history must pack the relevant verified history. A build-only construction trace cannot fill a recipient-visible teaching gap.
+A lesson that depends on side-to-move legality, king-safe movement, castling,
+en-passant, repetition, halfmove history, a declaration, terminal state, or
+source replay must pack the relevant legal replay and its inseparable history.
+If a later consumer genuinely needs a different stateful seed, its owning
+specification must define that authority before use; M1 does not add an unsafe
+FEN/construction upgrade path.
 
 ### 6.13 Assessment blueprint before broad authoring
 
@@ -992,24 +1129,45 @@ Before M3 authors the full curriculum, `spec/curriculum-v0.toml` freezes:
 
 - every essential Core 1/2 family;
 - every retained Core 3 family;
-- training, formative, final-transfer, delayed, and cue-control generator families;
+- training, formative, pretest, final-transfer, delayed, and cue-control generator families;
 - minimum item counts;
-- exact accepted sets and all-or-nothing scoring rules;
+- response shapes, all-or-nothing scoring rules, and evaluator-owned accepted-set
+  requirements;
 - critical-error families;
 - pretest/posttest/delayed family mapping;
 - integrated legal-play and record-reading task;
 - final display-order balancing; and
-- byte caps and cut order.
+- initial safety caps and cut order.
 
-Minimum final assessment content is:
+Minimum result-bearing assessment content is:
 
-- at least two held-out items for each Core 1/2 family;
-- at least two held-out items for each retained Core 3 family;
-- one integrated short legal sequence and one canonical game-record reading task;
-- one parallel delayed item for each essential rules family; and
+- at least two blueprint-matched pretest items for every family used in an
+  acquisition claim;
+- one pretest integrated legal-play screening task;
+- at least two held-out posttest items for each Core 1/2 family and each retained
+  Core 3 family, including a cue-matched counterfactual pair;
+- one disjoint posttest integrated short legal sequence and one evaluator-generated held-out
+  canonical-format game-record reading task, neither copied from teaching or
+  the anthology;
+- at least one separately held-out delayed item for each essential rules family,
+  with more only when a mandatory stratum otherwise goes untested; and
 - counterfactual cue controls for every final family.
 
-No scoring predicate, family, item-count rule, or pass threshold changes after the first final exposure to a candidate.
+Every mandatory stratum appears in instruction/practice and in at least one
+held-out posttest or delayed case. Self-check, castling from/through/into check,
+en-passant self-check, terminal continuation, and source score versus cause all
+appear in posttest. One multi-target item may cover several strata only when
+each referenced stratum's typed owner call independently recomputes and passes;
+a family or stratum label alone never proves coverage.
+
+Teaching, practice, pretest, posttest, and delayed cases are disjoint by exact
+semantic state/history, move sequence, record snippet, prompt/target, and case
+parameterization after every applicable, validity-checked chess symmetry.
+Blueprint response/prompt schemas and near-transfer templates may repeat; each
+essential/Core 3 posttest family includes at least one assessment-only
+structural template. Answer order is balanced/audited rather than made
+artificially unique. No scoring predicate, family, item-count rule, or pass
+threshold changes after the first candidate or reserve starts pretest.
 
 ### 6.14 Cue controls
 
@@ -1019,7 +1177,24 @@ Final items are constructed so that superficial metadata does not reveal answers
 - display order is seeded and recorded;
 - record lengths, highlight counts, and region sizes are balanced or counterfactually paired;
 - final families include pairs that preserve superficial rendering while flipping the exact chess relation; and
-- simple predeclared heuristics such as `always first`, `shortest`, `largest region`, `most highlighted`, and `same as prior item` must remain at or below their explicit ceiling.
+- simple predeclared heuristics such as `always first`, `shortest`, `largest
+  region`, `most highlighted`, alternating response, and `same as prior item`
+  must make at least one error in each family and remain at or below one-half
+  accuracy over the whole form.
+
+The same check includes always committing empty and selecting every visible
+region up to the declared cap. `curriculum-v0.toml` makes each strategy total by
+freezing visible-order tie breaks and empty/no-label/first-item fallbacks.
+After the no-selectable-region or zero-cap empty commit, `same_as_prior`
+resolves in this exact order: an absent prior item selects first; a present
+empty prior response commits empty; a mechanically valid mapped response
+replays; and an incompatible mapping selects first.
+
+Accepted response cardinality, focus/tab order, accessibility attributes,
+pointer affordances, disabled state, acknowledgement shape, and
+answer-dependent timing are part of the cue audit. Result-bearing actions return
+one presentation-identical neutral acknowledgement; no accepted set or
+cardinality is learner-visible.
 
 No classifier platform or statistical research machinery is required. Seeded cue leaks MUST make the audit fail.
 
@@ -1608,6 +1783,9 @@ The guided explorer may import the validated Rust chess core, but the blind tran
 - lowercase hexadecimal rendering; and
 - independent empty-input/cross-domain vectors.
 
+M1 adds the position, repetition-key, game, and game-set domains before any
+canonical replay report or tracked game-set object is accepted.
+
 Physical profile choices MUST NOT change an individual game's semantic identity.
 
 Participants do not need to compute these identities; the evaluator hashes submitted bytes.
@@ -1684,7 +1862,13 @@ Adapters MUST NOT recompute chess truth, repair unchecked bytes, inject dimensio
 
 ### 9.9 Stable rejection codes
 
-A neutral schema owns rejection codes and precedence. Required families include:
+Owning subsystem specifications define rejection names, meanings, and
+precedence. A neutral schema owns their shared numeric assignments except fixed
+encoding values or formulas explicitly owned by a smaller subsystem
+specification; for those it records and mirrors them for generation without a
+second normative assignment. The stable primary code is canonical; richer
+diagnostic context is optional and noncanonical unless a smaller owner
+explicitly says otherwise. Required families include:
 
 ```text
 input.missing
@@ -1704,7 +1888,6 @@ record.noncanonical
 record.trailing_data
 record.missing_dependency
 chess.bad_position
-chess.missing_replay_authority
 chess.illegal_move
 chess.invalid_event
 lesson.invalid_graph
@@ -1831,7 +2014,25 @@ Before final protocols freeze:
 
 - final technical active-time ceiling is `ceil(1.5 × successful selected-profile pilot time)` rounded to whole hours, with a minimum of 12 and maximum of 24 hours, inside at most fourteen elapsed days;
 - final learner initial ceiling is `ceil(1.5 × successful integrated formative median)` rounded to half-hours, with a minimum of 4 and maximum of 8 hours across at most three sessions in seven elapsed days; and
-- delayed assessment target is 48 hours with ±12-hour tolerance.
+- each learner's short-delay assessment window is the closed interval from 36
+  through 60 hours after that learner's complete valid posttest (48 hours ±12),
+  provided that posttest itself finishes by the slot's frozen posttest
+  deadline.
+
+The learner's first delayed attempt is the only attempt. It is valid only inside
+that interval. An early, late, invalid, or missed first attempt is reported and
+fails the affected delayed gates without retry. The feedback window resolves
+only on a valid in-window completion or at the +60-hour fallback deadline. An
+early or otherwise invalid attempt does not release feedback before that
+learner's +60-hour deadline. If posttest is not complete and valid by the frozen
+deadline, posttest/delayed results are missing failures, no delayed submission
+counts, and that slot's feedback embargo resolves 60 hours after the deadline.
+
+The final learner initial clock includes interface familiarization, pretest,
+artifact instruction/practice, and immediate posttest. Breaks and neutral
+administration are excluded and reported; delayed assessment active time is
+reported separately. This prevents assessment volume from escaping the same
+fatigue ceiling as the teaching artifact.
 
 If successful reconstruction or learning exceeds the maximum, simplify the artifact or narrow the claim. Do not preserve an arbitrary time budget by counting hidden help.
 
@@ -1868,18 +2069,41 @@ The exact recovered content stream becomes the input to final learner sessions.
 A final learner must:
 
 - never have completed a full legal orthodox game unaided;
-- score below 40% on the frozen overall pretest;
-- fail the integrated legal-play task;
-- fail king-safety/legal-move items; and
-- fail at least two of castling, en passant, promotion, or game-record reading.
+- fail the pretest integrated legal-play screening task;
+- fail the `king_safety` family; and
+- fail at least two of `castling`, `en_passant`, `promotion`, or
+  `record_replay`.
 
-A participant who already meets the final posttest threshold or whose only deficit is one rare rule is ineligible.
+A participant whose only deficit is one rare rule is ineligible.
 
-The pretest is brief, gives no correctness feedback, and uses parallel but nonidentical positions and record snippets that are disjoint from teaching examples and final/delayed instances. It may sample the same concept families, but it MUST NOT reuse an exact state, move sequence, rendering template instance, or answer order that could teach the posttest.
+Selection requires a complete, valid, unhinted pretest for every required
+family and the integrated screen. A baseline family fail requires valid commits
+for all its items and at least one committed wrong response. Missing,
+uncommitted, budget-exhausted, hinted, or otherwise invalid baseline data are
+unavailable rather than evidence of a deficit; that slot cannot be selected or
+supply baseline coverage/acquisition, and the same item is not retried.
+
+The pretest follows a neutral interface-familiarization item, gives no
+result-bearing feedback, and uses blueprint-matched but nonidentical positions
+and record snippets disjoint from teaching, practice, posttest, and delayed
+instances. It may use the same blueprint schema/near-transfer template, but it
+MUST NOT reuse an exact state/history, move sequence, record snippet,
+prompt/target parameterization, or any applicable validity-checked symmetric
+equivalent.
 
 Baseline scores are retained by family. A family already mastered may support usability reporting, but it cannot count as acquired learning for that participant.
 
-Before candidate exposure, the selected six-person cohort MUST include at least three baseline failures in every essential Core 1/2 family and every mandatory Core 3 family for which the project intends to claim acquisition. Eligible reserves may be used to achieve that coverage before exposure. A family lacking that coverage remains a usability/attainment observation only and cannot support a teaching claim.
+Before artifact instruction/practice exposure, the selected six-person cohort
+MUST include at least three baseline failures in every essential Core 1/2 family
+and every retained mandatory Core 3 family. Up to two reserves may complete the frozen pretest so the six are
+selected by predeclared eligibility/coverage rules. A family lacking that
+coverage remains a usability/attainment observation only and cannot support a
+teaching claim.
+
+If the project intends a combined individual Core 3 acquisition claim, at least
+four selected participants must each fail at least one retained Core 3 family at
+baseline. Otherwise only the independently supported family-level Core 3 claims
+may be made.
 
 ### 10.7 Final participant plan
 
@@ -1891,7 +2115,14 @@ The human plan is intentionally small:
 - M4: at most one additional fresh nonfinal technical pilot, only when the selected final carrier falls outside the exact M2 pilot envelope defined below; and
 - M5: six fresh final learners, up to two pre-recruited reserves, plus one fresh technical implementer.
 
-A reserve may replace only a pre-exposure administrative withdrawal or failed setup that revealed no candidate semantics. Once a learner sees candidate material, that learner remains in the six-person denominator; a missing delayed session counts as a delayed-gate failure while their completed immediate results remain reported.
+A pretested reserve may replace only an administrative withdrawal or failed
+setup before the selected learner sees artifact instruction/practice. At first
+artifact exposure, the six-person denominator is immutable. Missing,
+out-of-window, hinted, restudied, malformed, or otherwise invalid/non-gating
+participant results count as failures for every affected gate; there is no
+post-hoc exclusion, replacement, or retry, while completed unaffected results
+remain reported. A candidate/evaluator defect invalidates the affected form or
+candidate rather than being charged to a learner.
 
 No fresh cohort is required merely because a code module changed. Formative people may be reused and their results never count as final evidence.
 
@@ -1905,24 +2136,106 @@ The software and candidate may be technically complete, but the self-teaching cl
 
 ### 10.8 Final assessment gates
 
-Before the first final learner sees the candidate, freeze the exact pretest, posttest, delayed test, generator families, items or item-generation seeds, scoring manifest, timing, help categories, denominator rule, and pass thresholds.
+Before the first candidate or reserve starts result-bearing pretest, freeze the
+complete protocol, exact pretest/posttest/delayed tests, generator families,
+concrete items and generation inputs, at most three counterbalanced forms and
+every screened candidate/reserve slot/schedule assignment (six to eight),
+selection rule, scoring manifest, timing, help categories,
+denominator rule, and pass thresholds. Exact semantic cases, including every
+independently validated applicable symmetry, do not repeat between teaching/
+practice and result-bearing forms or between pretest/posttest/delayed forms. A
+frozen form may be used by more than one participant; all forms have equal
+per-family item counts and matched declared stratum/response-shape/maximum-
+selection burden. Integrated tasks are excluded from that family multiset and
+match separately by task ID, response shape, and maximum selections. Blueprint
+schemas/structural templates may repeat but never make a semantic case reusable.
+Because the repository is public, result-bearing payloads, usable seeds,
+schedules, and answer maps remain in an evaluator-only bundle outside learner
+and public-repository access until authorized reveal. Before the first screened
+candidate or reserve starts result-bearing pretest, publish a tracked salted
+commitment that binds the frozen private protocol and assessment bundle. The
+later private assessment manifest owns the exact commitment byte framing.
+Bundle and salt remain private, and reveal follows resolution of all selected
+normal or fallback windows.
 
-The blueprint defines a family pass as correct responses to every held-out item in that family with no critical-error response. An individual **acquisition pass** requires posttest passes in at least 75% of the essential families that person failed at baseline, including king safety/legal movement and at least two of castling, en passant, promotion, or record reading. The integrated task has its own exact move/event and record-reading predicates.
+The blueprint defines a family pass as correct responses to every held-out item
+in that family. Critical labels apply only to committed wrong responses and are
+reported; they do not score transient selections or add a separate cross-family
+veto. An individual **acquisition pass** requires posttest passes in at least
+75% of the essential families that person failed at baseline, including
+`king_safety` and at least two of `castling`, `en_passant`, `promotion`, or
+`record_replay`. The integrated task has its own exact move/event and
+record-reading predicates.
 
 The final bounded gate is:
 
-1. one common subset of at least 5 of 6 participants each passes every essential Core 1/2 family on held-out posttest cases;
-2. for each essential Core 1/2 family, at least `ceil(0.75 × baseline_failures_for_that_family)` of the baseline-failing participants pass it after learning;
-3. at least 4 of 6 earn the individual acquisition pass and pass the integrated legal-play plus game-record-reading task;
-4. one common subset of at least 4 of 6 each passes every retained mandatory Core 3 relation family without move-quality scoring, and each claimed Core 3 family also meets the same 75%-of-baseline-failures acquisition rule;
-5. one common subset of at least 4 of 6 each passes every delayed essential core-rules family without restudy; and
+1. every essential Core 1/2 family has at least 5 of 6 posttest family
+   passes and at least
+   `baseline_failures_for_that_family - 1` acquisitions;
+2. at least 4 of 6 earn the individual Core 1/2 acquisition pass and pass
+   the integrated legal-play plus game-record-reading task;
+3. every retained mandatory Core 3 family has at least 4 of 6 posttest family
+   passes and at least
+   `baseline_failures_for_that_family - 1` acquisitions, without
+   move-quality scoring;
+4. when a combined individual Core 3 claim is made, at least 4 of 6 pass at
+   least `ceil(0.75 × their_baseline_failed_retained_Core3_families)` and
+   have at least one such baseline-failed family;
+5. every delayed essential core-rules family has at least 4 of 6 family
+   passes, and at least 4 of 6 participants pass at least
+   `ceil(0.75 × delayed_essential_families)`, including `king_safety` and at
+   least two of `castling`, `en_passant`, `promotion`, or `record_replay`; and
 6. no counted pass depends on a semantic hint or answer-revealing tool behavior.
 
-For each essential family, the final report states how many participants failed it at baseline and passed it after learning. The public claim is limited to families with observed acquisition; prior mastery is not credited as teaching. These are conservative product gates for this six-person cohort, not population estimates or statistical efficacy claims.
+The family acquisition formula is defined only with the frozen minimum of three
+baseline failures, yielding 2/3, 3/4, 4/5, or 5/6. A count below 3 has no
+acquisition claim; a count above 6 is invalid protocol. Individual 75%
+thresholds use
+integer `ceil(3 × n / 4)`; floating-point or post-hoc rounding is forbidden. The
+gate deliberately combines per-family and per-person evidence without requiring
+one perfection-defined subset to clear every family.
+
+For each essential family, the final report states raw numerator/denominator
+counts for baseline failure, posttest pass, acquisition, delayed pass, missing
+sessions, and help. The public claim is limited to families with observed
+acquisition; prior mastery is not credited as teaching. The maximum claim is
+that the selected six-person cohort met frozen held-out post-use criteria for
+the declared rule/relation families and approximately two-day short-delay
+criteria for the essential core-rule families under this protocol. These are
+product gates, not population estimates, causal efficacy, psychometric
+equating, or long-term-retention claims; no p-value or inferred population
+percentage is needed.
+
+The public report uses opaque slot IDs, reports screened/eligible/selected/
+reserve counts and the frozen selection rule, and contains no name, contact
+data, or free text. Each volunteer gives plain consent for that public
+granularity; identity mapping and consent records remain evaluator-side.
 
 ### 10.9 Scoring and help
 
 All final scoring is reproducible from event logs and the frozen manifest. Use all-or-nothing exact predicates for each item; no administrator narrative can convert a wrong selection into a pass.
+
+Pretest, posttest, and delayed actions expose only the same neutral
+acknowledgement. Correctness, accepted sets/cardinality, answer-dependent
+branches, and result-bearing feedback for every screened slot, including unused
+reserves, remain withheld until every selected participant's normal or fallback
+feedback window has resolved as Section 10.4 defines. Practice retains immediate
+exact corrective feedback. The delayed result is therefore reported as
+short-delay performance after the artifact plus pre/post retrieval, not
+artifact-only retention.
+
+From each screened slot's pretest until the final denominator freezes, every
+screened participant receives one neutral no-external-chess-study/help/sharing
+instruction. When unused-reserve status becomes final, that reserve's study/help
+restriction ends, but no-sharing and the feedback embargo continue through
+release. Selected learners continue the restriction through posttest and use
+only the recovered artifact stream in controlled sessions; artifact instruction
+begins within 24 hours after pretest. From posttest through the delayed window
+they additionally receive a no-restudy instruction. Reported or observed outside
+semantic study, help, sharing, or artifact reuse invalidates the affected
+acquisition/delayed result under the fixed-denominator rule. No surveillance or
+invasive monitoring is implied; session logs and participant report are
+sufficient for this bounded pet-project protocol.
 
 Help categories are:
 
@@ -1933,9 +2246,22 @@ Help categories are:
 
 Qualitative comments may guide future redesign but never alter final scores.
 
+Result-bearing runs checkpoint only after a committed item. A host interruption
+may resume the same candidate/form at the next unpresented item with the prior
+canonical log unchanged; an interrupted uncommitted item is not retried. It
+makes a baseline form unavailable before selection, or is a missing/incorrect
+item after the denominator freezes. A rendering or scoring defect still
+invalidates the affected form or candidate.
+
 ### 10.10 Passive teaching versus held-out transfer
 
-Canonical artifact practice records may contain their accepted sets and feedback. Final transfer records are evaluator fixtures separate from the canonical artifact and contain no learner-visible answer maps.
+Canonical artifact practice records may contain their accepted sets and
+feedback. Pretest, final-transfer, and delayed records are evaluator fixtures
+separate from the canonical artifact and contain no learner-visible answer maps.
+Their concrete payloads, schedules, accepted sets, and usable generation inputs
+remain outside the public checkout until all delayed windows resolve. The final
+record-reading fixture is a newly generated legal record in the canonical
+format, not one of the sixty-four study records.
 
 The same generic transducer presents both. Final scoring happens after event capture through the independent Python/Rust evaluator. This prevents hidden host chess code from masquerading as artifact teaching.
 
@@ -1977,7 +2303,12 @@ Only the passing composed chain supports the full bounded claim.
 
 Disposable research spikes may look ahead but cannot freeze downstream bytes or count as later evidence.
 
-Within each milestone, Inputs, Deliverables, Exit gate, and If it fails are normative. Goal text summarizes intent. `docs/m0-spec.md` refines M0 execution without overriding this roadmap; any conflict is repaired here first.
+Within each milestone, Inputs, Deliverables, Exit gate, and If it fails are
+normative. Goal text summarizes intent. `docs/m0-spec.md` and
+`docs/m1-spec.md` refine their respective milestone execution without
+overriding this roadmap; `docs/m0-plan.md` and `docs/m1-plan.md` are
+nonnormative execution aids. Any conflict is repaired in the smallest normative
+owner first.
 
 ### Project-local dependency management
 
@@ -2053,12 +2384,15 @@ Freeze the practical chess model, compile the actual anthology independently fro
 - `spec/curriculum-v0.toml` assessment blueprint: essential families, retained Core 3 predicates, transfer families, scoring rules, and initial record-family caps; and
 - initial generic content record schema sufficient for the M2 slice.
 
+M1 also registers the semantic position, repetition-key, game, and game-set
+identity domains before accepting generated canonical replay evidence.
+
 **Exit gate**
 
 - Python and Rust agree on every chess conformance case and all 64 source replays;
 - both raw-source paths agree at every SAN token/ply and final score;
 - seeded mutations in attack semantics, castling, en passant, promotion, checkmate/stalemate, repetition identity, and source SAN resolution are caught by an independent oracle;
-- optional/incorrect SAN suffix behavior is exactly as specified;
+- required/incorrect SAN suffix behavior is exactly as specified;
 - no metadata or source order changes canonical game IR;
 - source records continuing after checkmate/stalemate/common-dead status or contradicting terminal scores reject;
 - exact duplicate move streams, including same-moves/different-score variants, reject deterministically; and
@@ -2122,7 +2456,8 @@ Author every mandatory final record, complete both runtimes and the blind generi
 - complete passive traces and model-checked finite lesson graphs;
 - Python and Rust content/lesson/game parsers and replay;
 - blind generic transducer with dependency proof excluding chess code;
-- build-verified construction sequences for synthetic states;
+- bounded legal replay seeds for stateful lessons and explicitly board-local
+  diagrams for occupancy/control-only lessons;
 - complete actual serialized logical content;
 - actual content report by tier, section, concept, game, and overhead;
 - deterministic final-transfer and cue-control generator families, still unexposed;
@@ -2133,7 +2468,7 @@ Author every mandatory final record, complete both runtimes and the blind generi
 
 - every mandatory concept and game is serialized with no placeholders or `remaining authored bytes` estimate;
 - every exact answer recomputes identically in Python and Rust;
-- every practice graph is total, bounded, and passively complete;
+- every packed-practice graph is total, bounded, and passively complete;
 - no heuristic or undefined relation enters scoring;
 - the blind transducer handles Golden Board and non-chess isomorphic fixtures with no chess dependency;
 - formative learners can complete the full Core 1/2 path and retained Core 3 examples under the generic interface;
@@ -2212,11 +2547,12 @@ Validate the composed final claim against the exact final candidate.
 
 - the technical implementer passes every Section 10.5 deliverable within the frozen envelope and without critical hints;
 - the learner bundle consumes the implementer's exact recovered stream;
-- learner eligibility and denominator rules were applied before exposure;
+- protocol/forms/selection rules were frozen before result-bearing pretest and
+  eligibility/denominator rules were then applied exactly;
 - all Section 10.8 thresholds pass;
 - final scores reproduce from event logs with no narrative judgement;
 - failures, prior knowledge, procedural help, and limitations are reported exactly; and
-- no candidate or rubric changed after the first final exposure.
+- no candidate, form, or rubric changed after the first result-bearing pretest.
 
 **If it fails**
 
@@ -2295,7 +2631,7 @@ This section is intentionally mutable. Updating status does not require preservi
 | Milestone | Status | Completion evidence or blocker |
 |---|---|---|
 | M0 — Foundation and source reconnaissance | Complete — 2026-08-14; scripts/check full; report SHA-256 ce40dc9c56a37a74969135fab5a8cf13f8c35c4a624005bfe1b239eb32ff04db; registry SHA-256 ed22a5d85e5372727616ed8bb8b86b88d21bc6591a8b0937a23fad580aa5e27e | `docs/m0-spec.md`; `docs/m0-plan.md`; `reports/source-doctor.json`; `conformance/registry.toml` |
-| M1 — Chess truth, source grammar, and assessment blueprint | Not started | — |
+| M1 — Chess truth, source grammar, and assessment blueprint | Complete — 2026-08-17; scripts/check full; game-set identity ffe37ea482b590eb2b454041c0918d05a85161c8f0c604bbf58cc7b71de87db9; report SHA-256 93d0f7ee9e3777386e817bac159b11065fc3378f13644b014b5c399bd420be54 | `docs/m1-spec.md`; `docs/m1-plan.md`; `reports/game-set-v0.bin`; `reports/source-compilation-v0.json` |
 | M2 — Full-carrier bootstrap and transport feasibility | Not started | — |
 | M3 — Complete content and formative integration | Not started | — |
 | M4 — Final profile, candidate, and automated qualification | Not started | — |
@@ -2379,7 +2715,7 @@ This matrix is part of the implementation contract. It does not claim to cover e
 | A pinned piece geometrically controls a square | `controls_square` reports the control even though that piece may not have a legal move there | G2 |
 | A pawn controls an empty diagonal | Control is true; forward movement is not an attack | G2 |
 | A king captures a blocker and thereby opens a slider line onto itself | The move is illegal after applying the complete capture and testing the resulting position | G2 |
-| Castling transit looks safe only because the king's origin blocks a slider | The frozen castling probe detects the revealed control and rejects castling | G2 |
+| The king is safe on its origin but the castling transit square is controlled | The frozen transit probe rejects castling | G2 |
 | En passant removes a pawn that had been shielding a king | The complete en-passant effect is applied before self-check testing | G2 |
 | Origin equals destination, the reserved bit is nonzero, or a move encodes capture of a king | The move encoding is rejected before state transition | G2 |
 | A promotion code appears on a non-pawn, a pawn not reaching the last rank, or an inconsistent origin/destination | The move encoding is rejected | G2 |
@@ -2387,7 +2723,7 @@ This matrix is part of the implementation contract. It does not claim to cover e
 | Castling or en-passant bytes are decoded as an ordinary move whose derived effect is inconsistent with state | The move is illegal; no special effect is guessed from bytes alone | G2 |
 | Queen, rook, bishop, and knight promotion are all possible | All four appear in conformance and curriculum coverage | G2, G9 |
 | The same board has different castling or en-passant rights | It is a different `Position` where those fields affect legal moves | G2 |
-| Only halfmove count or repetition history changes | `legal_moves(Position)` remains unchanged; claim availability may change in `GameState` | G2 |
+| Only halfmove count or repetition history changes | identical position fields yield the same board-move set; claim availability may change in `GameState` | G2 |
 | A nominal en-passant file exists but no legal en-passant capture is possible | It is handled exactly as frozen for local validity and repetition identity; both cores agree | G2 |
 | Kings are adjacent, both kings are controlled, or a pawn remains on a promotion rank | The state is rejected before authoritative move generation | G2 |
 | A source record ends in checkmate, stalemate, or a frozen common-dead position with the wrong score | Source compilation rejects it | G3 |
@@ -2405,10 +2741,10 @@ This matrix is part of the implementation contract. It does not claim to cover e
 |---|---|---|
 | The source has a UTF-8 BOM, unexpected control byte, or mixed unsupported newline form | The M0 doctor reports the byte facts and the M0 source check blocks; M1 owns the stable syntax rejection | G1, G3 |
 | A fenced candidate contains a comment, recursive variation, NAG, alternate start, or unfinished result | The M0 doctor inventories it; M1 rejects it unless the frozen source profile explicitly admits that exact construct | G1, G3 |
-| `+` or `#` is omitted where the project import subset permits omission | The resolver computes the move's true effect; a present suffix must be correct | G3 |
+| `+` or `#` is omitted when the move checks or mates | The token rejects; project SAN is exact canonical source notation | G3 |
 | A present `+` marks mate or `#` marks non-mate | The token is rejected | G3 |
 | SAN disambiguation has several geometrically possible pieces but only one legal mover | Each independent compiler resolves it from its own legal-move core | G3 |
-| Source tags, prose, player names, dates, comments, fence order, or file path change while moves/scores stay fixed | Canonical game bytes and the sorted semantic set are unchanged | G4 |
+| Source tags, outer Markdown prose/comments, player names, dates, opaque metadata, fence order, or file path change while moves/scores stay fixed | Canonical game bytes and the sorted semantic set are unchanged; comments inside fenced movetext remain forbidden | G4 |
 | Two source records have identical move streams and score | M1 rejects the duplicate before ordinal assignment; no metadata or source order is used to choose one | G3–G4 |
 | Identical move streams carry different scores | M1 rejects the contradictory duplicate stream; profile v0 requires sixty-four distinct move streams | G3–G4 |
 | The source has 63 or 65 mechanically recognized fenced candidates | M0/M1 blocks; the compiler never silently selects or pads to 64 | G1, G3 |
@@ -2422,18 +2758,22 @@ This matrix is part of the implementation contract. It does not claim to cover e
 | Scenario | Required behavior | Primary gate |
 |---|---|---|
 | A scored predicate uses an undefined word such as “best,” “active,” or “strong” | The curriculum linter rejects it or the item becomes an unscored heuristic example | G9 |
-| Several answer regions satisfy the exact predicate | The complete accepted set is encoded; choosing any valid answer is scored correctly | G9 |
+| Several answer regions satisfy the exact predicate | Packed practice encodes the complete accepted set; result-bearing alternatives stay evaluator-side and every valid answer scores correctly | G9 |
+| A choose-all response has zero or several selections | An explicit `commit` terminates the buffered response; empty commit represents `none`, so hidden answer cardinality is never needed to finish | G9 |
 | A heuristic is useful but has counterexamples | It is taught with observable basis, limitation, and counterexample; it is not scored as a universal truth | G9, G16 |
 | A finite exercise omits a legal but off-objective selection | The lesson graph supplies deterministic feedback for that selection class or does not expose it as selectable | G9 |
-| Reset or invalid input is repeated indefinitely | Each call remains bounded and a per-run event budget terminates the run with a stable code | G9, G17 |
-| An interactive path fails but the passive trace survives | The full intended concept remains reachable passively | G9 |
+| Reset or invalid input is repeated indefinitely | Each call remains bounded and the node-local/root-global budgets terminate the run with a stable code | G9, G17 |
+| A packed interactive path fails but the passive trace survives | The full intended concept remains reachable passively | G9 |
 | The blind generic transducer links a chess crate, contains an 8×8 branch, or computes a legal answer | Dependency/noninterference canaries fail; learner evidence is invalid | G14 |
-| Answer location, record length, highlight count, or choice order predicts the answer | Counterfactual/control checks fail and the item set is regenerated before exposure | G9, G14 |
+| Answer location, record length, highlight count, or choice order predicts the answer | Counterfactual/control checks fail and the item set is regenerated before result-bearing pretest | G9, G14 |
+| A result-bearing payload, usable seed, schedule, or answer map appears in the public/learner bundle before delayed testing closes | Replace the form only if no result-bearing pretest began; otherwise invalidate/retire the affected evidence without rewriting history | G14, G16 |
+| A result-bearing response receives correctness feedback before the last selected delayed window resolves | The affected delayed evidence is invalid because feedback became restudy/leakage | G16 |
+| One participant slips in a different Core 1/2 family from every other participant | Frozen per-family and per-person gates decide the evidence; no post-hoc common perfection subset is selected | G16 |
 | A participant already knows nearly all chess except one exceptional rule | They are ineligible for the chess-naive acquisition claim | G16 |
 | A participant knew one family but learned several others | Only baseline-failed families count as acquisition; prior mastery is reported separately | G16 |
 | A participant receives a semantic hint | The affected result is descriptive and cannot close the unhinted gate | G16 |
 | The delayed test falls outside the frozen interval | The result is reported but does not silently count toward the delayed gate | G16 |
-| A curriculum edit is made after final exposure | It creates a new semantic candidate and requires new candidate-bound evidence for affected claims | G16 |
+| A curriculum/form edit is made after result-bearing pretest begins | It creates a new candidate/protocol and requires fresh affected evidence | G16 |
 | Technical recovery and learner materials use different normalized content bytes | The compositional bridge fails; G16 cannot close | G15–G16 |
 | The learner interface works only through conventional chess glyphs | The artifact-native mapping and remapped/isomorphic controls expose the hidden prior cue | G7, G14 |
 | Recruitment is unavailable after all automated work passes | Status becomes `Candidate ready — independent validation pending`; no human claim is marked complete | G15–G16 |
@@ -2495,7 +2835,7 @@ The project MUST NOT save space or effort by removing ordinary movement, king sa
 | Final side length and shell width | Generated M4 search; owner only if exact tie remains | complete actual serialized content and damage placement | smallest candidate inside the lowest passing complexity/margin class |
 | Integrity check width/algorithm | Coding agent at M2 | exact lengths, implementation vectors, shell cost, structured negative corpus | prefer the smallest well-specified check that closes deterministic acceptance goals; do not create a probability claim merely from width |
 | Optional Core 3 topics | Curriculum authoring agent | byte budget, exact predicate feasibility, formative confusion | preserve required relation families; cut lower-priority named motifs first |
-| Technical/learner time limits | Protocol generator before final exposure | pilot active-time records | use the calibrated formula in Section 10; simplify if the owner ceiling would be exceeded |
+| Technical/learner time limits | Protocol generator before result-bearing pretest | pilot active-time records | use the calibrated formula in Section 10; simplify if the owner ceiling would be exceeded |
 | Explorer scope | Coding agent at M6 | exact core tasks and offline/browser profile | ship the smallest faithful guided view; no editor, engine, accounts, or online service |
 | Human validation unavailable | Owner records status | recruitment attempt and bundle readiness | stop at `Candidate ready — independent validation pending`; do not weaken the gate |
 
@@ -2522,10 +2862,20 @@ The project MUST NOT save space or effort by removing ordinary movement, king sa
 
 A change reopens the earliest milestone whose observable contract it affects:
 
-- chess rule, move encoding, source grammar, or game IR: reopen M1 and downstream semantic/content gates;
+- locked anthology/reference input, source-lock receipt, foundational identity
+  framing, or canonical-manifest grammar: reopen M0 and every dependent
+  milestone;
+- chess rule, move encoding, source grammar, position/repetition-key/game/
+  game-set identity preimage, game IR, initial generic content grammar, or
+  interaction wire contract: reopen M1 and downstream semantic/content gates;
 - bootstrap notation, recovery code, interleave, check, mapping, or damage policy: reopen M2 and downstream profile/reconstruction gates;
-- curriculum predicate, lesson graph, artifact-native mapping, or assessment blueprint: reopen M3 and downstream learner gates;
-- complete content bytes, placement, dimensions, or final profile: reopen M4 and all candidate-bound gates;
+- assessment family/scoring blueprint or executable predicate truth: reopen M1
+  and downstream semantic/learner gates;
+- authored lesson graph, artifact-native mapping, complete curriculum records or
+  their semantic content bytes, or M3 predicate-registry binding: reopen M3 and
+  downstream learner gates;
+- physical placement, dimensions, packed-candidate bytes, or final profile:
+  reopen M4 and all candidate-bound gates;
 - blind package behavior, technical protocol, or learner protocol after exposure: create a new M5 candidate/protocol identity and collect fresh affected evidence;
 - guided explorer-only presentation change that leaves the core and blind outputs unchanged: rerun only M6 browser/release gates.
 
@@ -2549,7 +2899,9 @@ External sources motivate or constrain parts of the design, but none substitutes
 
 The FIDE text is the chess-rule authority, but profile v0 intentionally teaches a practical subset of competition procedure. `spec/chess-v0.md` MUST state every included rule and deliberate exclusion rather than relying on an implementer's memory.
 
-The PGN guide is not the Golden Board parser contract. `spec/source-v0.md` owns the exact Markdown/fence/token subset, accepted SAN relaxation, limits, and rejection precedence.
+The PGN guide is not the Golden Board parser contract. `spec/source-v0.md` owns
+the exact Markdown/fence/token subset, canonical SAN profile, limits, and
+rejection precedence.
 
 **Miguel Ambrona, “A Practical Algorithm for Chess Unwinnability,”** FUN 2022, DOI <https://doi.org/10.4230/LIPIcs.FUN.2022.2>, demonstrates why general mating-possibility and dead-position questions are not safely replaced by casual material shortcuts and why a complete search may be impractical under a fixed small resource budget. Golden Board therefore implements only named simple dead classes needed for beginner instruction and leaves rarer adjudication edge cases outside profile v0, rather than importing a general solver.
 

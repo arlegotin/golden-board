@@ -1,11 +1,29 @@
 schema = "golden-board.conformance-registry/v0"
 
 [[suite]]
+id = "chess-v0"
+path = "conformance/chess-v0.json"
+specification = "chess-v0"
+version = "v0"
+sha256 = "9a63aa74a32761bf1f8919278e895f532e4d4f305a30f74ddd1d0c4acec6a639"
+consumers = ["python", "rust"]
+provenance = "hand-authored"
+
+[[suite]]
+id = "content-v0"
+path = "conformance/content-v0.json"
+specification = "content-v0"
+version = "v0"
+sha256 = "b3f4279e95854e77bd3ce25c05e8580b1298ffccc164ac40a6010e86091a038b"
+consumers = ["python", "rust"]
+provenance = "hand-authored"
+
+[[suite]]
 id = "identity-v0"
 path = "conformance/identity-v0.json"
 specification = "identity-v0"
 version = "v0"
-sha256 = "57d7c84b994eec22290830ddd7b08cf4528869b826dce451713bfbc3656b2488"
+sha256 = "dad2d33a0d76f99eef1bc346725fbe4cc9fc21b1efbab1a522f2fd6e5362434e"
 consumers = ["python", "rust"]
 provenance = "hand-authored"
 
@@ -15,5 +33,14 @@ path = "conformance/manifest-v0.json"
 specification = "identity-v0"
 version = "v0"
 sha256 = "cb9a7604683623c5809c2b5b4bde45fb4e6fb67dc48e56aea10c23bc88e6c3e8"
+consumers = ["python", "rust"]
+provenance = "hand-authored"
+
+[[suite]]
+id = "source-v0"
+path = "conformance/source-v0.json"
+specification = "source-v0"
+version = "v0"
+sha256 = "07c36421b2b27aa3b9ab4609f34b6f0d24d63bac9752e0c083747cb90e0f8b30"
 consumers = ["python", "rust"]
 provenance = "hand-authored"

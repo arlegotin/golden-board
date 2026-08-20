@@ -18,10 +18,14 @@ contract but do not redefine it.
 ## Domain-separated identity
 
 An identity domain is a literal registered ASCII byte string ending in one NUL
-byte and containing no earlier NUL. M0 registers only:
+byte and containing no earlier NUL. The registered product domains are exactly:
 
 ```text
 golden-board:manifest:v0\0
+golden-board:position:v0\0
+golden-board:repetition-key:v0\0
+golden-board:game:v0\0
+golden-board:game-set:v0\0
 ```
 
 Fixture-local domains such as `test:a\0` and `test:b\0` test framing but are not
@@ -39,6 +43,37 @@ newline normalization, field sorting, extra delimiter, or terminal LF.
 
 A manifest identity has exactly one field: the complete canonical-manifest
 bytes, including their final LF, under `golden-board:manifest:v0\0`.
+
+The other four registered identities also have exactly one field. Their exact
+hand vectors are below. The position and repetition-key fields are the standard
+initial 67-byte chess-v0 values. The game is Fool's mate (`f2-f3`, `e7-e5`,
+`g2-g4`, `d8-h4`) with `SCORE_SECOND_WIN`; the set contains exactly that game.
+
+```text
+name = initial-position
+domain_hex = 676f6c64656e2d626f6172643a706f736974696f6e3a763000
+field_hex = 04020305060302040101010101010101000000000000000000000000000000000000000000000000000000000000000007070707070707070a08090b0c09080a000f00
+preimage_hex = 676f6c64656e2d626f6172643a706f736974696f6e3a76300000010000004304020305060302040101010101010101000000000000000000000000000000000000000000000000000000000000000007070707070707070a08090b0c09080a000f00
+sha256 = 7d578698cdb2095a1b818234f12b3e6d4f19bbadb414887f26e6a8d52417a186
+
+name = initial-repetition-key
+domain_hex = 676f6c64656e2d626f6172643a72657065746974696f6e2d6b65793a763000
+field_hex = 04020305060302040101010101010101000000000000000000000000000000000000000000000000000000000000000007070707070707070a08090b0c09080a000f00
+preimage_hex = 676f6c64656e2d626f6172643a72657065746974696f6e2d6b65793a76300000010000004304020305060302040101010101010101000000000000000000000000000000000000000000000000000000000000000007070707070707070a08090b0c09080a000f00
+sha256 = b12da42c15cc340394688be5d771ad8936241e9dcb03592b2791e06b9dbe33e3
+
+name = fools-mate-game
+domain_hex = 676f6c64656e2d626f6172643a67616d653a763000
+field_hex = 00043550d24039e0edf001
+preimage_hex = 676f6c64656e2d626f6172643a67616d653a76300000010000000b00043550d24039e0edf001
+sha256 = c49a921d652aa82b69a320073ca7ca0f5f3adf3d4ccc80d5aea162a52925b3bb
+
+name = fools-mate-game-set
+domain_hex = 676f6c64656e2d626f6172643a67616d652d7365743a763000
+field_hex = 000100043550d24039e0edf001
+preimage_hex = 676f6c64656e2d626f6172643a67616d652d7365743a76300000010000000d000100043550d24039e0edf001
+sha256 = 4070001b03556dcf41043adcf7a261c4b20aa7874a8033546520a48107fbc2f8
+```
 
 ## Canonical manifest data model
 
@@ -107,11 +142,30 @@ ignored `artifacts/` for human comparison.
 
 ## Registry
 
-`conformance/registry.toml` indexes only fixture payloads that exist. Each entry
-has a unique ID, path, specification/version, payload SHA-256, consumers, and
-provenance. M0 registers only the identity and manifest suites, both consumed
-independently by Python and Rust and marked `hand-authored`.
+`conformance/registry.toml` is the closed v0 index of shared conformance
+payloads. The registry and every payload are at most 1,048,576 bytes. Each is
+opened without following links and must be a direct regular non-symlink file.
 
-Paths must exist, hashes must match, and every non-registry file directly under
-`conformance/` must be registered. Empty/future source, chess, transport,
-curriculum, damage, or browser slots are forbidden.
+The TOML has exactly the top-level keys `schema` and `suite`. `schema` is
+exactly `golden-board.conformance-registry/v0`. Every `suite` row has exactly
+the keys `id`, `path`, `specification`, `version`, `sha256`, `consumers`, and
+`provenance`, with these rules:
+
+- `id` and `path` are unique across rows;
+- `id` and `specification` are nonempty lowercase ASCII identifiers containing
+  only `a-z`, `0-9`, and interior `-` characters;
+- `path` is byte-for-byte `conformance/<id>.json`, rejecting absolute, empty,
+  dot, dot-dot, nested, backslash or platform-alias, NUL, registry-self, and
+  alternate-spelling paths;
+- `version` is exactly `v0`;
+- `sha256` is exactly 64 lowercase hexadecimal characters;
+- `consumers` is exactly `["python", "rust"]`; and
+- `provenance` is exactly `hand-authored`.
+
+Every row target exists and its SHA-256 matches. Row paths are exact-set equal
+to all direct entries under `conformance/` other than `registry.toml`; every
+such entry must itself be a regular non-symlink file. Missing, unregistered, or
+unexpected entries, including symlinks and non-regular files, fail closed.
+
+M0 registers only the identity and manifest suites. Empty future source, chess,
+transport, curriculum, damage, or browser slots are forbidden.

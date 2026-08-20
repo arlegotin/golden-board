@@ -1,0 +1,3868 @@
+schema = "golden-board.curriculum/v0"
+
+[roadmap_mirror]
+kind = "checked_mirror"
+owner = "docs/roadmap.md"
+
+[roadmap_mirror.cohort]
+selected_learners = 6
+screened_slots_min = 6
+screened_slots_max = 8
+reserve_slots_max = 2
+
+[roadmap_mirror.eligibility]
+requires_no_prior_full_game_unaided = true
+familiarization_id = "non_chess_response_familiarization"
+familiarization_repeatable = true
+familiarization_unscored = true
+familiarization_covers_every_form_mechanic = true
+familiarization_minimum_response_shapes = ["single", "set", "sequence"]
+familiarization_minimum_actions = ["select", "reset", "commit"]
+familiarization_minimum_commits = ["empty", "nonempty"]
+integrated_screen_id = "integrated_legal_sequence_pre"
+integrated_screen_required_outcome = "fail"
+required_failed_family_ids = ["king_safety"]
+required_failed_set_id = "S"
+required_failed_set_min = 2
+complete_valid_unhinted_pretest_required = true
+same_item_retry_allowed = false
+invalid_baseline_outcome = "unavailable"
+
+[roadmap_mirror.selection]
+baseline_coverage_family_set_ids = ["E", "C"]
+baseline_failures_per_family_min = 3
+every_family_coverage_unconditional = true
+combined_core3_claim_optional = true
+combined_core3_claim_learners_with_any_baseline_failure_min = 4
+selection_before_artifact_instruction = true
+
+[roadmap_mirror.timing]
+instruction_start_max_hours_after_pretest = 24
+initial_active_hours_min = 4
+initial_active_hours_max = 8
+initial_sessions_max = 3
+initial_elapsed_days_max = 7
+initial_clock_includes = [
+  "familiarization",
+  "pretest",
+  "artifact_instruction_practice",
+  "immediate_posttest",
+]
+delayed_window_min_hours = 36
+delayed_window_max_hours = 60
+delayed_interval_closed = true
+delayed_first_attempt_only = true
+early_late_invalid_attempt_retry_allowed = false
+feedback_fallback_hours_after_posttest_deadline = 60
+
+[roadmap_mirror.denominator]
+freezes_at = "first_artifact_instruction_or_practice"
+replacement_after_freeze_allowed = false
+replacement_before_freeze_causes = ["administrative_withdrawal", "setup_failure"]
+participant_invalid_or_missing_after_freeze = "fixed_denominator_failure"
+candidate_or_evaluator_defect = "invalidate_affected_form_or_candidate"
+
+[roadmap_mirror.feedback_embargo]
+screened_slot_scope = "every_screened_slot_including_unused_reserves"
+result_bearing_acknowledgement = "presentation_identical_neutral"
+correctness_before_release_allowed = false
+release_clock = "last_selected_normal_or_fallback_window"
+early_posttest_correctness_result = "affected_delayed_evidence_invalid"
+pretest_or_form_answer_leak_result = "affected_current_and_later_evidence_and_form_invalid"
+invalid_early_delayed_attempt_resolves_window = false
+
+[roadmap_mirror.help]
+category_ids = [
+  "interface_clarification",
+  "procedural_reminder",
+  "semantic_hint",
+  "answer_revelation",
+]
+outside_semantic_study_or_help_result = "affected_fixed_denominator_failure"
+invasive_monitoring_required = false
+screened_restriction_until_denominator_freeze = [
+  "no_external_chess_study",
+  "no_help",
+  "no_sharing",
+]
+unused_reserve_after_selection_restrictions = ["no_sharing", "feedback_embargo"]
+selected_through_posttest_restrictions = [
+  "artifact_stream_only",
+  "no_external_chess_study",
+  "no_help",
+  "no_sharing",
+]
+selected_after_posttest_restrictions = ["no_restudy", "no_sharing"]
+
+[[roadmap_mirror.help.category]]
+id = "interface_clarification"
+allowed = true
+recorded = true
+result_effect = "none"
+
+[[roadmap_mirror.help.category]]
+id = "procedural_reminder"
+allowed = true
+recorded = true
+result_effect = "exclude_affected_item_from_unhinted_success"
+
+[[roadmap_mirror.help.category]]
+id = "semantic_hint"
+allowed = false
+recorded = true
+result_effect = "invalidate_affected_result_bearing_run"
+
+[[roadmap_mirror.help.category]]
+id = "answer_revelation"
+allowed = false
+recorded = true
+result_effect = "invalidate_affected_result_bearing_run"
+
+[roadmap_mirror.interruption]
+checkpoint = "after_committed_item"
+after_commit = "resume_next_unpresented_with_log_unchanged"
+before_commit = "item_missing_no_retry"
+baseline_effect = "form_unavailable"
+postfreeze_effect = "item_incorrect"
+
+[roadmap_mirror.privacy_reveal]
+commitment_before_first_screened_pretest = true
+commitment_intent = "bind_frozen_private_protocol_and_assessment_bundle"
+commitment_byte_framing_owner = "later_private_assessment_manifest"
+private_until = "all_selected_normal_or_fallback_windows_resolve"
+authorized_reveal_required = true
+learner_public_forbidden_before_authorized_reveal = [
+  "candidate_bound_result_bearing_payload",
+  "accepted_response_set",
+  "accepted_response_cardinality",
+  "usable_generation_seed",
+  "display_schedule",
+  "answer_map",
+]
+public_before_reveal_allowed = [
+  "commitment_digest",
+  "explicit_non_candidate_synthetic_test",
+]
+public_report_uses_opaque_slot_ids = true
+public_report_forbids_name_contact_free_text = true
+private_identity_mapping_and_consent = "evaluator_only"
+
+[roadmap_mirror.claim_ceiling]
+cohort_scope = "selected_six_person_chess_naive_cohort"
+post_use_scope = "declared_rule_and_relation_families"
+delay_scope = "approximately_two_day_essential_core_rule_performance"
+population_effectiveness = false
+causal_efficacy = false
+psychometric_equivalence = false
+durable_retention = false
+p_values_or_inferred_population_percentages = false
+
+[taxonomy]
+tier_ids = ["core0", "core1", "core2", "core3", "core4"]
+split_ids = ["teaching", "practice", "pretest", "posttest", "delayed"]
+response_shape_ids = ["single", "set", "sequence"]
+primary_generator_ids = [
+  "training",
+  "formative",
+  "pretest",
+  "final_transfer",
+  "delayed",
+]
+orthogonal_generator_ids = ["cue_control"]
+exactly_one_primary_generator_per_item = true
+cue_control_optional_posttest_only = true
+case_authority_kind_ids = [
+  "board_local_position",
+  "complete_replay_moves",
+  "complete_game_events_status",
+  "source_game_bytes",
+  "content_bytes",
+]
+
+[sets]
+E = [
+  "setup_turn",
+  "ordinary_move_capture",
+  "control_vs_legal",
+  "king_safety",
+  "mate_stalemate",
+  "castling",
+  "en_passant",
+  "promotion",
+  "position_history_draw",
+  "termination_score",
+  "record_replay",
+]
+S = ["castling", "en_passant", "promotion", "record_replay"]
+C = [
+  "attacked_defended",
+  "absolute_pin",
+  "fork_double_attack",
+  "discovered_attack_check",
+  "escape_square_control",
+  "passed_pawn",
+  "open_semi_open_file",
+  "finite_promotion_race",
+  "queen_or_rook_mating_geometry",
+]
+
+[coverage]
+instruction_coverage_any_of_splits = ["teaching", "practice"]
+held_out_coverage_any_of_splits = ["posttest", "delayed"]
+every_core3_stratum_split = "posttest"
+delayed_family_set_id = "E"
+multi_stratum_item_allowed = true
+multi_stratum_credit = "every_referenced_stratum_checker_recomputed_and_passed"
+assessment_item_exactly_one_family = true
+integrated_task_has_no_family = true
+posttest_required_strata = [
+  "king_safety.self_check",
+  "castling.from_check",
+  "castling.through_check",
+  "castling.into_check",
+  "en_passant.self_check",
+  "termination_score.post_terminal_rejection",
+  "termination_score.score_vs_cause",
+]
+
+[authoring_minimums]
+applies_to = "every_registered_concept"
+grounded_rule_or_relation_per_concept = 1
+contrasting_worked_boundary_or_counterexample_per_concept = 1
+active_packed_prediction_with_immediate_feedback_per_concept = 1
+distinct_held_out_practice_per_concept = 1
+passive_trace_per_packed_practice_node = 1
+active_and_held_out_practice_must_be_distinct = true
+grounding_role_any_of = ["exact_rule", "observable_relation"]
+contrasting_role_id = "worked_example"
+active_role_id = "practice"
+feedback_role_id = "feedback"
+passive_role_id = "passive_trace"
+heuristic_role_required_concept_ids = [
+  "c3.material_heuristic",
+  "c3.practical_heuristic_set",
+]
+requires_concept_ids = [
+  "c0.scalar_equality",
+  "c0.order_sequence",
+  "c0.matrix_position",
+  "c0.generic_records_roles",
+  "c0.selection_feedback",
+  "c3.material_heuristic",
+  "c3.practical_heuristic_set",
+  "c3.bounded_move_check",
+  "c4.record_literacy",
+]
+
+[assessment_minimums]
+claimed_family_set_ids = ["E", "C"]
+pretest_items_per_claimed_family = 2
+posttest_items_per_family = 2
+posttest_counterfactual_pairs_per_family = 1
+delayed_items_per_essential_family = 1
+delayed_extra_only_for_otherwise_uncovered_stratum = true
+assessment_only_posttest_templates_per_family = 1
+counterfactual_pair_may_satisfy_posttest_minimum = true
+forced_third_posttest_item = false
+integrated_task_ids = [
+  "integrated_legal_sequence_pre",
+  "integrated_legal_sequence_post",
+  "integrated_record_reading_post",
+]
+
+[scoring]
+item_rule = "complete_accepted_response_membership_all_or_nothing"
+family_pass_rule = "all_family_items_correct"
+partial_credit = false
+preferred_accepted_response = false
+critical_applies_only_to_committed_incorrect = true
+critical_cross_family_veto = false
+postselection_missing_malformed_extra_uncommitted_out_of_window_is_incorrect = true
+
+[formula.ceil75]
+input_min = 0
+input_max = 11
+numerator = 3
+denominator = 4
+rounding = "ceil"
+boundary_inputs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+boundary_outputs = [0, 1, 2, 3, 3, 4, 5, 6, 6, 7, 8, 9]
+
+[formula.family_acquisition]
+input_min = 0
+baseline_failure_min = 3
+baseline_failure_max = 6
+allowed_misses = 1
+negative_input_result = "invalid_protocol"
+below_domain_result = "no_claim"
+inside_domain_operation = "checked_b_minus_one"
+above_domain_result = "invalid_protocol"
+boundary_inputs = [0, 1, 2, 3, 4, 5, 6, 7]
+boundary_results = [
+  "no_claim",
+  "no_claim",
+  "no_claim",
+  "2",
+  "3",
+  "4",
+  "5",
+  "invalid_protocol",
+]
+
+[gate.protocol]
+required_family_set_ids = ["E", "C"]
+required_family_below_domain_result = "protocol_unclaimable"
+cohort_count_above_six_result = "invalid_protocol"
+prior_mastery_counts_for_acquisition = false
+prior_mastery_counts_for_attainment = true
+
+[gate.essential_family]
+family_set_id = "E"
+posttest_passes_min = 5
+acquisition_threshold_id = "family_acquisition"
+quantifier = "every_family"
+
+[gate.essential_individual]
+learners_min = 4
+failed_family_set_id = "E"
+acquired_fraction_threshold_id = "ceil75"
+required_acquired_family_ids = ["king_safety"]
+required_acquired_set_id = "S"
+required_acquired_set_min = 2
+required_integrated_task_ids = [
+  "integrated_legal_sequence_post",
+  "integrated_record_reading_post",
+]
+
+[gate.core3_family]
+family_set_id = "C"
+posttest_passes_min = 4
+acquisition_threshold_id = "family_acquisition"
+quantifier = "every_family"
+baseline_coverage_unconditional = true
+
+[gate.core3_combined_individual]
+optional_claim = true
+learners_min = 4
+failed_family_set_id = "C"
+baseline_failed_min = 1
+acquired_fraction_threshold_id = "ceil75"
+
+[gate.delayed]
+family_set_id = "E"
+family_passes_min = 4
+quantifier = "every_family"
+learners_min = 4
+individual_pass_fraction_threshold_id = "ceil75"
+required_passed_family_ids = ["king_safety"]
+required_passed_set_id = "S"
+required_passed_set_min = 2
+
+[gate.unhinted]
+semantic_hint_allowed = false
+answer_revealing_behavior_allowed = false
+
+[forms]
+forms_min = 1
+forms_max = 3
+same_form_may_serve_multiple_learners = true
+display_order_policy_owner = "later_private_assessment_manifest"
+display_order_seed_required_later = true
+display_order_record_required_later = true
+display_order_or_seed_required_in_curriculum_v0 = false
+display_order_or_seed_public_before_authorized_reveal = false
+equal_family_burden_fields = [
+  "family_id",
+  "split",
+  "sorted_unique_stratum_ids",
+  "response_shape",
+  "max_selections",
+]
+pre_post_match_fields = [
+  "family_id",
+  "sorted_unique_stratum_ids",
+  "response_shape",
+  "max_selections",
+]
+integrated_tasks_excluded_from_family_burden = true
+integrated_equal_fields = [
+  "integrated_task_id",
+  "response_shape",
+  "max_selections",
+]
+assessment_only_required_family_set_ids = ["E", "C"]
+assessment_only_split = "posttest"
+assessment_only_absent_from_splits = ["teaching", "practice"]
+structural_template_blueprint_reuse_allowed = true
+structural_template_id_is_not_case_identity = true
+semantic_case_reuse_allowed = false
+
+[leakage]
+protected_splits = ["teaching", "practice", "pretest", "posttest", "delayed"]
+equality = "full_structural_tagged_value"
+case_authority_kinds = [
+  "board_local_position",
+  "complete_replay_moves",
+  "complete_game_events_status",
+  "source_game_bytes",
+  "content_bytes",
+]
+structural_case_fields = [
+  "authority_tag_and_complete_bytes",
+  "shown_move_bytes",
+  "sorted_unique_case_pattern_ids",
+  "ordered_owner_call_ids",
+  "ordered_typed_owner_call_argument_bytes",
+  "prompt_target_semantic_bytes",
+  "complete_accepted_semantic_response_bytes",
+]
+structural_template_id_is_not_case_identity = true
+presentation_region_ids_are_not_semantic_identity = true
+hash_is_not_equality_authority = true
+reject_duplicate_case_within_split = true
+reject_nonempty_replay_move_or_semantic_record_reuse_across_splits = true
+apply_all_listed_predicate_mappings = true
+independent_authority_validation_required = true
+predicate_and_result_preservation_required = true
+invalid_transformed_authority = "inapplicable"
+author_transform_opt_out_allowed = false
+globally_safe_transform_ids = []
+
+[cue_audit]
+split = "posttest"
+counterfactual_pairs_per_family_min = 1
+pair_adjacent_allowed = false
+pair_id_learner_visible = false
+pair_requires_relation_flip = true
+pair_requires_equal_observable_fingerprint = true
+strategy_errors_per_family_min = 1
+strategy_max_correct_numerator = 1
+strategy_max_correct_denominator = 2
+tie_break = "lowest_visible_ordinal"
+missing_metric_fallback = "empty_commit"
+no_selectable_region_fallback = "empty_commit"
+cap_zero_fallback = "empty_commit"
+whole_form_item_counting = "scheduled_item_once"
+success_rule = "membership_in_complete_accepted_response_set"
+response_timing_source = "declared_schedule_or_work_units"
+wall_clock_timing_allowed = false
+observable_feature_ids = [
+  "visible_ordinal",
+  "visible_option_octets",
+  "region_area",
+  "region_count",
+  "highlight_count",
+  "selectable_count",
+  "record_payload_octets",
+  "node_branch_count",
+  "visible_schema_type_labels",
+  "focus_order",
+  "tab_order",
+  "accessibility_attributes",
+  "hover_cursor_clickability",
+  "disabled_state",
+  "acknowledgement_identity",
+  "acknowledgement_schedule",
+  "error_shape",
+  "response_timing",
+]
+private_feature_ids = [
+  "accepted_option_ordinals",
+  "accepted_response_cardinality",
+  "answer_sequence",
+]
+
+[capacity]
+kind = "initial_safety"
+records_per_curriculum_family_max = 256
+multi_family_teaching_record_counts_against_each_family = true
+generic_untagged_grounding_records_excluded = true
+final_capacity_claim = false
+
+[cut]
+future_validation_policy_only = true
+order = [
+  "optional_alternate_presentations",
+  "repeated_heuristic_examples",
+  "nonessential_exact_relation_repetitions",
+  "lowest_priority_heuristics",
+  "optional_interaction_branches",
+  "nonessential_navigation",
+  "profile_revision",
+]
+never_cut = [
+  "shell_to_content_bootstrap",
+  "complete_core1",
+  "complete_core2",
+  "all_four_promotions",
+  "attack_self_check_castling_en_passant_history_boundaries",
+  "score_vs_cause",
+  "corruption_and_incomplete_record_teaching",
+  "all_retained_core3_families",
+  "passive_path_per_retained_concept",
+  "exactly_sixty_four_complete_games",
+  "final_reserve_and_headroom",
+]
+cut_must_preserve = [
+  "authoring_and_assessment_minimums",
+  "mandatory_stratum_coverage",
+  "passive_completeness",
+  "never_cut",
+]
+
+[m1_scope]
+blueprint_and_synthetic_manifests_only = true
+concrete_assessment_artifacts_required = false
+forbidden_concrete_artifact_kinds = [
+  "lesson",
+  "form",
+  "seed",
+  "schedule",
+  "accepted_answer",
+  "commitment",
+  "candidate",
+  "participant",
+]
+future_private_assessment_manifest_required_in_m1 = false
+
+[[concept]]
+id = "c0.scalar_equality"
+tier = "core0"
+family_concept = false
+requires = []
+
+[[concept]]
+id = "c0.order_sequence"
+tier = "core0"
+family_concept = false
+requires = ["c0.scalar_equality"]
+
+[[concept]]
+id = "c0.matrix_position"
+tier = "core0"
+family_concept = false
+requires = ["c0.scalar_equality", "c0.order_sequence"]
+
+[[concept]]
+id = "c0.generic_records_roles"
+tier = "core0"
+family_concept = false
+requires = ["c0.scalar_equality", "c0.order_sequence"]
+
+[[concept]]
+id = "c0.selection_feedback"
+tier = "core0"
+family_concept = false
+requires = ["c0.scalar_equality", "c0.order_sequence", "c0.matrix_position"]
+
+[[concept]]
+id = "setup_turn"
+tier = "core1"
+family_concept = true
+requires = ["c0.matrix_position", "c0.generic_records_roles"]
+
+[[concept]]
+id = "ordinary_move_capture"
+tier = "core1"
+family_concept = true
+requires = ["setup_turn", "c0.selection_feedback"]
+
+[[concept]]
+id = "control_vs_legal"
+tier = "core1"
+family_concept = true
+requires = ["ordinary_move_capture"]
+
+[[concept]]
+id = "king_safety"
+tier = "core1"
+family_concept = true
+requires = ["control_vs_legal"]
+
+[[concept]]
+id = "mate_stalemate"
+tier = "core1"
+family_concept = true
+requires = ["king_safety"]
+
+[[concept]]
+id = "castling"
+tier = "core2"
+family_concept = true
+requires = ["king_safety"]
+
+[[concept]]
+id = "en_passant"
+tier = "core2"
+family_concept = true
+requires = ["king_safety"]
+
+[[concept]]
+id = "promotion"
+tier = "core2"
+family_concept = true
+requires = ["ordinary_move_capture", "king_safety"]
+
+[[concept]]
+id = "position_history_draw"
+tier = "core2"
+family_concept = true
+requires = ["ordinary_move_capture", "c0.generic_records_roles"]
+
+[[concept]]
+id = "termination_score"
+tier = "core2"
+family_concept = true
+requires = ["mate_stalemate", "position_history_draw"]
+
+[[concept]]
+id = "record_replay"
+tier = "core2"
+family_concept = true
+requires = ["termination_score", "c0.generic_records_roles"]
+
+[[concept]]
+id = "attacked_defended"
+tier = "core3"
+family_concept = true
+requires = ["control_vs_legal"]
+
+[[concept]]
+id = "absolute_pin"
+tier = "core3"
+family_concept = true
+requires = ["king_safety", "attacked_defended"]
+
+[[concept]]
+id = "fork_double_attack"
+tier = "core3"
+family_concept = true
+requires = ["control_vs_legal"]
+
+[[concept]]
+id = "discovered_attack_check"
+tier = "core3"
+family_concept = true
+requires = ["control_vs_legal", "king_safety"]
+
+[[concept]]
+id = "escape_square_control"
+tier = "core3"
+family_concept = true
+requires = ["control_vs_legal"]
+
+[[concept]]
+id = "passed_pawn"
+tier = "core3"
+family_concept = true
+requires = ["ordinary_move_capture"]
+
+[[concept]]
+id = "open_semi_open_file"
+tier = "core3"
+family_concept = true
+requires = ["ordinary_move_capture"]
+
+[[concept]]
+id = "finite_promotion_race"
+tier = "core3"
+family_concept = true
+requires = ["promotion"]
+
+[[concept]]
+id = "queen_or_rook_mating_geometry"
+tier = "core3"
+family_concept = true
+requires = ["mate_stalemate"]
+
+[[concept]]
+id = "c3.material_heuristic"
+tier = "core3"
+family_concept = false
+requires = ["ordinary_move_capture"]
+
+[[concept]]
+id = "c3.practical_heuristic_set"
+tier = "core3"
+family_concept = false
+requires = [
+  "c3.material_heuristic",
+  "attacked_defended",
+  "absolute_pin",
+  "fork_double_attack",
+  "discovered_attack_check",
+  "escape_square_control",
+  "passed_pawn",
+  "open_semi_open_file",
+]
+
+[[concept]]
+id = "c3.bounded_move_check"
+tier = "core3"
+family_concept = false
+requires = [
+  "king_safety",
+  "attacked_defended",
+  "c3.material_heuristic",
+  "c3.practical_heuristic_set",
+]
+
+[[concept]]
+id = "c4.record_literacy"
+tier = "core4"
+family_concept = false
+requires = ["record_replay"]
+
+[[role]]
+id = "exact_rule"
+score_mode = "exact_assertion_unscored"
+may_define_scored_answer = false
+requires_predicate = true
+requires_limitation_or_counterexample = false
+passive_trace_policy = "optional"
+
+[[role]]
+id = "observable_relation"
+score_mode = "exact_assertion_unscored"
+may_define_scored_answer = false
+requires_predicate = true
+requires_limitation_or_counterexample = false
+passive_trace_policy = "optional"
+
+[[role]]
+id = "worked_example"
+score_mode = "exact_assertion_and_trace_unscored"
+may_define_scored_answer = false
+requires_predicate = true
+requires_limitation_or_counterexample = false
+passive_trace_policy = "required"
+
+[[role]]
+id = "heuristic"
+score_mode = "limitation_recognition_only"
+may_define_scored_answer = false
+requires_predicate = false
+requires_limitation_or_counterexample = true
+passive_trace_policy = "optional"
+
+[[role]]
+id = "practice"
+score_mode = "complete_accepted_response_membership"
+may_define_scored_answer = true
+requires_predicate = true
+requires_limitation_or_counterexample = false
+passive_trace_policy = "packed_required_external_forbidden"
+
+[[role]]
+id = "feedback"
+score_mode = "derived_exact_relation"
+may_define_scored_answer = false
+requires_predicate = true
+requires_limitation_or_counterexample = false
+passive_trace_policy = "not_applicable"
+
+[[role]]
+id = "passive_trace"
+score_mode = "deterministic_unscored"
+may_define_scored_answer = false
+requires_predicate = false
+requires_limitation_or_counterexample = false
+passive_trace_policy = "not_applicable"
+
+[[generator]]
+id = "training"
+split = "teaching"
+orthogonal = false
+result_bearing = false
+
+[[generator]]
+id = "formative"
+split = "practice"
+orthogonal = false
+result_bearing = false
+
+[[generator]]
+id = "pretest"
+split = "pretest"
+orthogonal = false
+result_bearing = true
+
+[[generator]]
+id = "final_transfer"
+split = "posttest"
+orthogonal = false
+result_bearing = true
+
+[[generator]]
+id = "delayed"
+split = "delayed"
+orthogonal = false
+result_bearing = true
+
+[[generator]]
+id = "cue_control"
+split = "posttest"
+orthogonal = true
+result_bearing = true
+
+[[family]]
+id = "setup_turn"
+tier = "core1"
+concept_id = "setup_turn"
+
+[[family]]
+id = "ordinary_move_capture"
+tier = "core1"
+concept_id = "ordinary_move_capture"
+
+[[family]]
+id = "control_vs_legal"
+tier = "core1"
+concept_id = "control_vs_legal"
+
+[[family]]
+id = "king_safety"
+tier = "core1"
+concept_id = "king_safety"
+
+[[family]]
+id = "mate_stalemate"
+tier = "core1"
+concept_id = "mate_stalemate"
+
+[[family]]
+id = "castling"
+tier = "core2"
+concept_id = "castling"
+
+[[family]]
+id = "en_passant"
+tier = "core2"
+concept_id = "en_passant"
+
+[[family]]
+id = "promotion"
+tier = "core2"
+concept_id = "promotion"
+
+[[family]]
+id = "position_history_draw"
+tier = "core2"
+concept_id = "position_history_draw"
+
+[[family]]
+id = "termination_score"
+tier = "core2"
+concept_id = "termination_score"
+
+[[family]]
+id = "record_replay"
+tier = "core2"
+concept_id = "record_replay"
+
+[[family]]
+id = "attacked_defended"
+tier = "core3"
+concept_id = "attacked_defended"
+
+[[family]]
+id = "absolute_pin"
+tier = "core3"
+concept_id = "absolute_pin"
+
+[[family]]
+id = "fork_double_attack"
+tier = "core3"
+concept_id = "fork_double_attack"
+
+[[family]]
+id = "discovered_attack_check"
+tier = "core3"
+concept_id = "discovered_attack_check"
+
+[[family]]
+id = "escape_square_control"
+tier = "core3"
+concept_id = "escape_square_control"
+
+[[family]]
+id = "passed_pawn"
+tier = "core3"
+concept_id = "passed_pawn"
+
+[[family]]
+id = "open_semi_open_file"
+tier = "core3"
+concept_id = "open_semi_open_file"
+
+[[family]]
+id = "finite_promotion_race"
+tier = "core3"
+concept_id = "finite_promotion_race"
+
+[[family]]
+id = "queen_or_rook_mating_geometry"
+tier = "core3"
+concept_id = "queen_or_rook_mating_geometry"
+
+[[integrated_task]]
+id = "integrated_legal_sequence_pre"
+split = "pretest"
+minimum_per_form = 1
+predicate_ids = ["chess.move_record_replay"]
+evaluator_generated = true
+anthology_record_allowed = false
+
+[[integrated_task]]
+id = "integrated_legal_sequence_post"
+split = "posttest"
+minimum_per_form = 1
+predicate_ids = ["chess.move_record_replay"]
+evaluator_generated = true
+anthology_record_allowed = false
+
+[[integrated_task]]
+id = "integrated_record_reading_post"
+split = "posttest"
+minimum_per_form = 1
+predicate_ids = ["chess.move_record_replay", "chess.source_score_relation"]
+evaluator_generated = true
+anthology_record_allowed = false
+
+[[critical_label]]
+id = "king_left_or_moved_into_check"
+family_id = "king_safety"
+wrong_response_id = "accept_illegal_move"
+case_pattern_ids = ["king_safety.self_check"]
+
+[[critical_label]]
+id = "castling_from_through_or_into_check"
+family_id = "castling"
+wrong_response_id = "accept_illegal_castling_move"
+case_pattern_ids = ["castling.from_check", "castling.through_check", "castling.into_check"]
+
+[[critical_label]]
+id = "en_passant_exposes_king"
+family_id = "en_passant"
+wrong_response_id = "accept_illegal_en_passant_move"
+case_pattern_ids = ["en_passant.self_check"]
+
+[[critical_label]]
+id = "action_after_terminal"
+family_id = "termination_score"
+wrong_response_id = "accept_action_after_closed_game"
+case_pattern_ids = ["termination_score.post_terminal_rejection"]
+
+[[critical_label]]
+id = "source_score_used_as_termination_cause"
+family_id = "termination_score"
+wrong_response_id = "infer_declaration_cause_from_source_score"
+case_pattern_ids = ["termination_score.score_vs_cause"]
+
+[[transform]]
+id = "identity"
+matrix = [1, 0, 0, 1]
+offset = [0, 0]
+swap_colors_and_sides = false
+
+[[transform]]
+id = "file_reflection"
+matrix = [-1, 0, 0, 1]
+offset = [7, 0]
+swap_colors_and_sides = false
+
+[[transform]]
+id = "rank_reflection_color_swap"
+matrix = [1, 0, 0, -1]
+offset = [0, 7]
+swap_colors_and_sides = true
+
+[[transform]]
+id = "rotation_180_color_swap"
+matrix = [-1, 0, 0, -1]
+offset = [7, 7]
+swap_colors_and_sides = true
+
+[[predicate_mapping]]
+owner_id = "chess.setup_turn"
+authority_kinds = ["board_local_position", "complete_replay_moves"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "wire_position_or_replay_state_side"
+result_mapping = "boolean"
+
+[[predicate_mapping]]
+owner_id = "chess.occupancy"
+authority_kinds = ["board_local_position", "complete_replay_moves"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "wire_position_square_occupancy_match"
+result_mapping = "boolean"
+
+[[predicate_mapping]]
+owner_id = "chess.move_legality"
+authority_kinds = ["complete_replay_moves"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "replay_state_and_move"
+result_mapping = "move_legality_with_exact_code"
+
+[[predicate_mapping]]
+owner_id = "chess.control"
+authority_kinds = ["board_local_position", "complete_replay_moves"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "wire_position_side_square"
+result_mapping = "transform_and_resort_square_list"
+
+[[predicate_mapping]]
+owner_id = "chess.defended"
+authority_kinds = ["board_local_position"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "wire_position_target_and_optional_defender"
+result_mapping = "boolean"
+
+[[predicate_mapping]]
+owner_id = "chess.king_check"
+authority_kinds = ["board_local_position", "complete_replay_moves"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "locally_admissible_position_and_side"
+result_mapping = "boolean"
+
+[[predicate_mapping]]
+owner_id = "chess.absolute_pin"
+authority_kinds = ["board_local_position"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "locally_admissible_position_and_origin"
+result_mapping = "boolean"
+
+[[predicate_mapping]]
+owner_id = "chess.fork_double_attack"
+authority_kinds = ["complete_replay_moves"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "replay_state_move_and_transform_resort_targets"
+result_mapping = "boolean"
+
+[[predicate_mapping]]
+owner_id = "chess.discovered_attack_check"
+authority_kinds = ["complete_replay_moves"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "replay_state_move_slider_origin_and_target"
+result_mapping = "boolean"
+
+[[predicate_mapping]]
+owner_id = "chess.escape_square_control"
+authority_kinds = ["board_local_position"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "wire_position_controlling_side_and_candidate_square"
+result_mapping = "boolean"
+
+[[predicate_mapping]]
+owner_id = "chess.passed_pawn"
+authority_kinds = ["board_local_position"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "locally_admissible_position_and_pawn_square"
+result_mapping = "boolean"
+
+[[predicate_mapping]]
+owner_id = "chess.open_file"
+authority_kinds = ["board_local_position"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "wire_position_and_file"
+result_mapping = "boolean"
+
+[[predicate_mapping]]
+owner_id = "chess.semi_open_file"
+authority_kinds = ["board_local_position"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "wire_position_side_and_file"
+result_mapping = "boolean"
+
+[[predicate_mapping]]
+owner_id = "chess.finite_promotion_race"
+authority_kinds = ["complete_replay_moves"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "finite_promotion_tree_root_moves_and_child_indices"
+result_mapping = "color_swap_finite_race_outcomes"
+
+[[predicate_mapping]]
+owner_id = "chess.finite_mating_geometry"
+authority_kinds = ["complete_replay_moves"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "finite_mating_tree_root_side_moves_and_child_indices"
+result_mapping = "color_swap_mating_side_preserve_boolean_and_max_plies"
+
+[[predicate_mapping]]
+owner_id = "chess.terminal_transition"
+authority_kinds = ["complete_replay_moves"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "replay_state_and_move"
+result_mapping = "color_swap_terminal_winning_side"
+
+[[predicate_mapping]]
+owner_id = "chess.history_claim"
+authority_kinds = ["complete_replay_moves", "source_game_bytes"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "complete_or_source_derived_replay_moves"
+result_mapping = "transform_en_passant_facts_preserve_counts_and_booleans"
+
+[[predicate_mapping]]
+owner_id = "chess.declaration_event"
+authority_kinds = ["complete_game_events_status"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "complete_game_state_and_event"
+result_mapping = "color_swap_status_cause_score_and_exact_reject_code"
+
+[[predicate_mapping]]
+owner_id = "chess.source_score_relation"
+authority_kinds = ["source_game_bytes"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "validated_source_move_slice_and_score"
+result_mapping = "color_swap_terminal_and_score_preserve_exact_reject_code"
+
+[[predicate_mapping]]
+owner_id = "chess.move_record_replay"
+authority_kinds = ["complete_replay_moves", "source_game_bytes"]
+transform_ids = ["identity", "file_reflection", "rank_reflection_color_swap", "rotation_180_color_swap"]
+input_mapping = "move_bytes_or_typed_move_slice_score"
+result_mapping = "transform_decoded_move_or_replayed_record_preserve_exact_reject_code"
+
+[[predicate_mapping]]
+owner_id = "content.stream_validation"
+authority_kinds = ["content_bytes"]
+transform_ids = ["identity"]
+input_mapping = "raw_content_bytes_identity"
+result_mapping = "content_projection_or_reject_identity"
+
+[[cue_strategy]]
+id = "first"
+kind = "one_by_visible_order"
+direction = "first"
+
+[[cue_strategy]]
+id = "last"
+kind = "one_by_visible_order"
+direction = "last"
+
+[[cue_strategy]]
+id = "shortest"
+kind = "one_by_declared_metric"
+metric = "visible_option_octets"
+direction = "minimum"
+
+[[cue_strategy]]
+id = "longest"
+kind = "one_by_declared_metric"
+metric = "visible_option_octets"
+direction = "maximum"
+
+[[cue_strategy]]
+id = "largest_region"
+kind = "one_by_declared_metric"
+metric = "region_area"
+direction = "maximum"
+
+[[cue_strategy]]
+id = "most_highlighted"
+kind = "one_by_declared_metric"
+metric = "highlight_count"
+direction = "maximum"
+
+[[cue_strategy]]
+id = "alternating"
+kind = "alternate_first_last_by_scheduled_posttest_index"
+first_scheduled_item = "first"
+
+[[cue_strategy]]
+id = "same_as_prior"
+kind = "prior_accepted_response_visible_ordinal_vectors"
+prior_item = "immediately_preceding_scheduled_item"
+map_every_prior_accepted_response = true
+set_mapping = "sort_unique_visible_ordinals"
+sequence_mapping = "preserve_visible_ordinal_order"
+adversarial_choice = "lexicographically_smallest_vector"
+resolution_order = [
+  "no_selectable_region_or_cap_zero:empty_commit",
+  "first_item_with_absent_prior:first",
+  "present_empty_prior_response:empty_commit",
+  "mapped_vector_mechanically_valid:replay_vector",
+  "mapping_missing_or_incompatible:first",
+]
+empty_prior_response = "empty_commit"
+mechanically_valid_result = "replay_vector"
+first_item_result = "first"
+fallback = "first"
+fallback_causes = [
+  "missing_visible_ordinal",
+  "cap_incompatible",
+  "repetition_incompatible",
+]
+first_item_requires_absent_prior = true
+empty_prior_requires_present_prior = true
+
+[[cue_strategy]]
+id = "empty_commit"
+kind = "empty_commit"
+
+[[cue_strategy]]
+id = "select_all_visible"
+kind = "all_selectable_visible_ordinals_up_to_cap"
+order = "ascending_visible_ordinal"
+cap_source = "declared_max_selections"
+
+[finite_relation.candidate_move_effect]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "pawn_quiet"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "quiet" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "pawn_capture"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "pawn_initial_double"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "initial_double" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "king_capture"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "king" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "castling"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "king" }, { id = "move_kind", type_id = "MoveKind", value_id = "castling" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "en_passant"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "en_passant" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promotion_quiet"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion_quiet" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promotion_capture"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion_capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promotion_any"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promote_queen"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "queen" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promote_rook"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "rook" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promote_bishop"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "bishop" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "promote_knight"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "knight" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "pawn_move"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "any" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }]
+
+[[finite_relation.candidate_move_effect.rule]]
+result_id = "capture"
+facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "any" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }]
+
+[finite_relation.replay_relation]
+
+[[finite_relation.replay_relation.rule]]
+result_id = "one_legal_ply_extension"
+facts = [{ id = "ply_delta", type_id = "i8", value_id = "1" }]
+
+[[finite_relation.replay_relation.rule]]
+result_id = "same_shown_move"
+facts = [{ id = "shown_move_equal", type_id = "bool", value_id = "true" }]
+
+[[finite_relation.replay_relation.rule]]
+result_id = "same_position_except_relevant_castling_right"
+facts = [{ id = "position_difference", type_id = "FieldSet", value_id = "relevant_castling_right_only" }]
+
+[[finite_relation.replay_relation.rule]]
+result_id = "same_final_position"
+facts = [{ id = "final_position_equal", type_id = "bool", value_id = "true" }]
+
+[[finite_relation.replay_relation.rule]]
+result_id = "replacement_piece_does_not_restore_right"
+facts = [{ id = "castling_entitlement_restored", type_id = "bool", value_id = "false" }]
+
+[[finite_relation.replay_relation.rule]]
+result_id = "different_replay_history"
+facts = [{ id = "history_equal", type_id = "bool", value_id = "false" }]
+
+[[finite_relation.replay_relation.rule]]
+result_id = "ineffective_ep_keys_equal_effective_ep_differs"
+facts = [{ id = "ineffective_ep_key_equal", type_id = "bool", value_id = "true" }, { id = "effective_ep_key_equal", type_id = "bool", value_id = "false" }]
+
+[finite_relation.en_passant_context]
+
+[[finite_relation.en_passant_context.rule]]
+result_id = "expired_after_intervening_move"
+facts = [{ id = "intervening_legal_plies_min", type_id = "u16", value_id = "1" }, { id = "nominal_target", type_id = "EnPassantFact", value_id = "none" }]
+
+[finite_relation.material_class]
+
+[[finite_relation.material_class.rule]]
+result_id = "recognized_common_dead"
+facts = [{ id = "selected_common_dead_class", type_id = "bool", value_id = "true" }, { id = "common_dead", type_id = "bool", value_id = "true" }]
+
+[[finite_relation.material_class.rule]]
+result_id = "king_two_knights_vs_king"
+facts = [{ id = "material_signature", type_id = "MaterialSignature", value_id = "king_two_knights_vs_king" }, { id = "common_dead", type_id = "bool", value_id = "false" }]
+
+[finite_relation.opposing_pawn_ahead]
+
+[[finite_relation.opposing_pawn_ahead.rule]]
+result_id = "strictly_ahead_same_or_adjacent_file"
+facts = [{ id = "opposing_pawn_exists", type_id = "bool", value_id = "true" }, { id = "relative_rank_relation", type_id = "RankRelation", value_id = "strictly_ahead" }, { id = "absolute_file_delta_max", type_id = "u8", value_id = "1" }]
+
+[finite_relation.finite_mating_root_major_piece]
+
+[[finite_relation.finite_mating_root_major_piece.rule]]
+result_id = "queen"
+facts = [{ id = "major_piece_kind", type_id = "PieceKind", value_id = "queen" }, { id = "major_piece_count", type_id = "u8", value_id = "1" }, { id = "other_nonking_count", type_id = "u8", value_id = "0" }, { id = "major_piece_side_is_mating_side", type_id = "bool", value_id = "true" }]
+
+[[finite_relation.finite_mating_root_major_piece.rule]]
+result_id = "rook"
+facts = [{ id = "major_piece_kind", type_id = "PieceKind", value_id = "rook" }, { id = "major_piece_count", type_id = "u8", value_id = "1" }, { id = "other_nonking_count", type_id = "u8", value_id = "0" }, { id = "major_piece_side_is_mating_side", type_id = "bool", value_id = "true" }]
+
+[[input_binding]]
+id = "setup_initial_position"
+authority_kind = "board_local_position"
+owner_id = "chess.setup_turn"
+input_variant_id = "SetupTurnInput.initial"
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
+
+[[input_binding]]
+id = "initial_replay_and_side"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.setup_turn"
+input_variant_id = "SetupTurnInput.current_side"
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state_exact_0_plies" }, { position = 1, type_id = "Side", source_kind = "call_constant", source_id = "call.input_constants[0]" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice_exact_0_plies"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state_exact_0_plies", output_type_id = "ReplayState" }]
+
+[[input_binding]]
+id = "replay_and_current_side"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.setup_turn"
+input_variant_id = "SetupTurnInput.current_side"
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state" }, { position = 1, type_id = "Side", source_kind = "call_constant", source_id = "call.input_constants[0]" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }]
+
+[[input_binding]]
+id = "replay_move_legality"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.move_legality"
+input_variant_id = "MoveLegalityInput"
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state" }, { position = 1, type_id = "Move", source_kind = "bound", source_id = "bound.shown_move" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }]
+
+[[input_binding]]
+id = "replay_terminal_transition"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.terminal_transition"
+input_variant_id = "TerminalTransitionInput"
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state" }, { position = 1, type_id = "Move", source_kind = "bound", source_id = "bound.shown_move" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }]
+
+[[input_binding]]
+id = "replay_move_origin_occupancy"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.occupancy"
+input_variant_id = "OccupancyInput"
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "derived", source_id = "authority.replay_wire_position" }, { position = 1, type_id = "Square", source_kind = "bound_projection", source_id = "bound.shown_move.origin" }, { position = 2, type_id = "OccupancyMatch", source_kind = "call_constant", source_id = "call.input_constants[0]" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "typed_projection", operation_id = "projection.replay_wire_position", input_source_ids = ["authority.replay_state"], input_type_ids = ["ReplayState"], output_source_id = "authority.replay_wire_position", output_type_id = "WirePosition" }]
+
+[[input_binding]]
+id = "board_control_with_bound_origin"
+authority_kind = "board_local_position"
+owner_id = "chess.control"
+input_variant_id = "ControlInput"
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.controlling_side" }, { position = 2, type_id = "Square", source_kind = "authority", source_id = "authority.target_square" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
+
+[[input_binding]]
+id = "board_bound_origin_occupancy"
+authority_kind = "board_local_position"
+owner_id = "chess.occupancy"
+input_variant_id = "OccupancyInput"
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Square", source_kind = "bound", source_id = "bound.controller_origin" }, { position = 2, type_id = "OccupancyMatch", source_kind = "call_constant", source_id = "call.input_constants[0]" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
+
+[[input_binding]]
+id = "board_defended"
+authority_kind = "board_local_position"
+owner_id = "chess.defended"
+input_variant_id = "DefendedInput"
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Square", source_kind = "authority", source_id = "authority.target_square" }, { position = 2, type_id = "Defender", source_kind = "authority", source_id = "authority.defender" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
+
+[[input_binding]]
+id = "board_pin_with_origin"
+authority_kind = "board_local_position"
+owner_id = "chess.absolute_pin"
+input_variant_id = "AbsolutePinInput"
+arguments = [{ position = 0, type_id = "LocallyAdmissiblePosition", source_kind = "derived", source_id = "authority.locally_admissible_position" }, { position = 1, type_id = "Square", source_kind = "bound", source_id = "bound.controller_origin" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
+
+[[input_binding]]
+id = "replay_move_destination_control_with_origin"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.control"
+input_variant_id = "ControlInput"
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "derived", source_id = "authority.replay_wire_position" }, { position = 1, type_id = "Side", source_kind = "derived", source_id = "authority.replay_side_to_move" }, { position = 2, type_id = "Square", source_kind = "bound_projection", source_id = "bound.shown_move.target" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "typed_projection", operation_id = "projection.replay_wire_position", input_source_ids = ["authority.replay_state"], input_type_ids = ["ReplayState"], output_source_id = "authority.replay_wire_position", output_type_id = "WirePosition" }, { position = 2, kind_id = "typed_projection", operation_id = "projection.replay_side_to_move", input_source_ids = ["authority.replay_state"], input_type_ids = ["ReplayState"], output_source_id = "authority.replay_side_to_move", output_type_id = "Side" }]
+
+[[input_binding]]
+id = "board_king_check"
+authority_kind = "board_local_position"
+owner_id = "chess.king_check"
+input_variant_id = "KingCheckInput"
+arguments = [{ position = 0, type_id = "LocallyAdmissiblePosition", source_kind = "derived", source_id = "authority.locally_admissible_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.checked_side" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
+
+[[input_binding]]
+id = "pre_move_moving_side_king_check"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.king_check"
+input_variant_id = "KingCheckInput"
+arguments = [{ position = 0, type_id = "LocallyAdmissiblePosition", source_kind = "derived", source_id = "authority.replay_local_position" }, { position = 1, type_id = "Side", source_kind = "derived", source_id = "authority.replay_side_to_move" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "typed_projection", operation_id = "projection.replay_local_position", input_source_ids = ["authority.replay_state"], input_type_ids = ["ReplayState"], output_source_id = "authority.replay_local_position", output_type_id = "LocallyAdmissiblePosition" }, { position = 2, kind_id = "typed_projection", operation_id = "projection.replay_side_to_move", input_source_ids = ["authority.replay_state"], input_type_ids = ["ReplayState"], output_source_id = "authority.replay_side_to_move", output_type_id = "Side" }]
+
+[[input_binding]]
+id = "post_move_moving_side_king_check"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.king_check"
+input_variant_id = "KingCheckInput"
+arguments = [{ position = 0, type_id = "LocallyAdmissiblePosition", source_kind = "derived", source_id = "derived.post_move_local_position" }, { position = 1, type_id = "Side", source_kind = "derived", source_id = "authority.replay_side_to_move" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "owner_call", operation_id = "chess.apply_move", input_source_ids = ["authority.replay_state", "bound.shown_move"], input_type_ids = ["ReplayState", "Move"], output_source_id = "derived.post_move_replay_state", output_type_id = "ReplayState" }, { position = 2, kind_id = "typed_projection", operation_id = "projection.replay_local_position", input_source_ids = ["derived.post_move_replay_state"], input_type_ids = ["ReplayState"], output_source_id = "derived.post_move_local_position", output_type_id = "LocallyAdmissiblePosition" }, { position = 3, kind_id = "typed_projection", operation_id = "projection.replay_side_to_move", input_source_ids = ["authority.replay_state"], input_type_ids = ["ReplayState"], output_source_id = "authority.replay_side_to_move", output_type_id = "Side" }]
+
+[[input_binding]]
+id = "post_move_next_side_king_check"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.king_check"
+input_variant_id = "KingCheckInput"
+arguments = [{ position = 0, type_id = "LocallyAdmissiblePosition", source_kind = "derived", source_id = "derived.post_move_local_position" }, { position = 1, type_id = "Side", source_kind = "derived", source_id = "derived.post_move_side_to_move" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "owner_call", operation_id = "chess.apply_move", input_source_ids = ["authority.replay_state", "bound.shown_move"], input_type_ids = ["ReplayState", "Move"], output_source_id = "derived.post_move_replay_state", output_type_id = "ReplayState" }, { position = 2, kind_id = "typed_projection", operation_id = "projection.replay_local_position", input_source_ids = ["derived.post_move_replay_state"], input_type_ids = ["ReplayState"], output_source_id = "derived.post_move_local_position", output_type_id = "LocallyAdmissiblePosition" }, { position = 3, kind_id = "typed_projection", operation_id = "projection.replay_side_to_move", input_source_ids = ["derived.post_move_replay_state"], input_type_ids = ["ReplayState"], output_source_id = "derived.post_move_side_to_move", output_type_id = "Side" }]
+
+[[input_binding]]
+id = "board_checked_king_control"
+authority_kind = "board_local_position"
+owner_id = "chess.control"
+input_variant_id = "ControlInput"
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.opposing_side" }, { position = 2, type_id = "Square", source_kind = "bound", source_id = "bound.checked_king_square" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
+
+[[input_binding]]
+id = "replay_record_and_last_move"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.move_record_replay"
+input_variant_id = "MoveRecordInput.record"
+arguments = [{ position = 0, type_id = "MoveSlice", source_kind = "authority", source_id = "authority.move_slice_including_shown_move" }, { position = 1, type_id = "Score", source_kind = "authority", source_id = "authority.case_score" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice_including_shown_move"], input_type_ids = ["MoveSlice"], output_source_id = "derived.record_replay_state", output_type_id = "ReplayState" }]
+
+[[input_binding]]
+id = "canonical_shown_move_bytes"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.move_record_replay"
+input_variant_id = "MoveRecordInput.move_bytes"
+arguments = [{ position = 0, type_id = "ByteSlice", source_kind = "derived", source_id = "derived.shown_move_bytes" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "owner_call", operation_id = "chess.encode_move", input_source_ids = ["bound.shown_move"], input_type_ids = ["Move"], output_source_id = "derived.shown_move_bytes", output_type_id = "ByteSlice" }]
+
+[[input_binding]]
+id = "replay_history"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.history_claim"
+input_variant_id = "ReplayState"
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }]
+
+[[input_binding]]
+id = "post_move_history"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.history_claim"
+input_variant_id = "ReplayState"
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "derived.post_move_replay_state" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "owner_call", operation_id = "chess.apply_move", input_source_ids = ["authority.replay_state", "bound.shown_move"], input_type_ids = ["ReplayState", "Move"], output_source_id = "derived.post_move_replay_state", output_type_id = "ReplayState" }]
+
+[[input_binding]]
+id = "source_derived_history"
+authority_kind = "source_game_bytes"
+owner_id = "chess.history_claim"
+input_variant_id = "ReplayState"
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "derived.source_replay_state" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "source.decode_game", input_source_ids = ["authority.source_game_bytes"], input_type_ids = ["ByteSlice"], output_source_id = "derived.source_game_record", output_type_id = "GameRecord" }, { position = 1, kind_id = "typed_projection", operation_id = "projection.source_move_slice", input_source_ids = ["derived.source_game_record"], input_type_ids = ["GameRecord"], output_source_id = "derived.source_move_slice", output_type_id = "MoveSlice" }, { position = 2, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["derived.source_move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "derived.source_replay_state", output_type_id = "ReplayState" }]
+
+[[input_binding]]
+id = "game_state_and_event"
+authority_kind = "complete_game_events_status"
+owner_id = "chess.declaration_event"
+input_variant_id = "DeclarationEventInput"
+arguments = [{ position = 0, type_id = "GameState", source_kind = "derived", source_id = "authority.game_state" }, { position = 1, type_id = "Event", source_kind = "authority", source_id = "authority.event" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.new_game", input_source_ids = [], input_type_ids = [], output_source_id = "derived.initial_game_state", output_type_id = "GameState" }, { position = 1, kind_id = "owner_call", operation_id = "chess.apply_event", input_source_ids = ["authority.prior_game_state", "authority.prior_event"], input_type_ids = ["GameState", "Event"], output_source_id = "authority.game_state", output_type_id = "GameState" }]
+
+[[input_binding]]
+id = "source_move_slice_and_score"
+authority_kind = "source_game_bytes"
+owner_id = "chess.source_score_relation"
+input_variant_id = "SourceScoreInput"
+arguments = [{ position = 0, type_id = "MoveSlice", source_kind = "derived", source_id = "derived.source_move_slice" }, { position = 1, type_id = "Score", source_kind = "call_constant", source_id = "call.input_constants[0]" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "source.decode_game", input_source_ids = ["authority.source_game_bytes"], input_type_ids = ["ByteSlice"], output_source_id = "derived.source_game_record", output_type_id = "GameRecord" }, { position = 1, kind_id = "typed_projection", operation_id = "projection.source_move_slice", input_source_ids = ["derived.source_game_record"], input_type_ids = ["GameRecord"], output_source_id = "derived.source_move_slice", output_type_id = "MoveSlice" }]
+
+[[input_binding]]
+id = "source_move_slice_and_decoded_score"
+authority_kind = "source_game_bytes"
+owner_id = "chess.source_score_relation"
+input_variant_id = "SourceScoreInput"
+arguments = [{ position = 0, type_id = "MoveSlice", source_kind = "derived", source_id = "derived.source_move_slice" }, { position = 1, type_id = "Score", source_kind = "derived", source_id = "derived.source_score" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "source.decode_game", input_source_ids = ["authority.source_game_bytes"], input_type_ids = ["ByteSlice"], output_source_id = "derived.source_game_record", output_type_id = "GameRecord" }, { position = 1, kind_id = "typed_projection", operation_id = "projection.source_move_slice", input_source_ids = ["derived.source_game_record"], input_type_ids = ["GameRecord"], output_source_id = "derived.source_move_slice", output_type_id = "MoveSlice" }, { position = 2, kind_id = "typed_projection", operation_id = "projection.source_score", input_source_ids = ["derived.source_game_record"], input_type_ids = ["GameRecord"], output_source_id = "derived.source_score", output_type_id = "Score" }]
+
+[[input_binding]]
+id = "raw_content_bytes"
+authority_kind = "content_bytes"
+owner_id = "content.stream_validation"
+input_variant_id = "ByteSlice"
+arguments = [{ position = 0, type_id = "ByteSlice", source_kind = "authority", source_id = "authority.content_bytes" }]
+derivations = []
+
+[[input_binding]]
+id = "board_control"
+authority_kind = "board_local_position"
+owner_id = "chess.control"
+input_variant_id = "ControlInput"
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.controlling_side" }, { position = 2, type_id = "Square", source_kind = "authority", source_id = "authority.target_square" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
+
+[[input_binding]]
+id = "board_escape_control"
+authority_kind = "board_local_position"
+owner_id = "chess.escape_square_control"
+input_variant_id = "EscapeControlInput"
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.controlling_side" }, { position = 2, type_id = "Square", source_kind = "authority", source_id = "authority.candidate_square" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
+
+[[input_binding]]
+id = "board_passed_pawn"
+authority_kind = "board_local_position"
+owner_id = "chess.passed_pawn"
+input_variant_id = "PassedPawnInput"
+arguments = [{ position = 0, type_id = "LocallyAdmissiblePosition", source_kind = "derived", source_id = "authority.locally_admissible_position" }, { position = 1, type_id = "Square", source_kind = "authority", source_id = "authority.pawn_square" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
+
+[[input_binding]]
+id = "board_open_file"
+authority_kind = "board_local_position"
+owner_id = "chess.open_file"
+input_variant_id = "OpenFileInput"
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "File", source_kind = "authority", source_id = "authority.file" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
+
+[[input_binding]]
+id = "board_semi_open_file"
+authority_kind = "board_local_position"
+owner_id = "chess.semi_open_file"
+input_variant_id = "SemiOpenFileInput"
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "authority", source_id = "authority.wire_position" }, { position = 1, type_id = "Side", source_kind = "authority", source_id = "authority.side" }, { position = 2, type_id = "File", source_kind = "authority", source_id = "authority.file" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.validate_local", input_source_ids = ["authority.wire_position"], input_type_ids = ["WirePosition"], output_source_id = "authority.locally_admissible_position", output_type_id = "LocallyAdmissiblePosition" }]
+
+[[input_binding]]
+id = "replay_fork_targets"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.fork_double_attack"
+input_variant_id = "AfterMoveNamedTargetsInput"
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state" }, { position = 1, type_id = "Move", source_kind = "bound", source_id = "bound.shown_move" }, { position = 2, type_id = "SquareSlice", source_kind = "authority", source_id = "authority.named_target_squares" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }]
+
+[[input_binding]]
+id = "replay_discovered_line"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.discovered_attack_check"
+input_variant_id = "DiscoveredLineInput"
+arguments = [{ position = 0, type_id = "ReplayState", source_kind = "derived", source_id = "authority.replay_state" }, { position = 1, type_id = "Move", source_kind = "bound", source_id = "bound.shown_move" }, { position = 2, type_id = "Square", source_kind = "authority", source_id = "authority.slider_origin" }, { position = 3, type_id = "Square", source_kind = "bound", source_id = "bound.line_target" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }]
+
+[[input_binding]]
+id = "post_move_discovered_target_occupancy"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.occupancy"
+input_variant_id = "OccupancyInput"
+arguments = [{ position = 0, type_id = "WirePosition", source_kind = "derived", source_id = "derived.post_move_wire_position" }, { position = 1, type_id = "Square", source_kind = "bound", source_id = "bound.line_target" }, { position = 2, type_id = "OccupancyMatch", source_kind = "call_constant", source_id = "call.input_constants[0]" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.replay_state", output_type_id = "ReplayState" }, { position = 1, kind_id = "owner_call", operation_id = "chess.apply_move", input_source_ids = ["authority.replay_state", "bound.shown_move"], input_type_ids = ["ReplayState", "Move"], output_source_id = "derived.post_move_replay_state", output_type_id = "ReplayState" }, { position = 2, kind_id = "typed_projection", operation_id = "projection.replay_wire_position", input_source_ids = ["derived.post_move_replay_state"], input_type_ids = ["ReplayState"], output_source_id = "derived.post_move_wire_position", output_type_id = "WirePosition" }]
+
+[[input_binding]]
+id = "finite_promotion_tree_rooted_at_authority"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.finite_promotion_race"
+input_variant_id = "FinitePromotionTree"
+arguments = [{ position = 0, type_id = "FinitePromotionTree", source_kind = "authority", source_id = "authority.finite_promotion_tree" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.finite_promotion_tree.root_move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.finite_promotion_tree.root", output_type_id = "ReplayState" }]
+
+[[input_binding]]
+id = "finite_mating_tree_rooted_at_authority"
+authority_kind = "complete_replay_moves"
+owner_id = "chess.finite_mating_geometry"
+input_variant_id = "FiniteMatingTree"
+arguments = [{ position = 0, type_id = "FiniteMatingTree", source_kind = "authority", source_id = "authority.finite_mating_tree" }]
+derivations = [{ position = 0, kind_id = "owner_call", operation_id = "chess.replay_from_start", input_source_ids = ["authority.finite_mating_tree.root_move_slice"], input_type_ids = ["MoveSlice"], output_source_id = "authority.finite_mating_tree.root", output_type_id = "ReplayState" }]
+
+[[result_contract]]
+id = "bool_true"
+owner_ids = ["chess.setup_turn", "chess.occupancy", "chess.defended", "chess.king_check", "chess.absolute_pin", "chess.fork_double_attack", "chess.discovered_attack_check", "chess.escape_square_control", "chess.passed_pawn", "chess.open_file", "chess.semi_open_file"]
+result_variant_id = "bool_true"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "bool_false"
+owner_ids = ["chess.setup_turn", "chess.occupancy", "chess.defended", "chess.king_check", "chess.absolute_pin", "chess.fork_double_attack", "chess.discovered_attack_check", "chess.escape_square_control", "chess.passed_pawn", "chess.open_file", "chess.semi_open_file"]
+result_variant_id = "bool_false"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "square_list_nonempty"
+owner_ids = ["chess.control"]
+result_variant_id = "square_list"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "nonempty"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "square_list_contains_bound_origin"
+owner_ids = ["chess.control"]
+result_variant_id = "square_list"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "contains_bound_origin"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "square_list_min_two"
+owner_ids = ["chess.control"]
+result_variant_id = "square_list"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "cardinality_at_least_two"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "move_legal"
+owner_ids = ["chess.move_legality"]
+result_variant_id = "move_legal"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "move_illegal_blocked"
+owner_ids = ["chess.move_legality"]
+result_variant_id = "move_illegal"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_MOVE_BLOCKED"
+span_class = "none"
+
+[[result_contract]]
+id = "move_illegal_friendly_destination"
+owner_ids = ["chess.move_legality"]
+result_variant_id = "move_illegal"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_MOVE_FRIENDLY_DESTINATION"
+span_class = "none"
+
+[[result_contract]]
+id = "move_illegal_self_check"
+owner_ids = ["chess.move_legality"]
+result_variant_id = "move_illegal"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_MOVE_SELF_CHECK"
+span_class = "none"
+
+[[result_contract]]
+id = "move_illegal_castling_right"
+owner_ids = ["chess.move_legality"]
+result_variant_id = "move_illegal"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_MOVE_CASTLING_RIGHT"
+span_class = "none"
+
+[[result_contract]]
+id = "move_illegal_castling_path"
+owner_ids = ["chess.move_legality"]
+result_variant_id = "move_illegal"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_MOVE_CASTLING_PATH"
+span_class = "none"
+
+[[result_contract]]
+id = "move_illegal_castling_from_check"
+owner_ids = ["chess.move_legality"]
+result_variant_id = "move_illegal"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_MOVE_CASTLING_FROM_CHECK"
+span_class = "none"
+
+[[result_contract]]
+id = "move_illegal_castling_through_check"
+owner_ids = ["chess.move_legality"]
+result_variant_id = "move_illegal"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_MOVE_CASTLING_THROUGH_CHECK"
+span_class = "none"
+
+[[result_contract]]
+id = "move_illegal_castling_into_check"
+owner_ids = ["chess.move_legality"]
+result_variant_id = "move_illegal"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_MOVE_CASTLING_INTO_CHECK"
+span_class = "none"
+
+[[result_contract]]
+id = "move_illegal_en_passant_target"
+owner_ids = ["chess.move_legality"]
+result_variant_id = "move_illegal"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_MOVE_EN_PASSANT_TARGET"
+span_class = "none"
+
+[[result_contract]]
+id = "move_illegal_promotion_missing"
+owner_ids = ["chess.move_legality"]
+result_variant_id = "move_illegal"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_MOVE_PROMOTION_MISSING"
+span_class = "none"
+
+[[result_contract]]
+id = "move_illegal_promotion_unneeded"
+owner_ids = ["chess.move_legality"]
+result_variant_id = "move_illegal"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_MOVE_PROMOTION_UNNEEDED"
+span_class = "none"
+
+[[result_contract]]
+id = "terminal_none"
+owner_ids = ["chess.terminal_transition"]
+result_variant_id = "terminal_none"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "terminal_checkmate"
+owner_ids = ["chess.terminal_transition"]
+result_variant_id = "terminal_checkmate"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "terminal_stalemate"
+owner_ids = ["chess.terminal_transition"]
+result_variant_id = "terminal_stalemate"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "terminal_common_dead"
+owner_ids = ["chess.terminal_transition"]
+result_variant_id = "terminal_common_dead"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "history_exact"
+owner_ids = ["chess.history_claim"]
+result_variant_id = "history_claim_fields"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "history_nominal_absent"
+owner_ids = ["chess.history_claim"]
+result_variant_id = "history_claim_fields"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "nominal_ep_absent"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "history_nominal_ineffective"
+owner_ids = ["chess.history_claim"]
+result_variant_id = "history_claim_fields"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "nominal_ep_present_effective_absent"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "history_nominal_effective"
+owner_ids = ["chess.history_claim"]
+result_variant_id = "history_claim_fields"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "nominal_ep_present_equals_effective"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "history_occurrence_two"
+owner_ids = ["chess.history_claim"]
+result_variant_id = "history_claim_fields"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "current_key_occurrences_2"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "history_occurrence_three"
+owner_ids = ["chess.history_claim"]
+result_variant_id = "history_claim_fields"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "current_key_occurrences_3"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "history_halfmove_99"
+owner_ids = ["chess.history_claim"]
+result_variant_id = "history_claim_fields"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "halfmove_99_claim_false"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "history_halfmove_100"
+owner_ids = ["chess.history_claim"]
+result_variant_id = "history_claim_fields"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "halfmove_100_claim_true"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "history_halfmove_nonzero"
+owner_ids = ["chess.history_claim"]
+result_variant_id = "history_claim_fields"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "halfmove_nonzero"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "history_halfmove_zero"
+owner_ids = ["chess.history_claim"]
+result_variant_id = "history_claim_fields"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "halfmove_zero"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "history_claim_available"
+owner_ids = ["chess.history_claim"]
+result_variant_id = "history_claim_fields"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "claim_available"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "declaration_resigned"
+owner_ids = ["chess.declaration_event"]
+result_variant_id = "declaration_accepted_game_status_resigned"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "declaration_agreed"
+owner_ids = ["chess.declaration_event"]
+result_variant_id = "declaration_accepted_game_status_agreed"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "declaration_threefold"
+owner_ids = ["chess.declaration_event"]
+result_variant_id = "declaration_accepted_game_status_claimed_threefold"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "declaration_fifty"
+owner_ids = ["chess.declaration_event"]
+result_variant_id = "declaration_accepted_game_status_claimed_50_move"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "declaration_rejected_agreement_early"
+owner_ids = ["chess.declaration_event"]
+result_variant_id = "declaration_rejected"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_EVENT_AGREEMENT_TOO_EARLY"
+span_class = "none"
+
+[[result_contract]]
+id = "declaration_rejected_threefold"
+owner_ids = ["chess.declaration_event"]
+result_variant_id = "declaration_rejected"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_EVENT_THREEFOLD_UNAVAILABLE"
+span_class = "none"
+
+[[result_contract]]
+id = "declaration_rejected_fifty"
+owner_ids = ["chess.declaration_event"]
+result_variant_id = "declaration_rejected"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_EVENT_50_MOVE_UNAVAILABLE"
+span_class = "none"
+
+[[result_contract]]
+id = "declaration_rejected_game_closed"
+owner_ids = ["chess.declaration_event"]
+result_variant_id = "declaration_rejected"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CHESS_GAME_CLOSED"
+span_class = "none"
+
+[[result_contract]]
+id = "source_terminal_none"
+owner_ids = ["chess.source_score_relation"]
+result_variant_id = "source_accepted_terminal_none"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "move_decoded_exact"
+owner_ids = ["chess.move_record_replay"]
+result_variant_id = "move_decoded"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "record_replayed_exact"
+owner_ids = ["chess.move_record_replay"]
+result_variant_id = "record_replayed"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "content_accepted_exact"
+owner_ids = ["content.stream_validation"]
+result_variant_id = "content_accepted"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "content_bad_kind_exact_field"
+owner_ids = ["content.stream_validation"]
+result_variant_id = "content_rejected"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CONTENT_BAD_RECORD_KIND"
+span_class = "exact_field"
+
+[[result_contract]]
+id = "content_truncated_eof"
+owner_ids = ["content.stream_validation"]
+result_variant_id = "content_rejected"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = "CONTENT_TRUNCATED"
+span_class = "eof"
+
+[[result_contract]]
+id = "finite_race_exact"
+owner_ids = ["chess.finite_promotion_race"]
+result_variant_id = "finite_race_result"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[result_contract]]
+id = "finite_mating_exact"
+owner_ids = ["chess.finite_mating_geometry"]
+result_variant_id = "finite_mating_result"
+payload_policy = "complete_exact_typed_value"
+constraint_id = "exact"
+reject_code_id = ""
+span_class = "none"
+
+[[case_pattern]]
+id = "setup_turn.board_8x8"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "initial"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "setup"
+owner_id = "chess.setup_turn"
+input_binding_id = "setup_initial_position"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "setup_turn.initial_piece_placement"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "initial"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "setup"
+owner_id = "chess.setup_turn"
+input_binding_id = "setup_initial_position"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "setup_turn.initial_side_to_move"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "initial"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "turn"
+owner_id = "chess.setup_turn"
+input_binding_id = "initial_replay_and_side"
+input_constants = [{ argument_position = 1, type_id = "Side", constructor_id = "side", value_ids = ["first"] }]
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "setup_turn.alternating_turn"
+authority_kind = "complete_replay_moves"
+relation = [{ kind = "replay_relation", case_ids = ["before", "after"], result_id = "one_legal_ply_extension", facts = [{ id = "ply_delta", type_id = "i8", value_id = "1" }] }]
+
+[[case_pattern.case]]
+id = "before"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "turn"
+owner_id = "chess.setup_turn"
+input_binding_id = "replay_and_current_side"
+input_constants = [{ argument_position = 1, type_id = "Side", constructor_id = "side", value_ids = ["first"] }]
+result_contract_id = "bool_true"
+
+[[case_pattern.case]]
+id = "after"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "turn"
+owner_id = "chess.setup_turn"
+input_binding_id = "replay_and_current_side"
+input_constants = [{ argument_position = 1, type_id = "Side", constructor_id = "side", value_ids = ["second"] }]
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "ordinary_move_capture.king_identity_and_move"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "legal"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "piece"
+owner_id = "chess.occupancy"
+input_binding_id = "replay_move_origin_occupancy"
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "king"] }]
+result_contract_id = "bool_true"
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "ordinary_move_capture.queen_identity_and_move"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "legal"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "piece"
+owner_id = "chess.occupancy"
+input_binding_id = "replay_move_origin_occupancy"
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "queen"] }]
+result_contract_id = "bool_true"
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "ordinary_move_capture.rook_identity_and_move"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "legal"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "piece"
+owner_id = "chess.occupancy"
+input_binding_id = "replay_move_origin_occupancy"
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "rook"] }]
+result_contract_id = "bool_true"
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "ordinary_move_capture.bishop_identity_and_move"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "legal"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "piece"
+owner_id = "chess.occupancy"
+input_binding_id = "replay_move_origin_occupancy"
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "bishop"] }]
+result_contract_id = "bool_true"
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "ordinary_move_capture.knight_identity_and_move"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "legal"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "piece"
+owner_id = "chess.occupancy"
+input_binding_id = "replay_move_origin_occupancy"
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "knight"] }]
+result_contract_id = "bool_true"
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "ordinary_move_capture.pawn_identity"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "legal"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "piece"
+owner_id = "chess.occupancy"
+input_binding_id = "replay_move_origin_occupancy"
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "pawn"] }]
+result_contract_id = "bool_true"
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "ordinary_move_capture.slider_blocking"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "blocked"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_blocked"
+
+[[case_pattern]]
+id = "ordinary_move_capture.knight_jump"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "jump"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "piece"
+owner_id = "chess.occupancy"
+input_binding_id = "replay_move_origin_occupancy"
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["moving_side", "knight"] }]
+result_contract_id = "bool_true"
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "ordinary_move_capture.pawn_forward_vs_capture"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "quiet"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "pawn_quiet", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "quiet" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern.case]]
+id = "capture"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "pawn_capture", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "ordinary_move_capture.pawn_initial_double"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "double"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "pawn_initial_double", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "initial_double" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "ordinary_move_capture.friendly_occupancy_rejection"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "friendly"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_friendly_destination"
+
+[[case_pattern]]
+id = "control_vs_legal.pawn_control"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "pawn"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "controllers"
+owner_id = "chess.control"
+input_binding_id = "board_control_with_bound_origin"
+input_constants = []
+result_contract_id = "square_list_contains_bound_origin"
+
+[[case_pattern.case.call]]
+id = "controller_piece"
+owner_id = "chess.occupancy"
+input_binding_id = "board_bound_origin_occupancy"
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["bound_controller_side", "pawn"] }]
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "control_vs_legal.defended_friendly_target"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "defended"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "defended"
+owner_id = "chess.defended"
+input_binding_id = "board_defended"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "control_vs_legal.pinned_piece_controls"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "pinned"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "pin"
+owner_id = "chess.absolute_pin"
+input_binding_id = "board_pin_with_origin"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern.case.call]]
+id = "controllers"
+owner_id = "chess.control"
+input_binding_id = "board_control_with_bound_origin"
+input_constants = []
+result_contract_id = "square_list_contains_bound_origin"
+
+[[case_pattern]]
+id = "control_vs_legal.king_adjacency"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "adjacent"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "controllers"
+owner_id = "chess.control"
+input_binding_id = "board_control_with_bound_origin"
+input_constants = []
+result_contract_id = "square_list_contains_bound_origin"
+
+[[case_pattern.case.call]]
+id = "controller_piece"
+owner_id = "chess.occupancy"
+input_binding_id = "board_bound_origin_occupancy"
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["bound_controller_side", "king"] }]
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "control_vs_legal.control_vs_move"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "controlled_but_illegal"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "controllers"
+owner_id = "chess.control"
+input_binding_id = "replay_move_destination_control_with_origin"
+input_constants = []
+result_contract_id = "square_list_contains_bound_origin"
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_en_passant_target"
+
+[[case_pattern]]
+id = "king_safety.check"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "checked"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "check"
+owner_id = "chess.king_check"
+input_binding_id = "board_king_check"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "king_safety.check_evasion"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "evasion"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "before"
+owner_id = "chess.king_check"
+input_binding_id = "pre_move_moving_side_king_check"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern.case.call]]
+id = "after"
+owner_id = "chess.king_check"
+input_binding_id = "post_move_moving_side_king_check"
+input_constants = []
+result_contract_id = "bool_false"
+
+[[case_pattern]]
+id = "king_safety.self_check"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "self_check"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_self_check"
+
+[[case_pattern]]
+id = "king_safety.king_capture_safety"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "safe_capture"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "king_capture", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "king" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern.case]]
+id = "unsafe_capture"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "king_capture", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "king" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_self_check"
+
+[[case_pattern]]
+id = "king_safety.double_check"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "double"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "check"
+owner_id = "chess.king_check"
+input_binding_id = "board_king_check"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern.case.call]]
+id = "controllers"
+owner_id = "chess.control"
+input_binding_id = "board_checked_king_control"
+input_constants = []
+result_contract_id = "square_list_min_two"
+
+[[case_pattern]]
+id = "mate_stalemate.checkmate_vs_check"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "check_only"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "terminal"
+owner_id = "chess.terminal_transition"
+input_binding_id = "replay_terminal_transition"
+input_constants = []
+result_contract_id = "terminal_none"
+
+[[case_pattern.case.call]]
+id = "check"
+owner_id = "chess.king_check"
+input_binding_id = "post_move_next_side_king_check"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern.case]]
+id = "checkmate"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "terminal"
+owner_id = "chess.terminal_transition"
+input_binding_id = "replay_terminal_transition"
+input_constants = []
+result_contract_id = "terminal_checkmate"
+
+[[case_pattern.case.call]]
+id = "check"
+owner_id = "chess.king_check"
+input_binding_id = "post_move_next_side_king_check"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "mate_stalemate.stalemate"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "stalemate"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "terminal"
+owner_id = "chess.terminal_transition"
+input_binding_id = "replay_terminal_transition"
+input_constants = []
+result_contract_id = "terminal_stalemate"
+
+[[case_pattern]]
+id = "mate_stalemate.legal_reply_exhaustiveness"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "reply_exists"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "terminal"
+owner_id = "chess.terminal_transition"
+input_binding_id = "replay_terminal_transition"
+input_constants = []
+result_contract_id = "terminal_none"
+
+[[case_pattern.case.call]]
+id = "check"
+owner_id = "chess.king_check"
+input_binding_id = "post_move_next_side_king_check"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern.case]]
+id = "no_reply"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "terminal"
+owner_id = "chess.terminal_transition"
+input_binding_id = "replay_terminal_transition"
+input_constants = []
+result_contract_id = "terminal_checkmate"
+
+[[case_pattern.case.call]]
+id = "check"
+owner_id = "chess.king_check"
+input_binding_id = "post_move_next_side_king_check"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "castling.rights"
+authority_kind = "complete_replay_moves"
+relation = [{ kind = "replay_relation", case_ids = ["right_present", "right_absent"], result_id = "same_shown_move", facts = [{ id = "shown_move_equal", type_id = "bool", value_id = "true" }] }, { kind = "replay_relation", case_ids = ["right_present", "right_absent"], result_id = "same_position_except_relevant_castling_right", facts = [{ id = "position_difference", type_id = "FieldSet", value_id = "relevant_castling_right_only" }] }]
+
+[[case_pattern.case]]
+id = "right_present"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern.case]]
+id = "right_absent"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_castling_right"
+
+[[case_pattern]]
+id = "castling.entitled_king_and_rook"
+authority_kind = "complete_replay_moves"
+relation = [{ kind = "replay_relation", case_ids = ["entitled", "replacement"], result_id = "same_shown_move", facts = [{ id = "shown_move_equal", type_id = "bool", value_id = "true" }] }, { kind = "replay_relation", case_ids = ["entitled", "replacement"], result_id = "replacement_piece_does_not_restore_right", facts = [{ id = "castling_entitlement_restored", type_id = "bool", value_id = "false" }] }]
+
+[[case_pattern.case]]
+id = "entitled"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern.case]]
+id = "replacement"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_castling_right"
+
+[[case_pattern]]
+id = "castling.path_clear"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "blocked_path"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_castling_path"
+
+[[case_pattern]]
+id = "castling.from_check"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "from_check"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_castling_from_check"
+
+[[case_pattern]]
+id = "castling.through_check"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "through_check"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_castling_through_check"
+
+[[case_pattern]]
+id = "castling.into_check"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "into_check"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_castling_into_check"
+
+[[case_pattern]]
+id = "castling.lost_rights"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "lost_right"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_castling_right"
+
+[[case_pattern]]
+id = "castling.rook_relocation"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "castle"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality", "record"], result_id = "castling", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "king" }, { id = "move_kind", type_id = "MoveKind", value_id = "castling" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern.case.call]]
+id = "record"
+owner_id = "chess.move_record_replay"
+input_binding_id = "replay_record_and_last_move"
+input_constants = []
+result_contract_id = "record_replayed_exact"
+
+[[case_pattern]]
+id = "en_passant.immediate_window"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "immediate"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "en_passant", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "en_passant" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "en_passant.expiry"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "expired"
+obligation = [{ kind = "en_passant_context", call_ids = ["legality"], result_id = "expired_after_intervening_move", facts = [{ id = "intervening_legal_plies_min", type_id = "u16", value_id = "1" }, { id = "nominal_target", type_id = "EnPassantFact", value_id = "none" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_en_passant_target"
+
+[[case_pattern]]
+id = "en_passant.captured_pawn_removal"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "capture"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality", "record"], result_id = "en_passant", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "en_passant" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern.case.call]]
+id = "record"
+owner_id = "chess.move_record_replay"
+input_binding_id = "replay_record_and_last_move"
+input_constants = []
+result_contract_id = "record_replayed_exact"
+
+[[case_pattern]]
+id = "en_passant.self_check"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "self_check"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "en_passant", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "en_passant" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "none" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_self_check"
+
+[[case_pattern]]
+id = "en_passant.nominal_vs_effective"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "ineffective"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "replay_history"
+input_constants = []
+result_contract_id = "history_nominal_ineffective"
+
+[[case_pattern.case]]
+id = "effective"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "replay_history"
+input_constants = []
+result_contract_id = "history_nominal_effective"
+
+[[case_pattern]]
+id = "promotion.quiet_promotion"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "quiet"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "promotion_quiet", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion_quiet" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "promotion.capture_promotion"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "capture"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "promotion_capture", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion_capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "promotion.promote_queen"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "queen"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "promote_queen", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "queen" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "promotion.promote_rook"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "rook"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "promote_rook", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "rook" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "promotion.promote_bishop"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "bishop"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "promote_bishop", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "bishop" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "promotion.promote_knight"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "knight"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality"], result_id = "promote_knight", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "knight" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern]]
+id = "promotion.check_after_promotion"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "check"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["legality", "record"], result_id = "promotion_any", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }] }]
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_legal"
+
+[[case_pattern.case.call]]
+id = "record"
+owner_id = "chess.move_record_replay"
+input_binding_id = "replay_record_and_last_move"
+input_constants = []
+result_contract_id = "record_replayed_exact"
+
+[[case_pattern.case.call]]
+id = "check"
+owner_id = "chess.king_check"
+input_binding_id = "post_move_next_side_king_check"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "promotion.mate_after_promotion"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "mate"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["terminal"], result_id = "promotion_any", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "promotion" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }] }]
+
+[[case_pattern.case.call]]
+id = "terminal"
+owner_id = "chess.terminal_transition"
+input_binding_id = "replay_terminal_transition"
+input_constants = []
+result_contract_id = "terminal_checkmate"
+
+[[case_pattern]]
+id = "promotion.invalid_context"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "missing"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_promotion_missing"
+
+[[case_pattern.case]]
+id = "unneeded"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "legality"
+owner_id = "chess.move_legality"
+input_binding_id = "replay_move_legality"
+input_constants = []
+result_contract_id = "move_illegal_promotion_unneeded"
+
+[[case_pattern]]
+id = "position_history_draw.same_board_different_history"
+authority_kind = "complete_replay_moves"
+relation = [{ kind = "replay_relation", case_ids = ["history_a", "history_b"], result_id = "same_final_position", facts = [{ id = "final_position_equal", type_id = "bool", value_id = "true" }] }, { kind = "replay_relation", case_ids = ["history_a", "history_b"], result_id = "different_replay_history", facts = [{ id = "history_equal", type_id = "bool", value_id = "false" }] }]
+
+[[case_pattern.case]]
+id = "history_a"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "replay_history"
+input_constants = []
+result_contract_id = "history_exact"
+
+[[case_pattern.case]]
+id = "history_b"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "replay_history"
+input_constants = []
+result_contract_id = "history_exact"
+
+[[case_pattern]]
+id = "position_history_draw.repetition_key"
+authority_kind = "complete_replay_moves"
+relation = [{ kind = "replay_relation", case_ids = ["nominal_absent", "nominal_ineffective", "nominal_effective"], result_id = "ineffective_ep_keys_equal_effective_ep_differs", facts = [{ id = "ineffective_ep_key_equal", type_id = "bool", value_id = "true" }, { id = "effective_ep_key_equal", type_id = "bool", value_id = "false" }] }]
+
+[[case_pattern.case]]
+id = "nominal_absent"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "replay_history"
+input_constants = []
+result_contract_id = "history_nominal_absent"
+
+[[case_pattern.case]]
+id = "nominal_ineffective"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "replay_history"
+input_constants = []
+result_contract_id = "history_nominal_ineffective"
+
+[[case_pattern.case]]
+id = "nominal_effective"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "replay_history"
+input_constants = []
+result_contract_id = "history_nominal_effective"
+
+[[case_pattern]]
+id = "position_history_draw.repetition_occurrence"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "two"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "replay_history"
+input_constants = []
+result_contract_id = "history_occurrence_two"
+
+[[case_pattern.case]]
+id = "three"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "replay_history"
+input_constants = []
+result_contract_id = "history_occurrence_three"
+
+[[case_pattern]]
+id = "position_history_draw.halfmove_99_100"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "ninety_nine"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "replay_history"
+input_constants = []
+result_contract_id = "history_halfmove_99"
+
+[[case_pattern.case]]
+id = "one_hundred"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "replay_history"
+input_constants = []
+result_contract_id = "history_halfmove_100"
+
+[[case_pattern]]
+id = "position_history_draw.halfmove_pawn_reset"
+authority_kind = "complete_replay_moves"
+relation = [{ kind = "replay_relation", case_ids = ["before", "after"], result_id = "one_legal_ply_extension", facts = [{ id = "ply_delta", type_id = "i8", value_id = "1" }] }]
+
+[[case_pattern.case]]
+id = "before"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "replay_history"
+input_constants = []
+result_contract_id = "history_halfmove_nonzero"
+
+[[case_pattern.case]]
+id = "after"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["history"], result_id = "pawn_move", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "pawn" }, { id = "move_kind", type_id = "MoveKind", value_id = "any" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }] }]
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "post_move_history"
+input_constants = []
+result_contract_id = "history_halfmove_zero"
+
+[[case_pattern]]
+id = "position_history_draw.halfmove_capture_reset"
+authority_kind = "complete_replay_moves"
+relation = [{ kind = "replay_relation", case_ids = ["before", "after"], result_id = "one_legal_ply_extension", facts = [{ id = "ply_delta", type_id = "i8", value_id = "1" }] }]
+
+[[case_pattern.case]]
+id = "before"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "replay_history"
+input_constants = []
+result_contract_id = "history_halfmove_nonzero"
+
+[[case_pattern.case]]
+id = "after"
+obligation = [{ kind = "candidate_move_effect", call_ids = ["history"], result_id = "capture", facts = [{ id = "mover_kind", type_id = "PieceKind", value_id = "any" }, { id = "move_kind", type_id = "MoveKind", value_id = "capture" }, { id = "promotion_kind", type_id = "PromotionKind", value_id = "any" }] }]
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "post_move_history"
+input_constants = []
+result_contract_id = "history_halfmove_zero"
+
+[[case_pattern]]
+id = "position_history_draw.claims_not_automatic"
+authority_kind = "source_game_bytes"
+relation = []
+
+[[case_pattern.case]]
+id = "available_but_nonterminal"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "history"
+owner_id = "chess.history_claim"
+input_binding_id = "source_derived_history"
+input_constants = []
+result_contract_id = "history_claim_available"
+
+[[case_pattern.case.call]]
+id = "source"
+owner_id = "chess.source_score_relation"
+input_binding_id = "source_move_slice_and_decoded_score"
+input_constants = []
+result_contract_id = "source_terminal_none"
+
+[[case_pattern]]
+id = "termination_score.checkmate"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "checkmate"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "terminal"
+owner_id = "chess.terminal_transition"
+input_binding_id = "replay_terminal_transition"
+input_constants = []
+result_contract_id = "terminal_checkmate"
+
+[[case_pattern]]
+id = "termination_score.stalemate"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "stalemate"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "terminal"
+owner_id = "chess.terminal_transition"
+input_binding_id = "replay_terminal_transition"
+input_constants = []
+result_contract_id = "terminal_stalemate"
+
+[[case_pattern]]
+id = "termination_score.common_dead_scope"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "recognized"
+obligation = [{ kind = "material_class", call_ids = ["terminal"], result_id = "recognized_common_dead", facts = [{ id = "selected_common_dead_class", type_id = "bool", value_id = "true" }, { id = "common_dead", type_id = "bool", value_id = "true" }] }]
+
+[[case_pattern.case.call]]
+id = "terminal"
+owner_id = "chess.terminal_transition"
+input_binding_id = "replay_terminal_transition"
+input_constants = []
+result_contract_id = "terminal_common_dead"
+
+[[case_pattern.case]]
+id = "two_knights"
+obligation = [{ kind = "material_class", call_ids = ["terminal"], result_id = "king_two_knights_vs_king", facts = [{ id = "material_signature", type_id = "MaterialSignature", value_id = "king_two_knights_vs_king" }, { id = "common_dead", type_id = "bool", value_id = "false" }] }]
+
+[[case_pattern.case.call]]
+id = "terminal"
+owner_id = "chess.terminal_transition"
+input_binding_id = "replay_terminal_transition"
+input_constants = []
+result_contract_id = "terminal_none"
+
+[[case_pattern]]
+id = "termination_score.resignation"
+authority_kind = "complete_game_events_status"
+relation = []
+
+[[case_pattern.case]]
+id = "resign"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "event"
+owner_id = "chess.declaration_event"
+input_binding_id = "game_state_and_event"
+input_constants = []
+result_contract_id = "declaration_resigned"
+
+[[case_pattern]]
+id = "termination_score.agreement"
+authority_kind = "complete_game_events_status"
+relation = []
+
+[[case_pattern.case]]
+id = "too_early"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "event"
+owner_id = "chess.declaration_event"
+input_binding_id = "game_state_and_event"
+input_constants = []
+result_contract_id = "declaration_rejected_agreement_early"
+
+[[case_pattern.case]]
+id = "accepted"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "event"
+owner_id = "chess.declaration_event"
+input_binding_id = "game_state_and_event"
+input_constants = []
+result_contract_id = "declaration_agreed"
+
+[[case_pattern]]
+id = "termination_score.threefold_claim"
+authority_kind = "complete_game_events_status"
+relation = []
+
+[[case_pattern.case]]
+id = "unavailable"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "event"
+owner_id = "chess.declaration_event"
+input_binding_id = "game_state_and_event"
+input_constants = []
+result_contract_id = "declaration_rejected_threefold"
+
+[[case_pattern.case]]
+id = "accepted"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "event"
+owner_id = "chess.declaration_event"
+input_binding_id = "game_state_and_event"
+input_constants = []
+result_contract_id = "declaration_threefold"
+
+[[case_pattern]]
+id = "termination_score.fifty_move_claim"
+authority_kind = "complete_game_events_status"
+relation = []
+
+[[case_pattern.case]]
+id = "unavailable"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "event"
+owner_id = "chess.declaration_event"
+input_binding_id = "game_state_and_event"
+input_constants = []
+result_contract_id = "declaration_rejected_fifty"
+
+[[case_pattern.case]]
+id = "accepted"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "event"
+owner_id = "chess.declaration_event"
+input_binding_id = "game_state_and_event"
+input_constants = []
+result_contract_id = "declaration_fifty"
+
+[[case_pattern]]
+id = "termination_score.post_terminal_rejection"
+authority_kind = "complete_game_events_status"
+relation = []
+
+[[case_pattern.case]]
+id = "closed"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "event"
+owner_id = "chess.declaration_event"
+input_binding_id = "game_state_and_event"
+input_constants = []
+result_contract_id = "declaration_rejected_game_closed"
+
+[[case_pattern]]
+id = "termination_score.score_vs_cause"
+authority_kind = "source_game_bytes"
+relation = []
+
+[[case_pattern.case]]
+id = "nonterminal_decisive_score"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "source"
+owner_id = "chess.source_score_relation"
+input_binding_id = "source_move_slice_and_score"
+input_constants = [{ argument_position = 1, type_id = "Score", constructor_id = "score", value_ids = ["first_win"] }]
+result_contract_id = "source_terminal_none"
+
+[[case_pattern]]
+id = "record_replay.canonical_move_decode"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "canonical"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "decode"
+owner_id = "chess.move_record_replay"
+input_binding_id = "canonical_shown_move_bytes"
+input_constants = []
+result_contract_id = "move_decoded_exact"
+
+[[case_pattern]]
+id = "record_replay.short_replay"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "short"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "record"
+owner_id = "chess.move_record_replay"
+input_binding_id = "replay_record_and_last_move"
+input_constants = []
+result_contract_id = "record_replayed_exact"
+
+[[case_pattern]]
+id = "record_replay.score_atom"
+authority_kind = "source_game_bytes"
+relation = []
+
+[[case_pattern.case]]
+id = "first_win"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "source"
+owner_id = "chess.source_score_relation"
+input_binding_id = "source_move_slice_and_score"
+input_constants = [{ argument_position = 1, type_id = "Score", constructor_id = "score", value_ids = ["first_win"] }]
+result_contract_id = "source_terminal_none"
+
+[[case_pattern.case]]
+id = "second_win"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "source"
+owner_id = "chess.source_score_relation"
+input_binding_id = "source_move_slice_and_score"
+input_constants = [{ argument_position = 1, type_id = "Score", constructor_id = "score", value_ids = ["second_win"] }]
+result_contract_id = "source_terminal_none"
+
+[[case_pattern.case]]
+id = "draw"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "source"
+owner_id = "chess.source_score_relation"
+input_binding_id = "source_move_slice_and_score"
+input_constants = [{ argument_position = 1, type_id = "Score", constructor_id = "score", value_ids = ["draw"] }]
+result_contract_id = "source_terminal_none"
+
+[[case_pattern]]
+id = "record_replay.logical_record_valid"
+authority_kind = "content_bytes"
+relation = []
+
+[[case_pattern.case]]
+id = "valid"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "content"
+owner_id = "content.stream_validation"
+input_binding_id = "raw_content_bytes"
+input_constants = []
+result_contract_id = "content_accepted_exact"
+
+[[case_pattern]]
+id = "record_replay.logical_record_malformed"
+authority_kind = "content_bytes"
+relation = []
+
+[[case_pattern.case]]
+id = "malformed"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "content"
+owner_id = "content.stream_validation"
+input_binding_id = "raw_content_bytes"
+input_constants = []
+result_contract_id = "content_bad_kind_exact_field"
+
+[[case_pattern]]
+id = "record_replay.logical_record_truncated"
+authority_kind = "content_bytes"
+relation = []
+
+[[case_pattern.case]]
+id = "truncated"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "content"
+owner_id = "content.stream_validation"
+input_binding_id = "raw_content_bytes"
+input_constants = []
+result_contract_id = "content_truncated_eof"
+
+[[case_pattern]]
+id = "attacked_defended.attacked"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "attacked"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "controllers"
+owner_id = "chess.control"
+input_binding_id = "board_control"
+input_constants = []
+result_contract_id = "square_list_nonempty"
+
+[[case_pattern]]
+id = "attacked_defended.defended"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "defended"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "defended"
+owner_id = "chess.defended"
+input_binding_id = "board_defended"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "absolute_pin.absolute_pin_to_king"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "pinned"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "pin"
+owner_id = "chess.absolute_pin"
+input_binding_id = "board_pin_with_origin"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "fork_double_attack.two_named_targets_after_move"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "fork"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "fork"
+owner_id = "chess.fork_double_attack"
+input_binding_id = "replay_fork_targets"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "discovered_attack_check.discovered_attack"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "attack"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "line"
+owner_id = "chess.discovered_attack_check"
+input_binding_id = "replay_discovered_line"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern.case.call]]
+id = "target"
+owner_id = "chess.occupancy"
+input_binding_id = "post_move_discovered_target_occupancy"
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "occupied", value_ids = [] }]
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "discovered_attack_check.discovered_check"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "check"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "line"
+owner_id = "chess.discovered_attack_check"
+input_binding_id = "replay_discovered_line"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern.case.call]]
+id = "target"
+owner_id = "chess.occupancy"
+input_binding_id = "post_move_discovered_target_occupancy"
+input_constants = [{ argument_position = 2, type_id = "OccupancyMatch", constructor_id = "exact_piece", value_ids = ["opposing_side", "king"] }]
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "escape_square_control.controlled"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "controlled"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "control"
+owner_id = "chess.escape_square_control"
+input_binding_id = "board_escape_control"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "escape_square_control.uncontrolled"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "uncontrolled"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "control"
+owner_id = "chess.escape_square_control"
+input_binding_id = "board_escape_control"
+input_constants = []
+result_contract_id = "bool_false"
+
+[[case_pattern]]
+id = "passed_pawn.passed"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "passed"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "passed"
+owner_id = "chess.passed_pawn"
+input_binding_id = "board_passed_pawn"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "passed_pawn.opposing_pawn_same_or_adjacent_ahead"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "blocked"
+obligation = [{ kind = "opposing_pawn_ahead", call_ids = ["passed"], result_id = "strictly_ahead_same_or_adjacent_file", facts = [{ id = "opposing_pawn_exists", type_id = "bool", value_id = "true" }, { id = "relative_rank_relation", type_id = "RankRelation", value_id = "strictly_ahead" }, { id = "absolute_file_delta_max", type_id = "u8", value_id = "1" }] }]
+
+[[case_pattern.case.call]]
+id = "passed"
+owner_id = "chess.passed_pawn"
+input_binding_id = "board_passed_pawn"
+input_constants = []
+result_contract_id = "bool_false"
+
+[[case_pattern]]
+id = "open_semi_open_file.open"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "open"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "open"
+owner_id = "chess.open_file"
+input_binding_id = "board_open_file"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "open_semi_open_file.semi_open"
+authority_kind = "board_local_position"
+relation = []
+
+[[case_pattern.case]]
+id = "semi_open"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "semi_open"
+owner_id = "chess.semi_open_file"
+input_binding_id = "board_semi_open_file"
+input_constants = []
+result_contract_id = "bool_true"
+
+[[case_pattern]]
+id = "finite_promotion_race.complete_legal_line_or_tree"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "complete"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "race"
+owner_id = "chess.finite_promotion_race"
+input_binding_id = "finite_promotion_tree_rooted_at_authority"
+input_constants = []
+result_contract_id = "finite_race_exact"
+
+[[case_pattern]]
+id = "queen_or_rook_mating_geometry.queen_geometry"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "queen"
+obligation = [{ kind = "finite_mating_root_major_piece", call_ids = ["mating"], result_id = "queen", facts = [{ id = "major_piece_kind", type_id = "PieceKind", value_id = "queen" }, { id = "major_piece_count", type_id = "u8", value_id = "1" }, { id = "other_nonking_count", type_id = "u8", value_id = "0" }, { id = "major_piece_side_is_mating_side", type_id = "bool", value_id = "true" }] }]
+
+[[case_pattern.case.call]]
+id = "mating"
+owner_id = "chess.finite_mating_geometry"
+input_binding_id = "finite_mating_tree_rooted_at_authority"
+input_constants = []
+result_contract_id = "finite_mating_exact"
+
+[[case_pattern]]
+id = "queen_or_rook_mating_geometry.rook_geometry"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "rook"
+obligation = [{ kind = "finite_mating_root_major_piece", call_ids = ["mating"], result_id = "rook", facts = [{ id = "major_piece_kind", type_id = "PieceKind", value_id = "rook" }, { id = "major_piece_count", type_id = "u8", value_id = "1" }, { id = "other_nonking_count", type_id = "u8", value_id = "0" }, { id = "major_piece_side_is_mating_side", type_id = "bool", value_id = "true" }] }]
+
+[[case_pattern.case.call]]
+id = "mating"
+owner_id = "chess.finite_mating_geometry"
+input_binding_id = "finite_mating_tree_rooted_at_authority"
+input_constants = []
+result_contract_id = "finite_mating_exact"
+
+[[case_pattern]]
+id = "queen_or_rook_mating_geometry.all_relevant_replies"
+authority_kind = "complete_replay_moves"
+relation = []
+
+[[case_pattern.case]]
+id = "all_replies"
+obligation = []
+
+[[case_pattern.case.call]]
+id = "mating"
+owner_id = "chess.finite_mating_geometry"
+input_binding_id = "finite_mating_tree_rooted_at_authority"
+input_constants = []
+result_contract_id = "finite_mating_exact"

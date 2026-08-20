@@ -1,0 +1,931 @@
+schema = "golden-board.constants/v0"
+
+[[codes]]
+name = "side"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 2, last = 255 },
+]
+values = [
+  { name = "SIDE_FIRST", value = 0 },
+  { name = "SIDE_SECOND", value = 1 },
+]
+
+[[codes]]
+name = "square_code"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 13, last = 255 },
+]
+values = [
+  { name = "SQUARE_EMPTY", value = 0 },
+  { name = "SQUARE_FIRST_PAWN", value = 1 },
+  { name = "SQUARE_FIRST_KNIGHT", value = 2 },
+  { name = "SQUARE_FIRST_BISHOP", value = 3 },
+  { name = "SQUARE_FIRST_ROOK", value = 4 },
+  { name = "SQUARE_FIRST_QUEEN", value = 5 },
+  { name = "SQUARE_FIRST_KING", value = 6 },
+  { name = "SQUARE_SECOND_PAWN", value = 7 },
+  { name = "SQUARE_SECOND_KNIGHT", value = 8 },
+  { name = "SQUARE_SECOND_BISHOP", value = 9 },
+  { name = "SQUARE_SECOND_ROOK", value = 10 },
+  { name = "SQUARE_SECOND_QUEEN", value = 11 },
+  { name = "SQUARE_SECOND_KING", value = 12 },
+]
+
+[[codes]]
+name = "promotion"
+type = "u8"
+minimum = 0
+maximum = 7
+reserved = [
+  { first = 5, last = 7 },
+]
+values = [
+  { name = "PROMOTION_NONE", value = 0 },
+  { name = "PROMOTION_QUEEN", value = 1 },
+  { name = "PROMOTION_ROOK", value = 2 },
+  { name = "PROMOTION_BISHOP", value = 3 },
+  { name = "PROMOTION_KNIGHT", value = 4 },
+]
+
+[[codes]]
+name = "event"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 0, last = 0 },
+  { first = 6, last = 255 },
+]
+values = [
+  { name = "EVENT_MOVE", value = 1 },
+  { name = "EVENT_RESIGNATION", value = 2 },
+  { name = "EVENT_DRAW_AGREEMENT", value = 3 },
+  { name = "EVENT_CLAIM_THREEFOLD", value = 4 },
+  { name = "EVENT_CLAIM_50_MOVE", value = 5 },
+]
+
+[[codes]]
+name = "score"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 3, last = 255 },
+]
+values = [
+  { name = "SCORE_FIRST_WIN", value = 0 },
+  { name = "SCORE_SECOND_WIN", value = 1 },
+  { name = "SCORE_DRAW", value = 2 },
+]
+
+[[codes]]
+name = "board_terminal"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 4, last = 255 },
+]
+values = [
+  { name = "BOARD_TERMINAL_NONE", value = 0 },
+  { name = "BOARD_TERMINAL_CHECKMATE", value = 1 },
+  { name = "BOARD_TERMINAL_STALEMATE", value = 2 },
+  { name = "BOARD_TERMINAL_COMMON_DEAD", value = 3 },
+]
+
+[[codes]]
+name = "game_status"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 0, last = 0 },
+  { first = 9, last = 255 },
+]
+values = [
+  { name = "GAME_STATUS_ACTIVE", value = 1 },
+  { name = "GAME_STATUS_CHECKMATE", value = 2 },
+  { name = "GAME_STATUS_STALEMATE", value = 3 },
+  { name = "GAME_STATUS_COMMON_DEAD", value = 4 },
+  { name = "GAME_STATUS_RESIGNED", value = 5 },
+  { name = "GAME_STATUS_AGREED", value = 6 },
+  { name = "GAME_STATUS_CLAIMED_THREEFOLD", value = 7 },
+  { name = "GAME_STATUS_CLAIMED_50_MOVE", value = 8 },
+]
+
+[[codes]]
+name = "source_suffix"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 3, last = 255 },
+]
+values = [
+  { name = "SUFFIX_NONE", value = 0 },
+  { name = "SUFFIX_CHECK", value = 1 },
+  { name = "SUFFIX_MATE", value = 2 },
+]
+
+[[codes]]
+name = "predicate"
+type = "u16"
+minimum = 0
+maximum = 65535
+reserved = [
+  { first = 0, last = 0 },
+  { first = 21, last = 65535 },
+]
+values = [
+  { name = "PREDICATE_SETUP_TURN", value = 1 },
+  { name = "PREDICATE_OCCUPANCY", value = 2 },
+  { name = "PREDICATE_MOVE_LEGALITY", value = 3 },
+  { name = "PREDICATE_CONTROL", value = 4 },
+  { name = "PREDICATE_DEFENDED", value = 5 },
+  { name = "PREDICATE_KING_CHECK", value = 6 },
+  { name = "PREDICATE_ABSOLUTE_PIN", value = 7 },
+  { name = "PREDICATE_FORK_DOUBLE_ATTACK", value = 8 },
+  { name = "PREDICATE_DISCOVERED_ATTACK_CHECK", value = 9 },
+  { name = "PREDICATE_ESCAPE_SQUARE_CONTROL", value = 10 },
+  { name = "PREDICATE_PASSED_PAWN", value = 11 },
+  { name = "PREDICATE_OPEN_FILE", value = 12 },
+  { name = "PREDICATE_SEMI_OPEN_FILE", value = 13 },
+  { name = "PREDICATE_FINITE_PROMOTION_RACE", value = 14 },
+  { name = "PREDICATE_FINITE_MATING_GEOMETRY", value = 15 },
+  { name = "PREDICATE_TERMINAL_TRANSITION", value = 16 },
+  { name = "PREDICATE_HISTORY_CLAIM", value = 17 },
+  { name = "PREDICATE_DECLARATION_EVENT", value = 18 },
+  { name = "PREDICATE_SOURCE_SCORE_RELATION", value = 19 },
+  { name = "PREDICATE_MOVE_RECORD_REPLAY", value = 20 },
+]
+
+[[codes]]
+name = "chess_reject"
+type = "u16"
+minimum = 0
+maximum = 65535
+reserved = [
+  { first = 63, last = 65535 },
+]
+values = [
+  { name = "CHESS_OK", value = 0 },
+  { name = "CHESS_POSITION_LENGTH", value = 1 },
+  { name = "CHESS_POSITION_SQUARE_CODE", value = 2 },
+  { name = "CHESS_POSITION_SIDE_CODE", value = 3 },
+  { name = "CHESS_POSITION_CASTLING_RESERVED", value = 4 },
+  { name = "CHESS_POSITION_EN_PASSANT_CODE", value = 5 },
+  { name = "CHESS_MOVE_LENGTH", value = 6 },
+  { name = "CHESS_MOVE_RESERVED", value = 7 },
+  { name = "CHESS_MOVE_PROMOTION_CODE", value = 8 },
+  { name = "CHESS_MOVE_SAME_SQUARE", value = 9 },
+  { name = "CHESS_EVENT_LENGTH", value = 10 },
+  { name = "CHESS_EVENT_CODE", value = 11 },
+  { name = "CHESS_EVENT_SIDE_CODE", value = 12 },
+  { name = "CHESS_EVENT_TRAILING", value = 13 },
+  { name = "CHESS_PREDICATE_UNKNOWN", value = 14 },
+  { name = "CHESS_PREDICATE_SIGNATURE", value = 15 },
+  { name = "CHESS_LOCAL_FIRST_KING_COUNT", value = 16 },
+  { name = "CHESS_LOCAL_SECOND_KING_COUNT", value = 17 },
+  { name = "CHESS_LOCAL_FIRST_PAWN_COUNT", value = 18 },
+  { name = "CHESS_LOCAL_SECOND_PAWN_COUNT", value = 19 },
+  { name = "CHESS_LOCAL_FIRST_PIECE_COUNT", value = 20 },
+  { name = "CHESS_LOCAL_SECOND_PIECE_COUNT", value = 21 },
+  { name = "CHESS_LOCAL_PAWN_ON_LAST_RANK", value = 22 },
+  { name = "CHESS_LOCAL_KINGS_ADJACENT", value = 23 },
+  { name = "CHESS_LOCAL_BOTH_KINGS_CHECKED", value = 24 },
+  { name = "CHESS_LOCAL_INACTIVE_KING_CHECKED", value = 25 },
+  { name = "CHESS_LOCAL_CASTLING_FIRST_KINGSIDE", value = 26 },
+  { name = "CHESS_LOCAL_CASTLING_FIRST_QUEENSIDE", value = 27 },
+  { name = "CHESS_LOCAL_CASTLING_SECOND_KINGSIDE", value = 28 },
+  { name = "CHESS_LOCAL_CASTLING_SECOND_QUEENSIDE", value = 29 },
+  { name = "CHESS_LOCAL_EN_PASSANT_RANK", value = 30 },
+  { name = "CHESS_LOCAL_EN_PASSANT_TARGET_OCCUPIED", value = 31 },
+  { name = "CHESS_LOCAL_EN_PASSANT_PAWN", value = 32 },
+  { name = "CHESS_LOCAL_EN_PASSANT_ORIGIN_OCCUPIED", value = 33 },
+  { name = "CHESS_GAME_CLOSED", value = 34 },
+  { name = "CHESS_RESOURCE_HISTORY_PLIES", value = 35 },
+  { name = "CHESS_RESOURCE_PREDICATE_INPUT", value = 36 },
+  { name = "CHESS_MOVE_EMPTY_ORIGIN", value = 37 },
+  { name = "CHESS_MOVE_WRONG_SIDE", value = 38 },
+  { name = "CHESS_MOVE_FRIENDLY_DESTINATION", value = 39 },
+  { name = "CHESS_MOVE_KING_CAPTURE", value = 40 },
+  { name = "CHESS_MOVE_PROMOTION_MISSING", value = 41 },
+  { name = "CHESS_MOVE_PROMOTION_UNNEEDED", value = 42 },
+  { name = "CHESS_MOVE_CASTLING_RIGHT", value = 43 },
+  { name = "CHESS_MOVE_CASTLING_PATH", value = 44 },
+  { name = "CHESS_MOVE_CASTLING_FROM_CHECK", value = 45 },
+  { name = "CHESS_MOVE_CASTLING_THROUGH_CHECK", value = 46 },
+  { name = "CHESS_MOVE_CASTLING_INTO_CHECK", value = 47 },
+  { name = "CHESS_MOVE_EN_PASSANT_TARGET", value = 48 },
+  { name = "CHESS_MOVE_EN_PASSANT_GEOMETRY", value = 49 },
+  { name = "CHESS_MOVE_GEOMETRY", value = 50 },
+  { name = "CHESS_MOVE_BLOCKED", value = 51 },
+  { name = "CHESS_MOVE_PAWN_ADVANCE", value = 52 },
+  { name = "CHESS_MOVE_PAWN_CAPTURE", value = 53 },
+  { name = "CHESS_MOVE_PAWN_DOUBLE", value = 54 },
+  { name = "CHESS_MOVE_SELF_CHECK", value = 55 },
+  { name = "CHESS_EVENT_AGREEMENT_TOO_EARLY", value = 56 },
+  { name = "CHESS_EVENT_THREEFOLD_UNAVAILABLE", value = 57 },
+  { name = "CHESS_EVENT_50_MOVE_UNAVAILABLE", value = 58 },
+  { name = "CHESS_PREDICATE_TREE", value = 59 },
+  { name = "CHESS_RECORD_EMPTY", value = 60 },
+  { name = "CHESS_RECORD_CHECKMATE_SCORE", value = 61 },
+  { name = "CHESS_RECORD_DRAW_SCORE", value = 62 },
+]
+
+[[codes]]
+name = "source_reject"
+type = "u16"
+minimum = 0
+maximum = 65535
+reserved = [
+  { first = 0, last = 0 },
+  { first = 71, last = 65535 },
+]
+values = [
+  { name = "SOURCE_INPUT_TOO_LARGE", value = 1 },
+  { name = "SOURCE_UTF8_BOM", value = 2 },
+  { name = "SOURCE_UTF8_INVALID", value = 3 },
+  { name = "SOURCE_CONTROL", value = 4 },
+  { name = "SOURCE_NEWLINE_BARE_CR", value = 5 },
+  { name = "SOURCE_NEWLINE_MIXED", value = 6 },
+  { name = "SOURCE_NEWLINE_FINAL_MISSING", value = 7 },
+  { name = "SOURCE_FENCE_SHAPE", value = 8 },
+  { name = "SOURCE_FENCE_ORPHAN_CLOSE", value = 9 },
+  { name = "SOURCE_FENCE_NESTED_OPEN", value = 10 },
+  { name = "SOURCE_FENCE_UNCLOSED", value = 11 },
+  { name = "SOURCE_FENCE_BLOCK_BYTES", value = 12 },
+  { name = "SOURCE_FENCE_COUNT", value = 13 },
+  { name = "SOURCE_TAG_COUNT", value = 14 },
+  { name = "SOURCE_TAG_NAME_LENGTH", value = 15 },
+  { name = "SOURCE_TAG_VALUE_LENGTH", value = 16 },
+  { name = "SOURCE_TAG_SYNTAX", value = 17 },
+  { name = "SOURCE_TAG_ESCAPE", value = 18 },
+  { name = "SOURCE_TAG_DUPLICATE", value = 19 },
+  { name = "SOURCE_TAG_FORBIDDEN", value = 20 },
+  { name = "SOURCE_TAG_RESULT_MISSING", value = 21 },
+  { name = "SOURCE_TAG_RESULT_VALUE", value = 22 },
+  { name = "SOURCE_SEPARATOR_MISSING", value = 23 },
+  { name = "SOURCE_SEPARATOR_EXTRA", value = 24 },
+  { name = "SOURCE_MOVETEXT_MISSING", value = 25 },
+  { name = "SOURCE_MOVETEXT_EMPTY_LINE", value = 26 },
+  { name = "SOURCE_MOVETEXT_TAG_LINE", value = 27 },
+  { name = "SOURCE_MOVETEXT_LEADING_HWS", value = 28 },
+  { name = "SOURCE_MOVETEXT_TRAILING_HWS", value = 29 },
+  { name = "SOURCE_RESOURCE_TOKEN_COUNT", value = 30 },
+  { name = "SOURCE_RESOURCE_RECORD_PLIES", value = 31 },
+  { name = "SOURCE_RESOURCE_TOTAL_PLIES", value = 32 },
+  { name = "SOURCE_MOVE_NUMBER_SHAPE", value = 33 },
+  { name = "SOURCE_MOVE_NUMBER_VALUE", value = 34 },
+  { name = "SOURCE_MOVE_NUMBER_POSITION", value = 35 },
+  { name = "SOURCE_RESULT_TOO_EARLY", value = 36 },
+  { name = "SOURCE_RESULT_TOKEN", value = 37 },
+  { name = "SOURCE_RESULT_MISSING", value = 38 },
+  { name = "SOURCE_RESULT_MISMATCH", value = 39 },
+  { name = "SOURCE_TOKEN_AFTER_RESULT", value = 40 },
+  { name = "SOURCE_GAME_AFTER_TERMINAL", value = 41 },
+  { name = "SOURCE_SAN_SHAPE", value = 42 },
+  { name = "SOURCE_SAN_NO_MATCH", value = 43 },
+  { name = "SOURCE_SAN_AMBIGUOUS", value = 44 },
+  { name = "SOURCE_SAN_NONCANONICAL", value = 45 },
+  { name = "SOURCE_SAN_SUFFIX", value = 46 },
+  { name = "SOURCE_TERMINAL_SCORE", value = 47 },
+  { name = "SOURCE_DUPLICATE_MOVE_STREAM", value = 48 },
+  { name = "SOURCE_GAME_COUNT", value = 49 },
+  { name = "SOURCE_GAME_TRUNCATED", value = 50 },
+  { name = "SOURCE_GAME_MOVE", value = 51 },
+  { name = "SOURCE_GAME_SCORE", value = 52 },
+  { name = "SOURCE_GAME_TRAILING", value = 53 },
+  { name = "SOURCE_GAME_SEMANTIC", value = 54 },
+  { name = "SOURCE_GAME_SET_SIZE", value = 55 },
+  { name = "SOURCE_GAME_SET_COUNT", value = 56 },
+  { name = "SOURCE_GAME_SET_TRUNCATED", value = 57 },
+  { name = "SOURCE_GAME_SET_TOTAL_PLIES", value = 58 },
+  { name = "SOURCE_GAME_SET_ORDER", value = 59 },
+  { name = "SOURCE_GAME_SET_DUPLICATE", value = 60 },
+  { name = "SOURCE_GAME_SET_TRAILING", value = 61 },
+  { name = "SOURCE_ANTHOLOGY_COUNT", value = 62 },
+  { name = "SOURCE_ANTHOLOGY_DUPLICATE_STREAM", value = 63 },
+  { name = "SOURCE_EVIDENCE_SIZE", value = 64 },
+  { name = "SOURCE_EVIDENCE_SHAPE", value = 65 },
+  { name = "SOURCE_EVIDENCE_NONCANONICAL", value = 66 },
+  { name = "SOURCE_EVIDENCE_HASH", value = 67 },
+  { name = "SOURCE_EVIDENCE_CROSS_FIELD", value = 68 },
+  { name = "SOURCE_CANDIDATE_MISMATCH", value = 69 },
+  { name = "SOURCE_EVIDENCE_INSTALL", value = 70 },
+]
+
+[[codes]]
+name = "content_record_kind"
+type = "u16"
+minimum = 0
+maximum = 65535
+reserved = [
+  { first = 0, last = 0 },
+  { first = 15, last = 65535 },
+]
+values = [
+  { name = "CONTENT_KIND_TEXT", value = 1 },
+  { name = "CONTENT_KIND_ATOM_SCHEMA", value = 2 },
+  { name = "CONTENT_KIND_ATOM_VECTOR", value = 3 },
+  { name = "CONTENT_KIND_MATRIX", value = 4 },
+  { name = "CONTENT_KIND_FIELD_SCHEMA", value = 5 },
+  { name = "CONTENT_KIND_TUPLE", value = 6 },
+  { name = "CONTENT_KIND_REGION_SET", value = 7 },
+  { name = "CONTENT_KIND_SEMANTIC_BINDING", value = 8 },
+  { name = "CONTENT_KIND_OPAQUE_DATA", value = 9 },
+  { name = "CONTENT_KIND_PREDICATE_RESULT", value = 10 },
+  { name = "CONTENT_KIND_FEEDBACK", value = 11 },
+  { name = "CONTENT_KIND_PASSIVE_TRACE", value = 12 },
+  { name = "CONTENT_KIND_LESSON_NODE", value = 13 },
+  { name = "CONTENT_KIND_ROOT", value = 14 },
+]
+
+[[codes]]
+name = "content_atom_class"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 0, last = 0 },
+  { first = 4, last = 255 },
+]
+values = [
+  { name = "ATOM_UNSIGNED", value = 1 },
+  { name = "ATOM_ENUM", value = 2 },
+  { name = "ATOM_MASK", value = 3 },
+]
+
+[[codes]]
+name = "content_field_storage"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 0, last = 0 },
+  { first = 3, last = 255 },
+]
+values = [
+  { name = "FIELD_INLINE_ATOM", value = 1 },
+  { name = "FIELD_RECORD_REF", value = 2 },
+]
+
+[[codes]]
+name = "content_binding_class"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 0, last = 0 },
+  { first = 3, last = 255 },
+]
+values = [
+  { name = "BINDING_DATA", value = 1 },
+  { name = "BINDING_PREDICATE", value = 2 },
+]
+
+[[codes]]
+name = "content_feedback"
+type = "u16"
+minimum = 0
+maximum = 65535
+reserved = [
+  { first = 0, last = 0 },
+  { first = 6, last = 65535 },
+]
+values = [
+  { name = "FEEDBACK_NEUTRAL", value = 1 },
+  { name = "FEEDBACK_MATCH", value = 2 },
+  { name = "FEEDBACK_NO_MATCH", value = 3 },
+  { name = "FEEDBACK_ALTERNATIVE", value = 4 },
+  { name = "FEEDBACK_LIMITATION", value = 5 },
+]
+
+[[codes]]
+name = "content_action"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 0, last = 0 },
+  { first = 4, last = 255 },
+]
+values = [
+  { name = "ACTION_SELECT", value = 1 },
+  { name = "ACTION_RESET", value = 2 },
+  { name = "ACTION_COMMIT", value = 3 },
+]
+
+[[codes]]
+name = "content_response_shape"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 0, last = 0 },
+  { first = 4, last = 255 },
+]
+values = [
+  { name = "RESPONSE_SINGLE", value = 1 },
+  { name = "RESPONSE_SET", value = 2 },
+  { name = "RESPONSE_SEQUENCE", value = 3 },
+]
+
+[[codes]]
+name = "content_outcome"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 4, last = 255 },
+]
+values = [
+  { name = "OUTCOME_NONE", value = 0 },
+  { name = "OUTCOME_ACCEPTED", value = 1 },
+  { name = "OUTCOME_REJECTED", value = 2 },
+  { name = "OUTCOME_NEUTRAL", value = 3 },
+]
+
+[[codes]]
+name = "content_lesson_role"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 0, last = 0 },
+  { first = 6, last = 255 },
+]
+values = [
+  { name = "ROLE_EXACT_RULE", value = 1 },
+  { name = "ROLE_OBSERVABLE_RELATION", value = 2 },
+  { name = "ROLE_WORKED_EXAMPLE", value = 3 },
+  { name = "ROLE_HEURISTIC", value = 4 },
+  { name = "ROLE_PRACTICE", value = 5 },
+]
+
+[[codes]]
+name = "content_answer_mode"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 0, last = 0 },
+  { first = 4, last = 255 },
+]
+values = [
+  { name = "ANSWER_PACKED_PRACTICE", value = 1 },
+  { name = "ANSWER_EXTERNAL", value = 2 },
+  { name = "ANSWER_UNSCORED", value = 3 },
+]
+
+[[codes]]
+name = "content_case_class"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 0, last = 0 },
+  { first = 3, last = 255 },
+]
+values = [
+  { name = "CASE_ACCEPTED", value = 1 },
+  { name = "CASE_REJECTED_SPECIAL", value = 2 },
+]
+
+[[codes]]
+name = "content_interaction_result"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 0, last = 0 },
+  { first = 10, last = 255 },
+]
+values = [
+  { name = "INTERACTION_SELECTED", value = 1 },
+  { name = "INTERACTION_RESET", value = 2 },
+  { name = "INTERACTION_COMMITTED", value = 3 },
+  { name = "INTERACTION_INVALID_ACTION", value = 4 },
+  { name = "INTERACTION_INVALID_REGION", value = 5 },
+  { name = "INTERACTION_DUPLICATE", value = 6 },
+  { name = "INTERACTION_OVER_LIMIT", value = 7 },
+  { name = "INTERACTION_ALREADY_COMMITTED", value = 8 },
+  { name = "INTERACTION_BUDGET_EXHAUSTED", value = 9 },
+]
+
+[[codes]]
+name = "content_phase"
+type = "u8"
+minimum = 0
+maximum = 255
+reserved = [
+  { first = 0, last = 0 },
+  { first = 4, last = 255 },
+]
+values = [
+  { name = "PHASE_ACTIVE", value = 1 },
+  { name = "PHASE_COMMITTED", value = 2 },
+  { name = "PHASE_EXHAUSTED", value = 3 },
+]
+
+[[codes]]
+name = "content_reject"
+type = "u16"
+minimum = 0
+maximum = 65535
+reserved = [
+  { first = 32, last = 65535 },
+]
+values = [
+  { name = "CONTENT_OK", value = 0 },
+  { name = "CONTENT_LIMIT_EXCEEDED", value = 1 },
+  { name = "CONTENT_TRUNCATED", value = 2 },
+  { name = "CONTENT_BAD_VERSION", value = 3 },
+  { name = "CONTENT_BAD_RECORD_COUNT", value = 4 },
+  { name = "CONTENT_BAD_RECORD_ID", value = 5 },
+  { name = "CONTENT_RECORD_ORDER", value = 6 },
+  { name = "CONTENT_BAD_RECORD_KIND", value = 7 },
+  { name = "CONTENT_BAD_PAYLOAD_LENGTH", value = 8 },
+  { name = "CONTENT_TRAILING_DATA", value = 9 },
+  { name = "CONTENT_BAD_TAG", value = 10 },
+  { name = "CONTENT_RESERVED_NONZERO", value = 11 },
+  { name = "CONTENT_BAD_UTF8", value = 12 },
+  { name = "CONTENT_BAD_COUNT", value = 13 },
+  { name = "CONTENT_BAD_VALUE", value = 14 },
+  { name = "CONTENT_NONCANONICAL_ORDER", value = 15 },
+  { name = "CONTENT_DUPLICATE", value = 16 },
+  { name = "CONTENT_ZERO_REFERENCE", value = 17 },
+  { name = "CONTENT_FORWARD_REFERENCE", value = 18 },
+  { name = "CONTENT_MISSING_REFERENCE", value = 19 },
+  { name = "CONTENT_WRONG_REFERENCE_KIND", value = 20 },
+  { name = "CONTENT_SCHEMA_MISMATCH", value = 21 },
+  { name = "CONTENT_ROOT_COUNT", value = 22 },
+  { name = "CONTENT_ROOT_NOT_FINAL", value = 23 },
+  { name = "CONTENT_BAD_CONTROL_EDGE", value = 24 },
+  { name = "CONTENT_ORPHAN_RECORD", value = 25 },
+  { name = "CONTENT_BAD_RESPONSE_SCHEMA", value = 26 },
+  { name = "CONTENT_FORBIDDEN_ANSWER_DATA", value = 27 },
+  { name = "CONTENT_BAD_FEEDBACK", value = 28 },
+  { name = "CONTENT_BAD_PASSIVE_TRACE", value = 29 },
+  { name = "CONTENT_BUDGET_PROOF", value = 30 },
+  { name = "CONTENT_BAD_RUN_STATE", value = 31 },
+]
+
+[[bits]]
+name = "castling_rights"
+type = "u8"
+reserved_mask = 240
+values = [
+  { name = "CASTLING_FIRST_KINGSIDE", value = 1 },
+  { name = "CASTLING_FIRST_QUEENSIDE", value = 2 },
+  { name = "CASTLING_SECOND_KINGSIDE", value = 4 },
+  { name = "CASTLING_SECOND_QUEENSIDE", value = 8 },
+]
+
+[[bits]]
+name = "content_region_flags"
+type = "u8"
+reserved_mask = 252
+values = [
+  { name = "REGION_SELECTABLE", value = 1 },
+  { name = "REGION_HIGHLIGHTED", value = 2 },
+]
+
+[[bits]]
+name = "content_lesson_flags"
+type = "u8"
+reserved_mask = 254
+values = [
+  { name = "LESSON_ALLOW_REPEATED_SELECTIONS", value = 1 },
+]
+
+[[constant]]
+name = "CHESS_SQUARE_COUNT"
+type = "u32"
+value = 64
+
+[[constant]]
+name = "CHESS_POSITION_BYTES"
+type = "u32"
+value = 67
+
+[[constant]]
+name = "CHESS_MOVE_BYTES"
+type = "u32"
+value = 2
+
+[[constant]]
+name = "CHESS_EVENT_MAX_BYTES"
+type = "u32"
+value = 3
+
+[[constant]]
+name = "CHESS_MOVE_ORIGIN_SHIFT"
+type = "u32"
+value = 10
+
+[[constant]]
+name = "CHESS_MOVE_ORIGIN_MASK"
+type = "u32"
+value = 64512
+
+[[constant]]
+name = "CHESS_MOVE_DESTINATION_SHIFT"
+type = "u32"
+value = 4
+
+[[constant]]
+name = "CHESS_MOVE_DESTINATION_MASK"
+type = "u32"
+value = 1008
+
+[[constant]]
+name = "CHESS_MOVE_PROMOTION_SHIFT"
+type = "u32"
+value = 1
+
+[[constant]]
+name = "CHESS_MOVE_PROMOTION_MASK"
+type = "u32"
+value = 14
+
+[[constant]]
+name = "CHESS_MOVE_RESERVED_MASK"
+type = "u32"
+value = 1
+
+[[constant]]
+name = "EN_PASSANT_NONE"
+type = "u32"
+value = 0
+
+[[constant]]
+name = "CHESS_MAX_SIDE_PAWNS"
+type = "u32"
+value = 8
+
+[[constant]]
+name = "CHESS_MAX_SIDE_PIECES"
+type = "u32"
+value = 16
+
+[[constant]]
+name = "CHESS_MAX_MOVE_LIST"
+type = "u32"
+value = 512
+
+[[constant]]
+name = "MAX_HISTORY_PLIES"
+type = "u32"
+value = 4096
+
+[[constant]]
+name = "CHESS_THREEFOLD_OCCURRENCES"
+type = "u32"
+value = 3
+
+[[constant]]
+name = "CHESS_FIFTY_MOVE_PLIES"
+type = "u32"
+value = 100
+
+[[constant]]
+name = "CHESS_AGREEMENT_MIN_PLIES"
+type = "u32"
+value = 2
+
+[[constant]]
+name = "CHESS_MIN_FORK_TARGETS"
+type = "u32"
+value = 2
+
+[[constant]]
+name = "CHESS_MAX_FORK_TARGETS"
+type = "u32"
+value = 16
+
+[[constant]]
+name = "CHESS_MAX_PREDICATE_NODES"
+type = "u32"
+value = 4096
+
+[[constant]]
+name = "CHESS_MAX_PREDICATE_EDGES_PER_NODE"
+type = "u32"
+value = 256
+
+[[constant]]
+name = "CHESS_MAX_PREDICATE_EDGES"
+type = "u32"
+value = 4095
+
+[[constant]]
+name = "CHESS_MAX_PREDICATE_DEPTH"
+type = "u32"
+value = 64
+
+[[constant]]
+name = "SOURCE_MAX_INPUT_BYTES"
+type = "u32"
+value = 1048576
+
+[[constant]]
+name = "SOURCE_ANTHOLOGY_GAME_COUNT"
+type = "u32"
+value = 64
+
+[[constant]]
+name = "SOURCE_MAX_FENCE_BYTES"
+type = "u32"
+value = 65535
+
+[[constant]]
+name = "SOURCE_MAX_TAG_LINES"
+type = "u32"
+value = 64
+
+[[constant]]
+name = "SOURCE_MAX_TAG_NAME_BYTES"
+type = "u32"
+value = 32
+
+[[constant]]
+name = "SOURCE_MAX_TAG_VALUE_BYTES"
+type = "u32"
+value = 1024
+
+[[constant]]
+name = "SOURCE_MAX_TOKENS_PER_BLOCK"
+type = "u32"
+value = 8192
+
+[[constant]]
+name = "SOURCE_MAX_PLIES_PER_BLOCK"
+type = "u32"
+value = 4096
+
+[[constant]]
+name = "SOURCE_MAX_TOTAL_PLIES"
+type = "u32"
+value = 65535
+
+[[constant]]
+name = "SOURCE_MAX_GAME_PLIES"
+type = "u32"
+value = 4096
+
+[[constant]]
+name = "SOURCE_MAX_GAME_SET_GAMES"
+type = "u32"
+value = 65535
+
+[[constant]]
+name = "SOURCE_MAX_GAME_SET_PLIES"
+type = "u32"
+value = 65535
+
+[[constant]]
+name = "SOURCE_MAX_GAME_SET_BYTES"
+type = "u32"
+value = 327677
+
+[[constant]]
+name = "SOURCE_MAX_EVIDENCE_BYTES"
+type = "u32"
+value = 1048576
+
+[[constant]]
+name = "CONTENT_VERSION"
+type = "u32"
+value = 0
+
+[[constant]]
+name = "CONTENT_MAX_STREAM_BYTES"
+type = "u32"
+value = 1048576
+
+[[constant]]
+name = "CONTENT_MIN_RECORDS"
+type = "u32"
+value = 2
+
+[[constant]]
+name = "CONTENT_MAX_RECORDS"
+type = "u32"
+value = 65535
+
+[[constant]]
+name = "CONTENT_MAX_PAYLOAD_BYTES"
+type = "u32"
+value = 1048576
+
+[[constant]]
+name = "CONTENT_MAX_RECORDS_PER_NON_ROOT_KIND"
+type = "u32"
+value = 4096
+
+[[constant]]
+name = "CONTENT_MAX_TEXT_BYTES"
+type = "u32"
+value = 4096
+
+[[constant]]
+name = "CONTENT_MAX_ENUM_ENTRIES"
+type = "u32"
+value = 4096
+
+[[constant]]
+name = "CONTENT_MAX_VECTOR_ATOMS"
+type = "u32"
+value = 65535
+
+[[constant]]
+name = "CONTENT_MAX_MATRIX_CELLS"
+type = "u32"
+value = 65535
+
+[[constant]]
+name = "CONTENT_MAX_FIELD_SCHEMA_FIELDS"
+type = "u32"
+value = 256
+
+[[constant]]
+name = "CONTENT_MAX_TUPLE_SLOTS"
+type = "u32"
+value = 4096
+
+[[constant]]
+name = "CONTENT_MAX_OPAQUE_ATOMS"
+type = "u32"
+value = 4096
+
+[[constant]]
+name = "CONTENT_MAX_REGIONS"
+type = "u32"
+value = 4096
+
+[[constant]]
+name = "CONTENT_MAX_LESSON_NODES"
+type = "u32"
+value = 4096
+
+[[constant]]
+name = "CONTENT_MAX_CASES_PER_NODE"
+type = "u32"
+value = 4096
+
+[[constant]]
+name = "CONTENT_MAX_CONTROL_EDGES"
+type = "u32"
+value = 16384
+
+[[constant]]
+name = "CONTENT_MAX_SELECTIONS"
+type = "u32"
+value = 4096
+
+[[constant]]
+name = "CONTENT_MAX_EVENT_BUDGET"
+type = "u32"
+value = 65535
+
+[[constant]]
+name = "CONTENT_REQUIRED_ROOTS"
+type = "u32"
+value = 1
+
+[[constant]]
+name = "CONTENT_ACTION_BYTES"
+type = "u32"
+value = 4
+
+[[constant]]
+name = "CONTENT_EVENT_BYTES"
+type = "u32"
+value = 7
+
+[[constant]]
+name = "CONTENT_RUN_STATE_FIXED_BYTES"
+type = "u32"
+value = 18
+
+[[constant]]
+name = "CONTENT_MAX_COMMITTED_RESPONSE_BYTES"
+type = "u32"
+value = 8195
+
+[[constant]]
+name = "CONTENT_MAX_RUN_STATE_BYTES"
+type = "u32"
+value = 466958
+
+[[constant]]
+name = "CONTENT_MAX_EXHAUSTED_RUN_STATE_BYTES"
+type = "u32"
+value = 466955

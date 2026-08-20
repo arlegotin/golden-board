@@ -5,6 +5,9 @@ usage() {
         'usage: scripts/check fast' \
         '       scripts/check focused source' \
         '       scripts/check focused identity' \
+        '       scripts/check focused chess' \
+        '       scripts/check focused curriculum' \
+        '       scripts/check focused content' \
         '       scripts/check focused repo' \
         '       scripts/check full' >&2
 }
@@ -13,7 +16,7 @@ case "$#:$1" in
     1:fast|1:full) mode=$1 ;;
     2:focused)
         case "$2" in
-            source|identity|repo) mode=$2 ;;
+            source|identity|chess|curriculum|content|repo) mode=$2 ;;
             *) usage; exit 2 ;;
         esac
         ;;
@@ -82,57 +85,69 @@ identity() {
         python.tests.test_foundation.FoundationModulesPresent \
         python.tests.test_foundation.IdentityConformance \
         python.tests.test_foundation.ManifestConformance || return 1
-    run_check identity-rust rustup run 1.97.1 cargo test --workspace \
+    run_check identity-rust rustup run 1.97.1 cargo test -p gb-foundation \
         --all-targets --locked --offline -- --skip source_report_is_canonical
+}
+
+chess() {
+    python_tests chess-python python.tests.test_chess || return 1
+    run_check chess-rust rustup run 1.97.1 cargo test -p gb-chess \
+        --test chess --locked --offline
+}
+
+chess_oracle() {
+    run_check chess-oracle uv run --locked --offline --no-python-downloads \
+        --group oracle python -m unittest -v python.tests.test_chess_oracle
 }
 
 source_full() {
     python_tests source-python \
         python.tests.test_foundation.SourceDoctorTrustBoundary \
         python.tests.test_foundation.SourceDoctorScanner \
-        python.tests.test_foundation.SourceDoctorEvidence || return 1
-    run_check source-rust rustup run 1.97.1 cargo test --workspace \
-        --all-targets --locked --offline source_report_is_canonical
+        python.tests.test_foundation.SourceDoctorEvidence \
+        python.tests.test_source_compiler || return 1
+    run_check source-doctor-rust rustup run 1.97.1 cargo test -p gb-foundation \
+        --test conformance --locked --offline source_report_is_canonical || return 1
+    run_check source-rust rustup run 1.97.1 cargo test -p gb-chess \
+        --test source --locked --offline
 }
 
 source_fast() {
-    python_tests source-current python.tests.test_foundation.SourceDoctorFast
+    python_tests source-current \
+        python.tests.test_foundation.SourceDoctorFast \
+        python.tests.test_source_compiler.SourceCompilerApi.test_fixture_operation_inventory_is_closed
+}
+
+curriculum() {
+    python_tests curriculum-python \
+        python.tests.test_curriculum_contract \
+        python.tests.test_curriculum
+}
+
+content() {
+    python_tests content-python python.tests.test_content || return 1
+    run_check content-rust rustup run 1.97.1 cargo test -p gb-content \
+        --test content --locked --offline
 }
 
 repo() {
     run_check repo-shell sh -n scripts/check || return 1
     run_check repo-rustfmt rustup run 1.97.1 cargo fmt --all --check || return 1
-    run_check repo-working-diff git diff --check -- \
-        .gitignore .python-version AGENTS.md Cargo.lock Cargo.toml README.md \
-        conformance/identity-v0.json conformance/manifest-v0.json \
-        conformance/registry.toml crates/gb-foundation/Cargo.toml \
-        crates/gb-foundation/src/lib.rs crates/gb-foundation/tests/conformance.rs \
-        docs/64_games.md docs/m0-plan.md docs/m0-spec.md docs/roadmap.md \
-        docs/sources.md inputs/source-lock.toml pyproject.toml \
-        python/golden_board/__init__.py python/golden_board/canonical_manifest.py \
-        python/golden_board/identity.py python/golden_board/source_doctor.py \
-        python/tests/test_foundation.py reports/source-doctor.json \
-        rust-toolchain.toml scripts/check spec/identity-v0.md uv.lock || return 1
-    run_check repo-index-diff git diff --cached --check -- \
-        .gitignore .python-version AGENTS.md Cargo.lock Cargo.toml README.md \
-        conformance/identity-v0.json conformance/manifest-v0.json \
-        conformance/registry.toml crates/gb-foundation/Cargo.toml \
-        crates/gb-foundation/src/lib.rs crates/gb-foundation/tests/conformance.rs \
-        docs/64_games.md docs/m0-plan.md docs/m0-spec.md docs/roadmap.md \
-        docs/sources.md inputs/source-lock.toml pyproject.toml \
-        python/golden_board/__init__.py python/golden_board/canonical_manifest.py \
-        python/golden_board/identity.py python/golden_board/source_doctor.py \
-        python/tests/test_foundation.py reports/source-doctor.json \
-        rust-toolchain.toml scripts/check spec/identity-v0.md uv.lock || return 1
+    run_check repo-working-diff git diff --check || return 1
+    run_check repo-index-diff git diff --cached --check || return 1
     python_tests repo-python \
         python.tests.test_foundation.RepoContract \
-        python.tests.test_foundation.RootCheckCLI
+        python.tests.test_foundation.RootCheckCLI \
+        python.tests.test_constants.ConstantsCodegen
 }
 
 case "$mode" in
     identity) identity ;;
+    chess) chess ;;
     source) source_full ;;
+    curriculum) curriculum ;;
+    content) content ;;
     repo) repo ;;
-    fast) repo && identity && source_fast ;;
-    full) repo && identity && source_full ;;
+    fast) repo && identity && chess && source_fast && curriculum && content ;;
+    full) repo && identity && chess && chess_oracle && source_full && curriculum && content ;;
 esac
