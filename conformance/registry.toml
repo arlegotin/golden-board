@@ -1,6 +1,24 @@
 schema = "golden-board.conformance-registry/v0"
 
 [[suite]]
+id = "bootstrap-invalid-v0"
+path = "conformance/bootstrap-invalid-v0.json"
+specification = "bootstrap-v0"
+version = "v0"
+sha256 = "9b22a67b943e48badfee17d6035f0a689ed5080bda08aea07891c32f282edb4f"
+consumers = ["python", "rust"]
+provenance = "hand-authored"
+
+[[suite]]
+id = "bootstrap-v0"
+path = "conformance/bootstrap-v0.json"
+specification = "bootstrap-v0"
+version = "v0"
+sha256 = "ef4a51fd3d587a4eb651d7271d94ab113df3653eed823fe9c78f32f58d045a61"
+consumers = ["python", "rust"]
+provenance = "hand-authored"
+
+[[suite]]
 id = "chess-v0"
 path = "conformance/chess-v0.json"
 specification = "chess-v0"
@@ -33,6 +51,33 @@ path = "conformance/manifest-v0.json"
 specification = "identity-v0"
 version = "v0"
 sha256 = "cb9a7604683623c5809c2b5b4bde45fb4e6fb67dc48e56aea10c23bc88e6c3e8"
+consumers = ["python", "rust"]
+provenance = "hand-authored"
+
+[[suite]]
+id = "m2-r3-owner-v1"
+path = "conformance/m2-r3-owner-v1.json"
+specification = "bootstrap-v1"
+version = "v1"
+sha256 = "d0a0da9fa62511fc7914ec214b6ba934c470ac669ed765ace29b42da22896ce3"
+consumers = ["python", "rust"]
+provenance = "hand-authored"
+
+[[suite]]
+id = "recipe-v0"
+path = "conformance/recipe-v0.json"
+specification = "bootstrap-v0"
+version = "v0"
+sha256 = "50862edb1d0c9654e5c903735f86b41c7ca2958a1e36cffb70a7622ee9a20845"
+consumers = ["python", "rust"]
+provenance = "hand-authored"
+
+[[suite]]
+id = "rs255-191-v0"
+path = "conformance/rs255-191-v0.json"
+specification = "bootstrap-v0"
+version = "v0"
+sha256 = "d4dcc0cc441f42c66dc19d6db636733fc577751baf073dc7f951cd3c3dd23f72"
 consumers = ["python", "rust"]
 provenance = "hand-authored"
 

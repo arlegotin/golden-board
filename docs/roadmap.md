@@ -2,9 +2,9 @@
 
 | Field | Value |
 |---|---|
-| Roadmap revision | 5 |
-| Last updated | 2026-08-14 |
-| Project state | In progress |
+| Roadmap revision | 10 |
+| Last updated | 2026-08-30 |
+| Project state | Candidate ready |
 | Current milestone | M2 — Full-carrier bootstrap and transport feasibility |
 | Delivery model | One implementation track, one final square bitplane |
 | Canonical anthology source | `docs/64_games.md` |
@@ -35,7 +35,7 @@ Build one deterministic square bitplane that:
 5. contains exactly sixty-four complete move-stream-plus-score game records compiled from `docs/64_games.md`; and
 6. remains useful, explicit, and fail-closed under a finite accidental-damage contract.
 
-The recipient is not expected to decode the artifact correctly on the first attempt. Golden Board assumes an intentional, finite, important message whose recipient may test hypotheses, make mistakes, backtrack, and exhaust bounded alternatives until one interpretation survives the artifact's checks and examples.
+The recipient is not expected to decode the artifact correctly on the first attempt. Golden Board assumes an intentional, finite message known to be important, potentially profound, and benign/nonhostile, whose recipient may test hypotheses, make mistakes, backtrack, and exhaust bounded alternatives until one interpretation survives the artifact's checks and examples.
 
 ### 1.2 Canonical product
 
@@ -130,9 +130,16 @@ The coding agent is expected to use bounded trial and error inside these decisio
 
 ### 2.1 Technical recipient
 
-The technical reconstruction claim assumes a recipient who:
+The technical reconstruction claim assumes a **recipient unit**: one person or
+a fixed cooperating team of two to four people. Its relevant technical skills
+may be collective, but every member must satisfy the same freshness,
+information, and tool conditions. The claim must state the unit size and must
+not report a team result as an individual result.
 
-- knows the observation is an intentional, finite, important message;
+The unit:
+
+- knows the observation is an intentional, finite message that is important,
+  potentially profound, benign/nonhostile, and worth sustained effort;
 - can count, use binary integers, arrays, matrices, tables, and finite arithmetic;
 - can write and debug ordinary bounded programs;
 - may enumerate finite factor pairs, transforms, polarities, bit orders, groupings, and decoder hypotheses;
@@ -140,7 +147,7 @@ The technical reconstruction claim assumes a recipient who:
 - has generic language, compiler, debugger, calculator, and standard-library documentation; and
 - has no Golden Board specification, source repository, prepared decoder, answer key, chess library, PGN library, selected error-correction library, or artifact-specific hint.
 
-Generic prior knowledge of checksums, error-correcting codes, or chess is recorded for interpretation. It does not count as evidence that the artifact taught a missing parameter or procedure. If a pilot already knows the exact selected code/profile well enough to fill an untaught step, that pilot cannot alone close the bootstrap gate.
+Generic prior knowledge of checksums, error-correcting codes, or chess is recorded for interpretation. It does not count as evidence that the artifact taught a missing parameter or procedure. If any member already knows the exact selected code/profile well enough to fill an untaught step, that unit cannot alone close the bootstrap gate.
 
 ### 2.2 Learning recipient
 
@@ -159,7 +166,7 @@ The learner is not required to implement the transport decoder. Technical recons
 
 Golden Board makes two linked claims:
 
-1. **Recovery claim:** a technical recipient can recover the canonical generic content stream from the raw-bit observation.
+1. **Recovery claim:** a technical recipient unit can recover the canonical generic content stream from the raw-bit observation.
 2. **Teaching claim:** a chess-naive learner using that exact recovered stream can acquire the tested chess knowledge.
 
 The final technical decoder's normalized content-stream bytes are frozen before final learner sessions. The learner interface consumes those exact bytes without semantic rewriting. The bridge report binds:
@@ -181,12 +188,17 @@ Golden Board uses three physically separate surfaces:
 
 #### A — raw carrier challenge
 
-The participant receives:
+The recipient unit receives:
 
 - the total symbol count `N`; and
 - exactly `N` indexed binary symbols in their observed order.
 
-The interface does not explicitly provide a matrix renderer, dimensions, orientation, byte groups, project name, chess labels, or decoder. Facts derivable from `N` or the symbols are legitimate discoveries, not leaks. The recipient may export symbols and test bounded hypotheses.
+Neutral task instructions also state the intentional/finite/important/benign
+premise from Section 2.1 and that wrong starts and bounded backtracking are
+expected. The interface does not explicitly provide a matrix renderer,
+dimensions, orientation, byte groups, project name, chess labels, or decoder.
+Facts derivable from `N` or the symbols are legitimate discoveries, not leaks.
+The unit may export symbols and test bounded hypotheses.
 
 The canonical packed file is a modern storage convenience. A raw-file trial and a symbol-stream trial are different evidence conditions and MUST be labelled honestly. The result-bearing self-description trial uses the neutral indexed-symbol surface.
 
@@ -213,19 +225,19 @@ The guided explorer may use present-day chess-rule, piece, coordinate, and inter
 
 ### 2.5 Trial-and-error policy
 
-No protocol assumes a one-shot decode. A technical participant may:
+No protocol assumes a one-shot decode. A technical recipient unit may:
 
 - try multiple matrix shapes, transforms, and groupings;
 - write throwaway decoders;
 - reject candidates after failed shell, checksum, or known-answer tests;
 - restart from earlier observations; and
-- retain their own notes between sessions.
+- retain its own notes between sessions.
 
 The scored result is the final submitted derivation, decoder, extracted stream, and held-out behavior within the active-time and candidate-attempt limits. A failed hypothesis is not a failure of the recipient or artifact unless the intended path remains unresolved when the run ends.
 
 ### 2.6 Evaluator-side identities
 
-Technical participants submit canonical extracted bytes, section states, game move streams, and their decoder. The evaluator computes all project-specific SHA-256 identities. Participants are never failed for not knowing a developer-only domain prefix, manifest ordering rule, or semantic-hash convention that the artifact does not teach.
+Technical recipient units submit canonical extracted bytes, section states, game move streams, and their decoder. The evaluator computes all project-specific SHA-256 identities. Units are never failed for not knowing a developer-only domain prefix, manifest ordering rule, or semantic-hash convention that the artifact does not teach.
 
 Expected hashes and clean answers MUST NOT appear in challenge bundles.
 
@@ -305,12 +317,29 @@ The selected transport, checks, interleave, shell notation, profile limits, and 
   safety limits.
 - `spec/content-v0.md` owns generic record bytes and pre-profile parser-safety
   limits.
-- `spec/bootstrap-v0.md` owns shell grounding and recipe notation.
-- `spec/profile-policy-v0.toml` owns the bounded candidate set and selection metrics.
+- `spec/constants-v0.toml` owns the established M1 cross-chess/source/content
+  numeric groups and remains byte-frozen during M2 because the completed M1
+  source report hashes the whole file. M2-only opcodes, IDs, states, and
+  rejection codes live in their smallest bootstrap/profile-policy/damage-policy
+  owners and are mirrored into both languages. A later value genuinely shared
+  across the M1/M2 boundary requires a checked frozen M1 evidence projection or
+  an explicit M1 reopen before the constants file can grow.
+- `spec/bootstrap-v0.md` owns shell grounding, recipe notation, the
+  candidate-independent protected fragment/section grammar, and exact
+  tier-frame/body-to-content-stream assembly.
+- `spec/route-data-v0.json` owns the exact twelve-fact route values, exported
+  recipe interfaces and example bytes, selective sector-mask slots, and the
+  six predeclared profile bindings. It contains no candidate outcome.
+- `spec/profile-policy-v0.toml` owns the bounded candidate set, exact M2
+  candidate parameter tuples, complexity classes, and selection metrics.
 - `spec/profile-v0.md` owns final physical/wire constants.
-- `spec/profile-limits-v0.toml` owns M2-and-later artifact/runtime counts,
-  lengths, allocations, and work ceilings once measured; it does not retroactively
-  own M1 source-language or pre-profile parser limits.
+- `spec/profile-limits-v0.toml` provisionally owns M2's union-safe
+  artifact/runtime counts, lengths, allocations, and work ceilings derived
+  before outcomes across the full predeclared candidate-tuple set, and is
+  therefore safe for every possible retained finalist; M4 regenerates/finalizes
+  candidate-specific values from complete actual content. It does not
+  retroactively own M1
+  source-language or pre-profile parser limits.
 - `spec/damage-policy-v0.toml` owns candidate-independent damage operators and promises.
 - each final candidate owns a generated candidate-specific damage manifest and capacity ledger.
 - `spec/curriculum-v0.toml` owns teaching-concept inclusion, exact family/stratum/
@@ -1340,13 +1369,20 @@ The simple baseline is mandatory so a complex code cannot win merely because no 
 
 A candidate may be eliminated without full implementation only by a checked bound proving it cannot meet a hard capacity, damage, or shell-notation gate. Otherwise it must use the same real serializer, damage generator, and ledger harness as its competitors. M2 retains at most two passing finalists from the lowest viable bootstrap complexity class so M4 can rerun the final choice on complete actual content; one provisional preferred finalist is used for the full-carrier pilot.
 
-Reed–Solomon is optional. It may be selected only when:
+Reed–Solomon is optional. It may be selected only when no lower bootstrap-
+complexity candidate passes every hard gate and:
 
 - all field, generator, shortening, symbol, erasure, decoder, and interleave conventions are completely pinned;
 - bit-cell damage is converted to symbol observations exactly as Section 8.5 requires;
 - the full recipe fits with shell headroom;
-- an implementer reconstructs held-out error and erasure cases without an exact-profile library; and
-- its size/robustness gain is materially better than the simpler passing candidate.
+- a recipient unit reconstructs held-out error and erasure cases without an
+  exact-profile library; and
+- the report quantifies the lower-class hard failure and RS's resulting
+  size/robustness/work cost rather than calling complexity itself a benefit.
+
+If a lower-class candidate passes, Section 7.14 discards RS even when RS is
+smaller. If no lower-class candidate passes, the absence of a “simpler passing
+candidate” does not itself disqualify RS.
 
 ### 7.6 Bootstrap complexity classes
 
@@ -1380,7 +1416,7 @@ All multibyte integers are big-endian. No phase or synchronization byte sits out
 Fragment behavior is exact:
 
 - byte-identical duplicate: deduplicate;
-- same identity with incompatible fully valid bytes: ambiguous/corrupt;
+- same identity with incompatible fully valid bytes: `ambiguous`;
 - out-of-range count/index/length: reject before allocation;
 - missing fragment: section incomplete unless a complete duplicate or explicit outer construction supplies it; and
 - no decoder fills missing bytes with zeros, legal-move inference, or evaluator truth.
@@ -1397,11 +1433,11 @@ Every section has:
 
 The semantic section preimage excludes physical copy ID, fragment placement, and observed order; those physical facts remain covered by fragment-local protected headers/checks. Moving or adding an identical copy therefore cannot change the section's semantic identity.
 
-Fragments are self-identifying, so no directory is needed to discover and assemble an observed section. Completeness, however, requires an expected inventory: each independently protected Core 0 copy contains the canonical IDs, types, copy expectations, dependency IDs, and ordinal ranges for every mandatory non-inventory section. The shell knows the fixed IDs of the Core 0/inventory entry copies, avoiding self-reference. Conflicting valid inventories are ambiguous/corrupt; loss of every inventory copy prevents a completeness/tier claim even when some fragments remain discoverable. A separate convenience catalog MAY accelerate navigation but has no authority.
+Fragments are self-identifying, so no directory is needed to discover and assemble an observed section. Completeness, however, requires an expected inventory: each independently protected Core 0 copy contains the canonical IDs, types, copy expectations, dependency IDs, and ordinal ranges for every mandatory non-inventory section. The shell knows the fixed IDs of the Core 0/inventory entry copies, avoiding self-reference. Conflicting valid inventories are `ambiguous`; loss of every inventory copy prevents a completeness/tier claim even when some fragments remain discoverable. A separate convenience catalog MAY accelerate navigation but has no authority.
 
 Game inventory semantics MUST make exactly the canonical ordinal range `0..63` expected, so a wholly absent game or game-bearing section cannot disappear silently.
 
-Core 0–2 have at least two complete semantic copies or an equivalently simple independently verifiable construction. A third copy is allowed only when the measured damage margin justifies its physical cost. Copies share semantic bytes but occupy machine-proved independent failure domains. Conflicting complete copies produce ambiguity/corruption; there is no majority vote over different valid semantic bytes.
+Core 0–2 have at least two complete semantic copies or an equivalently simple independently verifiable construction. A third copy is allowed only when the measured damage margin justifies its physical cost. Copies share semantic bytes but occupy machine-proved independent failure domains. Conflicting complete valid copies produce `ambiguous`; there is no majority vote over different valid semantic bytes.
 
 ### 7.9 Recovery tiers
 
@@ -1480,7 +1516,8 @@ The default bounded search policy is:
 - shell width `W`, multiple of 8, `8 <= W <= min(128, floor((S-8)/2))`;
 - additional generated lower-bound prefilters are allowed only when they cannot skip a candidate that could actually fit;
 - hard artifact ceiling `2048²` bits = 512 KiB; and
-- no preferred side length below the hard ceiling; final selection follows Section 7.14.
+- no side above the hard ceiling is admissible and no side below it is
+  preferred in advance; final selection follows Section 7.14.
 
 The 512 KiB ceiling is a pet-project scope boundary, not a target. A retained finalist may derive a narrower admissible set from exact frame/interleave alignment, but it must prove that exclusion. The search evaluates every admissible smaller candidate across the M2-retained finalist set before making a bounded minimum or near-minimum claim.
 
@@ -1538,7 +1575,7 @@ Insertions, unknown-length truncation, and physical deletions that shift later r
 Two artifacts are required:
 
 1. `spec/damage-policy-v0.toml` — candidate-independent normative channels, coordinate rules, operators, formulas, seeds, tier promises, ambiguity rules, and resource ceilings.
-2. `artifacts/candidates/<id>/damage-manifest.json` — generated candidate hash, exact placements, damaged-observation hashes, per-fragment/per-section expected states, and report identities.
+2. `artifacts/candidates/<id>/damage/damage-manifest.json` — generated candidate hash, exact placements, damaged-observation hashes, per-fragment/per-section expected states, and report identities; its family manifests and bounded case shards live in that same `damage/` directory.
 
 The candidate manifest is reproducible from the policy plus candidate. Candidate hashes and candidate-specific outcomes never appear in the pre-candidate policy.
 
@@ -1617,6 +1654,17 @@ The final policy MUST include at least:
 
 D1 is a matrix-level shell-route survivability claim after adjacency/coordinates are available; it does not claim damaged raw-bit resynchronization or factorization. D2's `every residue class` is a guarantee only when a generated proof shows placements in a class have equivalent per-codeword/copy damage. Without a proof, the report must describe finite tested placements as sampled evidence and narrow the public wording.
 
+M2 cannot truthfully label representative content as RT2 or RT4 before M3
+authors complete Core 1–4. For M2 candidate comparison, the promoted damage
+policy therefore also names one exact `m2_required_closure` containing the real
+bootstrap/content grammar, replicated inventory, technical/learner slice, and
+their dependencies. On the provisional carrier, D0/D1/D5 must recover every
+declared carried section exactly; D2/D3/D4/D6 must recover
+`m2_required_closure` and report every other section state; D7 retains its
+correct-or-explicit-failure rule. These are M2 feasibility results, not RT
+claims. M4 reruns the same final operators against complete actual RT0–RT4
+inventories and alone closes the table's RT outcomes.
+
 D1 models loss of one repeated discovery route; D2 models a localized scratch or obscured patch at roughly one-thirty-second of the protected side; D3 models sparse accidental bit faults; and D4–D6 model loss or reordering after protected-unit boundaries are already recovered. These are digital product test channels, not claims about a particular physical material. The roadmap does not require a full-height strip, huge inversion, or arbitrary damage. Damage goals exist to demonstrate meaningful resilience without dominating the chess mission.
 
 ### 8.7 Integrity checks
@@ -1663,9 +1711,11 @@ Each candidate path performs:
 6. fragment identity and conflict handling;
 7. exact section assembly;
 8. section-check validation;
-9. canonical content parse and trailing/padding validation;
-10. dependency closure; and
-11. chess/lesson/game semantic validation.
+9. inventory, tier-frame, and transport dependency closure;
+10. exact singular content-stream assembly;
+11. canonical content parse plus trailing/padding/content-dependency
+    validation; and
+12. chess/lesson/game semantic validation.
 
 Only complete checked sections contribute bytes. Chess plausibility never repairs a failed integrity check.
 
@@ -1723,7 +1773,7 @@ Every accidental-damage case starts from one named clean candidate and applies a
 
 A wrong accept means returning checked canonical semantic bytes different from that clean candidate under the frozen operator/corpus.
 
-A separately authored, fully self-consistent artifact with recomputed checks is another valid artifact and is outside accidental-integrity claims. If one observation contains mutually inconsistent fully valid candidates, the decoder returns ambiguity/corruption rather than authenticity judgement.
+A separately authored, fully self-consistent artifact with recomputed checks is another valid artifact and is outside accidental-integrity claims. If one observation contains mutually inconsistent fully valid candidates, the decoder returns `ambiguous` rather than an authenticity judgement.
 
 ### 8.13 Resource safety
 
@@ -1964,13 +2014,17 @@ Golden Board distinguishes:
 - final technical reconstruction; and
 - final learning transfer.
 
-Evidence from one class cannot silently close another. A guided tutorial does not prove self-description; a production decoder does not prove the shell taught a fresh implementer; a posttest score does not prove acquisition when the participant already knew the family.
+Evidence from one class cannot silently close another. A guided tutorial does not prove self-description; a production decoder does not prove the shell taught a fresh recipient unit; a posttest score does not prove acquisition when the participant already knew the family.
 
 ### 10.2 Early full-carrier technical pilot
 
-M2 builds a full-size provisional bitplane using the actual candidate geometry, real shell density, real transport, and realistically patterned interior filler/vertical-slice records. An all-zero or conspicuously easy interior cannot close the gate unless that is the intended final physical pattern.
+M2 builds a full-size provisional bitplane using the actual candidate geometry,
+real shell density, real transport, the vertical-slice records, valid
+capacity/reserve probe sections, and explicit fixed pad. An all-zero or
+conspicuously easy interior cannot close the gate unless that is the intended
+final physical pattern.
 
-One fresh technical pilot starts from `OBS_BITS`, not an isolated shell crop. The pilot must:
+One fresh technical recipient unit starts from `OBS_BITS`, not an isolated shell crop. The unit must:
 
 1. derive a matrix hypothesis and canonical transform;
 2. locate and validate a complete shell route;
@@ -1981,9 +2035,23 @@ One fresh technical pilot starts from `OBS_BITS`, not an isolated shell crop. Th
 7. return explicit failure on one wrong-parameter/beyond-profile case; and
 8. identify every convention they had to guess.
 
-The pilot may try multiple hypotheses. The profile fails if success depends on an untaught artifact-specific convention or critical hint.
+The unit may try multiple hypotheses and retain notes across sessions. The
+profile fails if success depends on an untaught artifact-specific convention or
+critical hint.
 
-A second pilot is required only when the first has substantial exact-profile prior knowledge, exposes a material ambiguity, or the selected bootstrap changes materially.
+M2 requires one qualifying fresh-unit pass after the latest material
+recipient-visible change. An otherwise qualifying success whose unit has
+substantial exact-profile prior knowledge requires corroboration by another
+fresh unit. A run that exposes material ambiguity is unresolved, not a pass; it
+requires repair and fresh evidence. A material selected-bootstrap change makes
+an earlier pass stale for the changed candidate. After one otherwise valid
+unresolved run on an unchanged candidate, one further fresh unchanged-candidate
+unit is allowed only after a concrete alternative explanation and stop rule are
+recorded before exposure. Two valid unresolved rounds on the unchanged
+candidate require redesign, scope narrowing, or an open gate; do not recruit
+repeatedly until someone passes. Administrative/environment-invalid and hinted
+runs remain represented while summary permission continues but do not count as
+result-bearing passes; withdrawal/deletion follows the participant note.
 
 ### 10.3 Early learner micro-pilot
 
@@ -2001,14 +2069,28 @@ Before full curriculum authoring or final size selection, one or two chess-naive
 - one finite selection lesson; and
 - one short opaque move record.
 
-Any chess semantic supplied verbally is recorded as a representation failure. Material ambiguity triggers redesign before M3.
+The result-bearing runner suppresses all semantic `TEXT` payloads and must
+preserve the exact same semantic actions, commits, predicates, and event
+sequence without depending on natural-language labels, Unicode glyph identity,
+or font rendering. Neutral external interface-mechanics prose is permitted but
+cannot teach a chess meaning or answer. Any chess semantic supplied verbally is
+recorded as a representation failure. Material ambiguity triggers redesign
+before M3.
 
 ### 10.4 Pilot-calibrated time envelopes
 
 Initial pilot ceilings are:
 
-- technical: 16 active hours across at most seven elapsed days;
+- technical: 16 unit-active hours across at most seven elapsed days;
 - learner slice: 3 active hours across at most two sessions.
+
+For a technical team, unit-active time is the union of intervals in which at
+least one member works; simultaneous work is not double-counted. Summed
+person-time is also reported. Reading, reasoning, coding, inspection, and team
+discussion are active; breaks and evaluator-caused setup repair are excluded
+and logged. Unattended computation is logged separately and remains inside the
+frozen machine-work limits and elapsed window. Team size, membership, and
+facilitation mode are part of the pilot envelope.
 
 Before final protocols freeze:
 
@@ -2038,7 +2120,7 @@ If successful reconstruction or learning exceeds the maximum, simplify the artif
 
 ### 10.5 Final technical reconstruction
 
-M5 runs the exact final candidate first. The implementer receives only:
+M5 runs the exact final candidate first. The fresh recipient unit receives only:
 
 - the neutral `OBS_BITS` challenge;
 - later damage observations named by their channels;
@@ -2109,11 +2191,13 @@ may be made.
 
 The human plan is intentionally small:
 
-- M2: one technical pilot, with one conditional second pilot;
+- M2: one qualifying fresh technical recipient unit after the latest material
+  change, with one diagnosed unchanged-candidate retry at most and additional
+  fresh rounds only after a material redesign;
 - M2/M3: one or two reusable learner micro-pilots;
 - M3: two to four reusable integrated formative learners;
-- M4: at most one additional fresh nonfinal technical pilot, only when the selected final carrier falls outside the exact M2 pilot envelope defined below; and
-- M5: six fresh final learners, up to two pre-recruited reserves, plus one fresh technical implementer.
+- M4: at most one additional fresh nonfinal technical recipient unit, only when the selected final carrier falls outside the exact M2 pilot envelope defined below; and
+- M5: six fresh final learners, up to two pre-recruited reserves, plus one fresh technical recipient unit.
 
 A pretested reserve may replace only an administrative withdrawal or failed
 setup before the selected learner sees artifact instruction/practice. At first
@@ -2304,11 +2388,11 @@ Only the passing composed chain supports the full bounded claim.
 Disposable research spikes may look ahead but cannot freeze downstream bytes or count as later evidence.
 
 Within each milestone, Inputs, Deliverables, Exit gate, and If it fails are
-normative. Goal text summarizes intent. `docs/m0-spec.md` and
-`docs/m1-spec.md` refine their respective milestone execution without
-overriding this roadmap; `docs/m0-plan.md` and `docs/m1-plan.md` are
-nonnormative execution aids. Any conflict is repaired in the smallest normative
-owner first.
+normative. Goal text summarizes intent. `docs/m0-spec.md`, `docs/m1-spec.md`,
+and `docs/m2-spec.md` refine their respective milestone execution without
+overriding this roadmap; `docs/m0-plan.md`, `docs/m1-plan.md`, and
+`docs/m2-plan.md` are nonnormative execution aids. Any conflict is repaired in
+the smallest normative owner first.
 
 ### Project-local dependency management
 
@@ -2411,26 +2495,38 @@ Prove the hardest bitstream-to-generic-content path before full authoring, compa
 **Deliverables**
 
 - `spec/bootstrap-v0.md` with acyclic dependency graph and declarative recipe notation;
-- `spec/profile-policy-v0.toml` with candidate set, complexity metrics, hard ceilings, and selection rule;
+- `spec/profile-policy-v0.toml` with exact candidate tuples, candidate set, complexity metrics, hard ceilings, and selection rule;
+- provisional union-safe `spec/profile-limits-v0.toml` compatible with every
+  retained finalist while final geometry remains absent;
 - at least the simple baseline and one stronger transport candidate using the same harness;
 - complete candidate parameter profiles and known-answer/negative vectors registered in `conformance/registry.toml`;
 - candidate-independent `spec/damage-policy-v0.toml`;
 - exact cell-to-observation conversion for each retained candidate;
 - a full-size provisional bitplane with realistic shell and interior density;
-- real bootstrap grammar, one Core 0 section, representative chess/content/lesson/game records, and all candidate checks;
+- real bootstrap grammar, provisional Core-0-entry/inventory and vertical-slice
+  sections, representative chess/content/lesson records, all sixty-four
+  existing atomic game payloads, and all candidate checks;
 - exact shell/recipe/capacity/work ledgers;
 - a functioning clean Linux verification path;
-- one full-carrier technical pilot and, when required, a second;
+- one qualifying fresh full-carrier technical recipient-unit pilot after the
+  latest material change, with every exposed/diagnostic round represented in
+  the permitted redacted history while data permission remains; a withdrawal
+  may instead leave only the agreed non-identifying administrative count or no
+  retained round-linked data;
 - one or two learner micro-pilots through the generic transducer;
 - a bounded finalist set containing at most two passing transport/bootstrap profiles in the lowest viable complexity class, plus one provisional preferred profile for the M2 pilot;
-- provisional semantic-content limits/maxima compatible with every retained finalist; and
+- provisional semantic-content limits/maxima compatible with every retained finalist;
+- one compact tracked feasibility report that binds finalist tuples, generated
+  evidence, and the exact M2 pilot envelope needed by M4; and
 - one short decision note explaining eliminations, retained finalists, and the provisional preference.
 
 **Exit gate**
 
-- the technical pilot starts from `OBS_BITS`, locates the shell, reconstructs the selected decoder, recovers held-out data and damage cases, and rejects a negative without semantic hints;
+- the qualifying technical recipient unit starts from `OBS_BITS`, locates the shell, reconstructs the selected decoder, recovers held-out data and damage cases, and rejects a negative without semantic hints;
 - every artifact-specific step is traceable to shell content or permitted prior knowledge;
-- the learner micro-pilot acquires the slice's intended rules without verbal chess teaching;
+- the learner micro-pilot acquires the slice's intended rules through the
+  label-suppressed generic runner without verbal chess teaching or reliance on
+  natural-language/Unicode/font identity;
 - the provisionally preferred decoder fits the recipe notation and shell with required headroom;
 - simple and stronger candidates were compared using objective complexity, damage, size, and work metrics, and no more than two lowest-class finalists remain for the actual-content M4 rerun;
 - all candidate-independent damage operators, channels, seeds, and promises are executable;
@@ -2515,7 +2611,7 @@ Select dimensions from complete actual content, pack the final candidate, and pa
 - Python/Rust extraction and repack are byte-identical;
 - native/clean-Linux bitplane hashes match;
 - the A carrier and B generic-learning challenge packages contain only allowlisted capabilities and no hidden chess truth in B; and
-- a fresh selected-candidate technical pilot passes before final locks are sealed when any of these recipient-visible facts falls outside the exact M2 pilot envelope: total `N`/side family, shell width or cell contents, bootstrap framing/recipe, grouping or bit order, transform discriminators, selected code/check parameters, physical map/interleave, protected-unit/fragment grammar, or interior density/regularity bounds. A change confined to already piloted fixed-value reserve/padding inside that envelope does not trigger the extra pilot.
+- a fresh selected-candidate technical recipient unit passes before final locks are sealed when any of these recipient-visible facts falls outside the exact M2 pilot envelope: total `N`/side family, shell width or cell contents, bootstrap framing/recipe, grouping or bit order, transform discriminators, selected code/check parameters, physical map/interleave, protected-unit/fragment grammar, interior density/regularity bounds, or recipient-unit size/facilitation condition. A change confined to already piloted fixed-value reserve/padding inside that envelope does not trigger the extra pilot.
 
 **If it fails**
 
@@ -2545,8 +2641,8 @@ Validate the composed final claim against the exact final candidate.
 
 **Exit gate**
 
-- the technical implementer passes every Section 10.5 deliverable within the frozen envelope and without critical hints;
-- the learner bundle consumes the implementer's exact recovered stream;
+- the technical recipient unit passes every Section 10.5 deliverable within the frozen envelope and without critical hints;
+- the learner bundle consumes that unit's exact recovered stream;
 - protocol/forms/selection rules were frozen before result-bearing pretest and
   eligibility/denominator rules were then applied exactly;
 - all Section 10.8 thresholds pass;
@@ -2606,7 +2702,7 @@ The M5 canonical artifact remains valid, but public-project completion is pendin
 | G3 | Raw `docs/64_games.md` compiles independently to 64 legal minimal records | M1 | Path P/Path R per-ply agreement and source audit |
 | G4 | Source metadata/order cannot influence canonical game bytes | M1 | noninterference corpus and canonical set-order proof |
 | G5 | Bootstrap dependency graph and recipe notation are acyclic and complete | M2 | linter, dual recipe interpreters, ablation corpus |
-| G6 | Full raw-bit vertical slice is independently reconstructible | M2 | full-carrier technical pilot and held-out damage results |
+| G6 | Full raw-bit vertical slice is independently reconstructible | M2 | full-carrier technical recipient-unit pilot and held-out damage results |
 | G7 | Language-light representation is learnable enough to continue | M2 | learner micro-pilot on real serialized slice |
 | G8 | Transport finalists and provisional preference follow the predeclared complexity-first rule | M2 | candidate comparison, elimination proofs, and bounded finalist decision |
 | G9 | Complete curriculum has exact predicates, passive completeness, and no hidden evaluator | M3 | role/predicate/graph/transducer reports |
@@ -2615,7 +2711,7 @@ The M5 canonical artifact remains valid, but public-project completion is pendin
 | G12 | Final candidate recovers/fails correctly under frozen damage policy | M4 | candidate damage manifest, placement proof, zero wrong accepts |
 | G13 | Canonical bytes and semantics reproduce across independent environments | M4 | native/Linux equality, extraction/repack, semantic manifests |
 | G14 | Blind packages contain only allowed information/capabilities | M4 | allowlist, dependency, and seeded leak-canary reports |
-| G15 | Fresh implementer recovers the final content stream and damaged cases | M5 | submitted decoder/bytes/states and evaluator report |
+| G15 | Fresh technical recipient unit recovers the final content stream and damaged cases | M5 | submitted decoder/bytes/states, unit condition, and evaluator report |
 | G16 | Fresh learners acquire the declared rules and basic concepts | M5 | family-level baseline/post/integrated/delayed results |
 | G17 | Guided explorer is a faithful offline view, not a second authority | M6 | native/Wasm parity, offline/browser tests |
 | G18 | Final public package is coherent and verifiable | M6 | allowlist, hashes, clean rebuild, final summary |
@@ -2632,7 +2728,7 @@ This section is intentionally mutable. Updating status does not require preservi
 |---|---|---|
 | M0 — Foundation and source reconnaissance | Complete — 2026-08-14; scripts/check full; report SHA-256 ce40dc9c56a37a74969135fab5a8cf13f8c35c4a624005bfe1b239eb32ff04db; registry SHA-256 ed22a5d85e5372727616ed8bb8b86b88d21bc6591a8b0937a23fad580aa5e27e | `docs/m0-spec.md`; `docs/m0-plan.md`; `reports/source-doctor.json`; `conformance/registry.toml` |
 | M1 — Chess truth, source grammar, and assessment blueprint | Complete — 2026-08-17; scripts/check full; game-set identity ffe37ea482b590eb2b454041c0918d05a85161c8f0c604bbf58cc7b71de87db9; report SHA-256 93d0f7ee9e3777386e817bac159b11065fc3378f13644b014b5c399bd420be54 | `docs/m1-spec.md`; `docs/m1-plan.md`; `reports/game-set-v0.bin`; `reports/source-compilation-v0.json` |
-| M2 — Full-carrier bootstrap and transport feasibility | Not started | — |
+| M2 — Full-carrier bootstrap and transport feasibility | Candidate ready — independent validation pending | R1 evidence remains preserved. In R2, independently matching Python/Rust carriers for `eh72-r2-crc32c-v0` at `(1952,128)` and `eh72-r3-crc32c-v0` at `(2032,128)` passed gate 5 and completed the frozen D0–D7 corpus through independent serialized-observation decoders. Both had zero wrong accepts, but gate 6 failed: profile 1 failed D3 in 36/128 cases and D7; profile 3 failed D3 in 35/128 cases and D7. Damage-manifest SHA-256 values are `b561fab93531d97a83fb98342f0da09e3d698e7277249253b15a406ab9525086` and `dd0c9d3359ac475f6e5e5b3ce11a96acf89bbe6b04cd19c819d16e237cb56138`. The other four profiles retain their earlier failures, so R2 stopped before gate 7. Revision 9 restarts M2 under the pre-result `eh72-hier-r5-r2-r1-crc32c-v0` design frozen in `docs/m2-r3-design.md` and the dated decision note. The final admitted R3 damage, limits, and promotion SHA-256 values are `b3b28f00d3ba04addbed4517eb1abb4ecd02796176eaaecdbc1d47f1f39509df`, `32c2bd0cb978eb800bed7f8ac1c7db223b593b4cf3bad951a9ce4cdc3a568902`, and `8c30ae216f5a3fd8ee13f2821d38412afa6c50303c9140cbe54da8610df9cd8d`. Python and Rust independently reproduced the current v7 gates-1–5 tree byte for byte with candidate-manifest identity `d783917d34bc6fb472ea7e20c989562092707c516195019434e01f2bc6f68681` and raw SHA-256 `38839aa28561ff2bec0997a80d8dc938e876526c25f40e23b6a78844f8fc1d86`; its exact six-file canonical tree is present and passes the read-only generation check. The preceding raw manifest `4439abb20aeb4943d9f3dddd4b2b914c08f3a411b791d2ced797533351168019` with identity `69b4052299e43a675683361e6a7fa83798b7b3646c873233cfbdd18432ac4cf4` and its owner tuple remain immutable history under `artifacts/history/m2-r3-pre-gate6-convergence-clarification/`. Two complete gate-6 create attempts executed R3 D0–D7, but each ended in independent/tooling disagreement and took the owned write-nothing path. After the bounded convergence repairs, the complete rerun converged across the oracle, fresh Python decoder, and persistent Rust decoder and atomically published the canonical gate-6 bundle. Its raw SHA-256 is `77697d720bf0df357217d739935931b470cdfda24f7ed3be4b92fc2e6f10e497` and manifest identity is `b7024bed03ef0ee4b7c0f89bd5ac626a285dc35c39d8642a3d820570670e7177`. The D0–D7 counts are `[16, 4, 256, 128, 1841, 21, 7364, 408]` (10,038 total); all eight families and four boundary KATs pass with zero wrong accepts. Gate 7 then atomically added the independently byte-identical proof, raw SHA-256 `e73a4a186af1a79d1bea3ec73911aa9c4da7cde09e74f36d08e8019d26082964`, identity `303b3f710c17517072221156bc5376841970720da3081ae82193243ce009eb04`; all nine predicates pass with zero violations. The candidate passes gates 1–8 with provisional preferred candidate `eh72-hier-r5-r2-r1-crc32c-v0` and tracked report SHA-256 `2315d001d3cceadeeacd1dfeedefeb681b6be3a32b787541fc6260502881d1b3`; automated native and clean-Linux evidence passes, while technical and learner validation remains pending. |
 | M3 — Complete content and formative integration | Not started | — |
 | M4 — Final profile, candidate, and automated qualification | Not started | — |
 | M5 — Independent reconstruction and learner validation | Not started | — |
@@ -2674,7 +2770,7 @@ This matrix is part of the implementation contract. It does not claim to cover e
 | A sector's local pattern is coherently rewritten with matching local redundancy | It is accepted only if the complete downstream transport/content invariants agree; otherwise conflict is explicit | G5, G12 |
 | The first pilot guesses a convention from prior knowledge | That convention is treated as missing artifact instruction and added or the claim is narrowed | G6 |
 | The pilot already knows the selected recovery code | Every project-specific parameter and procedure step still needs artifact evidence; prior knowledge cannot fill an omitted step | G6 |
-| Provisional interior filler is visually easier than final content | The pilot is invalid; rerun with final-scale density and regularity within the frozen projection envelope | G6 |
+| Provisional capacity probes/pad are visually easier than final content | The pilot is invalid; rerun with final-scale density and regularity within the frozen projection envelope | G6 |
 | A raw file exposes byte grouping while the scored claim concerns ungrouped symbols | Report the paths separately; file-path success cannot close the ungrouped-symbol claim | G6, G14 |
 | A slightly smaller candidate requires materially more shell mathematics or convention recovery | It falls into a harder bootstrap class and cannot win on bit count alone | G8, G11 |
 | Trial-and-error explores many hypotheses | The finite candidate grammar, work budget, and stopping output make this legitimate; the recipient is not penalized for rejected attempts | G5–G6 |
@@ -2855,16 +2951,20 @@ The project MUST NOT save space or effort by removing ordinary movement, king sa
 | Candidate checks explode | attempt trace approaches the frozen ceiling | improve structural rejection or reduce rival profile set; never raise the cap silently |
 | Reproducibility perimeter grows | build needs many native tools or mutable downloads | simplify the packer and freeze a small offline input bundle |
 | Explorer becomes a second product | JS/Wasm duplicates semantics or requires network/backend | remove duplicated logic; keep the explorer a thin adapter over the validated core |
-| Human validation cannot be recruited | no eligible cohort/implementer by M5 | release nothing as validated teaching evidence; retain candidate-ready status |
+| Human validation cannot be recruited | no eligible cohort/recipient unit by M5 | release nothing as validated teaching evidence; retain candidate-ready status |
 | Pet-project process grows faster than product | repeated manual reports or approvals appear | collapse them into generated checks and one concise decision/status record |
 
 ### 15.5 Change impact
 
 A change reopens the earliest milestone whose observable contract it affects:
 
-- locked anthology/reference input, source-lock receipt, foundational identity
-  framing, or canonical-manifest grammar: reopen M0 and every dependent
-  milestone;
+- changing/removing the locked anthology or an existing M0 reference receipt,
+  foundational identity framing, or canonical-manifest grammar: reopen M0 and
+  every dependent milestone; an additive exact M2 implementation receipt that
+  M0 expressly deferred is owned by M2 and does not reopen completed M0;
+- changing/removing an M2 implementation receipt or adding one that alters a
+  selected M2 tuple/vector: reopen M2 and every dependent candidate/profile
+  gate;
 - chess rule, move encoding, source grammar, position/repetition-key/game/
   game-set identity preimage, game IR, initial generic content grammar, or
   interaction wire contract: reopen M1 and downstream semantic/content gates;
@@ -2917,7 +3017,7 @@ rejection precedence.
 
 **Hamming** (<https://doi.org/10.1002/j.1538-7305.1950.tb00463.x>) and **Reed–Solomon** (<https://doi.org/10.1137/0108018>) provide code theory, not a Golden Board implementation profile. Any selected code MUST have exact project parameters, cell-to-symbol mapping, decoder behavior, known-answer vectors, mixed error/erasure rules, and a complete shell teaching route.
 
-**ETSI TR 102 993 V1.1.1** (<https://www.etsi.org/deliver/etsi_tr/102900_102999/102993/01.01.01_60/tr_102993v010101p.pdf>) and **ETSI EN 301 192 V1.7.1** (<https://www.etsi.org/deliver/etsi_en/301100_301199/301192/01.07.01_60/en_301192v010701p.pdf>), if `RS(255,191)` remains in the measured comparison, may supply a concrete field/code profile. Golden Board MUST copy the relevant parameters into its own selected profile and MUST NOT inherit unrelated DVB framing assumptions.
+**ETSI TR 102 993 V1.1.1** (<https://www.etsi.org/deliver/etsi_tr/102900_102999/102993/01.01.01_60/tr_102993v010101p.pdf>) and **ETSI EN 301 192 V1.8.1 (2025-06)** (<https://www.etsi.org/deliver/etsi_en/301100_301199/301192/01.08.01_60/en_301192v010801p.pdf>), if `RS(255,191)` remains in the measured comparison, may supply a concrete field/code profile. Golden Board MUST copy the relevant parameters into its own selected profile and MUST NOT inherit unrelated DVB framing assumptions.
 
 **RFC 9260 Appendix A** (<https://www.rfc-editor.org/rfc/rfc9260.html>) and **ECMA-182** (<https://ecma-international.org/publications-and-standards/standards/ecma-182/>) are candidate parameter/background references: the former specifies SCTP's CRC-32C procedure and byte mapping, while the latter specifies an application-specific CRC-64 for DLT1 tape fields. Neither is, by itself, a generic Golden Board profile or standalone known-answer basis. M2 MUST freeze the complete tuple, covered bytes, stored byte order, and independently checked project vectors. A named CRC and output width do not establish a universal `2^-k` false-accept probability for structured faults. Golden Board uses exact checks, code guarantees, and finite negative/damage corpora without that shortcut.
 
@@ -2959,7 +3059,7 @@ Golden Board is complete only when all of the following are true for one named f
 1. M0 through M6 are `Complete` in Section 13 and G1 through G18 pass against non-stale evidence.
 2. `GOLDEN-BOARD.bitplane` is the sole canonical message and has a published exact side length, byte length, SHA-256 hash, profile ID, and semantic-extraction hash.
 3. The profile was selected after complete actual shell, curriculum, anthology, integrity, redundancy, conformance, padding, and reserve bytes were serialized.
-4. A fresh technical implementer recovered the exact generic content stream and required damaged-case states from the final raw-bit path within the frozen tool/time envelope.
+4. A fresh technical recipient unit recovered the exact generic content stream and required damaged-case states from the final raw-bit path within the frozen tool/time/unit envelope.
 5. The exact stream produced by that independent implementation, without semantic rewriting, was the input to the final learner path.
 6. The final learner cohort met the frozen family-level acquisition, integrated-play/record-reading, basic-concept, and delayed gates without semantic hints.
 7. Python and Rust agree on every canonical game, lesson, state transition, rejection code, section extraction, and recovery-state fixture used by the final candidate.

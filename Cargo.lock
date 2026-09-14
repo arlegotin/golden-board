@@ -53,6 +53,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
+name = "gb-bootstrap"
+version = "0.0.0"
+dependencies = [
+ "gb-content",
+ "gb-foundation",
+ "gb-slice",
+ "sha2",
+ "toml",
+]
+
+[[package]]
 name = "gb-chess"
 version = "0.0.0"
 dependencies = [
@@ -73,6 +84,17 @@ name = "gb-foundation"
 version = "0.0.0"
 dependencies = [
  "serde",
+ "serde_json",
+ "sha2",
+ "toml",
+]
+
+[[package]]
+name = "gb-slice"
+version = "0.0.0"
+dependencies = [
+ "gb-content",
+ "gb-foundation",
  "serde_json",
  "sha2",
  "toml",

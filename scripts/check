@@ -8,15 +8,19 @@ usage() {
         '       scripts/check focused chess' \
         '       scripts/check focused curriculum' \
         '       scripts/check focused content' \
+        '       scripts/check focused transport' \
+        '       scripts/check focused damage' \
         '       scripts/check focused repo' \
-        '       scripts/check full' >&2
+        '       scripts/check linux' \
+        '       scripts/check full' \
+        '       scripts/check release' >&2
 }
 
 case "$#:$1" in
-    1:fast|1:full) mode=$1 ;;
+    1:fast|1:full|1:linux|1:release) mode=$1 ;;
     2:focused)
         case "$2" in
-            source|identity|chess|curriculum|content|repo) mode=$2 ;;
+            source|identity|chess|curriculum|content|transport|damage|repo) mode=$2 ;;
             *) usage; exit 2 ;;
         esac
         ;;
@@ -48,11 +52,17 @@ run_check() {
     fi
 }
 
+# The independent verifier intentionally dispatches before host language
+# preflight. Its host surface is Git, Docker, and this POSIX shell only.
+if [ "$mode" = linux ]; then
+    exec "$ROOT/tools/linux/verify.sh"
+fi
+
 for tool in git uv rustup; do
     command -v "$tool" >/dev/null 2>&1 || fail "preflight: missing $tool"
 done
 case "$(uv --version 2>/dev/null)" in
-    "uv 0.11.29 "*) ;;
+    "uv 0.11.29"|"uv 0.11.29 "*) ;;
     *) fail "preflight: expected uv 0.11.29" ;;
 esac
 if ! uv run --locked --offline --no-python-downloads python -c \
@@ -60,9 +70,13 @@ if ! uv run --locked --offline --no-python-downloads python -c \
 then
     fail "preflight: expected CPython 3.14.6; run uv python install 3.14.6"
 fi
+GB_PYTHON="$ROOT/.venv/bin/python"
+export GB_PYTHON
 RUSTC=$(rustup which --toolchain 1.97.1 rustc 2>/dev/null) || \
     fail "preflight: install Rust 1.97.1 with rustfmt"
 export RUSTC
+CARGO_INCREMENTAL=0
+export CARGO_INCREMENTAL
 case "$("$RUSTC" --version 2>/dev/null)" in
     "rustc 1.97.1 "*) ;;
     *) fail "preflight: expected rustc 1.97.1" ;;
@@ -130,8 +144,74 @@ content() {
         --test content --locked --offline
 }
 
+transport() {
+    candidate_root=$ROOT/artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0
+    if [ -d "$candidate_root" ]; then
+        run_check transport-r3-candidate uv run --locked --offline \
+            --no-python-downloads python tools/m2/generate_candidates.py \
+            --check || return 1
+    else
+        printf '%s\n' 'check: transport-r3-candidate deferred to private Gate-8 regeneration'
+    fi
+    python_tests transport-python \
+        python.tests.test_bootstrap python.tests.test_m2_slice \
+        python.tests.test_m2_runner python.tests.test_capacity \
+        python.tests.test_m2_policy python.tests.test_m2_route_data \
+        python.tests.test_m2_common_recipe \
+        python.tests.test_m2_codec \
+        python.tests.test_m2_recipe \
+        python.tests.test_m2_carrier \
+        python.tests.test_m2_decoder \
+        python.tests.test_m2_gate8 \
+        python.tests.test_m2_gate8_policy \
+        python.tests.test_m2_learner_runner \
+        python.tests.test_m2_transport_fast || return 1
+    run_check transport-rust-bootstrap rustup run 1.97.1 cargo test -p gb-bootstrap \
+        --all-targets --locked --offline || return 1
+    run_check transport-rust-slice rustup run 1.97.1 cargo test -p gb-slice \
+        --all-targets --locked --offline
+}
+
+transport_fast() {
+    python_tests transport-fast-python \
+        python.tests.test_m2_transport_fast \
+        python.tests.test_m2_gate8_policy \
+        python.tests.test_m2_learner_runner || return 1
+    run_check transport-fast-rust-bootstrap rustup run 1.97.1 cargo test \
+        -p gb-bootstrap --test candidate --locked --offline \
+        four_literal_eh72_encodings_are_exact || return 1
+    run_check transport-fast-rust-slice rustup run 1.97.1 cargo test \
+        -p gb-slice --test slice --locked --offline \
+        exact_two_tier_compilation_and_projection
+}
+
+damage() {
+    candidate_root=$ROOT/artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0
+    if [ -d "$candidate_root/damage" ]; then
+        run_check damage-check "$GB_PYTHON" tools/m2/generate_damage.py --check || return 1
+    else
+        printf '%s\n' 'check: damage-check deferred to private Gate-8 regeneration'
+    fi
+    python_tests damage-python \
+        python.tests.test_m2_damage \
+        python.tests.test_m2_decoder \
+        python.tests.test_m2_independence || return 1
+    run_check damage-rust rustup run 1.97.1 cargo test -p gb-bootstrap \
+        --lib --locked --offline damage::tests || return 1
+    run_check damage-rust-v1 rustup run 1.97.1 cargo test -p gb-bootstrap \
+        --lib --locked --offline damage_v1::tests || return 1
+    run_check damage-rust-independence-v1 rustup run 1.97.1 cargo test \
+        -p gb-bootstrap --lib --locked --offline independence_v1::tests || return 1
+    run_check damage-rust-bridge rustup run 1.97.1 cargo test -p gb-bootstrap \
+        --bin gb-r3-damage-decoder --locked --offline || return 1
+    run_check damage-rust-proof-cli rustup run 1.97.1 cargo test \
+        -p gb-bootstrap --bin gb-r3-independence-proof --locked --offline
+}
+
 repo() {
-    run_check repo-shell sh -n scripts/check || return 1
+    run_check repo-shell sh -n \
+        scripts/check tools/linux/acquire.sh tools/linux/container-verify.sh \
+        tools/linux/verify.sh || return 1
     run_check repo-rustfmt rustup run 1.97.1 cargo fmt --all --check || return 1
     run_check repo-working-diff git diff --check || return 1
     run_check repo-index-diff git diff --cached --check || return 1
@@ -141,13 +221,162 @@ repo() {
         python.tests.test_constants.ConstantsCodegen
 }
 
+new_private_directory() {
+    temp_root=$(CDPATH= cd -P "${TMPDIR:-/tmp}" 2>/dev/null && pwd -P) || return 1
+    directory=$(mktemp -d "$temp_root/golden-board-gate8.XXXXXX") || return 1
+    chmod 700 "$directory" || return 1
+    printf '%s\n' "$directory"
+}
+
+remove_private_directory() {
+    directory=$1
+    temp_root=$(CDPATH= cd -P "${TMPDIR:-/tmp}" 2>/dev/null && pwd -P) || return 1
+    case "$directory" in
+        "$temp_root"/golden-board-gate8.*) ;;
+        *) return 1 ;;
+    esac
+    rm -rf "$directory"
+}
+
+gate8_phase() {
+    result=0
+    report=$ROOT/reports/m2-feasibility-v0.json
+    gate8=$ROOT/artifacts/gate8
+    if [ "${GB_M2_LINUX_CANDIDATE_READY:-0}" = 1 ]; then
+        [ -f "$report" ] || fail 'gate8: clean-Linux Candidate-ready report is missing'
+        [ ! -e "$gate8" ] || fail 'gate8: ignored retained tree entered clean Linux'
+        [ "${GB_M2_GATE8_NATIVE_INPUT:-}" = /gate8-native-input ] || \
+            fail 'gate8: clean-Linux native input mount is missing'
+        [ "${GB_M2_GATE8_LINUX_OUTPUT:-}" = /gate8-output ] || \
+            fail 'gate8: clean-Linux receipt output mount is missing'
+        candidate=$(new_private_directory) || return 1
+        work=$(new_private_directory) || {
+            remove_private_directory "$candidate"
+            return 1
+        }
+        run_check gate8-linux-candidate-ready "$GB_PYTHON" \
+            tools/m2/generate_gate8.py verify-linux \
+            --candidate-root "$candidate" \
+            --native-input-dir /gate8-native-input \
+            --linux-output-dir /gate8-output \
+            --gate8-work-root "$work"
+        result=$?
+        remove_private_directory "$candidate" || result=1
+        remove_private_directory "$work" || result=1
+        return "$result"
+    fi
+    if [ ! -e "$report" ] && [ ! -e "$gate8" ]; then
+        candidate=$(new_private_directory) || return 1
+        run_check gate8-pre-report "$GB_PYTHON" tools/m2/generate_gate8.py \
+            phase-check --phase pre-gate8-clean --candidate-root "$candidate"
+        result=$?
+        remove_private_directory "$candidate" || result=1
+        return "$result"
+    fi
+    [ -f "$report" ] && [ -d "$gate8" ] || fail 'gate8: partial lifecycle state'
+    receipts=${GB_M2_RELEASE_NATIVE_RECEIPTS:-}
+    owned_receipts=0
+    if [ -z "$receipts" ]; then
+        receipts=$(new_private_directory) || return 1
+        owned_receipts=1
+    else
+        case "$receipts" in /*) ;; *) fail 'gate8: release receipt directory is not absolute' ;; esac
+        [ -d "$receipts" ] || fail 'gate8: release receipt directory is missing'
+        [ -z "$(find "$receipts" -mindepth 1 -maxdepth 1 -print -quit)" ] || \
+            fail 'gate8: release receipt directory is not empty'
+    fi
+    if ! cp "$gate8/receipts/linux-python.json" "$receipts/linux-python.json" || \
+        ! cp "$gate8/receipts/linux-rust.json" "$receipts/linux-rust.json"
+    then
+        [ "$owned_receipts" -eq 0 ] || remove_private_directory "$receipts"
+        return 1
+    fi
+    candidate_python=$(new_private_directory) || {
+        [ "$owned_receipts" -eq 0 ] || remove_private_directory "$receipts"
+        return 1
+    }
+    candidate_rust=$(new_private_directory) || {
+        remove_private_directory "$candidate_python"
+        [ "$owned_receipts" -eq 0 ] || remove_private_directory "$receipts"
+        return 1
+    }
+    candidate_assembly=$(new_private_directory) || {
+        remove_private_directory "$candidate_python"
+        remove_private_directory "$candidate_rust"
+        [ "$owned_receipts" -eq 0 ] || remove_private_directory "$receipts"
+        return 1
+    }
+    run_check gate8-native-python "$GB_PYTHON" tools/m2/generate_gate8.py \
+        producer --mode generate --producer-id native-python \
+        --candidate-root "$candidate_python" --output-dir "$receipts" || result=$?
+    result=${result:-0}
+    if [ "$result" -eq 0 ]; then
+        run_check gate8-rust-build rustup run 1.97.1 cargo build -p gb-bootstrap \
+            --bin gb-m2-gate8 --release --locked --offline || result=$?
+    fi
+    if [ "$result" -eq 0 ]; then
+        run_check gate8-native-rust "$ROOT/target/release/gb-m2-gate8" \
+            producer --mode generate --producer-id native-rust \
+            --candidate-root "$candidate_rust" --output-dir "$receipts" || result=$?
+    fi
+    if [ "$result" -eq 0 ]; then
+        run_check gate8-host-candidate-ready "$GB_PYTHON" \
+            tools/m2/generate_gate8.py assemble --mode check \
+            --candidate-root "$candidate_assembly" --receipt-dir "$receipts" \
+            --output-dir "$gate8" --report-out "$report" || result=$?
+    fi
+    remove_private_directory "$candidate_python" || result=1
+    remove_private_directory "$candidate_rust" || result=1
+    remove_private_directory "$candidate_assembly" || result=1
+    if [ "$owned_receipts" -eq 1 ]; then
+        remove_private_directory "$receipts" || result=1
+    fi
+    return "$result"
+}
+
+release_freeze() {
+    report=$ROOT/reports/m2-feasibility-v0.json
+    [ -f "$report" ] || fail 'release: Candidate-ready report is missing'
+    after=$(shasum -a 256 "$report") || return 1
+    [ "$after" = "$GB_M2_RELEASE_REPORT_SHA256" ] || \
+        fail 'release: report changed during verification'
+    for forbidden in release web .github/workflows schemas reports/release-summary.json; do
+        [ ! -e "$ROOT/$forbidden" ] || fail "release: premature path $forbidden"
+    done
+}
+
+release() {
+    report=$ROOT/reports/m2-feasibility-v0.json
+    [ -f "$report" ] || fail 'release: Candidate-ready report is missing'
+    GB_M2_RELEASE_REPORT_SHA256=$(shasum -a 256 "$report") || return 1
+    export GB_M2_RELEASE_REPORT_SHA256
+    receipts=$(new_private_directory) || return 1
+    GB_M2_RELEASE_NATIVE_RECEIPTS=$receipts
+    export GB_M2_RELEASE_NATIVE_RECEIPTS
+    repo && identity && chess && chess_oracle && source_full && curriculum && \
+        content && transport && damage && gate8_phase
+    result=$?
+    if [ "$result" -eq 0 ]; then
+        run_check release-linux "$ROOT/tools/linux/verify.sh" || result=$?
+    fi
+    if [ "$result" -eq 0 ]; then
+        release_freeze || result=$?
+    fi
+    remove_private_directory "$receipts" || result=1
+    unset GB_M2_RELEASE_NATIVE_RECEIPTS GB_M2_RELEASE_REPORT_SHA256
+    return "$result"
+}
+
 case "$mode" in
     identity) identity ;;
     chess) chess ;;
     source) source_full ;;
     curriculum) curriculum ;;
     content) content ;;
+    transport) transport ;;
+    damage) damage ;;
     repo) repo ;;
-    fast) repo && identity && chess && source_fast && curriculum && content ;;
-    full) repo && identity && chess && chess_oracle && source_full && curriculum && content ;;
+    fast) repo && identity && chess && source_fast && curriculum && content && transport_fast ;;
+    full) repo && identity && chess && chess_oracle && source_full && curriculum && content && transport && damage && gate8_phase ;;
+    release) release ;;
 esac

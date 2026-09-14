@@ -12,7 +12,7 @@ use std::sync::OnceLock;
 #[cfg(unix)]
 use std::thread;
 #[cfg(unix)]
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use gb_chess::source::{
     EvidenceInputs, GameRecord, SourceReject, compile_source, coordinate_candidates, decode_game,
@@ -28,6 +28,8 @@ use sha2::{Digest, Sha256};
 const FIXTURE_BYTES: usize = 254_843;
 const FIXTURE_SHA256: &str = "07c36421b2b27aa3b9ab4609f34b6f0d24d63bac9752e0c083747cb90e0f8b30";
 const READ_CAP: usize = 1_048_577;
+const SOURCE_LOCK_CAP: usize = 16_384;
+const SOURCE_LOCK_STRING_CAP: usize = 1_024;
 #[cfg(any(target_os = "linux", target_os = "android"))]
 const O_NOFOLLOW: i32 = 0x20_000;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -230,9 +232,177 @@ fn registered_fixture() -> V {
     validate_canonical_manifest(&bytes).unwrap()
 }
 
+fn lock_text<'a>(value: &'a toml::Value, label: &str) -> &'a str {
+    let value = value
+        .as_str()
+        .unwrap_or_else(|| panic!("invalid source-lock {label}"));
+    assert!(
+        !value.is_empty() && value.len() <= SOURCE_LOCK_STRING_CAP,
+        "invalid source-lock {label}"
+    );
+    value
+}
+
+fn exact_lock_table<'a>(
+    value: &'a toml::Value,
+    expected: &[&str],
+    label: &str,
+) -> &'a toml::map::Map<String, toml::Value> {
+    let table = value
+        .as_table()
+        .unwrap_or_else(|| panic!("invalid source-lock {label}"));
+    assert_eq!(
+        table.keys().map(String::as_str).collect::<BTreeSet<_>>(),
+        expected.iter().copied().collect::<BTreeSet<_>>(),
+        "invalid source-lock {label} fields"
+    );
+    table
+}
+
+fn source_lock_reference_roles() -> BTreeMap<&'static str, &'static str> {
+    [
+        ("fide-laws-2023", "normative_future_input"),
+        ("pgn-guide-1994", "historical_background"),
+        ("nist-fips-180-4", "hash_definition"),
+        ("nist-sha-byte-vectors-archive", "known_answer_container"),
+        ("nist-sha256-short-message-vectors", "known_answer_source"),
+        ("etsi-en-301-192-v1-8-1", "rs_parameter_source"),
+        ("rfc-9260", "crc32c_parameter_source"),
+        ("ecma-182", "crc64_parameter_source"),
+    ]
+    .into_iter()
+    .collect()
+}
+
+fn parse_source_lock_bytes(bytes: &[u8]) -> toml::Value {
+    assert!(bytes.len() <= SOURCE_LOCK_CAP, "oversized source lock");
+    let text = std::str::from_utf8(bytes).expect("source lock is not UTF-8");
+    let lock: toml::Value = toml::from_str(text).expect("invalid source-lock TOML");
+    let table = exact_lock_table(&lock, &["reference", "schema", "source"], "root");
+    assert_eq!(
+        lock_text(&table["schema"], "schema"),
+        "golden-board.source-lock/v0"
+    );
+
+    let sources = table["source"].as_array().expect("invalid source list");
+    assert_eq!(sources.len(), 1, "invalid source count");
+    let source = exact_lock_table(
+        &sources[0],
+        &[
+            "bytes", "encoding", "id", "newline", "path", "role", "sha256",
+        ],
+        "source",
+    );
+    assert_eq!(lock_text(&source["id"], "source id"), "anthology");
+    assert_eq!(
+        lock_text(&source["role"], "source role"),
+        "authoritative_input"
+    );
+    assert_eq!(
+        lock_text(&source["path"], "source path"),
+        "docs/64_games.md"
+    );
+    assert!(source["bytes"].as_integer().is_some_and(|value| value >= 0));
+    let source_digest = lock_text(&source["sha256"], "source digest");
+    assert!(
+        source_digest.len() == 64
+            && source_digest
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    );
+    assert_eq!(lock_text(&source["encoding"], "source encoding"), "utf-8");
+    assert_eq!(lock_text(&source["newline"], "source newline"), "lf");
+
+    let roles = source_lock_reference_roles();
+    let references = table["reference"]
+        .as_array()
+        .expect("invalid reference list");
+    assert_eq!(references.len(), roles.len(), "invalid reference count");
+    let mut seen = BTreeSet::new();
+    for value in references {
+        let reference = exact_lock_table(
+            value,
+            &[
+                "accessed",
+                "bytes",
+                "id",
+                "locator",
+                "redistribution",
+                "retention",
+                "role",
+                "sha256",
+                "title",
+                "version",
+            ],
+            "reference",
+        );
+        let identifier = lock_text(&reference["id"], "reference id");
+        assert!(
+            identifier
+                .bytes()
+                .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+                && !identifier.starts_with('-')
+                && !identifier.ends_with('-')
+                && !identifier.contains("--"),
+            "invalid reference id"
+        );
+        assert!(seen.insert(identifier), "duplicate reference id");
+        assert_eq!(
+            roles.get(identifier).copied(),
+            Some(lock_text(&reference["role"], "reference role")),
+            "unknown reference or role mismatch"
+        );
+        lock_text(&reference["title"], "reference title");
+        lock_text(&reference["version"], "reference version");
+        assert!(
+            lock_text(&reference["locator"], "reference locator").starts_with("https://"),
+            "invalid reference locator"
+        );
+        let accessed = lock_text(&reference["accessed"], "reference accessed");
+        assert!(
+            accessed.len() == 10
+                && accessed.as_bytes()[4] == b'-'
+                && accessed.as_bytes()[7] == b'-'
+                && accessed
+                    .bytes()
+                    .enumerate()
+                    .all(|(index, byte)| matches!(index, 4 | 7) || byte.is_ascii_digit()),
+            "invalid reference accessed date"
+        );
+        assert!(
+            reference["bytes"]
+                .as_integer()
+                .is_some_and(|value| value >= 0),
+            "invalid reference byte length"
+        );
+        let digest = lock_text(&reference["sha256"], "reference digest");
+        assert!(
+            digest.len() == 64
+                && digest
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)),
+            "invalid reference digest"
+        );
+        assert_eq!(
+            lock_text(&reference["retention"], "reference retention"),
+            "receipt_only"
+        );
+        assert_eq!(
+            lock_text(&reference["redistribution"], "reference redistribution"),
+            "not_established"
+        );
+    }
+    assert_eq!(
+        seen,
+        roles.keys().copied().collect(),
+        "missing or unexpected reference"
+    );
+    lock
+}
+
 fn locked_anthology() -> Vec<u8> {
-    let lock_bytes = safe_read("inputs/source-lock.toml", 16_384);
-    let lock: toml::Value = toml::from_str(std::str::from_utf8(&lock_bytes).unwrap()).unwrap();
+    let lock_bytes = safe_read("inputs/source-lock.toml", SOURCE_LOCK_CAP);
+    let lock = parse_source_lock_bytes(&lock_bytes);
     assert_eq!(
         lock.as_table()
             .unwrap()
@@ -281,6 +451,96 @@ fn text_sha(value: &str) -> String {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
     );
     value.to_owned()
+}
+
+fn assert_source_lock_rejects(bytes: &[u8]) {
+    assert!(
+        std::panic::catch_unwind(|| parse_source_lock_bytes(bytes)).is_err(),
+        "invalid source lock was accepted"
+    );
+}
+
+#[test]
+fn source_lock_inventory_and_metadata_are_closed() {
+    let lock = safe_read("inputs/source-lock.toml", SOURCE_LOCK_CAP);
+    parse_source_lock_bytes(&lock);
+
+    assert_source_lock_rejects(&replace_once(
+        &lock,
+        b"id = \"rfc-9260\"",
+        b"id = \"unknown-9260\"",
+    ));
+    assert_source_lock_rejects(&replace_once(
+        &lock,
+        b"id = \"rfc-9260\"",
+        b"id = \"ecma-182\"",
+    ));
+    assert_source_lock_rejects(&replace_once(
+        &lock,
+        b"role = \"crc32c_parameter_source\"",
+        b"role = \"crc64_parameter_source\"",
+    ));
+
+    let title = b"RFC 9260: Stream Control Transmission Protocol";
+    let at_cap = replace_once(&lock, title, &vec![b'a'; SOURCE_LOCK_STRING_CAP]);
+    parse_source_lock_bytes(&at_cap);
+    let over_cap = replace_once(&lock, title, &vec![b'a'; SOURCE_LOCK_STRING_CAP + 1]);
+    assert_source_lock_rejects(&over_cap);
+}
+
+#[test]
+fn source_lock_parser_rejects_outer_cap_plus_one_before_toml() {
+    let mut exact = safe_read("inputs/source-lock.toml", SOURCE_LOCK_CAP);
+    exact.resize(SOURCE_LOCK_CAP, b' ');
+    parse_source_lock_bytes(&exact);
+    exact.push(b' ');
+    assert_source_lock_rejects(&exact);
+}
+
+#[cfg(unix)]
+#[test]
+fn source_lock_file_reader_enforces_outer_cap() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let directory = std::env::temp_dir().join(format!(
+        "golden-board-source-lock-{}-{nonce}",
+        std::process::id()
+    ));
+    fs::create_dir(&directory).unwrap();
+    fs::create_dir(directory.join("inputs")).unwrap();
+    let path = directory.join("inputs/source-lock.toml");
+
+    let mut exact = safe_read("inputs/source-lock.toml", SOURCE_LOCK_CAP);
+    exact.resize(SOURCE_LOCK_CAP, b' ');
+    fs::write(&path, &exact).unwrap();
+    assert_eq!(
+        safe_read_from(
+            &directory,
+            "inputs/source-lock.toml",
+            SOURCE_LOCK_CAP,
+            |_| {}
+        ),
+        exact
+    );
+
+    exact.push(b' ');
+    fs::write(&path, &exact).unwrap();
+    assert!(
+        std::panic::catch_unwind(|| {
+            safe_read_from(
+                &directory,
+                "inputs/source-lock.toml",
+                SOURCE_LOCK_CAP,
+                |_| {},
+            )
+        })
+        .is_err()
+    );
+    fs::remove_file(path).unwrap();
+    fs::remove_dir(directory.join("inputs")).unwrap();
+    fs::remove_dir(directory).unwrap();
 }
 
 fn cycle_records(input: &BTreeMap<String, V>) -> Vec<GameRecord> {

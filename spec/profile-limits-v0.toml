@@ -1,0 +1,189 @@
+schema = "golden-board.profile-limits/v0"
+generation = "componentwise-union-of-all-six-pre-result-profile-ledgers"
+profile_policy_sha256 = "c180c2ad312c21e7559a33d9d6aee7ae5ecdc287e94197061242985c57b02265"
+damage_policy_sha256 = "9cbb185dd5d7d3fec1d4ce4aa978fa77d92e7a4ef272c2f038f0ada769c376e4"
+bootstrap_spec_sha256 = "82c25776871ac48184d5a7f15663bcc1d192618d66df72ff5fbf3a252aa564c2"
+capacity_module_sha256 = "9c70306eaed963c682652b5b61b4cf8136e5652bbaf995cc49a4e1edd12a407d"
+slice_semantic_sha256 = "de7e22f0aa4316d9f32d9435287dd19bd6c04519aae1dc9bd816613f26929671"
+profile_ids = ["eh72-r2-crc32c-v0", "eh72-r2-crc64-ecma-v0", "eh72-r3-crc32c-v0", "eh72-r3-crc64-ecma-v0", "rs255-191-crc32c-v0", "rs255-191-crc64-ecma-v0"]
+
+[raw]
+bits = 4194304
+side = 2048
+cells = 4194304
+entry_hypotheses = 16
+shell_sectors = 4
+shell_width = 128
+
+[semantic_capacity]
+prototype_kinds = 14
+curriculum_concepts = 29
+curriculum_families = 20
+integrated_tasks = 3
+buckets = 53
+slots = 4174
+simulated_sections = 53
+authoring_payload_bytes = 105277
+real_content_body_sections = 77
+real_content_body_payload_bytes = 13628
+tier_frame_sections = 2
+tier_frame_payload_bytes = 380
+real_slice_payload_excluding_inventory = 14008
+inventory_payload_bytes = 16384
+content_capacity_before_reserve_bytes = 135669
+reserve_payload_bytes = 7141
+reserve_probe_sections = 1
+protected_logical_capacity_bytes = 142810
+
+[bootstrap]
+common_block_bytes = 191
+common_payload_bytes = 157
+common_blocks = 2427
+common_plain_bytes = 463557
+section_payload_bytes = 16384
+section_envelope_bytes = 32790
+fragments_per_semantic_copy = 209
+fragment_observations = 2427
+semantic_copies_per_section = 3
+sections = 818
+inventory_entries = 818
+dependencies_per_section = 4095
+dependency_edges = 3349710
+section_attempts = 4096
+assembled_content_bytes = 1048576
+output_bytes = 1048576
+
+[transport]
+profile_tuples = 6
+protected_units = 2427
+protected_unit_bytes = 255
+encoded_transport_bytes = 524280
+eh_codewords_per_unit = 24
+eh_codeword_candidate_constructions = 144
+rs_symbols_per_unit = 255
+rs_erasures_per_unit = 64
+rs_unknown_errors_per_unit = 32
+
+[recipe]
+package_bytes = 1048576
+recipes = 256
+tables = 4096
+table_payload_bytes = 1048576
+nodes = 65535
+edges = 262140
+iteration_count = 1048576
+primitive_steps = 268435456
+scratch_bytes = 16777216
+route_records = 256
+route_sector_capacity_formula = "shell_width_times_side_minus_shell_width_div_8"
+route_sector_capacity_bytes = 30720
+
+[damage]
+cases = 12968
+d2_placements = 256
+d3_seeds = 128
+d3_substitutions = 2065
+changed_or_erased_coordinates = 4194304
+sample_attempts = 268436480
+obs_bits_bytes = 524292
+obs_matrix_bytes = 4194306
+obs_units_bytes = 538798
+wrong_accepts = 0
+
+[content]
+stream_bytes = 1048576
+records = 65535
+records_per_non_root_kind = 4096
+payload_bytes = 1048576
+text_bytes = 4096
+enum_entries = 4096
+vector_atoms = 65535
+matrix_cells = 65535
+field_schema_fields = 256
+tuple_slots = 4096
+opaque_atoms = 4096
+regions = 4096
+lesson_nodes = 4096
+cases_per_node = 4096
+control_edges = 16384
+selections = 4096
+event_budget = 65535
+run_state_bytes = 466958
+
+[[profile]]
+id = "eh72-r2-crc32c-v0"
+profile_version = 1
+check_bytes = 4
+required_copy_count = 2
+protected_unit_bytes = 216
+protected_units = 2427
+encoded_transport_bytes = 524232
+section_envelope_bytes = 32786
+fragments_per_semantic_copy = 209
+damage_cases = 12968
+obs_units_bytes = 538798
+
+[[profile]]
+id = "eh72-r2-crc64-ecma-v0"
+profile_version = 2
+check_bytes = 8
+required_copy_count = 2
+protected_unit_bytes = 216
+protected_units = 2427
+encoded_transport_bytes = 524232
+section_envelope_bytes = 32790
+fragments_per_semantic_copy = 209
+damage_cases = 12968
+obs_units_bytes = 538798
+
+[[profile]]
+id = "eh72-r3-crc32c-v0"
+profile_version = 3
+check_bytes = 4
+required_copy_count = 3
+protected_unit_bytes = 216
+protected_units = 2427
+encoded_transport_bytes = 524232
+section_envelope_bytes = 32786
+fragments_per_semantic_copy = 209
+damage_cases = 12968
+obs_units_bytes = 538798
+
+[[profile]]
+id = "eh72-r3-crc64-ecma-v0"
+profile_version = 4
+check_bytes = 8
+required_copy_count = 3
+protected_unit_bytes = 216
+protected_units = 2427
+encoded_transport_bytes = 524232
+section_envelope_bytes = 32790
+fragments_per_semantic_copy = 209
+damage_cases = 12968
+obs_units_bytes = 538798
+
+[[profile]]
+id = "rs255-191-crc32c-v0"
+profile_version = 5
+check_bytes = 4
+required_copy_count = 2
+protected_unit_bytes = 255
+protected_units = 2056
+encoded_transport_bytes = 524280
+section_envelope_bytes = 32786
+fragments_per_semantic_copy = 209
+damage_cases = 11145
+obs_units_bytes = 536620
+
+[[profile]]
+id = "rs255-191-crc64-ecma-v0"
+profile_version = 6
+check_bytes = 8
+required_copy_count = 2
+protected_unit_bytes = 255
+protected_units = 2056
+encoded_transport_bytes = 524280
+section_envelope_bytes = 32790
+fragments_per_semantic_copy = 209
+damage_cases = 11145
+obs_units_bytes = 536620

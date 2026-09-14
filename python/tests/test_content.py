@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib
 import hashlib
 import ast
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 import sys
 import types
 from pathlib import Path
@@ -211,8 +211,38 @@ class ContentApi(unittest.TestCase):
     def test_exact_public_surface_is_present(self) -> None:
         content = importlib.import_module("golden_board.content")
         expected = {
+            "ContentAtomEntry",
+            "ContentAtomFieldValue",
+            "ContentAtomSchema",
+            "ContentAtomVector",
+            "ContentAuthoringError",
+            "ContentAuthoringProjection",
+            "ContentFeedback",
+            "ContentFieldSchema",
+            "ContentFieldSpec",
+            "ContentLessonCase",
+            "ContentLessonNode",
+            "ContentMatrix",
+            "ContentOpaqueData",
+            "ContentPassiveTrace",
+            "ContentPredicateResult",
+            "ContentProjectionView",
+            "ContentRecordRefFieldValue",
+            "ContentRecordView",
+            "ContentRegion",
+            "ContentRegionSet",
+            "ContentRoot",
+            "ContentSemanticBinding",
+            "ContentText",
+            "ContentTuple",
             "ContentReject",
             "InvalidHostState",
+            "RunEventView",
+            "RunStateView",
+            "authoring_from_validated",
+            "encode_content_v0",
+            "projection_view",
+            "run_state_view",
             "stream_validation",
             "new_run",
             "step",
@@ -223,6 +253,181 @@ class ContentApi(unittest.TestCase):
         self.assertEqual(set(content.__all__), expected)
         self.assertEqual(len(content.__all__), len(expected))
         self.assertTrue(all(callable(getattr(content, name)) for name in expected))
+
+    def test_checked_authoring_round_trip_and_projection_view(self) -> None:
+        content = importlib.import_module("golden_board.content")
+        for base in FIXTURE["bases"]:
+            raw = bytes.fromhex(base["stream_hex"])
+            projection = content.stream_validation(raw)
+            view = content.projection_view(projection)
+            self.assertEqual(view.version, projection.version)
+            self.assertEqual(view.root_record_id, projection.root_record_id)
+            self.assertEqual(len(view.records), len(projection.records))
+            self.assertEqual(
+                [record.kind for record in view.records],
+                [record.kind for record in projection.records],
+            )
+            authoring = content.authoring_from_validated(view)
+            self.assertEqual(content.encode_content_v0(authoring), raw)
+            reparsed = content.stream_validation(content.encode_content_v0(authoring))
+            self.assertEqual(content.projection_view(reparsed), view)
+            with self.assertRaises(FrozenInstanceError):
+                view.version = 1
+            with self.assertRaises(TypeError):
+                content.authoring_from_validated(authoring)
+
+        direct = content.ContentAuthoringProjection(
+            C.CONTENT_VERSION,
+            (
+                content.ContentRecordView(
+                    1,
+                    content.ContentAtomSchema(
+                        C.ATOM_UNSIGNED,
+                        1,
+                        (),
+                        min_value=0,
+                        max_value=1,
+                    ),
+                ),
+                content.ContentRecordView(2, content.ContentMatrix(1, 1, 1, (0,))),
+                content.ContentRecordView(
+                    3,
+                    content.ContentRegionSet(
+                        2,
+                        (content.ContentRegion(1, 0, 0, 1, 0, 1, C.REGION_SELECTABLE),),
+                    ),
+                ),
+                content.ContentRecordView(
+                    4, content.ContentFeedback(C.FEEDBACK_NEUTRAL, 2, 0)
+                ),
+                content.ContentRecordView(
+                    5,
+                    content.ContentLessonNode(
+                        C.ROLE_PRACTICE,
+                        C.RESPONSE_SINGLE,
+                        C.ANSWER_EXTERNAL,
+                        0,
+                        2,
+                        3,
+                        0,
+                        0,
+                        1,
+                        2,
+                        (),
+                        4,
+                        0,
+                    ),
+                ),
+                content.ContentRecordView(6, content.ContentRoot(5, 2)),
+            ),
+        )
+        direct_bytes = content.encode_content_v0(direct)
+        direct_view = content.projection_view(content.stream_validation(direct_bytes))
+        self.assertEqual(direct_view.version, direct.version)
+        self.assertEqual(direct_view.root_record_id, 6)
+        self.assertEqual(direct_view.records, direct.records)
+
+    def test_authoring_failures_are_atomic_and_path_bounded(self) -> None:
+        content = importlib.import_module("golden_board.content")
+        invalid = content.ContentAuthoringProjection(
+            C.CONTENT_VERSION,
+            (
+                content.ContentRecordView(
+                    1, content.ContentAtomVector(99, ())
+                ),
+                content.ContentRecordView(2, content.ContentRoot(1, 1)),
+            ),
+        )
+        with self.assertRaises(content.ContentAuthoringError) as raised:
+            content.encode_content_v0(invalid)
+        self.assertEqual(raised.exception.reason, "bad_reference")
+        self.assertEqual(
+            raised.exception.path, "records[0].payload.atom_schema_ref"
+        )
+        self.assertIsNone(raised.exception.content_reject_code)
+
+        bad_shape = content.ContentAuthoringProjection(
+            C.CONTENT_VERSION,
+            (
+                content.ContentRecordView(
+                    1,
+                    content.ContentAtomSchema(
+                        C.ATOM_UNSIGNED,
+                        1,
+                        (content.ContentAtomEntry(1, 1),),
+                        min_value=0,
+                        max_value=1,
+                    ),
+                ),
+            ),
+        )
+        with self.assertRaises(content.ContentAuthoringError) as shaped:
+            content.encode_content_v0(bad_shape)
+        self.assertEqual(
+            (shaped.exception.reason, shaped.exception.path),
+            ("bad_shape", "records[0].payload"),
+        )
+
+        bad_value = content.ContentAuthoringProjection(
+            C.CONTENT_VERSION,
+            (
+                content.ContentRecordView(
+                    1,
+                    content.ContentAtomSchema(
+                        C.ATOM_UNSIGNED, 1, (), min_value=256, max_value=256
+                    ),
+                ),
+            ),
+        )
+        with self.assertRaises(content.ContentAuthoringError) as valued:
+            content.encode_content_v0(bad_value)
+        self.assertEqual(valued.exception.reason, "bad_value")
+        self.assertEqual(valued.exception.path, "records[0].payload.min_value")
+
+        base = FIXTURE["bases"][0]
+        projection = content.stream_validation(bytes.fromhex(base["stream_hex"]))
+        authoring = content.authoring_from_validated(content.projection_view(projection))
+        malformed = replace(authoring, version=C.CONTENT_VERSION + 1)
+        with self.assertRaises(content.ContentAuthoringError) as rejected:
+            content.encode_content_v0(malformed)
+        self.assertEqual(rejected.exception.reason, "content_reject")
+        self.assertEqual(rejected.exception.path, "version")
+        self.assertEqual(rejected.exception.content_reject_code, C.CONTENT_BAD_VERSION)
+
+    def test_run_view_exposes_exact_immutable_committed_response_and_events(self) -> None:
+        content = importlib.import_module("golden_board.content")
+        base = FIXTURE["bases"][0]
+        projection = content.stream_validation(bytes.fromhex(base["stream_hex"]))
+        state = content.new_run(projection)
+        action = bytes((C.ACTION_COMMIT, 0, 0, 0))
+        state, result = content.step(projection, state, action)
+        view = content.run_state_view(state)
+        self.assertEqual(view.current_node_id, state.current_node_id)
+        self.assertEqual(view.selection_buffer, ())
+        self.assertEqual(view.committed_response, state.committed_response)
+        self.assertEqual(
+            view.events,
+            (content.RunEventView(state.current_node_id, action, result),),
+        )
+
+        selected = content.new_run(projection)
+        selected, selected_result = content.step(
+            projection, selected, bytes((C.ACTION_SELECT, 0, 0, 1))
+        )
+        selected, committed_result = content.step(projection, selected, action)
+        selected_view = content.run_state_view(selected)
+        self.assertEqual(
+            selected_view.committed_response,
+            bytes((C.RESPONSE_SINGLE, 0, 1, 0, 1)),
+        )
+        self.assertEqual(
+            [event.result for event in selected_view.events],
+            [selected_result, committed_result],
+        )
+        with self.assertRaises(FrozenInstanceError):
+            view.phase = C.PHASE_ACTIVE
+        with self.assertRaises(TypeError):
+            content.run_state_view(view)
 
     def test_projection_is_exact_and_authority_values_are_immutable(self) -> None:
         content = importlib.import_module("golden_board.content")

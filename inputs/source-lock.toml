@@ -68,3 +68,39 @@ bytes = 10299
 sha256 = "75e1cb83994638481808e225b9eb0c1ebd0c232d952ac42b61abce6363be283c"
 retention = "receipt_only"
 redistribution = "not_established"
+
+[[reference]]
+id = "etsi-en-301-192-v1-8-1"
+role = "rs_parameter_source"
+title = "ETSI EN 301 192 V1.8.1: Digital Video Broadcasting (DVB); DVB specification for data broadcasting"
+version = "V1.8.1-2025-06"
+locator = "https://www.etsi.org/deliver/etsi_en/301100_301199/301192/01.08.01_60/en_301192v010801p.pdf"
+accessed = "2026-08-20"
+bytes = 590538
+sha256 = "b9b25d50b46d8026c82765eca2a0f89a035a0a021e804a9f1e121a160ea11351"
+retention = "receipt_only"
+redistribution = "not_established"
+
+[[reference]]
+id = "rfc-9260"
+role = "crc32c_parameter_source"
+title = "RFC 9260: Stream Control Transmission Protocol"
+version = "RFC-9260-2022-06"
+locator = "https://www.rfc-editor.org/rfc/rfc9260.txt"
+accessed = "2026-08-20"
+bytes = 345864
+sha256 = "04bdd3255e9e5ddf1e401e9d5d726ec2750e5269cb52485db3f7f4fe77500354"
+retention = "receipt_only"
+redistribution = "not_established"
+
+[[reference]]
+id = "ecma-182"
+role = "crc64_parameter_source"
+title = "ECMA-182: Data interchange on 12,7 mm 48-track magnetic tape cartridges - DLT 1 format"
+version = "1st-edition-1992-12"
+locator = "https://www.ecma-international.org/wp-content/uploads/ECMA-182_1st_edition_december_1992.pdf"
+accessed = "2026-08-20"
+bytes = 3987114
+sha256 = "95e5a266a0d96697a05be9b55a141180330dfe94a450b39ffb8b002fbb085366"
+retention = "receipt_only"
+redistribution = "not_established"

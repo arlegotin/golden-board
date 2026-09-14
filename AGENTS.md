@@ -15,6 +15,8 @@ M0's executable contract and plan are
 [`docs/m0-spec.md`](docs/m0-spec.md) and [`docs/m0-plan.md`](docs/m0-plan.md).
 M1's executable contract and plan are
 [`docs/m1-spec.md`](docs/m1-spec.md) and [`docs/m1-plan.md`](docs/m1-plan.md).
+M2's executable contract and plan are
+[`docs/m2-spec.md`](docs/m2-spec.md) and [`docs/m2-plan.md`](docs/m2-plan.md).
 
 Root checks:
 
@@ -25,6 +27,10 @@ scripts/check focused identity
 scripts/check focused chess
 scripts/check focused curriculum
 scripts/check focused content
+scripts/check focused transport
+scripts/check focused damage
 scripts/check focused repo
+scripts/check linux
 scripts/check full
+scripts/check release
 ```

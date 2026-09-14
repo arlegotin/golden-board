@@ -1,0 +1,763 @@
+schema = "golden-board.damage-policy/v1"
+policy_version = 1
+status_authority = "spec/m2-r3-owner-promotion-v1.toml"
+profile_policy_path = "spec/profile-policy-v1.toml"
+profile_policy_sha256 = "44215d993e3fdfdd1630c404f1ee969e8abc6e4928fda83365fc6940e5cfd412"
+bootstrap_path = "spec/bootstrap-v1.md"
+bootstrap_sha256 = "e4d0a5667758a753d35603632dee550db7ecb66cf64ee675ce7485531da27dde"
+owner_kat_path = "conformance/m2-r3-owner-v1.json"
+owner_kat_sha256 = "d0a0da9fa62511fc7914ec214b6ba934c470ac669ed765ace29b42da22896ce3"
+
+[base]
+path = "artifacts/history/m2-r2-candidates/owners/damage-policy-v0.toml"
+sha256 = "9cbb185dd5d7d3fec1d4ce4aa978fa77d92e7a4ef272c2f038f0ada769c376e4"
+inheritance = "channels-transforms-polarities-sampling-d0-through-d3-seeds-formulas-thresholds-and-unreplaced-mutant-algorithms-are-byte-for-byte-semantic-inclusions"
+retained_r2_results_are_r3_evidence = false
+mutable_live_v0_fallback = false
+
+[promotion_barrier]
+state_source = "spec/m2-r3-owner-promotion-v1.toml-status"
+required_paths = ["spec/route-data-v1.json", "spec/profile-limits-v1.toml"]
+required_bindings = ["route_data_sha256", "recipient_package_sha256"]
+required_generated_values = ["side", "shell_width", "physical_unit_count", "d2_square_side", "d3_weight", "d3_window_side", "d3_sample_retry_max", "d4_case_count", "d6_case_count", "damage_case_count", "obs_units_bytes", "v7_recipe_30_steps", "v7_recipe_30_scratch", "v7_recipe_113_steps", "v7_recipe_113_scratch", "v7_route_example_steps", "v7_route_static_reject_steps"]
+close_rule = "all-required-values-independently-reproduced-and-all-d0-through-d7-operators-serialized-before-any-r3-observation;this-policy-names-but-does-not-hash-profile-limits-to-preserve-an-acyclic-owner-dag"
+pending_or_partial_damage_result = "reject"
+
+[promotion_generated_schema]
+table = "generated"
+presence = "absent-while-promotion-status-blocked-and-required-while-pre-result-frozen"
+insertion = "immediately-after-promotion-generated-schema-and-before-common"
+key_order = ["d2_square_side", "d3_sample_retry_max", "d3_weight", "d3_window_side", "d4_case_count", "d6_case_count", "damage_case_count", "obs_units_bytes", "physical_unit_count", "profile_limits_path", "recipient_package_sha256", "repetition_113_peak_scratch_bytes", "repetition_113_primitive_steps", "route_data_path", "route_data_sha256", "route_example_peak_scratch_bytes_by_sector", "route_example_primitive_steps_by_sector", "route_static_reject_primitive_steps", "shell_width", "side", "v7_decoder_30_peak_scratch_bytes", "v7_decoder_30_primitive_steps"]
+profile_limits_path = "spec/profile-limits-v1.toml"
+route_data_path = "spec/route-data-v1.json"
+route_static_reject_primitive_steps = 0
+unknown_or_partial_generated_table = "reject"
+
+[generated]
+d2_square_side = 55
+d3_sample_retry_max = 203691008
+d3_weight = 1592
+d3_window_side = 223
+d4_case_count = 1841
+d6_case_count = 7364
+damage_case_count = 10038
+obs_units_bytes = 408901
+physical_unit_count = 1841
+profile_limits_path = "spec/profile-limits-v1.toml"
+recipient_package_sha256 = "4bd8e0d485ae6e6a65f4edc4ef2aaac9585a2bcd8c4623e44d69f1dad3b0ec8e"
+repetition_113_peak_scratch_bytes = 10
+repetition_113_primitive_steps = 24
+route_data_path = "spec/route-data-v1.json"
+route_data_sha256 = "94df79d9a3fb01b69014417683a0f48f2222fea9fe991361bc99aa0c30dc663e"
+route_example_peak_scratch_bytes_by_sector = [6163, 6163, 6163, 6163]
+route_example_primitive_steps_by_sector = [15134, 15134, 15134, 15134]
+route_static_reject_primitive_steps = 0
+shell_width = 128
+side = 2040
+v7_decoder_30_peak_scratch_bytes = 4613
+v7_decoder_30_primitive_steps = 80435
+
+[common]
+coordinate_origin = 0
+coordinate_order = "row-major"
+rectangle_interval = "half-open"
+operation_order = ["canonical-clean-matrix", "physical-transform-and-polarity", "operator-in-observed-coordinates", "channel-serialization"]
+duplicate_coordinate_result = "reject"
+out_of_range_coordinate_result = "reject"
+combined_overlap = "erasure-dominates-substitution"
+wrong_accept_definition = "checked-canonical-semantic-bytes-differ-from-named-clean-v7-candidate"
+wrong_accept_max = 0
+self_consistent_reauthored_artifact_is_accidental_damage = false
+carrier_bytes_max = 524288
+raw_bits_max = 4194304
+family_order = ["D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"]
+
+[inherited_exact]
+channel_ids = ["OBS_BITS", "OBS_MATRIX", "OBS_UNITS"]
+transform_ids = [0, 1, 2, 3, 4, 5, 6, 7]
+polarity_ids = [0, 1]
+sampling_hash = "sha256"
+sampling_domain_hex = "47422d44414d4147452d763000"
+sampling_preimage = "domain-then-seed-u64-be-then-counter-u64-be"
+sampling_digest_word_order = "four-successive-u64-be-words"
+sampling_replacement = false
+sample_retry_max_formula = "population-times-64-plus-1024"
+d0_case_formula = "8-transforms-times-2-polarities"
+d1_sector_ids = [0, 1, 2, 3]
+d2_placement_target = 256
+d2_side_formula = "max-32-floor-interior-side-over-32"
+d2_sample_seed = 5134751402299490304
+d2_anchor_axis = ["first", "middle-floor", "last"]
+d3_weight_formula = "max-64-ceil-interior-cells-over-2000"
+d3_seed_first = 5134751402299490304
+d3_seed_count = 128
+d3_seed_step = 1
+d3_stratum_size = 32
+d3_window_side_formula = "max-32-floor-interior-side-over-8"
+d3_window_origin_domain_hex = "47422d44414d4147452d57494e444f572d763000"
+d5_fixed_permutations = ["ascending", "descending", "rotate-left-one", "even-then-odd", "odd-then-even"]
+d5_fisher_yates_seed_first = 5134751402299490560
+d5_fisher_yates_seed_count = 16
+d5_fisher_yates_seed_step = 1
+resource_recipe_steps_max = 268435456
+resource_recipe_scratch_max = 16777216
+section_attempt_ceiling = 4096
+
+[d3]
+stratum_ids = [0, 1, 2, 3]
+stratum0_population = "every-interior-cell-row-major"
+stratum1_population = "frozen-sampled-local-window-cells-row-major"
+stratum2_population = "sorted-unique-mapped-cells-of-every-physical-lane-whose-logical-group-section-is-in-the-m2-required-closure"
+stratum3_population = "sorted-union-of-physical-unit-first-or-last-16-bits-byte-bit-0-or-7-and-interior-row-or-column-mod16-in-0-or15"
+population_too_small_result = "candidate-hard-gate-fail"
+coordinates_regenerated_from_v7_owner = true
+retained_r2_coordinates_forbidden = true
+
+[d4]
+channel = "OBS_UNITS"
+operator = "omit-one-physical-unit-observation"
+case_set = "every-clean-v7-physical-unit-id-1-through-Q"
+case_order = "physical-unit-id-ascending"
+required_closure = "m2_required_closure"
+factor2_or5_lane_loss = "recoverable-or-explicit-failure-under-normal-checks"
+factor1_optional_loss = "explicitly-incomplete-allowed"
+wrong_accept_max = 0
+
+[d5]
+channel = "OBS_UNITS"
+operator = "permute-intact-physical-unit-observations"
+source_order = "numeric-physical-unit-id-ascending"
+grouping_restore = "serialized-physical-unit-id-plus-checked-inventory-never-arrival-order"
+permutations_and_seeds = "inherited-exact"
+required_result = "exact"
+wrong_accept_max = 0
+
+[d6]
+channel = "OBS_MATRIX"
+operator = "erase-shell-sector-union-one-physical-unit-cell-set"
+case_set = "cartesian-product-of-sector-ids-0-through-3-and-physical-unit-ids-1-through-Q"
+case_order = "sector-id-then-physical-unit-id"
+overlap = "set-union"
+required_closure = "m2_required_closure"
+wrong_accept_max = 0
+
+[d7]
+channels = ["OBS_BITS", "OBS_MATRIX", "OBS_UNITS"]
+required_result = "correct-checked-recovery-or-explicit-failure"
+wrong_accept_max = 0
+case_order = ["mapping-mutants", "check-mutants", "code-mutants", "route-conflicts", "cross-profile-splices", "valid-copy-conflicts", "d2-one-beyond", "d3-one-beyond", "missing-unit-one-beyond", "algebraic-one-beyond", "resource-route-one-beyond", "geometry-one-beyond"]
+case_count = 408
+family_id_order_and_counts_unchanged_from_r2 = true
+
+[[d7.case_family]]
+id = "mapping-mutants"
+channel = "OBS_BITS"
+cases = ["identity-instead-of-cell-affine", "cell-offset-plus-one", "cell-multiplier-two-I-plus-one"]
+slot_permutation = "retain-clean-B-and-unit-slots-exactly"
+target = "rewrite-every-encoded-bit-of-all-Q-physical-units-at-mutant-cell-affine-location"
+shell = "unchanged-clean-v7-route-in-every-sector"
+interior_base = "complete-clean-v7-interior-including-probes-and-fixed-pad"
+formulas = ["physical-flat-equals-logical-flat", "cell-offset-equals-clean-offset-plus-one-mod-P", "cell-multiplier-equals-two-I-plus-one-with-exact-mod-P-inverse"]
+mutating_B_or_slot_permutation = false
+
+[[d7.case_family]]
+id = "check-mutants"
+channel = "OBS_UNITS"
+cases = ["local-wrong-stored-byte-order", "local-wrong-reflection", "section-wrong-check-id", "section-wrong-stored-byte-order"]
+local_target = "section-1-fragment-0-logical-group-physical-ids-1-through-5"
+local_lane_rule = "apply-same-common-byte-and-check-mutation-independently-to-every-lane-then-eh72-encode"
+section_target = "lowest-required-noninventory-section-id-2-all-fragments-and-all-five-lanes"
+formulas = ["reverse-four-stored-local-check-bytes", "crc32c-normal-msb-update-polynomial-0x1edc6f41-with-same-init-and-xor", "change-section-check-id-1-to-2-without-changing-four-stored-check-bytes", "reverse-four-stored-section-check-bytes"]
+section_wrong_check_id_attempt = false
+section_wrong_stored_order_attempt = true
+
+[[d7.case_family]]
+id = "code-mutants"
+channel = "OBS_UNITS"
+cases = ["eh-parity-position-off-by-one", "eh-position-72-in-hamming-equations", "eh-lsb-first"]
+target = "section-1-fragment-0-logical-group-physical-ids-1-through-5"
+lane_rule = "apply-same-inherited-r2-mutant-independently-to-all-24-codewords-of-every-one-of-the-five-lanes"
+mutant_algorithms = "exact-base-damage-policy-v0-eh-mutant-algorithms"
+
+[[d7.case_family]]
+id = "route-conflicts"
+channel = "OBS_BITS"
+cases = ["one-conflicting-complete-valid-route"]
+alternate_profile_id = "eh72-r3-crc32c-v0"
+alternate_profile_version = 3
+formula = "replace-only-sector-0-complete-route-with-the-exact-archived-v3-route-package-leaving-all-other-shell-cells-and-v7-interior-clean"
+required_result = "correct-checked-recovery-or-explicit-failure"
+route_conflict_alone_implies_artifact_ambiguity = false
+
+[[d7.case_family]]
+id = "cross-profile-splices"
+channel = "OBS_UNITS"
+cases = ["each-fixture-profile-first-required-group-replaced"]
+source_profile_versions = [2, 3, 4, 5, 6]
+target_physical_unit_ids = [1, 2, 3, 4, 5]
+formula = "take-clean-section-1-fragment-0-common-block-change-only-profile-version-to-source-version-recompute-local-crc32c-encode-with-source-frozen-transport-and-place-the-same-source-unit-bytes-at-each-target-id"
+source_manifestation_required = false
+
+[[d7.case_family]]
+id = "valid-copy-conflicts"
+channel = "OBS_UNITS"
+cases = ["first-required-valid-replica-lane-conflict"]
+target_physical_unit_id = 1
+unchanged_physical_unit_ids = [2, 3, 4, 5]
+formula = "in-section-1-fragment-0-replica-0-xor-common-payload-byte-0-with-0x01-retain-all-common-header-identity-fields-recompute-local-crc32c-and-eh72-encode-only-that-lane"
+expected_fragment_state = "ambiguous"
+expected_section_id = 1
+expected_section_state = "corrupt"
+expected_artifact_state = "failure"
+majority_may_hide_conflict = false
+
+[[d7.case_family]]
+id = "d2-one-beyond"
+channel = "OBS_MATRIX"
+cases = ["every-v7-d2-placement-with-square-side-plus-one-shifted-in-range"]
+case_count = 256
+formula = "regenerate-v7-parent-placement-in-frozen-order-then-use-inherited-plus-one-square-and-shift-formula"
+duplicate_observation_case_ids_remain_distinct = true
+
+[[d7.case_family]]
+id = "d3-one-beyond"
+channel = "OBS_MATRIX"
+cases = ["every-v7-d3-seed-with-weight-plus-one-from-same-stream"]
+case_count = 128
+formula = "restart-same-inherited-seed-population-and-sampler-and-take-first-k-plus-one-unique-v7-coordinates"
+
+[[d7.case_family]]
+id = "missing-unit-one-beyond"
+channel = "OBS_UNITS"
+cases = ["rep5-all-five-lanes-omitted"]
+omitted_physical_unit_ids = [1, 2, 3, 4, 5]
+target = "section-1-fragment-0"
+expected_section_state = "incomplete"
+expected_artifact_state = "failure"
+
+[[d7.case_family]]
+id = "algebraic-one-beyond"
+channel = "OBS_MATRIX"
+cases = ["eh-each-2e-plus-s-equals-4"]
+errors_erasures = [[2, 0], [1, 2], [0, 4]]
+target = "section-1-fragment-0-first-eh72-codeword-in-every-one-of-physical-ids-1-through-5"
+lane_rule = "apply-identical-ordered-code-position-errors-and-erasures-independently-to-each-lane"
+position_rule = "inherited-exact-base-eh-algebraic-position-rule-through-v7-ownership"
+
+[[d7.case_family]]
+id = "resource-route-one-beyond"
+channel = "OBS_BITS"
+cases = ["recipe-step-ceiling-plus-one", "recipe-scratch-ceiling-plus-one"]
+target_sector_id = 0
+target_record = "unique-lowest-record-id-kind-5-RECIPE-record"
+formulas = ["replace-package-header-bytes-36-through-43-with-u64-be-268435457", "replace-package-header-bytes-44-through-47-with-u32-be-16777217"]
+all_lengths_unchanged = true
+
+[[d7.case_family]]
+id = "geometry-one-beyond"
+channel = "OBS_BITS"
+cases = ["geometry-side-2056"]
+observation_count = 4227136
+payload_bits = "all-zero-row-major"
+
+[d7_count_reconciliation]
+common_excluding_code_and_algebra_formula = "mapping-3-plus-check-4-plus-route-1-plus-cross-profile-5-plus-valid-replica-1-plus-d2-one-beyond-256-plus-d3-one-beyond-128-plus-missing-unit-1-plus-resource-route-2-plus-geometry-1"
+common_excluding_code_and_algebra = 402
+eh_code_cases = 3
+eh_algebra_cases = 3
+total = 408
+
+[boundary_kat]
+ids = ["rep2-correction-boundary", "rep5-correction-boundary", "complete-section-conflict", "section-attempt-ceiling-plus-one"]
+not_damage_family_cases = true
+required_by_d7_gate = true
+result_schema = "golden-board.m2-boundary-kat-result/v1"
+result_keys = ["schema", "kat_id", "result"]
+result_ids = ["pass", "fail"]
+result_sha256_preimage = "raw-canonical-manifest-v0-json-object-bytes-including-exactly-one-trailing-lf"
+implementation_order = ["python", "rust"]
+acceptance = "both-independent-implementations-first-assert-the-owned-kat-semantics-then-emit-byte-identical-canonical-result-bytes-with-the-owned-schema-kat-id-and-pass-result"
+failure_retention = "a-converged-fail-result-is-gate6-losing-evidence-and-is-bound-by-the-root-damage-manifest"
+rep2 = "direct-repetition-symbol-and-product-adapter-cases-at-2e-plus-s-equals-1-and-2"
+rep5 = "direct-repetition-symbol-and-product-adapter-cases-at-2e-plus-s-equals-4-and-5"
+complete_section_conflict = "two-nonidentical-complete-structurally-valid-check-valid-envelope-candidates-for-one-section-require-section-and-artifact-ambiguous"
+section_attempt_formula = "4097-distinct-deduplicated-structurally-complete-candidates-for-one-section-identity-in-canonical-byte-order"
+section_attempt_expected = "attempts-1-through-4096-reach-stored-check-comparison-and-candidate-4097-is-rejected-resource-limit-before-comparison"
+
+[state]
+fragment_ids = ["verified", "recovered", "missing", "corrupt", "ambiguous", "unknown"]
+fragment_codes = [0, 1, 2, 3, 4, 5]
+section_ids = ["verified", "recovered", "incomplete", "corrupt", "ambiguous", "unknown"]
+section_codes = [0, 1, 2, 3, 4, 5]
+artifact_ids = ["exact", "degraded", "failure", "ambiguous", "resource-limit"]
+artifact_codes = [0, 1, 2, 3, 4]
+fragment_conflict = "two-or-more-distinct-locally-valid-common-blocks-in-one-physical-group-is-fragment-ambiguous"
+fragment_conflict_section_projection = "corrupt-unless-a-complete-section-candidate-independently-passes-all-structure-and-checks"
+section_conflict = "two-or-more-nonidentical-complete-checked-envelopes-is-ambiguous"
+artifact_ambiguity = "at-least-two-nonidentical-complete-checked-canonical-results"
+semantic_plausibility_tiebreak = false
+
+[reject]
+codes = ["1:channel", "2:length", "3:value", "4:coordinate", "5:duplicate", "6:operator", "7:sample-population", "8:sample-resource", "9:manifest-shape", "10:manifest-binding", "11:expected-state", "12:wrong-accept"]
+precedence = ["channel", "length", "value", "coordinate", "duplicate", "operator", "sample-population", "sample-resource", "manifest-shape", "manifest-binding", "expected-state", "wrong-accept"]
+v1_schema_or_binding_failure = "manifest-shape-or-manifest-binding-at-the-owned-precedence-point-never-fall-back-to-v0"
+
+[decoder]
+invocation = "fresh-stateless-instance-per-case"
+allowed_inputs = "exact-serialized-observation-bytes-and-candidate-neutral-tracked-parser-profile-and-resource-code-only"
+forbidden_inputs = "candidate-manifest-ownership-ledger-clean-bytes-clean-hash-case-id-operator-parameters-coordinates-expected-states-and-expected-route-package-or-inventory-bytes"
+obs_bits_parse = "u32-be-count-followed-by-exact-msb-packed-bits-with-zero-unused-low-bits"
+obs_matrix_parse = "u16-be-side-followed-by-side-squared-cell-bytes-in-0-1-2"
+obs_matrix_erased_value = 2
+obs_matrix_erased_semantics = "unknown-never-xor-never-zero-filled"
+obs_matrix_view_rule = "transform-erased-as-a-coordinate-value-unchanged-and-apply-polarity-xor-only-to-known-0-or-1"
+obs_units_parse = "u32-be-entry-count-then-repeated-u32-be-id-u16-be-byte-length-and-exact-bytes"
+obs_units_duplicate_ids = "reject"
+registry_profile_order = [7, 2, 3, 4, 5, 6]
+obs_units_enumeration = "input-id-ascending-then-all-six-registry-procedures-in-registry-order-without-short-circuit"
+obs_units_identity_source = "locally-valid-common-headers-and-unique-checked-inventory-never-evaluator-unit-rows"
+obs_units_grouping = "route-fixed-ids-1-through-5-before-inventory-then-checked-inventory-factor-groups"
+obs_units_id_or_header_mismatch = "corrupt-input-never-remap"
+obs_units_inventory_binding = "after-unique-checked-inventory-recovery-every-observed-id-decoded-header-replica-index-and-owned-physical-group-must-agree-with-the-authoritative-realization-mismatch-is-corrupt-and-the-expected-identity-remains-missing"
+obs_units_without_inventory = "expose-route-fixed-section1-and-individually-checked-sections-but-claim-no-catalog-completeness-dependency-tier-or-unobserved-identity"
+square_view_hypothesis_max = 16
+route_path_hypothesis_max = 64
+square_view_hypothesis_order = "transform-id-0-through-7-then-polarity-id-0-through-1"
+route_source = "observed-shell-only"
+route_unknown_bit = "route-unavailable"
+route_validation = "observed-calibration-envelope-record-tables-package-worked-held-adapter-endpoint-and-end-are-parsed-and-validated-without-comparison-to-generated-expected-route-bytes"
+route_deduplicate = "byte-identical-complete-valid-route-and-downstream-result-witnesses"
+route_conflict = "enumerate-every-nonidentical-complete-valid-route-artifact-ambiguity-occurs-only-if-at-least-two-nonidentical-complete-checked-downstream-canonical-results-survive"
+legacy_registry_result = "foreign-profile-diagnostic-never-establishes-r3-artifact"
+established_profile_rule = "profile-v7-only-and-only-if-one-complete-canonical-v7-profile-survives"
+no_inventory_rule = "retain-every-observed-fragment-diagnostic-and-every-independently-checked-section-but-no-invented-catalog-completeness-dependency-or-tier-claim"
+no_inventory_section1_rule = "route-fixed-initial-group-conflict-or-present-invalid-is-section-1-corrupt-all-five-lanes-absent-is-section-1-incomplete"
+attempt_eligibility = "complete-header-dependency-payload-and-declared-check-width-structure-after-byte-deduplication"
+attempt_charge_point = "immediately-before-stored-check-comparison"
+wrong_check_id_inconsistent_width_consumes_attempt = false
+wrong_stored_order_consumes_attempt = true
+canonical_output_excludes = "chosen-transform-polarity-accepted-hypothesis-order-and-evaluator-only-clean-catalog-projection"
+
+[decoder.resource]
+counter_type = "u64"
+cache_changes_logical_charge = false
+route_order = "transform-0-through-7-then-polarity-0-through-1-then-sector-0-through-3"
+unit_order = "input-id-ascending-then-registry-profile-order"
+v7_lane_charge = "recipe-30-exact-steps-times-24-for-each-present-lane"
+v7_repetition_charge = "recipe-113-exact-steps-times-1728-plus-recipe-30-exact-steps-times-24-for-each-factor2-or5-group-with-at-least-one-present-lane"
+legacy_charge = "exact-archived-recipient-package-row"
+route_charge = "exact-generated-evaluator-count-for-every-worked-held-recipe-executed-before-accept-or-first-stable-reject"
+section_attempt_charge = "one-per-deduplicated-eligible-complete-envelope-at-frozen-charge-point"
+local_over_limit_route = "unavailable-route-unless-global-bounded-enumeration-cannot-close"
+global_exhaustion = "resource-limit-with-no-partial-canonical-result"
+
+[[decoder.fixture_resource_profile]]
+profile_version = 2
+profile_id = "eh72-r2-crc64-ecma-v0"
+recipient_package_sha256 = "cce1758613d7f10278533409e07103ae15162972fcf30030e17c233e39664011"
+decoder_30_primitive_steps = 80435
+decoder_30_peak_scratch_bytes = 4613
+
+[[decoder.fixture_resource_profile]]
+profile_version = 3
+profile_id = "eh72-r3-crc32c-v0"
+recipient_package_sha256 = "8c91ba74f9bbed97aed89191e8d8d30a9a0c4d32bd5ac98b63a4c19ed71fb0e7"
+decoder_30_primitive_steps = 80435
+decoder_30_peak_scratch_bytes = 4613
+
+[[decoder.fixture_resource_profile]]
+profile_version = 4
+profile_id = "eh72-r3-crc64-ecma-v0"
+recipient_package_sha256 = "de237fcd9d53581710404bd8b00152cb68f50adef48e715fdd4572e786bae4b8"
+decoder_30_primitive_steps = 80435
+decoder_30_peak_scratch_bytes = 4613
+
+[[decoder.fixture_resource_profile]]
+profile_version = 5
+profile_id = "rs255-191-crc32c-v0"
+recipient_package_sha256 = "2dd94f23f63bd4fbeb8d56565a9cc9a7e0a2054d3483e364cfb60e7751058e91"
+decoder_30_primitive_steps = 1698049
+decoder_30_peak_scratch_bytes = 7688
+
+[[decoder.fixture_resource_profile]]
+profile_version = 6
+profile_id = "rs255-191-crc64-ecma-v0"
+recipient_package_sha256 = "1c05a1f57394d292487f46561492619358fe2d12e42e3a20194d5917f351e555"
+decoder_30_primitive_steps = 1698049
+decoder_30_peak_scratch_bytes = 7688
+
+[decoder.v7_resource_profile]
+profile_version = 7
+profile_id = "eh72-hier-r5-r2-r1-crc32c-v0"
+status_source = "promotion-manifest-status-and-complete-damage-generated-table"
+required_keys = ["recipient_package_sha256", "decoder_30_primitive_steps", "decoder_30_peak_scratch_bytes", "repetition_113_primitive_steps", "repetition_113_peak_scratch_bytes"]
+absent_or_zero_sentinel_result = "reject"
+
+[decoder_result]
+schema = "golden-board.m2-damage-decoder-result/v1"
+top_level_keys = ["schema", "channel", "artifact_state", "established_profile_id", "section_rows", "fragment_diagnostics_sha256", "m2_required_available", "m2_all_available", "m2_required_stream_sha256", "m2_all_stream_sha256", "resource", "accepted_hypothesis_rows"]
+schema_selection = "always-v1-under-an-admitted-v1-damage-owner-including-total-failure-resource-limit-and-pre-profile-geometry-or-framing-failure-never-inferred-from-recovered-profile-or-section-rows"
+established_profile_id_absent = "empty-ascii-string"
+section_row_keys = ["section_id", "state", "semantic_sha256"]
+section_row_order = "section-id-ascending"
+section_rows_with_inventory = "exact-authoritative-inventory-section-id-set"
+section_rows_without_inventory = "route-fixed-section1-row-plus-only-independently-discovered-check-valid-section-identities"
+evaluator_missing_identity_rule = "only-after-decoder-result-hash-expand-clean-candidate-identities-absent-from-observation-established-rows-to-unknown"
+ambiguous_profile_or_inventory = "established-profile-id-empty-and-no-invented-merged-section-catalog"
+semantic_sha256_preimage = "exact-unique-checked-section-envelope-bytes-including-identity-dependencies-length-payload-and-stored-check"
+semantic_sha256_absent = "64-lowercase-zero-hex-when-state-has-no-unique-checked-envelope"
+fragment_diagnostic_row_keys = ["input_id", "profile_id", "section_id", "semantic_copy_id", "fragment_index", "replica_index", "physical_replica_count", "state", "common_block_sha256"]
+fragment_diagnostic_row_order = "input-id-ascending"
+fragment_rows_with_inventory = "union-of-every-expected-physical-id-and-every-observed-id-with-missing-expected-ids-explicit"
+fragment_rows_without_inventory = "every-observed-input-id-once-plus-route-fixed-missing-ids-1-through-5-when-the-initial-group-is-established"
+fragment_inventory_identity_mismatch = "emit-one-row-for-the-colliding-input-id-using-authoritative-inventory-identity-and-replica-fields-state-corrupt-and-zero-common-block-hash-the-expected-fragment-is-unavailable-without-a-second-row"
+fragment_extra_or_unparseable_identity = "use-the-unique-locally-checked-decoded-identity-and-replica-fields-when-available-otherwise-use-all-absent-sentinel-fields"
+fragment_state_values = ["verified", "recovered", "missing", "corrupt", "ambiguous", "unknown"]
+fragment_common_block_rule = "verified-or-recovered-only-when-one-unique-valid-common-block-exists-otherwise-zero-hash"
+fragment_input_id_obs_bits_matrix = "recovered-physical-unit-id"
+fragment_input_id_obs_units = "serialized-u32-id"
+semantic_copy_id_v7 = 0
+absent_profile = ""
+absent_section_id = 0
+absent_semantic_copy_id = 65535
+absent_fragment_index = 65535
+absent_replica_index = 65535
+absent_physical_replica_count = 65535
+identity_absence_correlation = "profile-id-empty-if-and-only-if-section-id-0-semantic-copy-id-65535-and-fragment-index-65535-all-four-fields-are-present-or-absent-together"
+replica_field_correlation = "replica-index-and-physical-replica-count-are-both-65535-or-count-is-one-of-1-2-5-and-index-is-strictly-less-than-count"
+v7_identity_correlation = "every-nonabsent-v7-diagnostic-has-semantic-copy-id-0"
+initial_group_replica_rule = "only-ids-1-through-5-may-use-replica-indices-0-through-4-and-count-5-before-unique-inventory"
+common_block_sha256_rule = "per-input-lane-own-unique-locally-valid-common-block-else-64-zero-hex"
+repetition_candidate_has_diagnostic_row = false
+fragment_diagnostics_sha256_preimage = "canonical-manifest-v0-canonical-json-value-encoding-of-exact-row-array-no-trailing-lf"
+stream_available_rule = "true-if-and-only-if-one-exact-singular-validated-tier-stream-exists"
+stream_sha256_preimage = "raw-content-stream-bytes"
+stream_sha256_absent = "64-lowercase-zero-hex-if-and-only-if-corresponding-available-is-false"
+tier_relationship = "m2-all-available-implies-m2-required-available-and-both-match-authoritative-tier-frames"
+resource_keys = ["section_attempts", "primitive_steps", "peak_scratch_bytes"]
+section_attempts_rule = "exact-owned-structural-eligibility-deduplication-and-charge-point-count"
+primitive_steps_rule = "sum-executed-promoted-recipe-primitives-across-every-canonically-tried-observed-route-lane-repetition-and-transport-path-including-rejected-paths"
+peak_scratch_rule = "maximum-existing-recipe-metric-live-scratch-excluding-immutable-input-and-final-output"
+resource_counter_range = "u64"
+resource_overflow_rule = "u64-aggregate-overflow-or-any-individual-owned-local-ceiling-exceedance-produces-resource-limit-with-no-partial-canonical-result"
+resource_aggregate_cap_rule = "aggregate-primitive-steps-may-exceed-a-per-recipe-ceiling-because-it-sums-many-individually-valid-invocations-and-has-no-smaller-cap-than-u64"
+resource_charge_cache_rule = "canonical-logical-charge-is-identical-whether-an-implementation-caches-deduplicates-or-reexecutes-a-computation"
+artifact_state_precedence = ["resource-limit", "ambiguous", "exact", "degraded", "failure"]
+artifact_state_resource_limit = "global-bounded-enumeration-cannot-close-without-exceeding-an-owned-resource-limit-and-no-partial-canonical-result-is-emitted"
+resource_limit_projection = "established-profile-id-empty-section-rows-empty-fragment-diagnostics-equal-the-canonical-empty-array-sha256-4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945-both-stream-available-flags-false-both-stream-hashes-zero-and-accepted-hypothesis-rows-empty-only-channel-state-and-exact-resource-counters-remain"
+artifact_state_ambiguous = "at-least-two-nonidentical-complete-checked-canonical-results"
+artifact_state_exact = "exactly-one-complete-checked-canonical-result-and-every-inventoried-section-is-verified-or-recovered"
+artifact_state_degraded = "exactly-one-complete-checked-canonical-result-m2-required-is-available-and-at-least-one-optional-inventoried-section-is-unavailable"
+artifact_state_failure = "all-other-closed-outcomes-including-no-valid-v7-profile-inventory-or-required-tier-closure"
+accepted_hypothesis_row_keys = ["transform_id", "polarity_id", "sector_id", "profile_id", "mapping_sha256"]
+accepted_hypothesis_row_order = "transform-id-then-polarity-id-then-sector-id-then-registry-profile-order"
+accepted_hypothesis_rows = "unique-sorted-and-deduplicated-empty-for-obs-units-or-no-accepted-route"
+accepted_hypothesis_inclusion = "every-complete-observed-route-that-passes-route-format-calibration-envelope-record-package-worked-held-and-adapter-validation-even-when-downstream-inventory-section-or-tier-recovery-fails"
+accepted_hypothesis_profile_binding = "each-row-profile-id-is-the-exact-profile-id-declared-by-that-validated-observed-route-and-the-set-and-order-equal-the-internally-retained-validated-route-profile-ids-no-hidden-or-unrendered-profile-list-may-disagree"
+accepted_hypothesis_mapping_variant_selector = "accepted-route-version-plus-exact-mapping-id"
+accepted_hypothesis_mapping_hierarchical_route_version = 1
+accepted_hypothesis_mapping_hierarchical_id = "affine-slot-then-interior-v1"
+accepted_hypothesis_mapping_hierarchical_keys = ["id", "interior_side", "population", "unit_population", "unit_multiplier", "unit_inverse_multiplier", "cell_multiplier", "offset", "cell_inverse_multiplier"]
+accepted_hypothesis_mapping_legacy_route_version = 0
+accepted_hypothesis_mapping_legacy_id = "affine-interior-v1"
+accepted_hypothesis_mapping_legacy_keys = ["id", "interior_side", "population", "multiplier", "offset", "inverse_multiplier"]
+accepted_hypothesis_mapping_sha256_preimage = "canonical-manifest-v0-top-level-object-serialization-of-exact-selected-variant-including-exactly-one-trailing-lf"
+accepted_hypothesis_mapping_unknown_or_mismatched_variant = "reject-route-before-accepted-hypothesis-row-no-sentinel-zero-or-synthesized-field"
+accepted_hypothesis_mapping_hierarchical_kat = "side-2040-shell-width-128-sha256-90d6fa3a3a6b28489c8c63e62df17caab7a46180614e387952a77071731da439"
+accepted_hypothesis_mapping_legacy_v3_conflict_kat = "side-2040-shell-width-128-profile-version-3-sha256-7f2f3f2a9bd9238668b3fefc78f31ae2ac4a0fa58acaab2793b24ca4d3c2369c"
+established_profile_rule = "nonempty-v7-id-if-and-only-if-exactly-one-complete-canonical-v7-profile-survives-foreign-fixture-profiles-never-establish-an-r3-artifact"
+canonical_output_excludes = "chosen-transform-polarity-accepted-hypothesis-order-and-evaluator-only-clean-catalog-projection"
+identity = "raw-sha256-of-canonical-result-bytes-lowercase-hex"
+case_decoder_result_sha256 = "independent-oracle-exact-expected-raw-decoder-result-sha256-and-python-and-rust-canonical-result-bytes-must-equal-each-other-and-that-hash"
+maximum_canonical_bytes = 1048576
+unknown_keys = "reject"
+
+[damage_manifest]
+schema = "golden-board.m2-damage-manifest/v1"
+profile_id = "eh72-hier-r5-r2-r1-crc32c-v0"
+top_level_keys = ["schema", "damage_policy_sha256", "profile_policy_sha256", "profile_limits_sha256", "bootstrap_spec_sha256", "route_data_sha256", "recipient_package_sha256", "profile_id", "candidate_manifest_sha256", "clean_observation_sha256", "family_rows", "boundary_kat_rows", "summary"]
+case_row_keys = ["case_id", "family_id", "channel", "operator", "parameter_projection", "observation_sha256", "decoder_result_sha256", "expected_artifact_state", "expected_section_states", "wrong_accept_count"]
+section_state_row_keys = ["section_id", "state"]
+section_state_order = "section-id-ascending"
+section_state_section_id_range = "1..4294967295"
+summary_keys = ["family_case_counts", "wrong_accept_count", "manifest_identity"]
+family_row_keys = ["family_id", "case_count", "wrong_accept_count", "result", "case_rows_sha256"]
+family_rows_order = "D0-through-D7"
+family_case_rows_sha256_preimage = "canonical-manifest-v0-canonical-json-value-encoding-of-the-family-exact-common-case-row-array-in-family-case-order-with-no-trailing-lf"
+family_case_rows_binding = "validator-concatenates-bound-shards-in-shard-order-recomputes-case-rows-sha256-count-wrong-accept-count-and-result-and-requires-byte-exact-root-family-row"
+boundary_kat_row_keys = ["kat_id", "result_sha256", "result"]
+boundary_kat_row_order = "boundary-kat-ids-order"
+boundary_kat_result = "pass-if-and-only-if-python-and-rust-produce-byte-identical-canonical-v1-result-bytes-that-assert-the-owned-kat-and-raw-result-sha256-equals-the-bound-row"
+case_acceptance = "oracle-python-and-rust-decoder-result-bytes-are-identical-the-evaluator-required-state-projection-passes-and-wrong-accept-count-is-zero"
+family_result = "pass-if-and-only-if-every-family-case-is-accepted-and-for-d7-every-required-boundary-kat-row-passes"
+root_result_binding = "root-wrong-accept-count-is-the-checked-sum-of-case-rows-and-every-family-and-summary-count-result-and-hash-is-recomputed-from-bound-case-and-boundary-kat-evidence"
+parameter_row_keys = ["id", "value_type", "value"]
+parameter_value_type_ids = ["u64", "ascii", "u64-list", "coordinate-list"]
+parameter_id_order = "strict-ascii-ascending"
+parameter_ascii_bytes_max = 128
+parameter_u64_max_hex = "ffffffffffffffff"
+parameter_list_items_max = 4194304
+coordinate_shape = "two-u32-values-row-then-column"
+coordinate_order = "operator-defined-and-explicit"
+family_case_count_row_keys = ["family_id", "case_count"]
+family_case_count_order = "D0-through-D7"
+family_case_counts = [16, 4, 256, 128, 1841, 21, 7364, 408]
+family_case_count_range = "1..1000000"
+manifest_identity_preimage = "identity-v0-manifest-domain-with-one-field-equal-canonical-manifest-v0-bytes-of-same-object-with-only-summary-manifest-identity-omitted"
+manifest_identity = "identity-v0-sha256-lowercase-hex"
+sha256_field_rule = "every-field-name-ending-sha256-is-raw-sha256-of-its-exact-owned-file-bytes-or-explicit-preimage-never-an-identity-v0-value"
+manifest_identity_field_rule = "every-field-name-ending-manifest-identity-is-the-owned-identity-v0-value"
+owner_binding_rule = "damage-profile-limits-bootstrap-route-and-recipient-package-fields-bind-the-exact-final-pre-result-frozen-owner-bytes-and-candidate-manifest-sha256-binds-raw-candidate-manifest-bytes"
+profile_binding_rule = "root-family-shard-and-proof-profile-id-is-the-exact-owned-v7-profile-id-and-every-family-id-case-id-and-channel-is-in-its-owning-closed-set"
+row_cardinality_rule = "exactly-eight-family-rows-and-four-boundary-kat-rows-and-the-checked-sum-of-family-case-counts-is-10038"
+clean_observation_sha256_preimage = "raw-canonical-carrier-obs-bits-file-bytes"
+observation_sha256_preimage = "raw-exact-serialized-observation-bytes-for-the-owned-case-channel"
+decoder_result_sha256_preimage = "raw-canonical-v1-decoder-result-file-bytes"
+expected_section_states_rule = "oracle-projects-the-exact-observation-established-section-ids-then-the-evaluator-expands-clean-candidate-section-ids-absent-from-the-decoder-result-to-unknown-only-after-the-result-hash-is-fixed"
+wrong_accept_count_range = "u64-and-root-and-every-family-and-case-must-equal-zero-to-pass"
+unknown_keys = "reject"
+
+[case_identity]
+case_id_formula = "ascii-family-id-then-hyphen-then-zero-based-family-case-ordinal-as-exactly-six-lowercase-decimal-digits"
+case_ordinal_order = "the-owning-family-case-order-with-d7-using-d7-case-order-then-each-case-family-owned-order"
+operator_d0_through_d6 = "exact-corresponding-owned-d0-through-d6-operator-string"
+operator_d7 = "exact-owning-d7-case-family-id-string"
+d7_parameter_case_ordinal = "zero-based-within-owning-d7-case-family-after-profile-applicability-filter"
+parameter_projection_d0 = ["polarity_id:u64", "transform_id:u64"]
+parameter_projection_d1 = ["sector_id:u64"]
+parameter_projection_d2 = ["side:u64", "top_left:coordinate-list"]
+parameter_projection_d3 = ["coordinates:coordinate-list", "seed:u64", "stratum_id:u64"]
+parameter_projection_d4 = ["omitted_unit_id:u64"]
+parameter_projection_d5 = ["permutation_ordinal:u64"]
+parameter_projection_d6 = ["sector_id:u64", "unit_id:u64"]
+d7_mapping = ["mutant_ordinal:u64"]
+d7_check_local = ["case_ordinal:u64", "target_unit_ids:u64-list"]
+d7_check_section = ["case_ordinal:u64", "section_id:u64"]
+d7_code = ["case_ordinal:u64", "target_unit_ids:u64-list"]
+d7_route = ["alternate_profile_version:u64"]
+d7_splice = ["source_profile_version:u64", "target_unit_ids:u64-list"]
+d7_valid_replica = ["section_id:u64", "target_unit_id:u64"]
+d7_d2 = ["d2_ordinal:u64", "side:u64"]
+d7_d3 = ["seed:u64"]
+d7_missing = ["omitted_unit_ids:u64-list"]
+d7_algebra = ["erasures:u64", "errors:u64", "target_unit_ids:u64-list"]
+d7_resource = ["declared_value:u64"]
+d7_geometry = ["side:u64"]
+parameter_row_order = "strict-ascii-id-order-as-required-by-damage-manifest"
+unknown_or_extra_parameter_rows = "reject"
+
+[independence_manifest]
+schema = "golden-board.m2-independence-proof/v1"
+path = "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/damage/independence-proof.json"
+top_level_keys = ["schema", "profile_id", "candidate_manifest_sha256", "ownership_ledger_sha256", "damage_manifest_sha256", "predicate_rows", "summary"]
+bound_sha256_preimages = "raw-canonical-file-bytes-at-the-candidate-manifest-ownership-ledger-and-root-damage-manifest-paths-respectively"
+predicate_row_keys = ["predicate_id", "witness_count", "minimum_surviving_count", "violation_count", "result"]
+predicate_order = ["two-stage-map-bijection", "matrix-owner-total-partition", "shell-sector-total-partition", "physical-group-total-partition", "owner-factor-ledger-reconciliation", "final-cell-lane-separation", "d2-d4-d6-required-closure-survival", "section-dependency-inventory-closure", "damage-promise-binding"]
+witness_counts = [3182656, 4161600, 978944, 3181248, 4161600, 1282176, 37844, 1362, 10038]
+witness_count_formulas = ["protected-cells-3181248-plus-interior-fixed-pad-cells-1408-equals-interior-population-3182656", "side-2040-times-side-2040-equals-4161600", "side-squared-4161600-minus-interior-population-3182656-equals-four-times-shell-width-128-times-parenthesized-side-2040-minus-shell-width-128-equals-978944", "physical-unit-count-1841-times-1728-equals-3181248", "side-2040-times-side-2040-equals-4161600", "1728-times-parenthesized-factor2-group-count-442-times-C2-of-2-plus-factor5-group-count-30-times-C2-of-5-equals-1282176", "required-closure-section-count-4-times-parenthesized-d2-cases-256-plus-d4-cases-1841-plus-d6-cases-7364-equals-37844", "logical-group-count-1279-plus-inventory-dependency-edge-count-78-plus-shell-sector-removal-count-4-plus-one-total-ledger-closure-equals-1362", "sum-exact-family-case-counts-16-plus4-plus256-plus128-plus1841-plus21-plus7364-plus408-equals-10038"]
+two_stage_map_bijection = "every-protected-id-bit-and-fixed-pad-cell-round-trips-uniquely-through-slot-and-cell-affine-inverses"
+matrix_owner_total_partition = "one-witness-per-side-squared-cell-exactly-one-fixed-width-cell-table-owner-and-ledger-hash-count-agreement"
+shell_sector_total_partition = "one-witness-per-shell-cell-exactly-one-sector-each-sector-size-shell-width-times-side-minus-shell-width-and-union-exact-shell"
+physical_group_total_partition = "every-logical-group-has-exactly-factor-distinct-contiguous-ids-distinct-slots-and-disjoint-1728-cell-sets"
+owner_factor_ledger_reconciliation = "factor5-exact-spine-factor2-exact-replicated-factor1-exact-nonreplicated-and-all-byte-cell-ledgers-reconcile"
+final_cell_lane_separation = "exact-row-carry-predicate-holds-for-every-factor2-or5-corresponding-lane-pair-and-each-encoded-bit"
+d2_d4_d6_required_closure_survival = "D2-cannot-cover-corresponding-bits-in-two-required-lanes-and-D4-D6-remove-at-most-one-lane-from-each-required-group"
+section_dependency_inventory_closure = "semantic-copy0-section-dependency-inventory-shell-route-and-total-ledger-closure-reconcile-and-each-single-sector-removal-leaves-exactly-three-complete-other-routes"
+damage_promise_binding = "one-witness-per-bound-D0-through-D7-case-with-family-pass-and-zero-wrong-accept"
+result_ids = ["pass", "fail"]
+row_scalar_types = "witness-minimum-and-violation-counts-are-u64-and-witness-count-is-nonzero"
+exact_witness_count_rule = "each-row-witness-count-must-equal-the-owned-count-at-the-same-predicate-order-index-for-pass-and-fail-proofs-with-no-short-circuit-omission-or-outcome-dependent-deduplication"
+minimum_surviving_count_rule = "literal-frozen-floor-value-1-for-every-predicate-row-not-an-observed-count"
+violation_count_rule = "full-bounded-enumeration-count-of-the-exact-owned-violation-units-below-with-each-unit-counted-at-most-once-even-when-several-subconditions-of-that-unit-fail"
+two_stage_map_bijection_violation_unit = "one-interior-logical-cell-violation-if-the-owned-forward-and-inverse-two-stage-map-do-not-round-trip-its-exact-protected-lane-bit-or-fixed-pad-identity-or-if-its-final-physical-target-cell-has-multiplicity-other-than-one"
+matrix_owner_total_partition_violation_unit = "one-violation-for-each-row-major-matrix-cell-whose-reconstructed-exact-9-byte-cell-owner-row-is-missing-duplicated-or-mismatched-plus-exactly-one-global-violation-if-either-cell-table-row-count-is-not-side-squared-or-sha256-of-the-concatenated-canonical-row-order-table-does-not-equal-cell-table-sha256"
+shell_sector_total_partition_violation_unit = "one-violation-for-each-sector-id-0-through-3-if-that-sectors-reconstructed-owned-cell-set-is-not-exactly-shell-width-times-parenthesized-side-minus-shell-width-cells-is-not-disjoint-from-every-other-sector-or-the-four-set-union-is-not-the-exact-shell"
+physical_group_total_partition_condition_ids = ["factor-and-owner-class", "contiguous-distinct-physical-ids", "distinct-owned-slots", "exact-lane-bit-span", "internally-unique-and-pairwise-disjoint-lane-cell-sets"]
+physical_group_total_partition_violation_unit = "one-violation-per-logical-group-and-condition-id-pair-that-fails-the-exact-inventory-and-ownership-ledger-projection-factor-and-owner-class-means-spine-factor5-other-replicated-m2-factor2-and-nonreplicated-m2-factor1-physical-ids-use-the-canonical-group-contiguous-formula-slots-use-the-owned-two-stage-map-every-lane-span-is-exactly-1728-bits-and-cell-sets-are-internally-unique-and-pairwise-disjoint"
+owner_factor_ledger_owner_classes = ["shell-route", "shell-headroom", "shell-fixed-pad", "real-protected", "capacity-probe", "reserve-probe", "load-probe", "interior-fixed-pad"]
+owner_factor_ledger_factor_aggregates = ["factor1-groups807-units807-cells1394496", "factor2-groups442-units884-cells1527552", "factor5-groups30-units150-cells259200"]
+owner_factor_ledger_reconciliation_violation_unit = "one-violation-for-each-of-the-eight-owner-class-cell-totals-that-does-not-equal-the-bound-candidate-and-capacity-ledger-projection-plus-one-if-the-eight-class-sum-does-not-equal-side-squared-plus-one-for-each-factor1-factor2-or-factor5-group-unit-cell-aggregate-tuple-that-does-not-equal-the-owned-inventory-profile-limit-capacity-and-ownership-projections"
+final_cell_lane_separation_violation_unit = "one-violation-per-factor2-or5-logical-group-unordered-lane-pair-and-corresponding-encoded-bit-offset-whose-final-physical-cell-pair-fails-the-exact-owned-row-carry-separation-predicate"
+d2_d4_d6_required_closure_survival_violation_unit = "one-violation-per-owned-family-case-and-required-closure-section-id-pair-when-the-exact-ownership-and-damage-operator-projection-does-not-leave-that-section-recoverable-D2-D4-and-D6-contribute-exactly-256-1841-and7364-cases-and-required-section-ids-are-1-2-3-and16"
+section_dependency_inventory_closure_violation_unit = "one-violation-for-each-of-1279-semantic-copy0-logical-groups-missing-or-malformed-against-the-authoritative-inventory-and-ownership-projection-plus-one-for-each-of-78-dependency-edges-with-a-wrong-or-missing-target-plus-one-for-each-of-four-single-sector-removals-whose-complete-other-route-count-is-not-three-plus-one-if-the-semantic-section-inventory-factor-expanded-physical-unit-interior-pad-and-total-ledger-closure-does-not-reconcile"
+damage_promise_binding_violation_unit = "one-violation-per-exact-bound-family-case-if-its-root-family-shard-binding-or-family-result-is-not-pass-its-wrong-accept-count-is-not-zero-or-its-owned-family-guarantee-projection-fails"
+damage_promise_boundary_kat_rule = "the-four-boundary-kats-are-not-damage-family-cases-and-do-not-add-witnesses-a-missing-invalid-or-failing-boundary-kat-makes-the-bound-D7-family-result-not-pass-and-therefore-each-of-the-408-D7-case-witnesses-violates"
+row_pass_rule = "violation-count-zero-witness-count-equals-the-owned-exact-count-and-the-owned-literal-minimum-surviving-count-is-1"
+summary_keys = ["predicate_count", "result", "manifest_identity"]
+predicate_count = 9
+summary_result = "pass-if-and-only-if-every-predicate-row-passes"
+manifest_identity_preimage = "identity-v0-manifest-domain-with-one-field-equal-canonical-manifest-v0-bytes-of-same-object-with-only-summary-manifest-identity-omitted"
+manifest_identity = "identity-v0-sha256-lowercase-hex"
+generation_gate = "gate7-only-after-the-complete-bound-gate6-root-and-all-eight-family-manifests-pass-with-zero-wrong-accept"
+independent_implementations = ["python", "rust"]
+byte_agreement = "both-independent-implementations-produce-byte-identical-canonical-proof-bytes"
+proof_input_order = ["candidate-manifest.json", "ownership-ledger.json", "damage/damage-manifest.json", "damage-D0.json-through-damage-D7.json-in-family-order", "each-family-bound-case-shard-in-shard-ordinal-order"]
+proof_validation = "strictly-admit-and-raw-hash-bind-every-input-recompute-all-nine-complete-witness-and-violation-enumerations-render-the-exact-canonical-proof-and-require-oracle-python-rust-and-any-retained-proof-bytes-to-be-identical"
+proof_serialization = "canonical-manifest-v0-object-key-order-u64-scalars-lowercase-hex-no-extra-key-and-exactly-one-trailing-lf"
+proof_path_safety = "the-owned-proof-path-is-a-real-nonsymlink-nonhardlinked-file-created-only-by-the-artifact-bundle-gate7-publish-rule"
+failure_retention = "a-converged-fail-proof-is-persisted-as-gate7-losing-evidence-and-never-rewritten-as-pass"
+unknown_keys = "reject"
+
+[family_manifest]
+schema = "golden-board.m2-damage-family/v1"
+top_level_keys = ["schema", "damage_manifest_identity", "profile_id", "family_id", "guarantee_id", "shard_rows", "summary"]
+family_ids = ["D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"]
+guarantee_by_family = ["all_declared_m2_sections_exact", "all_declared_m2_sections_exact", "m2_required_closure", "m2_required_closure", "m2_required_closure", "all_declared_m2_sections_exact", "m2_required_closure", "correct_or_explicit_failure"]
+shard_row_keys = ["shard_ordinal", "case_first", "case_count", "manifest_sha256"]
+shard_rows = "contiguous-complete-partition-in-shard-ordinal-and-family-case-order-with-manifest-sha256-over-raw-canonical-shard-file-bytes"
+summary_keys = ["case_count", "wrong_accept_count", "result", "manifest_identity"]
+summary_binding = "case-count-wrong-accept-count-and-result-recomputed-from-bound-shards-and-byte-exactly-equal-the-corresponding-root-family-row-projection"
+result_ids = ["pass", "fail"]
+manifest_identity_preimage = "identity-v0-manifest-domain-with-one-field-equal-canonical-manifest-v0-bytes-of-same-object-with-only-summary-manifest-identity-omitted"
+manifest_identity = "identity-v0-sha256-lowercase-hex"
+unknown_keys = "reject"
+
+[case_shard_manifest]
+schema = "golden-board.m2-damage-cases/v1"
+top_level_keys = ["schema", "damage_manifest_identity", "profile_id", "family_id", "shard_ordinal", "case_first", "case_rows", "summary"]
+summary_keys = ["case_count", "wrong_accept_count", "manifest_identity"]
+partition_rule = "largest-next-nonempty-family-case-prefix-with-at-most-256-rows-whose-final-canonical-manifest-is-at-most-1048576-bytes"
+case_first = "zero-based-family-case-ordinal"
+case_rows = "byte-for-byte-exact-common-v1-case-row-schema-in-family-order"
+summary_binding = "case-count-equals-row-count-and-wrong-accept-count-equals-checked-row-sum"
+oversized_single_row_result = "gate6-tooling-failure-and-write-nothing"
+manifest_identity_preimage = "identity-v0-manifest-domain-with-one-field-equal-canonical-manifest-v0-bytes-of-same-object-with-only-summary-manifest-identity-omitted"
+manifest_identity = "identity-v0-sha256-lowercase-hex"
+unknown_keys = "reject"
+
+[artifact_bundle]
+directory = "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/damage"
+root_file = "damage-manifest.json"
+family_files = ["damage-D0.json", "damage-D1.json", "damage-D2.json", "damage-D3.json", "damage-D4.json", "damage-D5.json", "damage-D6.json", "damage-D7.json"]
+shard_filename = "damage-D{family_digit}-cases-{shard_ordinal:04d}.json"
+shard_filename_expansion = "family-digit-is-exactly-0-through-7-and-shard-ordinal-is-lowercase-ascii-decimal-with-minimum-width-4-zero-padding-and-no-redundant-leading-zero-beyond-that-minimum"
+proof_file = "independence-proof.json"
+gate6_allowlist = "exactly-root-eight-family-files-and-every-owned-nonempty-case-shard-no-proof-no-extra-file-directory-or-link"
+gate6_failed_allowlist = "same-exact-gate6-allowlist-is-retained-forever-and-gate7-must-not-run"
+gate6_pass_awaiting_gate7_allowlist = "same-exact-gate6-allowlist-with-proof-absent"
+post_gate7_allowlist = "same-exact-gate6-allowlist-plus-exactly-one-proof-file-whether-proof-result-pass-or-fail"
+gate6_case_count = 10038
+maximum_case_rows_per_shard = 256
+maximum_canonical_bytes_per_file = 1048576
+maximum_gate6_files = 10047
+maximum_post_gate7_files = 10048
+maximum_aggregate_canonical_bytes = 536870912
+path_safety = "candidate-root-damage-directory-staging-directory-and-every-file-must-be-real-nonsymlink-nonhardlinked-paths-under-the-exact-workspace-root"
+first_publish_path_state = "canonical-candidate-root-exists-and-is-exactly-admitted-and-its-damage-child-path-is-absent"
+root_to_family_to_shard_binding = "root-identity-is-computed-from-case-row-projections-without-family-file-hashes-shards-bind-that-root-identity-family-files-bind-that-root-identity-and-raw-shard-hashes-and-validation-reconstructs-every-root-family-row"
+proof_binding = "proof-binds-raw-candidate-manifest-ownership-ledger-and-root-damage-manifest-bytes-and-does-not-modify-any-gate6-file"
+gate6_publish = "render-oracle-python-and-rust-projections-in-bounded-staging-validate-exact-byte-equality-and-all-bindings-fsync-files-and-directory-then-atomically-fail-if-exists-rename-the-complete-damage-directory"
+gate7_publish = "after-validating-an-exact-passing-gate6-bundle-render-and-cross-check-the-proof-in-bounded-staging-then-atomically-create-only-the-proof-file-with-no-gate6-rewrite"
+existing_exact_result = "idempotent-success-and-byte-for-byte-unchanged"
+existing_mismatch_or_partial_result = "reject-and-never-overwrite"
+independent_disagreement_result = "tooling-blocker-write-nothing-not-candidate-failure"
+converged_failure_result = "persist-the-complete-failing-gate6-bundle-or-failing-gate7-proof-as-losing-evidence"
+first_gate6_execution = "requires-explicit-create-mode-after-canonical-gates1-through5-regeneration"
+check_mode = "never-starts-the-first-corpus-and-only-validates-an-existing-complete-allowlisted-bundle"
+unknown_files_or_states = "reject"
+
+[artifact_schema_refreeze]
+mode = "bounded-final-to-final-pre-damage-owner-refreeze"
+precursor_bootstrap_sha256 = "e4d0a5667758a753d35603632dee550db7ecb66cf64ee675ce7485531da27dde"
+precursor_profile_policy_sha256 = "44215d993e3fdfdd1630c404f1ee969e8abc6e4928fda83365fc6940e5cfd412"
+archived_precursor_damage_policy_sha256 = "cbe82b203c6c735c70d30eebcf8005dcabf46c60332d1726d7ef1d00c12dcb3f"
+precursor_route_data_sha256 = "94df79d9a3fb01b69014417683a0f48f2222fea9fe991361bc99aa0c30dc663e"
+precursor_profile_limits_sha256 = "54c62adfbee30bb84d9b4029059134db81c8e5794cd11c7c716b9b15ae1749e7"
+precursor_python_limits_receipt_sha256 = "5397497da30d61acf3e13b1d185dac93a37aef68ad81ee1ff8d0b2370af8498d"
+precursor_rust_limits_receipt_sha256 = "db573ed9df5d7405704e2abf54e6c09460543c65513c97846cc346cb6ad01722"
+precursor_promotion_sha256 = "82f4e9feedb95c5f5554e3bb219587d726996985276bdc51def099495901a57b"
+precursor_candidate_manifest_sha256 = "ae6d98ce6c52c0b849f479491d2fe86679b2d9cca9401c4860ae037621021f9f"
+precursor_candidate_manifest_identity = "5f105061d05ae22bc00755f6dca040818e75b6e99d52573ed0e16ebfb66dcaa3"
+precursor_archive_manifest_sha256 = "b55263aac1caa5534ff1276ffe8c5a0ca483a63f8f3f3bf1c573f03622c906d7"
+damage_policy_source = "exact-current-tracked-damage-policy-v1-bytes-containing-this-table"
+current_partial_tuple = "profile-bootstrap-and-route-equal-the-pinned-precursors-current-damage-equals-the-exact-damage-policy-source-current-limits-and-promotion-equal-the-pinned-precursors-and-the-canonical-v7-candidate-path-is-absent"
+profile_limits_render = "rerender-the-complete-canonical-v1-limits-from-unchanged-profile-bootstrap-route-package-capacity-slice-and-new-damage-owner-bytes-the-only-value-change-is-top-level-damage-policy-sha256"
+limits_receipt_render = "rerender-the-owned-python-and-rust-canonical-limits-receipts-from-the-new-exact-limits-and-unchanged-route-bytes"
+promotion_preimage = "raw-exact-precursor-promotion-bytes-with-sha256-82f4e9feedb95c5f5554e3bb219587d726996985276bdc51def099495901a57b"
+promotion_mutations = ["in-the-unique-draft-owner-row-for-spec-damage-policy-v1-toml-replace-only-sha256-with-the-new-raw-damage-owner-sha256", "in-the-unique-generated-owner-row-for-spec-profile-limits-v1-toml-replace-only-python-reproduction-sha256-rust-reproduction-sha256-and-sha256-with-the-new-raw-values"]
+promotion_unchanged_rule = "every-other-byte-key-order-row-order-required-field-status-authority-and-value-is-byte-for-byte-identical-to-the-pinned-precursor"
+write_set = ["spec/damage-policy-v1.toml", "spec/profile-limits-v1.toml", "spec/m2-r3-owner-promotion-v1.toml"]
+write_order = ["spec/damage-policy-v1.toml", "spec/profile-limits-v1.toml", "spec/m2-r3-owner-promotion-v1.toml"]
+status_last = true
+final_status = "pre-result-frozen"
+final_damage_observation_authorized = true
+unchanged_paths = ["spec/bootstrap-v1.md", "spec/profile-policy-v1.toml", "spec/route-data-v1.json", "conformance/m2-r3-owner-v1.json"]
+preconditions = "both-eleven-file-history-archives-validate-the-newer-archive-matches-the-pinned-precursor-owner-and-candidate-bytes-the-canonical-v7-candidate-path-is-absent-no-r3-d0-through-d7-observation-exists-and-python-and-rust-independently-render-byte-identical-limits-receipts-and-final-promotion"
+dry_run = "render-and-strictly-admit-the-complete-final-three-file-dag-in-memory-before-any-write"
+apply = "stage-fsync-revalidate-and-atomically-replace-only-the-three-owned-files-with-promotion-last"
+failure_result = "write-nothing-or-roll-back-to-the-exact-precursor-tuple"
+already_applied = "strict-final-three-file-admission-returns-idempotent-success-with-no-write"
+postcondition = "canonical-v7-candidate-path-remains-absent-until-independent-gates1-through5-regeneration-and-no-damage-execution-occurs-during-refreeze"
+
+[independence_witness_refreeze]
+mode = "bounded-final-to-final-pre-damage-independence-witness-refreeze"
+precursor_bootstrap_sha256 = "e4d0a5667758a753d35603632dee550db7ecb66cf64ee675ce7485531da27dde"
+precursor_profile_policy_sha256 = "44215d993e3fdfdd1630c404f1ee969e8abc6e4928fda83365fc6940e5cfd412"
+archived_precursor_damage_policy_sha256 = "337810fe852443d43d06f6563bd25d00498d2bce727fb9558069c9a1ab1e8f6f"
+precursor_route_data_sha256 = "94df79d9a3fb01b69014417683a0f48f2222fea9fe991361bc99aa0c30dc663e"
+precursor_profile_limits_sha256 = "6d9ce190fd510dc95c2a49fb371d7b22174771d798f14788d270e3d42b041691"
+precursor_python_limits_receipt_sha256 = "275f35adb5b62bd799f23ddbbaec3f36e0c6f6cb39c18662012ffe155ca2e0c8"
+precursor_rust_limits_receipt_sha256 = "7dfe55fe169e1f176eff726602678c1596b4822357dfa1c470306b9c223b81c1"
+precursor_promotion_sha256 = "3e0893b8376c2fae2140c9349e7b5b302ee87de443cd4e497dbfba19b2b6adc9"
+precursor_candidate_manifest_sha256 = "54e7f72bd1d3e045fe699c070f5378d696413c28ad786535e9c7ae7fdc1a1d8f"
+precursor_candidate_manifest_identity = "bd72b98d59065bf5ef8f4cfd3917d76a3aeb135c969315626c8729a068f66d97"
+precursor_archive_manifest_sha256 = "661141dfe15be4597aee24edbbb01b080383aabcfe75646b4a97454758915203"
+damage_policy_source = "exact-current-tracked-damage-policy-v1-bytes-containing-this-table"
+current_partial_tuple = "profile-bootstrap-and-route-equal-the-pinned-precursors-current-damage-equals-the-exact-damage-policy-source-current-limits-and-promotion-equal-the-pinned-precursors-and-the-canonical-v7-candidate-path-is-absent"
+profile_limits_render = "rerender-the-complete-canonical-v1-limits-from-unchanged-profile-bootstrap-route-package-capacity-slice-and-new-damage-owner-bytes-the-only-value-change-is-top-level-damage-policy-sha256"
+limits_receipt_render = "rerender-the-owned-python-and-rust-canonical-limits-receipts-from-the-new-exact-limits-and-unchanged-route-bytes"
+promotion_preimage = "raw-exact-precursor-promotion-bytes-with-sha256-3e0893b8376c2fae2140c9349e7b5b302ee87de443cd4e497dbfba19b2b6adc9"
+promotion_mutations = ["in-the-unique-draft-owner-row-for-spec-damage-policy-v1-toml-replace-only-sha256-with-the-new-raw-damage-owner-sha256", "in-the-unique-generated-owner-row-for-spec-profile-limits-v1-toml-replace-only-python-reproduction-sha256-rust-reproduction-sha256-and-sha256-with-the-new-raw-values"]
+promotion_unchanged_rule = "every-other-byte-key-order-row-order-required-field-status-authority-and-value-is-byte-for-byte-identical-to-the-pinned-precursor"
+write_set = ["spec/damage-policy-v1.toml", "spec/profile-limits-v1.toml", "spec/m2-r3-owner-promotion-v1.toml"]
+write_order = ["spec/damage-policy-v1.toml", "spec/profile-limits-v1.toml", "spec/m2-r3-owner-promotion-v1.toml"]
+status_last = true
+final_status = "pre-result-frozen"
+final_damage_observation_authorized = true
+unchanged_paths = ["spec/bootstrap-v1.md", "spec/profile-policy-v1.toml", "spec/route-data-v1.json", "conformance/m2-r3-owner-v1.json"]
+preconditions = "all-three-owned-eleven-file-history-archives-validate-the-newest-archive-matches-the-pinned-precursor-owner-and-candidate-bytes-the-canonical-v7-candidate-path-is-absent-no-r3-d0-through-d7-observation-exists-and-python-and-rust-independently-render-byte-identical-limits-receipts-and-final-promotion"
+dry_run = "render-and-strictly-admit-the-complete-final-three-file-dag-in-memory-before-any-write"
+apply = "stage-fsync-revalidate-and-atomically-replace-only-the-three-owned-files-with-promotion-last"
+failure_result = "write-nothing-or-roll-back-to-the-exact-current-partial-tuple"
+already_applied = "strict-final-three-file-admission-returns-idempotent-success-with-no-write"
+postcondition = "canonical-v7-candidate-path-remains-absent-until-independent-gates1-through5-regeneration-and-no-damage-execution-occurs-during-refreeze"
+
+[admission]
+unknown_top_level_keys = "reject"
+unknown_nested_keys = "reject"
+duplicate_keys = "reject"
+pending_status_may_generate_damage = false
+pre_result_frozen_requires_closed_promotion_barrier = true
+pre_clarification_archive_root = "artifacts/history/m2-r3-pre-d7-mapping-clarification"
+pre_clarification_archive_manifest = "artifacts/history/m2-r3-pre-d7-mapping-clarification/archive-files.sha256"
+pre_clarification_archive_manifest_sha256 = "dd447e4d45cd1fec06261af604d40e5c2d4aeb92e6af04334f5f57ecc74b8f6d"
+pre_clarification_archive_scope = "exact-six-file-v7-tree-plus-old-damage-limits-promotion-and-both-limits-receipts"
+pre_clarification_candidate_manifest_identity = "2cfd677dab41e882b045077d888784814c269b072272125282edfbca3638d793"
+pre_clarification_profile_limits_sha256 = "4be5f03700b924195b14cf3e832ae0ffc477c7b74fe10450ec6a7eae28210ebf"
+pre_clarification_reuse = "history-only-never-canonical-r3-gate-or-damage-input"
+pre_damage_artifact_schema_archive_root = "artifacts/history/m2-r3-pre-damage-artifact-schema-clarification"
+pre_damage_artifact_schema_archive_manifest = "artifacts/history/m2-r3-pre-damage-artifact-schema-clarification/archive-files.sha256"
+pre_damage_artifact_schema_archive_manifest_sha256 = "b55263aac1caa5534ff1276ffe8c5a0ca483a63f8f3f3bf1c573f03622c906d7"
+pre_damage_artifact_schema_archive_scope = "exact-six-file-v7-tree-plus-pre-schema-clarification-damage-limits-promotion-and-both-limits-receipts"
+pre_damage_artifact_schema_candidate_manifest_sha256 = "ae6d98ce6c52c0b849f479491d2fe86679b2d9cca9401c4860ae037621021f9f"
+pre_damage_artifact_schema_candidate_manifest_identity = "5f105061d05ae22bc00755f6dca040818e75b6e99d52573ed0e16ebfb66dcaa3"
+pre_damage_artifact_schema_damage_policy_sha256 = "cbe82b203c6c735c70d30eebcf8005dcabf46c60332d1726d7ef1d00c12dcb3f"
+pre_damage_artifact_schema_profile_limits_sha256 = "54c62adfbee30bb84d9b4029059134db81c8e5794cd11c7c716b9b15ae1749e7"
+pre_damage_artifact_schema_promotion_sha256 = "82f4e9feedb95c5f5554e3bb219587d726996985276bdc51def099495901a57b"
+pre_damage_artifact_schema_python_limits_receipt_sha256 = "5397497da30d61acf3e13b1d185dac93a37aef68ad81ee1ff8d0b2370af8498d"
+pre_damage_artifact_schema_rust_limits_receipt_sha256 = "db573ed9df5d7405704e2abf54e6c09460543c65513c97846cc346cb6ad01722"
+pre_damage_artifact_schema_reuse = "history-only-never-current-r3-gate-damage-or-proof-input"
+pre_independence_witness_archive_root = "artifacts/history/m2-r3-pre-independence-witness-clarification"
+pre_independence_witness_archive_manifest = "artifacts/history/m2-r3-pre-independence-witness-clarification/archive-files.sha256"
+pre_independence_witness_archive_manifest_sha256 = "661141dfe15be4597aee24edbbb01b080383aabcfe75646b4a97454758915203"
+pre_independence_witness_archive_scope = "exact-six-file-v7-tree-plus-pre-witness-clarification-damage-limits-promotion-and-both-limits-receipts"
+pre_independence_witness_candidate_manifest_sha256 = "54e7f72bd1d3e045fe699c070f5378d696413c28ad786535e9c7ae7fdc1a1d8f"
+pre_independence_witness_candidate_manifest_identity = "bd72b98d59065bf5ef8f4cfd3917d76a3aeb135c969315626c8729a068f66d97"
+pre_independence_witness_damage_policy_sha256 = "337810fe852443d43d06f6563bd25d00498d2bce727fb9558069c9a1ab1e8f6f"
+pre_independence_witness_profile_limits_sha256 = "6d9ce190fd510dc95c2a49fb371d7b22174771d798f14788d270e3d42b041691"
+pre_independence_witness_promotion_sha256 = "3e0893b8376c2fae2140c9349e7b5b302ee87de443cd4e497dbfba19b2b6adc9"
+pre_independence_witness_python_limits_receipt_sha256 = "275f35adb5b62bd799f23ddbbaec3f36e0c6f6cb39c18662012ffe155ca2e0c8"
+pre_independence_witness_rust_limits_receipt_sha256 = "7dfe55fe169e1f176eff726602678c1596b4822357dfa1c470306b9c223b81c1"
+pre_independence_witness_reuse = "history-only-never-current-r3-gate-damage-or-proof-input"
+canonical_regeneration_precondition = "all-three-owned-eleven-file-archive-manifests-exist-match-and-verify-and-the-canonical-v7-candidate-path-is-absent"
+damage_generation_precondition = "the-new-owner-hash-cascade-is-atomically-refrozen-and-the-canonical-gates1-through5-tree-is-independently-regenerated-persisted-and-exact-before-any-gate6-create-mode"

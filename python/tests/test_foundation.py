@@ -196,7 +196,9 @@ def validate_conformance_registry(root: Path) -> None:
             or path != f"conformance/{identifier}.json"
             or identifier in identifiers
             or path in paths
-            or suite["version"] != "v0"
+            or suite["version"] != (
+                "v1" if identifier == "m2-r3-owner-v1" else "v0"
+            )
             or not isinstance(suite["sha256"], str)
             or re.fullmatch(r"[0-9a-f]{64}", suite["sha256"]) is None
             or suite["consumers"] != ["python", "rust"]
@@ -1444,26 +1446,148 @@ class ManifestConformance(unittest.TestCase):
 
 @unittest.skipIf(source_doctor is None, "source doctor not present")
 class SourceDoctorTrustBoundary(unittest.TestCase):
-    def test_lock_accepts_only_the_closed_m0_document(self) -> None:
+    def test_lock_accepts_only_the_closed_m0_plus_m2_document(self) -> None:
         lock = (ROOT / "inputs/source-lock.toml").read_bytes()
         parsed = source_doctor.parse_source_lock(lock, ROOT)
         self.assertEqual(parsed.path, "docs/64_games.md")
         self.assertEqual(parsed.expected_bytes, 165_145)
 
+        document = tomllib.loads(lock.decode("utf-8"))
+        self.assertEqual(
+            [(row["id"], row["role"]) for row in document["reference"]],
+            [
+                ("fide-laws-2023", "normative_future_input"),
+                ("pgn-guide-1994", "historical_background"),
+                ("nist-fips-180-4", "hash_definition"),
+                ("nist-sha-byte-vectors-archive", "known_answer_container"),
+                ("nist-sha256-short-message-vectors", "known_answer_source"),
+                ("etsi-en-301-192-v1-8-1", "rs_parameter_source"),
+                ("rfc-9260", "crc32c_parameter_source"),
+                ("ecma-182", "crc64_parameter_source"),
+            ],
+        )
+
         mutations = [
             lock.replace(b'id = "pgn-guide-1994"', b'id = "fide-laws-2023"'),
+            lock.replace(b'id = "rfc-9260"', b'id = "unknown-9260"'),
+            lock.replace(b'id = "rfc-9260"', b'id = "ecma-182"'),
             lock.replace(b"33d44f7167ab190c", b"X3d44f7167ab190c", 1),
             lock.replace(b'newline = "lf"\n', b"", 1),
             lock.replace(b'newline = "lf"\n', b'newline = "lf"\nextra = 1\n', 1),
             lock.replace(b'path = "docs/64_games.md"', b'path = "/tmp/x"', 1),
             lock.replace(b'path = "docs/64_games.md"', b'path = "../x"', 1),
             lock.replace(b'role = "historical_background"', b'role = "future_profile"', 1),
+            lock.replace(
+                b'role = "crc32c_parameter_source"',
+                b'role = "crc64_parameter_source"',
+                1,
+            ),
             lock.replace(b'newline = "lf"\n', b'newline = "lf"\nprofile = "v0"\n', 1),
         ]
         for index, mutation in enumerate(mutations):
             with self.subTest(index=index):
                 with self.assertRaises(source_doctor.LockError):
                     source_doctor.parse_source_lock(mutation, ROOT)
+
+    def test_m0_reference_receipts_remain_exact(self) -> None:
+        document = tomllib.loads((ROOT / "inputs/source-lock.toml").read_text())
+        expected = [
+            {
+                "id": "fide-laws-2023",
+                "role": "normative_future_input",
+                "title": "FIDE Laws of Chess taking effect 1 January 2023",
+                "version": "2023-01-01",
+                "locator": "https://rcc.fide.com/wp-content/uploads/2022/11/Laws_of_Chess-2023.pdf",
+                "accessed": "2026-08-14",
+                "bytes": 862953,
+                "sha256": "1b46ade85c91110538c9ad2ad90fb6aba1b04125d54f5241d3cb46ef96c40f81",
+                "retention": "receipt_only",
+                "redistribution": "not_established",
+            },
+            {
+                "id": "pgn-guide-1994",
+                "role": "historical_background",
+                "title": "Portable Game Notation Specification and Implementation Guide",
+                "version": "1994-03-12",
+                "locator": "https://archive.org/download/pgn-standard-1994-03-12/PGN_standard_1994-03-12.txt",
+                "accessed": "2026-08-14",
+                "bytes": 121009,
+                "sha256": "fe892515f096e268794811ca25099acdd64ebff6dacacff90879cbaae76be961",
+                "retention": "receipt_only",
+                "redistribution": "not_established",
+            },
+            {
+                "id": "nist-fips-180-4",
+                "role": "hash_definition",
+                "title": "FIPS PUB 180-4: Secure Hash Standard",
+                "version": "2015-08",
+                "locator": "https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.180-4.pdf",
+                "accessed": "2026-08-14",
+                "bytes": 833315,
+                "sha256": "0455b406d89648d20cbde375561e19c245b9815e894164c2670772e3d54deb82",
+                "retention": "receipt_only",
+                "redistribution": "not_established",
+            },
+            {
+                "id": "nist-sha-byte-vectors-archive",
+                "role": "known_answer_container",
+                "title": "CAVP byte-oriented Secure Hash test-vector archive",
+                "version": "accessed-2026-08-14",
+                "locator": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/shs/shabytetestvectors.zip",
+                "accessed": "2026-08-14",
+                "bytes": 4909729,
+                "sha256": "929ef80b7b3418aca026643f6f248815913b60e01741a44bba9e118067f4c9b8",
+                "retention": "receipt_only",
+                "redistribution": "not_established",
+            },
+            {
+                "id": "nist-sha256-short-message-vectors",
+                "role": "known_answer_source",
+                "title": "shabytetestvectors/SHA256ShortMsg.rsp",
+                "version": "CAVS-11.0-generated-2011-03-15",
+                "locator": "https://csrc.nist.gov/CSRC/media/Projects/Cryptographic-Algorithm-Validation-Program/documents/shs/shabytetestvectors.zip#shabytetestvectors/SHA256ShortMsg.rsp",
+                "accessed": "2026-08-14",
+                "bytes": 10299,
+                "sha256": "75e1cb83994638481808e225b9eb0c1ebd0c232d952ac42b61abce6363be283c",
+                "retention": "receipt_only",
+                "redistribution": "not_established",
+            },
+        ]
+        self.assertEqual(document["reference"][:5], expected)
+
+    def test_lock_outer_and_metadata_string_boundaries(self) -> None:
+        lock = (ROOT / "inputs/source-lock.toml").read_bytes()
+        exact_outer = lock + b" " * (source_doctor.MAX_SOURCE_LOCK_BYTES - len(lock))
+        source_doctor.parse_source_lock(exact_outer, ROOT)
+        with self.assertRaises(source_doctor.LockError):
+            source_doctor.parse_source_lock(exact_outer + b" ", ROOT)
+
+        title = b"RFC 9260: Stream Control Transmission Protocol"
+        at_string_cap = lock.replace(
+            title,
+            b"a" * source_doctor.MAX_SOURCE_LOCK_STRING_BYTES,
+            1,
+        )
+        source_doctor.parse_source_lock(at_string_cap, ROOT)
+        with self.assertRaises(source_doctor.LockError):
+            source_doctor.parse_source_lock(
+                lock.replace(
+                    title,
+                    b"a" * (source_doctor.MAX_SOURCE_LOCK_STRING_BYTES + 1),
+                    1,
+                ),
+                ROOT,
+            )
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "inputs").mkdir()
+            path = root / "inputs/source-lock.toml"
+            path.write_bytes(exact_outer)
+            source_doctor.load_source_lock(root)
+            path.write_bytes(exact_outer + b" ")
+            with self.assertRaises(source_doctor.LockError):
+                source_doctor.load_source_lock(root)
 
     def test_regular_source_bounds_and_lock_mismatch(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -1883,6 +2007,90 @@ class RepoContract(unittest.TestCase):
         "spec/constants-v0.toml", "spec/content-v0.md", "spec/curriculum-v0.toml", "spec/identity-v0.md",
         "spec/source-v0.md", "uv.lock",
     ]
+    M2_REQUIRED = [
+        ".dockerignore", "conformance/bootstrap-invalid-v0.json",
+        "conformance/bootstrap-v0.json", "conformance/recipe-v0.json",
+        "conformance/rs255-191-v0.json", "conformance/m2-r3-owner-v1.json",
+        "crates/gb-bootstrap/Cargo.toml", "crates/gb-bootstrap/src/lib.rs",
+        "crates/gb-bootstrap/src/candidate.rs",
+        "crates/gb-bootstrap/src/candidate_recipe.rs",
+        "crates/gb-bootstrap/src/carrier.rs",
+        "crates/gb-bootstrap/src/damage.rs",
+        "crates/gb-bootstrap/src/gate8_v1.rs",
+        "crates/gb-bootstrap/src/bin/gb-damage-decoder.rs",
+        "crates/gb-bootstrap/src/policy.rs", "crates/gb-bootstrap/src/recipe.rs",
+        "crates/gb-bootstrap/examples/dump_eh_package.rs",
+        "crates/gb-bootstrap/examples/dump_rs_decoder_package.rs",
+        "crates/gb-bootstrap/tests/bootstrap.rs", "crates/gb-bootstrap/tests/policy.rs",
+        "crates/gb-bootstrap/tests/candidate.rs",
+        "crates/gb-bootstrap/tests/recipe.rs", "crates/gb-bootstrap/tests/rs_policy.rs",
+        "crates/gb-slice/Cargo.toml",
+        "crates/gb-slice/src/lib.rs", "crates/gb-slice/tests/slice.rs",
+        "docs/decisions.md", "docs/m2-plan.md", "docs/m2-r3-design.md",
+        "docs/m2-spec.md", "python/golden_board/bootstrap.py",
+        "python/golden_board/capacity.py", "python/golden_board/m2_carrier.py",
+        "python/golden_board/m2_codec.py", "python/golden_board/m2_damage.py",
+        "python/golden_board/m2_decoder.py",
+        "python/golden_board/m2_gate8.py",
+        "python/golden_board/m2_independence.py",
+        "python/golden_board/m2_policy.py", "python/golden_board/m2_recipe.py",
+        "python/golden_board/m2_route_data.py", "python/golden_board/m2_common_recipe.py",
+        "python/golden_board/m2_runner.py",
+        "python/golden_board/m2_slice.py",
+        "python/tests/test_bootstrap.py", "python/tests/test_capacity.py",
+        "python/tests/test_m2_carrier.py", "python/tests/test_m2_codec.py",
+        "python/tests/test_m2_damage.py", "python/tests/test_m2_decoder.py",
+        "python/tests/test_m2_gate8.py",
+        "python/tests/test_m2_independence.py",
+        "python/tests/test_m2_recipe.py",
+        "python/tests/test_m2_transport_fast.py",
+        "python/tests/test_m2_policy.py", "python/tests/test_m2_route_data.py",
+        "python/tests/test_m2_common_recipe.py",
+        "python/tests/test_m2_runner.py",
+        "python/tests/test_m2_slice.py", "python/tests/test_m2_gate8_policy.py",
+        "python/tests/test_m2_learner_runner.py",
+        "spec/bootstrap-v0.md",
+        "spec/damage-policy-v0.toml", "spec/profile-limits-v0.toml",
+        "spec/profile-policy-v0.toml", "spec/route-data-v0.json",
+        "spec/bootstrap-v1.md", "spec/profile-policy-v1.toml",
+        "spec/damage-policy-v1.toml", "spec/m2-r3-owner-promotion-v1.toml",
+        "spec/gate8-policy-v0.toml", "spec/gate8-verifier-refresh-v0.toml",
+        "spec/runner-v0.md", "spec/slice-v0.md",
+        "studies/m2/slice-v0.json",
+        "tools/m2/generate_candidates.py",
+        "tools/m2/generate_damage.py",
+        "tools/linux/Dockerfile",
+        "tools/linux/acquire.sh", "tools/linux/container-verify.sh",
+        "tools/linux/image.env", "tools/linux/snapshot.py",
+        "tools/linux/verify.sh",
+    ]
+    R3_GENERATED_REQUIRED = [
+        "spec/profile-limits-v1.toml", "spec/route-data-v1.json",
+    ]
+    GATE8_CANDIDATE_READY_ADDITIONAL_REQUIRED = [
+        "crates/gb-bootstrap/src/bin/gb-m2-gate8.rs",
+        "tools/m2/generate_gate8.py",
+        "tools/m2/learner_runner.py",
+    ]
+    LINUX_PATHS = frozenset(
+        path for path in M2_REQUIRED if path.startswith("tools/linux/")
+    )
+
+    def visible_paths(self) -> set[bytes]:
+        tracked = subprocess.run(
+            ["git", "ls-files", "-z"], cwd=ROOT, check=True,
+            stdout=subprocess.PIPE,
+        ).stdout
+        untracked = subprocess.run(
+            [
+                "git", "-c", "core.excludesFile=/dev/null", "ls-files",
+                "--others", "--exclude-standard", "-z",
+            ],
+            cwd=ROOT,
+            check=True,
+            stdout=subprocess.PIPE,
+        ).stdout
+        return {path for path in (tracked + untracked).split(b"\0") if path}
 
     def tracked(self) -> dict[str, str]:
         output = subprocess.run(
@@ -1902,32 +2110,87 @@ class RepoContract(unittest.TestCase):
         self.assertEqual(tracked["scripts/check"], "100755")
         self.assertTrue(os.access(ROOT / "scripts/check", os.X_OK))
 
-        all_tracked = subprocess.run(
-            ["git", "ls-files"], cwd=ROOT, check=True, stdout=subprocess.PIPE, text=True
-        ).stdout.splitlines()
-        forbidden_exact = {".dockerignore", "Dockerfile", "docs/decisions.md", "flake.nix"}
-        forbidden_prefixes = (".github/workflows/", "release/", "schemas/", "tools/linux/")
-        self.assertFalse(forbidden_exact.intersection(all_tracked))
-        self.assertFalse([path for path in all_tracked if path.startswith(forbidden_prefixes)])
+        visible = {os.fsdecode(path) for path in self.visible_paths()}
+        for archive_id in (
+            "m2-r3-pre-d7-mapping-clarification",
+            "m2-r3-pre-damage-artifact-schema-clarification",
+            "m2-r3-pre-independence-witness-clarification",
+            "m2-r3-pre-gate6-convergence-clarification",
+        ):
+            self.assertIn(
+                f"artifacts/history/{archive_id}/archive-files.sha256",
+                visible,
+            )
+        self.assertNotIn(
+            "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/"
+            "candidate-manifest.json",
+            visible,
+        )
+        promotion = tomllib.loads(
+            (ROOT / "spec/m2-r3-owner-promotion-v1.toml").read_text()
+        )
+        self.assertIn(promotion["status"], {"blocked", "pre-result-frozen"})
+        m2_required = list(self.M2_REQUIRED)
+        if promotion["status"] == "pre-result-frozen":
+            m2_required.extend(self.R3_GENERATED_REQUIRED)
+        gate8_policy = tomllib.loads(
+            (ROOT / "spec/gate8-policy-v0.toml").read_text()
+        )
+        implementation = gate8_policy["implementation_surface"]
+        self.assertEqual(
+            implementation["candidate_ready_additional_required_paths"],
+            self.GATE8_CANDIDATE_READY_ADDITIONAL_REQUIRED,
+        )
+        self.assertEqual(
+            implementation["tracked_template_count"],
+            len(gate8_policy["tracked_templates"]["paths"]),
+        )
+        if (ROOT / gate8_policy["authority"]["report_path"]).exists():
+            m2_required.extend(self.GATE8_CANDIDATE_READY_ADDITIONAL_REQUIRED)
+            m2_required.extend(gate8_policy["tracked_templates"]["paths"])
+        for relative in m2_required:
+            path = ROOT / relative
+            self.assertIn(relative, visible)
+            self.assertTrue(path.is_file() and not path.is_symlink(), relative)
+            self.assertGreater(path.stat().st_size, 0, relative)
+        if (ROOT / gate8_policy["authority"]["report_path"]).exists():
+            for relative in (
+                "tools/m2/generate_gate8.py",
+                "tools/m2/learner_runner.py",
+            ):
+                self.assertTrue(os.access(ROOT / relative, os.X_OK), relative)
+        for relative in (
+            "tools/linux/acquire.sh", "tools/linux/container-verify.sh",
+            "tools/linux/snapshot.py", "tools/linux/verify.sh",
+        ):
+            self.assertTrue(os.access(ROOT / relative, os.X_OK), relative)
+
+        forbidden_exact = {"Dockerfile", "flake.nix"}
+        forbidden_prefixes = (
+            ".github/workflows/", "release/", "schemas/", "web/",
+        )
+        self.assertFalse(forbidden_exact.intersection(visible))
+        self.assertFalse(
+            [path for path in visible if path.startswith(forbidden_prefixes)]
+        )
+        self.assertEqual(
+            {path for path in visible if path.startswith("tools/linux/")},
+            self.LINUX_PATHS,
+        )
 
     def test_text_registry_links_and_status_are_consistent(self) -> None:
-        output = subprocess.run(
-            ["git", "ls-files", "--others", "--exclude-standard", "-z"],
-            cwd=ROOT,
-            check=True,
-            stdout=subprocess.PIPE,
-        ).stdout
-        for relative in [
-            *(os.fsencode(path) for path in self.REQUIRED),
-            *(path for path in output.split(b"\0") if path),
-        ]:
-            if relative in {b"docs/64_games.md", b"reports/game-set-v0.bin"}:
+        for relative in sorted(self.visible_paths()):
+            if relative == b"reports/game-set-v0.bin" or (
+                relative.startswith(b"artifacts/history/m2-r3-pre-")
+                and relative.endswith(b"/carrier.obs-bits")
+            ):
                 continue
             data = repo_text_bytes(ROOT, relative)
             self.assertNotIn(b"\r", data, relative)
             self.assertTrue(data.endswith(b"\n"), relative)
             for line in data.splitlines():
-                self.assertFalse(line.endswith((b" ", b"\t")), relative)
+                if relative != b"docs/64_games.md":
+                    self.assertFalse(line.endswith((b" ", b"\t")), relative)
                 self.assertFalse(line.startswith((b"<<<<<<<", b"=======", b">>>>>>>")), relative)
 
         validate_conformance_registry(ROOT)
@@ -1938,7 +2201,9 @@ class RepoContract(unittest.TestCase):
             "scripts/check fast", "scripts/check focused source",
             "scripts/check focused identity", "scripts/check focused chess",
             "scripts/check focused curriculum", "scripts/check focused content",
+            "scripts/check focused transport", "scripts/check focused damage",
             "scripts/check focused repo",
+            "scripts/check linux",
             "scripts/check full",
         ):
             self.assertIn(command, readme)
@@ -1949,6 +2214,46 @@ class RepoContract(unittest.TestCase):
         header_state = re.search(r"^\| Project state \| (.+) \|$", roadmap, re.MULTILINE).group(1)
         header_milestone = re.search(r"^\| Current milestone \| (.+) \|$", roadmap, re.MULTILINE).group(1)
         rows = re.findall(r"^\| (M[0-6] — [^|]+) \| ([^|]+) \|", roadmap, re.MULTILINE)
+        self.assertEqual(len(rows), 7)
+        for _name, raw_status in rows:
+            status = raw_status.strip()
+            if status in {
+                "Not started", "In progress",
+                "Candidate ready — independent validation pending",
+                "Stopped — redesign required",
+            }:
+                continue
+            reason_match = re.fullmatch(r"(?:Blocked|Needs revision) — (.{1,240})", status)
+            if reason_match is not None:
+                reason = reason_match.group(1)
+                self.assertEqual(reason, reason.strip())
+                self.assertNotRegex(reason, r"(?i)\b(?:tbd|todo|placeholder)\b|[<>]")
+                continue
+            complete_match = re.fullmatch(r"Complete — (.{1,512})", status)
+            self.assertIsNotNone(complete_match, status)
+
+        m2_status = next(status.strip() for name, status in rows if name.startswith("M2 —"))
+        r3_design = ROOT / "docs/m2-r3-design.md"
+        decisions = ROOT / "docs/decisions.md"
+        report = ROOT / "reports/m2-feasibility-v0.json"
+        if r3_design.is_file():
+            self.assertTrue(decisions.is_file() and not decisions.is_symlink())
+            self.assertIn("M2 R3 uses hierarchical physical repetition", decisions.read_text())
+            self.assertIn("eh72-hier-r5-r2-r1-crc32c-v0", roadmap)
+            if report.is_file():
+                self.assertTrue(
+                    m2_status == "Candidate ready — independent validation pending"
+                    or m2_status.startswith("Complete — ")
+                )
+            else:
+                self.assertEqual(m2_status, "In progress")
+        if m2_status == "Candidate ready — independent validation pending" or m2_status.startswith(
+            "Complete — "
+        ):
+            self.assertTrue(report.is_file() and not report.is_symlink())
+        if m2_status.startswith("Complete — "):
+            self.assertTrue(decisions.is_file())
+
         current = next(((name, status.strip()) for name, status in rows if not status.strip().startswith("Complete")), None)
         if current is None:
             expected_state, expected_milestone = "Complete", "Completed project"
@@ -1997,6 +2302,793 @@ class RepoContract(unittest.TestCase):
                 "version": "v0",
             },
         )
+
+    def test_r3_owner_draft_is_registered_bound_and_fail_closed(self) -> None:
+        fixture_path = ROOT / "conformance/m2-r3-owner-v1.json"
+        fixture_bytes = fixture_path.read_bytes()
+        fixture_sha256 = hashlib.sha256(fixture_bytes).hexdigest()
+        self.assertEqual(
+            fixture_sha256,
+            "d0a0da9fa62511fc7914ec214b6ba934c470ac669ed765ace29b42da22896ce3",
+        )
+        fixture = json.loads(fixture_bytes)
+        self.assertEqual(
+            fixture_bytes,
+            (
+                json.dumps(fixture, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+                + "\n"
+            ).encode(),
+        )
+        self.assertEqual(
+            set(fixture),
+            {
+                "adapter_shape_cases", "group_cases", "inventory_cases",
+                "mapping_projection", "owner_class_cases", "repetition_cases",
+                "schema",
+            },
+        )
+        self.assertEqual(fixture["schema"], "golden-board.m2-r3-owner-fixtures/v1")
+        repetition = {row["id"]: row for row in fixture["repetition_cases"]}
+        self.assertEqual(
+            set(repetition),
+            {
+                "count-sum-exceeds-factor", "factor-one-not-a-repetition-recipe",
+                "factor-three-rejected", "rep2-disagree-erases",
+                "rep2-one-known-zero", "rep5-all-erased",
+                "rep5-four-erased-one-zero", "rep5-three-ones",
+                "rep5-two-ones", "rep5-two-two-one-erased",
+            },
+        )
+        self.assertEqual(repetition["count-sum-exceeds-factor"]["status"], 3)
+        self.assertFalse(repetition["rep2-disagree-erases"]["output_known"])
+        self.assertEqual(repetition["rep5-three-ones"]["output_bit"], 1)
+        self.assertEqual(
+            fixture["mapping_projection"]["slot_multiplier_table_sha256"],
+            "835717bf400c597a3a9e1b59747f23d93047b6cfab462756fa07d96c5f3eba3f",
+        )
+        self.assertTrue(any(not row["valid"] for row in fixture["adapter_shape_cases"]))
+        self.assertTrue(any(not row["valid"] for row in fixture["inventory_cases"]))
+        self.assertTrue(any(not row["valid"] for row in fixture["owner_class_cases"]))
+
+        registry = tomllib.loads((ROOT / "conformance/registry.toml").read_text())
+        rows = [row for row in registry["suite"] if row["id"] == "m2-r3-owner-v1"]
+        self.assertEqual(
+            rows,
+            [{
+                "consumers": ["python", "rust"],
+                "id": "m2-r3-owner-v1",
+                "path": "conformance/m2-r3-owner-v1.json",
+                "provenance": "hand-authored",
+                "sha256": fixture_sha256,
+                "specification": "bootstrap-v1",
+                "version": "v1",
+            }],
+        )
+
+        promotion_path = ROOT / "spec/m2-r3-owner-promotion-v1.toml"
+        promotion = tomllib.loads(promotion_path.read_text())
+        profile = tomllib.loads((ROOT / "spec/profile-policy-v1.toml").read_text())
+        damage = tomllib.loads((ROOT / "spec/damage-policy-v1.toml").read_text())
+
+        decoder_result = damage["decoder_result"]
+        self.assertEqual(
+            decoder_result["accepted_hypothesis_mapping_variant_selector"],
+            "accepted-route-version-plus-exact-mapping-id",
+        )
+        self.assertEqual(
+            decoder_result["accepted_hypothesis_mapping_hierarchical_keys"],
+            [
+                "id", "interior_side", "population", "unit_population",
+                "unit_multiplier", "unit_inverse_multiplier",
+                "cell_multiplier", "offset", "cell_inverse_multiplier",
+            ],
+        )
+        self.assertEqual(
+            decoder_result["accepted_hypothesis_mapping_legacy_keys"],
+            [
+                "id", "interior_side", "population", "multiplier",
+                "offset", "inverse_multiplier",
+            ],
+        )
+        mapping_kats = (
+            (
+                {
+                    "id": "affine-slot-then-interior-v1",
+                    "interior_side": 1784,
+                    "population": 3182656,
+                    "unit_population": 1841,
+                    "unit_multiplier": 2,
+                    "unit_inverse_multiplier": 921,
+                    "cell_multiplier": 3567,
+                    "offset": 316417,
+                    "cell_inverse_multiplier": 3179087,
+                },
+                "90d6fa3a3a6b28489c8c63e62df17caab7a46180614e387952a77071731da439",
+            ),
+            (
+                {
+                    "id": "affine-interior-v1",
+                    "interior_side": 1784,
+                    "population": 3182656,
+                    "multiplier": 3567,
+                    "offset": 154405,
+                    "inverse_multiplier": 3179087,
+                },
+                "7f2f3f2a9bd9238668b3fefc78f31ae2ac4a0fa58acaab2793b24ca4d3c2369c",
+            ),
+        )
+        for mapping, expected in mapping_kats:
+            preimage = (
+                json.dumps(mapping, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+                + "\n"
+            ).encode()
+            self.assertEqual(hashlib.sha256(preimage).hexdigest(), expected)
+
+        archive_root = (
+            ROOT
+            / "artifacts/history/m2-r3-pre-d7-mapping-clarification"
+        )
+        archive_manifest = archive_root / "archive-files.sha256"
+        archive_admission = damage["admission"]
+        self.assertEqual(
+            archive_admission["pre_clarification_archive_root"],
+            "artifacts/history/m2-r3-pre-d7-mapping-clarification",
+        )
+        self.assertEqual(
+            archive_admission["pre_clarification_archive_manifest"],
+            "artifacts/history/m2-r3-pre-d7-mapping-clarification/archive-files.sha256",
+        )
+        archive_manifest_raw = archive_manifest.read_bytes()
+        self.assertEqual(
+            hashlib.sha256(archive_manifest_raw).hexdigest(),
+            archive_admission["pre_clarification_archive_manifest_sha256"],
+        )
+        expected_archive_paths = {
+            "eh72-hier-r5-r2-r1-crc32c-v0/candidate-manifest.json",
+            "eh72-hier-r5-r2-r1-crc32c-v0/capacity-ledger.json",
+            "eh72-hier-r5-r2-r1-crc32c-v0/carrier.obs-bits",
+            "eh72-hier-r5-r2-r1-crc32c-v0/density-ledger.json",
+            "eh72-hier-r5-r2-r1-crc32c-v0/ownership-ledger.json",
+            "eh72-hier-r5-r2-r1-crc32c-v0/semantic-envelope.json",
+            "owners/damage-policy-v1.toml",
+            "owners/limits-python-reproduction.json",
+            "owners/limits-rust-reproduction.json",
+            "owners/m2-r3-owner-promotion-v1.toml",
+            "owners/profile-limits-v1.toml",
+        }
+        archive_rows = {}
+        for line in archive_manifest_raw.decode("ascii").splitlines():
+            digest, separator, relative = line.partition("  ")
+            self.assertEqual(separator, "  ")
+            self.assertRegex(digest, r"^[0-9a-f]{64}$")
+            self.assertNotIn("\\", relative)
+            self.assertNotIn("..", relative.split("/"))
+            self.assertNotIn(relative, archive_rows)
+            path = archive_root / relative
+            self.assertTrue(path.is_file() and not path.is_symlink(), relative)
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest)
+            archive_rows[relative] = digest
+        self.assertEqual(set(archive_rows), expected_archive_paths)
+        self.assertEqual(
+            {
+                path.relative_to(archive_root).as_posix()
+                for path in archive_root.rglob("*")
+                if path.is_file() and path != archive_manifest
+            },
+            expected_archive_paths,
+        )
+        archived_candidate = json.loads(
+            (
+                archive_root
+                / "eh72-hier-r5-r2-r1-crc32c-v0/candidate-manifest.json"
+            ).read_bytes()
+        )
+        self.assertEqual(
+            archived_candidate["manifest_identity"],
+            archive_admission["pre_clarification_candidate_manifest_identity"],
+        )
+        self.assertEqual(
+            archived_candidate["profile_limits_sha256"],
+            archive_admission["pre_clarification_profile_limits_sha256"],
+        )
+        self.assertEqual(
+            archive_admission["pre_clarification_reuse"],
+            "history-only-never-canonical-r3-gate-or-damage-input",
+        )
+
+        schema_archive_root = (
+            ROOT
+            / "artifacts/history/m2-r3-pre-damage-artifact-schema-clarification"
+        )
+        schema_archive_manifest = schema_archive_root / "archive-files.sha256"
+        self.assertEqual(
+            archive_admission["pre_damage_artifact_schema_archive_root"],
+            "artifacts/history/m2-r3-pre-damage-artifact-schema-clarification",
+        )
+        self.assertEqual(
+            archive_admission["pre_damage_artifact_schema_archive_manifest"],
+            "artifacts/history/m2-r3-pre-damage-artifact-schema-clarification/archive-files.sha256",
+        )
+        schema_archive_manifest_raw = schema_archive_manifest.read_bytes()
+        self.assertEqual(
+            hashlib.sha256(schema_archive_manifest_raw).hexdigest(),
+            "b55263aac1caa5534ff1276ffe8c5a0ca483a63f8f3f3bf1c573f03622c906d7",
+        )
+        self.assertEqual(
+            hashlib.sha256(schema_archive_manifest_raw).hexdigest(),
+            archive_admission[
+                "pre_damage_artifact_schema_archive_manifest_sha256"
+            ],
+        )
+        schema_archive_rows = {}
+        for line in schema_archive_manifest_raw.decode("ascii").splitlines():
+            digest, separator, relative = line.partition("  ")
+            self.assertEqual(separator, "  ")
+            self.assertRegex(digest, r"^[0-9a-f]{64}$")
+            self.assertNotIn("\\", relative)
+            self.assertNotIn("..", relative.split("/"))
+            self.assertNotIn(relative, schema_archive_rows)
+            path = schema_archive_root / relative
+            self.assertTrue(path.is_file() and not path.is_symlink(), relative)
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest)
+            schema_archive_rows[relative] = digest
+        self.assertEqual(set(schema_archive_rows), expected_archive_paths)
+        self.assertEqual(
+            {
+                path.relative_to(schema_archive_root).as_posix()
+                for path in schema_archive_root.rglob("*")
+                if path.is_file() and path != schema_archive_manifest
+            },
+            expected_archive_paths,
+        )
+        schema_archived_candidate = json.loads(
+            (
+                schema_archive_root
+                / "eh72-hier-r5-r2-r1-crc32c-v0/candidate-manifest.json"
+            ).read_bytes()
+        )
+        self.assertEqual(
+            hashlib.sha256(
+                (
+                    schema_archive_root
+                    / "eh72-hier-r5-r2-r1-crc32c-v0/candidate-manifest.json"
+                ).read_bytes()
+            ).hexdigest(),
+            archive_admission[
+                "pre_damage_artifact_schema_candidate_manifest_sha256"
+            ],
+        )
+        self.assertEqual(
+            schema_archived_candidate["manifest_identity"],
+            archive_admission[
+                "pre_damage_artifact_schema_candidate_manifest_identity"
+            ],
+        )
+        self.assertEqual(
+            schema_archived_candidate["profile_limits_sha256"],
+            archive_admission[
+                "pre_damage_artifact_schema_profile_limits_sha256"
+            ],
+        )
+        for relative, owner_key in (
+            (
+                "owners/damage-policy-v1.toml",
+                "pre_damage_artifact_schema_damage_policy_sha256",
+            ),
+            (
+                "owners/profile-limits-v1.toml",
+                "pre_damage_artifact_schema_profile_limits_sha256",
+            ),
+            (
+                "owners/m2-r3-owner-promotion-v1.toml",
+                "pre_damage_artifact_schema_promotion_sha256",
+            ),
+            (
+                "owners/limits-python-reproduction.json",
+                "pre_damage_artifact_schema_python_limits_receipt_sha256",
+            ),
+            (
+                "owners/limits-rust-reproduction.json",
+                "pre_damage_artifact_schema_rust_limits_receipt_sha256",
+            ),
+        ):
+            self.assertEqual(
+                hashlib.sha256((schema_archive_root / relative).read_bytes()).hexdigest(),
+                archive_admission[owner_key],
+            )
+        self.assertEqual(
+            archive_admission["pre_damage_artifact_schema_reuse"],
+            "history-only-never-current-r3-gate-damage-or-proof-input",
+        )
+
+        witness_archive_root = (
+            ROOT
+            / "artifacts/history/m2-r3-pre-independence-witness-clarification"
+        )
+        witness_archive_manifest = witness_archive_root / "archive-files.sha256"
+        self.assertEqual(
+            archive_admission["pre_independence_witness_archive_root"],
+            "artifacts/history/m2-r3-pre-independence-witness-clarification",
+        )
+        self.assertEqual(
+            archive_admission["pre_independence_witness_archive_manifest"],
+            "artifacts/history/m2-r3-pre-independence-witness-clarification/archive-files.sha256",
+        )
+        witness_archive_manifest_raw = witness_archive_manifest.read_bytes()
+        self.assertEqual(
+            hashlib.sha256(witness_archive_manifest_raw).hexdigest(),
+            "661141dfe15be4597aee24edbbb01b080383aabcfe75646b4a97454758915203",
+        )
+        self.assertEqual(
+            hashlib.sha256(witness_archive_manifest_raw).hexdigest(),
+            archive_admission[
+                "pre_independence_witness_archive_manifest_sha256"
+            ],
+        )
+        witness_archive_rows = {}
+        for line in witness_archive_manifest_raw.decode("ascii").splitlines():
+            digest, separator, relative = line.partition("  ")
+            self.assertEqual(separator, "  ")
+            self.assertRegex(digest, r"^[0-9a-f]{64}$")
+            self.assertNotIn("\\", relative)
+            self.assertNotIn("..", relative.split("/"))
+            self.assertNotIn(relative, witness_archive_rows)
+            path = witness_archive_root / relative
+            self.assertTrue(path.is_file() and not path.is_symlink(), relative)
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest)
+            witness_archive_rows[relative] = digest
+        self.assertEqual(set(witness_archive_rows), expected_archive_paths)
+        self.assertEqual(
+            {
+                path.relative_to(witness_archive_root).as_posix()
+                for path in witness_archive_root.rglob("*")
+                if path.is_file() and path != witness_archive_manifest
+            },
+            expected_archive_paths,
+        )
+        witness_archived_candidate_path = (
+            witness_archive_root
+            / "eh72-hier-r5-r2-r1-crc32c-v0/candidate-manifest.json"
+        )
+        witness_archived_candidate = json.loads(
+            witness_archived_candidate_path.read_bytes()
+        )
+        self.assertEqual(
+            hashlib.sha256(witness_archived_candidate_path.read_bytes()).hexdigest(),
+            archive_admission[
+                "pre_independence_witness_candidate_manifest_sha256"
+            ],
+        )
+        self.assertEqual(
+            witness_archived_candidate["manifest_identity"],
+            archive_admission[
+                "pre_independence_witness_candidate_manifest_identity"
+            ],
+        )
+        self.assertEqual(
+            witness_archived_candidate["profile_limits_sha256"],
+            archive_admission[
+                "pre_independence_witness_profile_limits_sha256"
+            ],
+        )
+        for relative, owner_key in (
+            (
+                "owners/damage-policy-v1.toml",
+                "pre_independence_witness_damage_policy_sha256",
+            ),
+            (
+                "owners/profile-limits-v1.toml",
+                "pre_independence_witness_profile_limits_sha256",
+            ),
+            (
+                "owners/m2-r3-owner-promotion-v1.toml",
+                "pre_independence_witness_promotion_sha256",
+            ),
+            (
+                "owners/limits-python-reproduction.json",
+                "pre_independence_witness_python_limits_receipt_sha256",
+            ),
+            (
+                "owners/limits-rust-reproduction.json",
+                "pre_independence_witness_rust_limits_receipt_sha256",
+            ),
+        ):
+            self.assertEqual(
+                hashlib.sha256((witness_archive_root / relative).read_bytes()).hexdigest(),
+                archive_admission[owner_key],
+            )
+        self.assertEqual(
+            archive_admission["pre_independence_witness_reuse"],
+            "history-only-never-current-r3-gate-damage-or-proof-input",
+        )
+
+        convergence_archive_root = ROOT / (
+            "artifacts/history/m2-r3-pre-gate6-convergence-clarification"
+        )
+        convergence_archive_manifest = (
+            convergence_archive_root / "archive-files.sha256"
+        )
+        self.assertEqual(
+            archive_admission["pre_gate6_convergence_archive_root"],
+            (
+                "artifacts/history/m2-r3-pre-gate6-convergence-"
+                "clarification"
+            ),
+        )
+        self.assertEqual(
+            archive_admission["pre_gate6_convergence_archive_manifest"],
+            (
+                "artifacts/history/m2-r3-pre-gate6-convergence-"
+                "clarification/archive-files.sha256"
+            ),
+        )
+        convergence_manifest_raw = convergence_archive_manifest.read_bytes()
+        self.assertEqual(
+            hashlib.sha256(convergence_manifest_raw).hexdigest(),
+            "d1ece9d02628a624d58837b9a1c1994dfb521e96303df66758c95880b2d378e4",
+        )
+        self.assertEqual(
+            hashlib.sha256(convergence_manifest_raw).hexdigest(),
+            archive_admission[
+                "pre_gate6_convergence_archive_manifest_sha256"
+            ],
+        )
+        convergence_rows = {}
+        for line in convergence_manifest_raw.decode("ascii").splitlines():
+            digest, separator, relative = line.partition("  ")
+            self.assertEqual(separator, "  ")
+            self.assertRegex(digest, r"^[0-9a-f]{64}$")
+            self.assertNotIn("\\", relative)
+            self.assertNotIn("..", relative.split("/"))
+            self.assertNotIn(relative, convergence_rows)
+            path = convergence_archive_root / relative
+            self.assertTrue(path.is_file() and not path.is_symlink(), relative)
+            self.assertEqual(
+                hashlib.sha256(path.read_bytes()).hexdigest(), digest
+            )
+            convergence_rows[relative] = digest
+        self.assertEqual(set(convergence_rows), expected_archive_paths)
+        self.assertEqual(
+            {
+                path.relative_to(convergence_archive_root).as_posix()
+                for path in convergence_archive_root.rglob("*")
+                if path.is_file() and path != convergence_archive_manifest
+            },
+            expected_archive_paths,
+        )
+        convergence_candidate_path = (
+            convergence_archive_root
+            / "eh72-hier-r5-r2-r1-crc32c-v0/candidate-manifest.json"
+        )
+        convergence_candidate = json.loads(
+            convergence_candidate_path.read_bytes()
+        )
+        self.assertEqual(
+            hashlib.sha256(convergence_candidate_path.read_bytes()).hexdigest(),
+            archive_admission[
+                "pre_gate6_convergence_candidate_manifest_sha256"
+            ],
+        )
+        self.assertEqual(
+            convergence_candidate["manifest_identity"],
+            archive_admission[
+                "pre_gate6_convergence_candidate_manifest_identity"
+            ],
+        )
+        self.assertEqual(
+            convergence_candidate["profile_limits_sha256"],
+            archive_admission[
+                "pre_gate6_convergence_profile_limits_sha256"
+            ],
+        )
+        for relative, owner_key in (
+            (
+                "owners/damage-policy-v1.toml",
+                "pre_gate6_convergence_damage_policy_sha256",
+            ),
+            (
+                "owners/profile-limits-v1.toml",
+                "pre_gate6_convergence_profile_limits_sha256",
+            ),
+            (
+                "owners/m2-r3-owner-promotion-v1.toml",
+                "pre_gate6_convergence_promotion_sha256",
+            ),
+            (
+                "owners/limits-python-reproduction.json",
+                "pre_gate6_convergence_python_limits_receipt_sha256",
+            ),
+            (
+                "owners/limits-rust-reproduction.json",
+                "pre_gate6_convergence_rust_limits_receipt_sha256",
+            ),
+        ):
+            self.assertEqual(
+                hashlib.sha256(
+                    (convergence_archive_root / relative).read_bytes()
+                ).hexdigest(),
+                archive_admission[owner_key],
+            )
+        self.assertEqual(
+            archive_admission["pre_gate6_convergence_reuse"],
+            "history-only-never-current-r3-gate-damage-or-proof-input",
+        )
+        self.assertEqual(
+            archive_admission["canonical_regeneration_precondition"],
+            (
+                "all-four-owned-eleven-file-archive-manifests-exist-match-"
+                "and-verify-and-the-canonical-v7-candidate-path-is-absent"
+            ),
+        )
+
+        expected_promotion_keys = {
+            "active_candidate_id", "active_profile_version", "admission",
+            "algebraic_binding", "damage_observation_authorized", "draft_owner",
+            "freeze_barrier", "generated_owner", "promotion_render",
+            "r2_evidence", "schema", "status",
+        }
+        expected_draft_paths = {
+            "spec/bootstrap-v1.md", "spec/profile-policy-v1.toml",
+            "spec/damage-policy-v1.toml", "conformance/m2-r3-owner-v1.json",
+        }
+        expected_generated_paths = {
+            "spec/route-data-v1.json", "spec/profile-limits-v1.toml",
+        }
+
+        def validate_promotion(value: dict) -> None:
+            if set(value) != expected_promotion_keys:
+                raise ValueError("promotion top-level shape")
+            if value["schema"] != "golden-board.m2-r3-owner-promotion/v1":
+                raise ValueError("promotion schema")
+            if value["active_candidate_id"] != "eh72-hier-r5-r2-r1-crc32c-v0":
+                raise ValueError("active candidate")
+            if value["active_profile_version"] != 7:
+                raise ValueError("active profile version")
+            draft_rows = value["draft_owner"]
+            if len(draft_rows) != 4 or {row["path"] for row in draft_rows} != expected_draft_paths:
+                raise ValueError("draft owner set")
+            for row in draft_rows:
+                path = ROOT / row["path"]
+                if not path.is_file() or path.is_symlink():
+                    raise ValueError("draft owner path")
+                if hashlib.sha256(path.read_bytes()).hexdigest() != row["sha256"]:
+                    raise ValueError("draft owner hash")
+            generated_rows = value["generated_owner"]
+            if len(generated_rows) != 2 or {
+                row["path"] for row in generated_rows
+            } != expected_generated_paths:
+                raise ValueError("generated owner set")
+            if value["status"] == "blocked":
+                if value["damage_observation_authorized"]:
+                    raise ValueError("damage while blocked")
+                if any(
+                    row["state"] != "absent-or-not-yet-independently-reproduced"
+                    for row in generated_rows
+                ):
+                    raise ValueError("partial generated freeze")
+            elif value["status"] == "pre-result-frozen":
+                if not value["damage_observation_authorized"]:
+                    raise ValueError("frozen owner without damage authorization")
+                for row in generated_rows:
+                    path = ROOT / row["path"]
+                    if (
+                        set(row) != {
+                            "path", "python_reproduction_sha256",
+                            "required_fields", "rust_reproduction_sha256",
+                            "schema", "sha256", "state",
+                        }
+                        or row["state"] != "independently-reproduced"
+                        or not path.is_file()
+                        or path.is_symlink()
+                        or hashlib.sha256(path.read_bytes()).hexdigest()
+                        != row["sha256"]
+                    ):
+                        raise ValueError("incomplete generated owner")
+            else:
+                raise ValueError("promotion status")
+
+        validate_promotion(promotion)
+        if promotion["status"] == "blocked":
+            self.assertFalse(promotion["damage_observation_authorized"])
+            self.assertNotIn("generated", profile)
+            self.assertNotIn("generated", damage)
+            for relative in self.R3_GENERATED_REQUIRED:
+                self.assertFalse((ROOT / relative).exists(), relative)
+        else:
+            self.assertTrue(promotion["damage_observation_authorized"])
+            expected_hashes = {
+                "spec/profile-policy-v1.toml": (
+                    "44215d993e3fdfdd1630c404f1ee969e8abc6e4928fda83365fc6940e5cfd412"
+                ),
+                "spec/damage-policy-v1.toml": (
+                    "b3b28f00d3ba04addbed4517eb1abb4ecd02796176eaaecdbc1d47f1f39509df"
+                ),
+                "spec/route-data-v1.json": (
+                    "94df79d9a3fb01b69014417683a0f48f2222fea9fe991361bc99aa0c30dc663e"
+                ),
+                "spec/profile-limits-v1.toml": (
+                    "32c2bd0cb978eb800bed7f8ac1c7db223b593b4cf3bad951a9ce4cdc3a568902"
+                ),
+                "spec/m2-r3-owner-promotion-v1.toml": (
+                    "8c30ae216f5a3fd8ee13f2821d38412afa6c50303c9140cbe54da8610df9cd8d"
+                ),
+            }
+            self.assertEqual(
+                {
+                    relative: hashlib.sha256((ROOT / relative).read_bytes()).hexdigest()
+                    for relative in expected_hashes
+                },
+                expected_hashes,
+            )
+            generated = {row["path"]: row for row in promotion["generated_owner"]}
+            self.assertEqual(
+                (
+                    generated["spec/route-data-v1.json"]["python_reproduction_sha256"],
+                    generated["spec/route-data-v1.json"]["rust_reproduction_sha256"],
+                    generated["spec/profile-limits-v1.toml"]["python_reproduction_sha256"],
+                    generated["spec/profile-limits-v1.toml"]["rust_reproduction_sha256"],
+                ),
+                (
+                    "ca270ddb4c5208d24efb147abbbc04ae79ab0aa7cd88f906501870a1fc99d93e",
+                    "395f9765a9bc922311d1eabfc58673b8f079b17c53806d3a80cd4a8dfe6db47f",
+                    "08c030afabe1291b3fa0b20a27666e480a242801fc1978f27992a161cf50b883",
+                    "d52a1e9770438e53354599ca899ec0aad328c46739b42d27dec048ec9977750b",
+                ),
+            )
+            route = json.loads((ROOT / "spec/route-data-v1.json").read_bytes())
+            limits = tomllib.loads(
+                (ROOT / "spec/profile-limits-v1.toml").read_text()
+            )
+            self.assertEqual(route["schema"], "golden-board.route-data/v1")
+            self.assertEqual(
+                route["generated"]["recipient_package_sha256"],
+                "4bd8e0d485ae6e6a65f4edc4ef2aaac9585a2bcd8c4623e44d69f1dad3b0ec8e",
+            )
+            self.assertEqual(
+                profile["generated"]["route_data_sha256"],
+                expected_hashes["spec/route-data-v1.json"],
+            )
+            self.assertEqual(
+                damage["generated"]["route_data_sha256"],
+                expected_hashes["spec/route-data-v1.json"],
+            )
+            self.assertEqual(
+                (
+                    limits["bootstrap_spec_sha256"],
+                    limits["profile_policy_sha256"],
+                    limits["damage_policy_sha256"],
+                    limits["route_data_sha256"],
+                ),
+                (
+                    "e4d0a5667758a753d35603632dee550db7ecb66cf64ee675ce7485531da27dde",
+                    expected_hashes["spec/profile-policy-v1.toml"],
+                    expected_hashes["spec/damage-policy-v1.toml"],
+                    expected_hashes["spec/route-data-v1.json"],
+                ),
+            )
+        for mutation in (
+            {
+                "status": (
+                    "pre-result-frozen"
+                    if promotion["status"] == "blocked"
+                    else "blocked"
+                )
+            },
+            {
+                "damage_observation_authorized": not promotion[
+                    "damage_observation_authorized"
+                ]
+            },
+            {"unexpected": True},
+        ):
+            malformed = copy.deepcopy(promotion)
+            malformed.update(mutation)
+            with self.assertRaises(ValueError):
+                validate_promotion(malformed)
+        malformed = copy.deepcopy(promotion)
+        malformed["draft_owner"][0]["sha256"] = "0" * 64
+        with self.assertRaises(ValueError):
+            validate_promotion(malformed)
+
+        self.assertEqual(profile["schema"], "golden-board.profile-policy/v1")
+        self.assertEqual(
+            profile["status_authority"],
+            "spec/m2-r3-owner-promotion-v1.toml",
+        )
+        self.assertEqual(
+            profile["promotion_barrier"]["state_source"],
+            "spec/m2-r3-owner-promotion-v1.toml-status",
+        )
+        self.assertEqual(profile["bindings"]["owner_kat_sha256"], fixture_sha256)
+        self.assertEqual(damage["schema"], "golden-board.damage-policy/v1")
+        self.assertEqual(
+            damage["status_authority"],
+            "spec/m2-r3-owner-promotion-v1.toml",
+        )
+        self.assertEqual(
+            damage["promotion_barrier"]["state_source"],
+            "spec/m2-r3-owner-promotion-v1.toml-status",
+        )
+        self.assertEqual(damage["owner_kat_sha256"], fixture_sha256)
+        self.assertEqual(
+            damage["profile_policy_sha256"],
+            hashlib.sha256((ROOT / "spec/profile-policy-v1.toml").read_bytes()).hexdigest(),
+        )
+        self.assertNotIn(
+            "profile_limits_sha256",
+            profile["promotion_barrier"]["required_bindings"],
+        )
+        self.assertNotIn(
+            "profile_limits_sha256",
+            damage["promotion_barrier"]["required_bindings"],
+        )
+        self.assertEqual(
+            promotion["freeze_barrier"]["owner_hash_dag"],
+            "bootstrap-to-profile-to-damage;bootstrap-profile-damage-route-to-limits;promotion-hashes-all;no-owner-hashes-a-downstream-owner-that-hashes-it-back",
+        )
+
+        owner_edges = {
+            "bootstrap": set(),
+            "profile": {"bootstrap"},
+            "damage": {"bootstrap", "profile"},
+            "route": set(),
+            "limits": {"bootstrap", "profile", "damage", "route"},
+            "promotion": {
+                "bootstrap", "profile", "damage", "route", "limits",
+            },
+        }
+
+        def require_acyclic(edges: dict[str, set[str]]) -> None:
+            active: set[str] = set()
+            complete: set[str] = set()
+
+            def visit(owner: str) -> None:
+                if owner in active:
+                    raise ValueError("owner hash cycle")
+                if owner in complete:
+                    return
+                active.add(owner)
+                for dependency in edges[owner]:
+                    visit(dependency)
+                active.remove(owner)
+                complete.add(owner)
+
+            for owner in edges:
+                visit(owner)
+
+        require_acyclic(owner_edges)
+        cyclic = copy.deepcopy(owner_edges)
+        cyclic["profile"].add("limits")
+        with self.assertRaisesRegex(ValueError, "owner hash cycle"):
+            require_acyclic(cyclic)
+
+        archived = ROOT / promotion["r2_evidence"]["owner_root"]
+        tracked_r2_owners = {
+            "bootstrap": ROOT / "spec/bootstrap-v0.md",
+            "profile_policy": ROOT / "spec/profile-policy-v0.toml",
+            "profile_limits": ROOT / "spec/profile-limits-v0.toml",
+            "damage_policy": ROOT / "spec/damage-policy-v0.toml",
+            "route_data": ROOT / "spec/route-data-v0.json",
+        }
+        for name, tracked_owner in tracked_r2_owners.items():
+            filename = name.replace("_", "-") + (
+                ".md" if name == "bootstrap" else ".toml"
+            )
+            if name == "route_data":
+                filename = "route-data-v0.json"
+            elif name != "bootstrap":
+                filename = filename.removesuffix(".toml") + "-v0.toml"
+            else:
+                filename = "bootstrap-v0.md"
+            self.assertEqual(
+                hashlib.sha256(tracked_owner.read_bytes()).hexdigest(),
+                promotion["r2_evidence"][f"{name}_sha256"],
+            )
+            if archived.exists():
+                self.assertEqual(
+                    (archived / filename).read_bytes(),
+                    tracked_owner.read_bytes(),
+                )
 
     def test_content_fixture_is_registered_and_closed(self) -> None:
         registry = tomllib.loads((ROOT / "conformance/registry.toml").read_text())
@@ -4029,6 +5121,117 @@ class RepoContract(unittest.TestCase):
         )
 
 
+class LinuxSnapshotContract(unittest.TestCase):
+    SCRIPT = ROOT / "tools/linux/snapshot.py"
+
+    def git(self, root: Path, *arguments: str) -> subprocess.CompletedProcess[bytes]:
+        return subprocess.run(
+            ["git", "-C", str(root), *arguments],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+
+    def run_snapshot(
+        self, operation: str, *paths: Path
+    ) -> subprocess.CompletedProcess[bytes]:
+        return subprocess.run(
+            [sys.executable, str(self.SCRIPT), operation, *(str(path) for path in paths)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+    def make_repository(self, root: Path) -> None:
+        self.git(root, "init", "-q")
+        self.git(root, "config", "user.email", "snapshot@example.invalid")
+        self.git(root, "config", "user.name", "Snapshot Test")
+        (root / ".gitignore").write_bytes(b"ignored/\n")
+        (root / "both.txt").write_bytes(b"head-both\n")
+        (root / "deleted.txt").write_bytes(b"head-deleted\n")
+        (root / "staged-delete.txt").write_bytes(b"head-staged-delete\n")
+        (root / "clean.txt").write_bytes(b"clean\n")
+        self.git(root, "add", ".gitignore", "both.txt", "deleted.txt", "staged-delete.txt", "clean.txt")
+        self.git(root, "commit", "-qm", "base")
+
+    def test_manifest_preserves_every_supported_git_layer_and_materializes(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="linux-snapshot-") as directory:
+            parent = Path(directory)
+            source = parent / "source"
+            source.mkdir()
+            self.make_repository(source)
+
+            (source / "both.txt").write_bytes(b"index-both\n")
+            self.git(source, "add", "both.txt")
+            (source / "both.txt").write_bytes(b"worktree-both\n")
+            (source / "deleted.txt").unlink()
+            self.git(source, "rm", "-q", "staged-delete.txt")
+            (source / "staged-delete.txt").write_bytes(b"worktree-restored\n")
+            (source / "added.txt").write_bytes(b"index-added\n")
+            self.git(source, "add", "added.txt")
+            (source / "added.txt").write_bytes(b"worktree-added\n")
+            (source / "untracked.txt").write_bytes(b"untracked\n")
+            (source / "ignored").mkdir()
+            (source / "ignored/cache.bin").write_bytes(b"not an execution input")
+
+            manifest_result = self.run_snapshot("manifest", source)
+            self.assertEqual(manifest_result.returncode, 0, manifest_result.stderr)
+            manifest = canonical_manifest.validate_canonical_manifest(manifest_result.stdout)
+            self.assertEqual(
+                set(manifest), {"entries", "head_oid", "raw_index_sha256", "schema"}
+            )
+            self.assertEqual(manifest["schema"], "m2-execution-snapshot-v0")
+            rows = {entry["path"]: entry for entry in manifest["entries"]}
+            self.assertEqual(rows["clean.txt"]["git_class"], "tracked_clean")
+            self.assertEqual(rows["both.txt"]["git_class"], "index_and_worktree_modified")
+            self.assertEqual(rows["deleted.txt"]["git_class"], "worktree_deleted")
+            self.assertEqual(
+                rows["staged-delete.txt"]["git_class"], "index_deleted_worktree_present"
+            )
+            self.assertEqual(rows["added.txt"]["git_class"], "index_added_worktree_modified")
+            self.assertEqual(rows["untracked.txt"]["git_class"], "untracked")
+            self.assertNotIn("ignored/cache.bin", rows)
+            self.assertEqual(
+                [entry["path"].encode() for entry in manifest["entries"]],
+                sorted(entry["path"].encode() for entry in manifest["entries"]),
+            )
+
+            source_digest = self.run_snapshot("digest", source)
+            self.assertEqual(source_digest.returncode, 0, source_digest.stderr)
+            target = parent / "materialized"
+            materialized = self.run_snapshot("materialize", source, target)
+            self.assertEqual(materialized.returncode, 0, materialized.stderr)
+            self.assertEqual(materialized.stdout, source_digest.stdout)
+            target_manifest = self.run_snapshot("manifest", target)
+            self.assertEqual(target_manifest.returncode, 0, target_manifest.stderr)
+            self.assertEqual(target_manifest.stdout, manifest_result.stdout)
+            self.assertEqual((target / "both.txt").read_bytes(), b"worktree-both\n")
+            self.assertFalse((target / "ignored").exists())
+
+    def test_rename_symlink_and_diff_errors_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="linux-snapshot-invalid-") as directory:
+            parent = Path(directory)
+            source = parent / "source"
+            source.mkdir()
+            self.make_repository(source)
+            (source / "link.txt").symlink_to("clean.txt")
+            symlink = self.run_snapshot("digest", source)
+            self.assertEqual(symlink.returncode, 1)
+            self.assertIn(b"unsupported execution-snapshot file", symlink.stderr)
+            (source / "link.txt").unlink()
+
+            self.git(source, "mv", "clean.txt", "renamed.txt")
+            rename = self.run_snapshot("digest", source)
+            self.assertEqual(rename.returncode, 1)
+            self.assertIn(b"rename, copy, or unmerged", rename.stderr)
+
+            self.git(source, "reset", "--hard", "-q", "HEAD")
+            (source / "clean.txt").write_bytes(b"trailing-space \n")
+            bad_diff = self.run_snapshot("digest", source)
+            self.assertEqual(bad_diff.returncode, 1)
+            self.assertIn(b"git diff --check failed", bad_diff.stderr)
+
+
 class RootCheckCLI(unittest.TestCase):
     SCRIPT = ROOT / "scripts/check"
 
@@ -4044,7 +5247,11 @@ class RootCheckCLI(unittest.TestCase):
         )
 
     def test_usage_errors(self) -> None:
-        for arguments in ((), ("unknown",), ("focused",), ("focused", "unknown"), ("full", "extra"), ("focused", "repo", "extra")):
+        for arguments in (
+            (), ("unknown",), ("focused",), ("focused", "unknown"),
+            ("full", "extra"), ("linux", "extra"), ("release", "extra"),
+            ("focused", "repo", "extra"),
+        ):
             with self.subTest(arguments=arguments):
                 result = self.run_check(*arguments)
                 self.assertEqual(result.returncode, 2)
@@ -4103,7 +5310,7 @@ class RootCheckCLI(unittest.TestCase):
             self.assertEqual(failure.returncode, 1)
             self.assertIn("identity", failure.stderr)
 
-    def test_live_m1_areas_are_admitted(self) -> None:
+    def test_live_focused_areas_are_admitted(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             copied = root / "scripts/check"
@@ -4111,7 +5318,7 @@ class RootCheckCLI(unittest.TestCase):
             copied.write_bytes(self.SCRIPT.read_bytes())
             copied.chmod(0o755)
             environment = self.fake_environment(root, fail_child=False)
-            for area in ("chess", "content", "curriculum"):
+            for area in ("chess", "content", "curriculum", "transport"):
                 with self.subTest(area=area):
                     result = subprocess.run(
                         [str(copied), "focused", area],
@@ -4123,6 +5330,96 @@ class RootCheckCLI(unittest.TestCase):
                         check=False,
                     )
                     self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_fast_uses_the_nonempty_transport_smoke_subset(self) -> None:
+        check = self.SCRIPT.read_text()
+        self.assertIn("transport_fast() {", check)
+        fast_line = next(
+            line.strip() for line in check.splitlines() if line.strip().startswith("fast)")
+        )
+        self.assertIn("transport_fast", fast_line)
+        self.assertNotIn("&& transport ;;", fast_line)
+        self.assertIn("transport-fast-python", check)
+        self.assertIn("transport-fast-rust-bootstrap", check)
+        self.assertIn("transport-fast-rust-slice", check)
+
+    def test_linux_dispatch_precedes_host_language_preflight(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="linux-cli-") as directory:
+            root = Path(directory)
+            copied = root / "scripts/check"
+            copied.parent.mkdir()
+            copied.write_bytes(self.SCRIPT.read_bytes())
+            copied.chmod(0o755)
+            verifier = root / "tools/linux/verify.sh"
+            verifier.parent.mkdir(parents=True)
+            verifier.write_text(
+                "#!/bin/sh\n"
+                "command -v git >/dev/null || exit 10\n"
+                "command -v docker >/dev/null || exit 11\n"
+                "printf 'linux-dispatched\\n'\n"
+            )
+            verifier.chmod(0o755)
+            binary = root / "bin"
+            binary.mkdir()
+            for name in ("git", "docker"):
+                executable = binary / name
+                executable.write_text("#!/bin/sh\nexit 0\n")
+                executable.chmod(0o755)
+            environment = os.environ.copy()
+            environment["PATH"] = str(binary)
+            result = subprocess.run(
+                [str(copied), "linux"], cwd=root, env=environment,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout, "linux-dispatched\n")
+
+    def test_linux_commands_are_network_closed_and_release_is_closed(self) -> None:
+        check = self.SCRIPT.read_text()
+        verify = (ROOT / "tools/linux/verify.sh").read_text()
+        container = (ROOT / "tools/linux/container-verify.sh").read_text()
+        acquire = (ROOT / "tools/linux/acquire.sh").read_text()
+        dockerfile = (ROOT / "tools/linux/Dockerfile").read_text()
+        self.assertLess(check.index('if [ "$mode" = linux ]'), check.index("for tool in git uv rustup"))
+        self.assertIn('--network none', verify)
+        self.assertIn('--platform "$GB_LINUX_PLATFORM"', verify)
+        self.assertIn('source=$ROOT,target=/input,readonly', verify)
+        self.assertIn('target=/gate8-native-input,readonly', verify)
+        self.assertIn('target=/gate8-output', verify)
+        self.assertIn(
+            'source=$evidence,target=/gate8-verifier-input,readonly',
+            verify,
+        )
+        self.assertIn('standalone-retained', verify)
+        self.assertIn('release-fresh', verify)
+        self.assertNotIn('docker cp ', verify)
+        self.assertIn("scripts/check full", container)
+        self.assertIn('/gate8-verifier-input', container)
+        self.assertIn('artifacts/linux/verifier-v0.env', container)
+        self.assertIn('provenance changed execution snapshot', container)
+        self.assertGreaterEqual(
+            container.count('snapshot.py" digest "$target"'),
+            2,
+        )
+        self.assertIn("linux-python", container)
+        self.assertIn("linux-rust", container)
+        self.assertIn("GB_M2_LINUX_CANDIDATE_READY", container)
+        self.assertIn("--release --locked --offline", container)
+        self.assertIn("target/release/gb-m2-gate8", container)
+        self.assertIn("docker build", acquire)
+        self.assertIn("--pull", acquire)
+        self.assertIn(
+            "debian:13-slim@sha256:3a39a0592364683e6bab97937b72cad5a8fa6dcbbee90edb3bb48c7f8e94f258",
+            dockerfile,
+        )
+        self.assertIn("1:release", check)
+        self.assertIn("release) release", check)
+        self.assertIn("release-linux", check)
+        self.assertIn("release_freeze", check)
+        self.assertIn("--bin gb-m2-gate8 --release --locked --offline", check)
+        self.assertIn("target/release/gb-m2-gate8", check)
+        self.assertNotIn("docker build", verify)
+        self.assertNotIn('"$ROOT/tools/linux/acquire.sh"', check)
 
     def test_missing_dependency_cache_fails_actionably(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

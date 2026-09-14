@@ -62,9 +62,10 @@ validate_run_state(ContentProjection, RunStateBytes)
 ```
 
 `InvalidHostState` is a host programming error with no canonical wire code. It
-never mutates the supplied state. There is no general serializer, dynamic
-object model, recursive loader, expression language, extension registry,
-markup engine, URL action, script support, callback, or generic VM.
+never mutates the supplied state. There is no runtime or general serializer
+beyond Section 1.4's exact bounded build-time encoder, dynamic object model,
+recursive loader, expression language, extension registry, markup engine, URL
+action, script support, callback, or generic VM.
 
 ### 1.2 Primitive conventions
 
@@ -109,6 +110,145 @@ namespace, or omit an encoded zero-valued optional field from equality.
 
 This logical projection is the cross-language comparison surface. This file
 does not define a JSON projection or give JSON key order canonical status.
+
+### 1.4 Checked authoring and read-only views
+
+M2 adds four additive, build/view operations. They do not change the stream or
+run-state languages:
+
+```text
+projection_view(ContentProjection) -> ContentProjectionView
+run_state_view(RunState) -> RunStateView
+authoring_from_validated(ContentProjectionView)
+    -> ContentAuthoringProjection | ContentAuthoringError
+encode_content_v0(ContentAuthoringProjection)
+    -> ByteSlice | ContentAuthoringError
+```
+
+`projection_view` and `run_state_view` accept only values returned by the
+authority operations in Section 1.1. They return immutable snapshots; a view
+is never accepted by `step`, `advance_committed`, `validate_run_state`, or any
+parser-internal operation. `authoring_from_validated` accepts only a
+`ContentProjectionView` created by `projection_view`, and makes a field-for-
+field checked copy. Thus it is a re-encoding proof helper, not a parser bypass.
+
+`ContentProjectionView` contains, in this order of meaning:
+
+```text
+version: u16
+root_record_id: u16
+records: immutable ordered sequence of ContentRecordView
+```
+
+Each `ContentRecordView` contains `record_id`, the kind implied by its one
+closed payload variant, and every logical payload field in Sections 3--6.
+Collection count fields are exposed as the exact bounded collection length;
+they are not a separately mutable second value. Tuple field values retain an
+explicit `Atoms` or `RecordRefs` variant. Actions are immutable exact four-byte
+values. Strings, byte strings, entries, fields, regions, cases, field values,
+and records are immutable; no backing parser collection or lookup table is
+exposed.
+
+`ContentAuthoringProjection` contains an explicit `version` and immutable
+ordered `ContentRecordView` values in caller-supplied order. It uses the same
+fourteen closed payload variants and the same named fields as the view. Record
+IDs, references, enum/mask entries, tuple slots, cells, opaque atoms, regions,
+actions, cases, control edges, budgets, and zero-valued optional fields are all
+caller-supplied. Only redundant framing lengths and collection counts are
+derived from their complete explicit immutable value. The encoder never
+assigns or sorts IDs, reorders any collection, inserts a default, resolves an
+opaque namespace, normalizes text, or repairs a value.
+
+The exact payload variants are `Text`, `AtomSchema`, `AtomVector`, `Matrix`,
+`FieldSchema`, `Tuple`, `RegionSet`, `SemanticBinding`, `OpaqueData`,
+`PredicateResult`, `Feedback`, `PassiveTrace`, `LessonNode`, and `Root`. Their
+fields have exactly the names and meanings printed in Sections 3--6, except
+that framing/count fields whose sole value is a collection length are obtained
+from `entries`, `atoms`, `fields`, `regions`, `actions`, or `cases`. An atom
+schema carries exactly the fields for its selected class: unsigned has
+`min_value` and `max_value`, enum has `entries`, and mask has `allowed_mask`
+plus `entries`. No inactive class field may be populated.
+
+The two binding-safe public spellings are also exact: `AtomEntry.code` carries
+either the enum code or mask one-hot bit according to its owning atom class,
+and `FieldSpec.type_code` carries the wire field named `type`. Python exposes
+the immutable payload variants as `ContentText` through `ContentRoot`, nested
+values as `ContentAtomEntry`, `ContentFieldSpec`, the two field-value variants,
+`ContentRegion`, and `ContentLessonCase`, and wraps them in
+`ContentRecordView`. Rust exposes the same logical sum through
+`RecordPayload`, `AtomEntry`, `FieldSpec`, `FieldValue`, `Region`, and
+`LessonCase`, wrapped in an immutable `Record`. Rust's public
+`Record::authoring` and `ContentAuthoringProjection::new` construct untrusted
+authoring input; they do not construct an accepted `ContentProjection` or
+`ContentProjectionView`.
+
+`RunStateView` contains exactly:
+
+```text
+current_node_id: u16
+global_remaining: u16
+local_remaining: u16
+phase: u8
+outcome: u8
+selection_buffer: immutable ordered u16 sequence
+committed_response: immutable bytes
+feedback_ref: u16
+next_node_ref: u16
+events: immutable ordered sequence of RunEventView
+
+RunEventView := (node_id: u16, action: immutable four bytes, result: u8)
+```
+
+Events are returned in original call order. The committed response is the
+exact canonical response retained by the state, including the three-byte empty
+response; it is empty outside committed phase. Creating a view does not encode,
+replay, advance, or mutate the state.
+
+The authoring encoder is independent build tooling, not a second content
+grammar. It performs these bounded stages atomically:
+
+1. require the language's exact public authoring value/container types and
+   wire-representable scalar values;
+2. walk records and every nested collection once in supplied order, deriving
+   only framing lengths and resolving only earlier schema/binding information
+   needed to lay out `Atom`, tuple, and opaque-data bytes;
+3. stop before any checked length would exceed `CONTENT_MAX_STREAM_BYTES`;
+4. serialize one candidate stream with the byte rules in Sections 2--6; and
+5. require the unchanged production `stream_validation` operation to accept
+   the complete candidate before returning any bytes.
+
+An earlier layout reference that is absent, forward, of the wrong kind/class,
+or depends on an unusable schema is an authoring reference failure. All other
+structural, reference, graph, semantic, and budget failures are obtained by
+the production parser in Stage 5. No partial byte string escapes on failure.
+
+`ContentAuthoringError` is immutable and contains exactly:
+
+```text
+reason: one of bad_type | bad_value | bad_shape | bad_reference | content_reject
+path: ASCII field path, at most 255 bytes
+content_reject_code: absent, or the exact u16 ContentReject code
+```
+
+`bad_type` is used only by a dynamically typed implementation for an input
+whose runtime type is outside the public authoring model. `bad_value` covers a
+scalar that cannot be represented in its declared fixed width. `bad_shape`
+covers an inactive atom-schema field, a wrong tuple field-value variant/count,
+a non-four-byte action, or a collection/framing length that cannot be encoded.
+`bad_reference` is the Stage 2 layout-reference failure above.
+`content_reject` carries the exact parser code and is the only reason with a
+present `content_reject_code`.
+
+Paths use only `version`, `records`, and the grammar
+`records[<decimal-index>](.payload)?(.<lower_snake_case-field>)([<decimal-index>])*`.
+The encoder reports the most specific field known before serialization. A
+production-parser rejection maps to `version` for `CONTENT_BAD_VERSION`, to
+`records` for `CONTENT_BAD_RECORD_COUNT`, to the containing record path
+`records[i]` when its rejection start lies inside that record frame, and to
+`records` otherwise. These rules, stage order above, and ordinary increasing
+collection-index order make authoring failure selection deterministic across
+languages. The authoring path and reason are build diagnostics, never
+canonical raw-byte rejection data.
 
 ## 2. Stream framing and closed kinds
 
@@ -1387,6 +1527,12 @@ Hand-reviewed conformance evidence must include:
   valid run-state maximum, and the 466,955-byte exhausted maximum; and
 - dependency/import canaries proving both generic implementations contain no
   chess dependency or chess-derived 8x8 behavior.
+
+Additive M2 evidence also includes a directly constructed valid authoring
+projection, canonical re-encoding of the all-kinds generic fixture, invalid
+shape/reference/value authoring paths, an unchanged parser rejection, complete
+projection-view equality, and ordered empty/nonempty committed-response and
+event views in both languages.
 
 Literal boundary-plus-one evidence is required whenever representable. When a
 wire maximum fills its field (for example `u16` 65,535), commit the literal

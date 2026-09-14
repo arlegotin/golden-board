@@ -11,8 +11,38 @@ from . import constants as C
 
 
 __all__ = (
+    "ContentAtomEntry",
+    "ContentAtomFieldValue",
+    "ContentAtomSchema",
+    "ContentAtomVector",
+    "ContentAuthoringError",
+    "ContentAuthoringProjection",
+    "ContentFeedback",
+    "ContentFieldSchema",
+    "ContentFieldSpec",
+    "ContentLessonCase",
+    "ContentLessonNode",
+    "ContentMatrix",
+    "ContentOpaqueData",
+    "ContentPassiveTrace",
+    "ContentPredicateResult",
+    "ContentProjectionView",
+    "ContentRecordRefFieldValue",
+    "ContentRecordView",
+    "ContentRegion",
+    "ContentRegionSet",
+    "ContentRoot",
+    "ContentSemanticBinding",
+    "ContentText",
+    "ContentTuple",
+    "RunEventView",
+    "RunStateView",
     "ContentReject",
     "InvalidHostState",
+    "authoring_from_validated",
+    "encode_content_v0",
+    "projection_view",
+    "run_state_view",
     "stream_validation",
     "new_run",
     "step",
@@ -73,6 +103,61 @@ class ContentReject(ValueError):
 
 class InvalidHostState(ValueError):
     """A noncanonical host-programming failure."""
+
+
+class ContentAuthoringError(ValueError):
+    """Immutable build-time content authoring failure."""
+
+    __slots__ = ("_reason", "_path", "_content_reject_code")
+
+    def __init__(self, reason: str, path: str, content_reject_code: int | None = None):
+        if reason not in {
+            "bad_type",
+            "bad_value",
+            "bad_shape",
+            "bad_reference",
+            "content_reject",
+        }:
+            raise ValueError("unknown content authoring reason")
+        if (
+            type(path) is not str
+            or not path.isascii()
+            or not 1 <= len(path.encode("ascii")) <= 255
+        ):
+            raise ValueError("invalid content authoring path")
+        if reason == "content_reject":
+            if type(content_reject_code) is not int or not (
+                1 <= content_reject_code <= C.CONTENT_BAD_RUN_STATE
+            ):
+                raise ValueError("content_reject requires a content code")
+        elif content_reject_code is not None:
+            raise ValueError("only content_reject carries a content code")
+        self._reason = reason
+        self._path = path
+        self._content_reject_code = content_reject_code
+        super().__init__(reason, path, content_reject_code)
+
+    @property
+    def reason(self) -> str:
+        return self._reason
+
+    @property
+    def path(self) -> str:
+        return self._path
+
+    @property
+    def content_reject_code(self) -> int | None:
+        return self._content_reject_code
+
+    def __setattr__(self, name: str, value: object) -> None:
+        if name in ContentAuthoringError.__slots__ and hasattr(self, name):
+            raise AttributeError(f"{name} is read-only")
+        super().__setattr__(name, value)
+
+    def __delattr__(self, name: str) -> None:
+        if name in ContentAuthoringError.__slots__:
+            raise AttributeError(f"{name} is read-only")
+        super().__delattr__(name)
 
 
 def _reject(code: int, start: int, end: int) -> NoReturn:
@@ -294,6 +379,243 @@ class _Lesson(_Record):
 class _Root(_Record):
     entry_node_ref: int
     global_event_budget: int
+
+
+# These immutable values are the additive M2 authoring/projection-view model.
+# They deliberately contain only content-v0 logical fields, never raw offsets
+# or parser lookup tables.
+@dataclass(frozen=True, slots=True)
+class ContentAtomEntry:
+    code: int
+    label_text_ref: int
+
+
+@dataclass(frozen=True, slots=True)
+class ContentFieldSpec:
+    name_text_ref: int
+    storage: int
+    type_code: int
+    count: int
+
+
+@dataclass(frozen=True, slots=True)
+class ContentAtomFieldValue:
+    atoms: tuple[int, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ContentRecordRefFieldValue:
+    record_refs: tuple[int, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ContentRegion:
+    region_id: int
+    label_ref: int
+    row_start: int
+    row_end: int
+    column_start: int
+    column_end: int
+    flags: int
+
+
+@dataclass(frozen=True, slots=True)
+class ContentLessonCase:
+    case_class: int
+    region_ids: tuple[int, ...]
+    feedback_ref: int
+    next_node_ref: int
+
+
+@dataclass(frozen=True, slots=True)
+class ContentText:
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class ContentAtomSchema:
+    atom_class: int
+    atom_width: int
+    entries: tuple[ContentAtomEntry, ...] = ()
+    min_value: int | None = None
+    max_value: int | None = None
+    allowed_mask: int | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class ContentAtomVector:
+    atom_schema_ref: int
+    atoms: tuple[int, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ContentMatrix:
+    atom_schema_ref: int
+    rows: int
+    columns: int
+    cells: tuple[int, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ContentFieldSchema:
+    fields: tuple[ContentFieldSpec, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ContentTuple:
+    field_schema_ref: int
+    field_values: tuple[ContentAtomFieldValue | ContentRecordRefFieldValue, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ContentRegionSet:
+    surface_matrix_ref: int
+    regions: tuple[ContentRegion, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ContentSemanticBinding:
+    binding_class: int
+    namespace_id: int
+    semantic_code: int
+    argument: int
+    auxiliary: int
+
+
+@dataclass(frozen=True, slots=True)
+class ContentOpaqueData:
+    data_binding_ref: int
+    data: tuple[int, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ContentPredicateResult:
+    predicate_binding_ref: int
+    subject_opaque_data_ref: int
+    result_atom_vector_ref: int
+
+
+@dataclass(frozen=True, slots=True)
+class ContentFeedback:
+    feedback_code: int
+    display_ref: int
+    predicate_result_ref: int
+
+
+@dataclass(frozen=True, slots=True)
+class ContentPassiveTrace:
+    presentation_ref: int
+    region_set_ref: int
+    resulting_presentation_ref: int
+    limitation_text_ref: int
+    actions: tuple[bytes, ...]
+    expected_outcome: int
+    expected_feedback_ref: int
+    expected_next_node_ref: int
+
+
+@dataclass(frozen=True, slots=True)
+class ContentLessonNode:
+    role: int
+    response_shape: int
+    answer_mode: int
+    flags: int
+    presentation_ref: int
+    region_set_ref: int
+    predicate_result_ref: int
+    passive_trace_ref: int
+    max_selections: int
+    item_event_budget: int
+    cases: tuple[ContentLessonCase, ...]
+    default_feedback_ref: int
+    default_next_node_ref: int
+
+
+@dataclass(frozen=True, slots=True)
+class ContentRoot:
+    entry_node_ref: int
+    global_event_budget: int
+
+
+_PUBLIC_PAYLOAD_TYPES = (
+    ContentText,
+    ContentAtomSchema,
+    ContentAtomVector,
+    ContentMatrix,
+    ContentFieldSchema,
+    ContentTuple,
+    ContentRegionSet,
+    ContentSemanticBinding,
+    ContentOpaqueData,
+    ContentPredicateResult,
+    ContentFeedback,
+    ContentPassiveTrace,
+    ContentLessonNode,
+    ContentRoot,
+)
+_PUBLIC_PAYLOAD_KINDS = {
+    ContentText: C.CONTENT_KIND_TEXT,
+    ContentAtomSchema: C.CONTENT_KIND_ATOM_SCHEMA,
+    ContentAtomVector: C.CONTENT_KIND_ATOM_VECTOR,
+    ContentMatrix: C.CONTENT_KIND_MATRIX,
+    ContentFieldSchema: C.CONTENT_KIND_FIELD_SCHEMA,
+    ContentTuple: C.CONTENT_KIND_TUPLE,
+    ContentRegionSet: C.CONTENT_KIND_REGION_SET,
+    ContentSemanticBinding: C.CONTENT_KIND_SEMANTIC_BINDING,
+    ContentOpaqueData: C.CONTENT_KIND_OPAQUE_DATA,
+    ContentPredicateResult: C.CONTENT_KIND_PREDICATE_RESULT,
+    ContentFeedback: C.CONTENT_KIND_FEEDBACK,
+    ContentPassiveTrace: C.CONTENT_KIND_PASSIVE_TRACE,
+    ContentLessonNode: C.CONTENT_KIND_LESSON_NODE,
+    ContentRoot: C.CONTENT_KIND_ROOT,
+}
+
+
+@dataclass(frozen=True, slots=True)
+class ContentRecordView:
+    record_id: int
+    payload: object
+
+    @property
+    def kind(self) -> int:
+        try:
+            return _PUBLIC_PAYLOAD_KINDS[type(self.payload)]
+        except KeyError as error:
+            raise TypeError("unknown content-v0 payload type") from error
+
+
+@dataclass(frozen=True, slots=True)
+class ContentAuthoringProjection:
+    version: int
+    records: tuple[ContentRecordView, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ContentProjectionView(metaclass=_AuthorityMeta):
+    version: int
+    root_record_id: int
+    records: tuple[ContentRecordView, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class RunEventView:
+    node_id: int
+    action: bytes
+    result: int
+
+
+@dataclass(frozen=True, slots=True)
+class RunStateView(metaclass=_AuthorityMeta):
+    current_node_id: int
+    global_remaining: int
+    local_remaining: int
+    phase: int
+    outcome: int
+    selection_buffer: tuple[int, ...]
+    committed_response: bytes
+    feedback_ref: int
+    next_node_ref: int
+    events: tuple[RunEventView, ...]
 
 
 _DISPLAY_KINDS = frozenset(
@@ -2043,6 +2365,509 @@ def _parse(data: bytes) -> _ContentProjection:
     _validate_stage7c(records, projection, descs)
     _validate_stage8(records, root, descs)
     return projection
+
+
+def _public_record(record: _Record, by_id: MappingProxyType) -> ContentRecordView:
+    if isinstance(record, _Text):
+        payload: object = ContentText(record.text)
+    elif isinstance(record, _AtomSchema):
+        payload = ContentAtomSchema(
+            record.atom_class,
+            record.atom_width,
+            tuple(ContentAtomEntry(item.value, item.label_text_ref) for item in record.entries),
+            record.min_value if record.atom_class == C.ATOM_UNSIGNED else None,
+            record.max_value if record.atom_class == C.ATOM_UNSIGNED else None,
+            record.allowed_mask if record.atom_class == C.ATOM_MASK else None,
+        )
+    elif isinstance(record, _AtomVector):
+        payload = ContentAtomVector(record.atom_schema_ref, record.atoms)
+    elif isinstance(record, _Matrix):
+        payload = ContentMatrix(record.atom_schema_ref, record.rows, record.columns, record.cells)
+    elif isinstance(record, _FieldSchema):
+        payload = ContentFieldSchema(
+            tuple(
+                ContentFieldSpec(item.name_text_ref, item.storage, item.type, item.count)
+                for item in record.fields
+            )
+        )
+    elif isinstance(record, _Tuple):
+        schema = by_id[record.field_schema_ref]
+        assert isinstance(schema, _FieldSchema)
+        payload = ContentTuple(
+            record.field_schema_ref,
+            tuple(
+                ContentAtomFieldValue(values)
+                if definition.storage == C.FIELD_INLINE_ATOM
+                else ContentRecordRefFieldValue(values)
+                for definition, values in zip(schema.fields, record.field_values, strict=True)
+            ),
+        )
+    elif isinstance(record, _RegionSet):
+        payload = ContentRegionSet(
+            record.surface_matrix_ref,
+            tuple(
+                ContentRegion(
+                    item.region_id,
+                    item.label_ref,
+                    item.row_start,
+                    item.row_end,
+                    item.column_start,
+                    item.column_end,
+                    item.flags,
+                )
+                for item in record.regions
+            ),
+        )
+    elif isinstance(record, _Binding):
+        payload = ContentSemanticBinding(
+            record.binding_class,
+            record.namespace_id,
+            record.semantic_code,
+            record.argument,
+            record.auxiliary,
+        )
+    elif isinstance(record, _Opaque):
+        payload = ContentOpaqueData(record.data_binding_ref, record.data)
+    elif isinstance(record, _Predicate):
+        payload = ContentPredicateResult(
+            record.predicate_binding_ref,
+            record.subject_opaque_data_ref,
+            record.result_atom_vector_ref,
+        )
+    elif isinstance(record, _Feedback):
+        payload = ContentFeedback(
+            record.feedback_code, record.display_ref, record.predicate_result_ref
+        )
+    elif isinstance(record, _Passive):
+        payload = ContentPassiveTrace(
+            record.presentation_ref,
+            record.region_set_ref,
+            record.resulting_presentation_ref,
+            record.limitation_text_ref,
+            record.actions,
+            record.expected_outcome,
+            record.expected_feedback_ref,
+            record.expected_next_node_ref,
+        )
+    elif isinstance(record, _Lesson):
+        payload = ContentLessonNode(
+            record.role,
+            record.response_shape,
+            record.answer_mode,
+            record.flags,
+            record.presentation_ref,
+            record.region_set_ref,
+            record.predicate_result_ref,
+            record.passive_trace_ref,
+            record.max_selections,
+            record.item_event_budget,
+            tuple(
+                ContentLessonCase(
+                    item.case_class,
+                    item.region_ids,
+                    item.feedback_ref,
+                    item.next_node_ref,
+                )
+                for item in record.cases
+            ),
+            record.default_feedback_ref,
+            record.default_next_node_ref,
+        )
+    elif isinstance(record, _Root):
+        payload = ContentRoot(record.entry_node_ref, record.global_event_budget)
+    else:
+        raise ValueError("unknown accepted content-v0 record")
+    return ContentRecordView(record.record_id, payload)
+
+
+def projection_view(projection) -> ContentProjectionView:
+    if type(projection) is not _ContentProjection:
+        raise TypeError("expected accepted content projection")
+    return ContentProjectionView(
+        projection.version,
+        projection.root_record_id,
+        tuple(_public_record(record, projection._by_id) for record in projection.records),
+        _token=_AUTHORITY,
+    )
+
+
+def run_state_view(state) -> RunStateView:
+    if type(state) is not _RunState:
+        raise TypeError("expected accepted run state")
+    reverse: list[RunEventView] = []
+    event = state._events
+    while event is not None:
+        reverse.append(RunEventView(event.node_id, event.action, event.result))
+        event = event.previous
+    if len(reverse) != state.event_count:
+        raise ValueError("invalid private event chain")
+    reverse.reverse()
+    return RunStateView(
+        state.current_node_id,
+        state.global_remaining,
+        state.local_remaining,
+        state.phase,
+        state.outcome,
+        state.buffer,
+        state.committed_response,
+        state.feedback_ref,
+        state.next_node_ref,
+        tuple(reverse),
+        _token=_AUTHORITY,
+    )
+
+
+def authoring_from_validated(view) -> ContentAuthoringProjection:
+    if type(view) is not ContentProjectionView:
+        raise TypeError("expected authority-created content projection view")
+    # Every nested value is immutable; reconstructing records is the checked
+    # field-for-field copy and prevents an authoring projection from aliasing
+    # the view's record tuple.
+    return ContentAuthoringProjection(
+        view.version,
+        tuple(ContentRecordView(item.record_id, item.payload) for item in view.records),
+    )
+
+
+def _authoring_error(
+    reason: str, path: str, content_reject_code: int | None = None
+) -> NoReturn:
+    raise ContentAuthoringError(reason, path, content_reject_code)
+
+
+def _author_int(value: object, width: int, path: str) -> bytes:
+    if type(value) is not int:
+        _authoring_error("bad_type", path)
+    if not 0 <= value < 1 << (8 * width):
+        _authoring_error("bad_value", path)
+    return value.to_bytes(width, "big")
+
+
+def _author_tuple(value: object, path: str) -> tuple:
+    if type(value) is not tuple:
+        _authoring_error("bad_type", path)
+    return value
+
+
+class _AuthorBuffer:
+    __slots__ = ("data", "path")
+
+    def __init__(self, path: str):
+        self.data = bytearray()
+        self.path = path
+
+    def put(self, value: bytes) -> None:
+        if len(value) > C.CONTENT_MAX_STREAM_BYTES - len(self.data):
+            _authoring_error(
+                "content_reject", self.path, C.CONTENT_LIMIT_EXCEEDED
+            )
+        self.data.extend(value)
+
+
+def _author_atom(value: object, width: int, path: str) -> bytes:
+    if width not in (1, 2, 4):
+        _authoring_error("bad_reference", path)
+    return _author_int(value, width, path)
+
+
+def _author_schema(
+    prior: dict[int, ContentRecordView], reference: object, path: str
+) -> ContentAtomSchema:
+    _author_int(reference, 2, path)
+    record = prior.get(reference)
+    if record is None or type(record.payload) is not ContentAtomSchema:
+        _authoring_error("bad_reference", path)
+    schema = record.payload
+    assert isinstance(schema, ContentAtomSchema)
+    if schema.atom_width not in (1, 2, 4):
+        _authoring_error("bad_reference", path)
+    return schema
+
+
+def _author_payload(
+    record: ContentRecordView,
+    record_index: int,
+    prior: dict[int, ContentRecordView],
+) -> bytes:
+    base = f"records[{record_index}].payload"
+    payload = record.payload
+    output = _AuthorBuffer(f"records[{record_index}]")
+    put = output.put
+
+    if type(payload) is ContentText:
+        if type(payload.text) is not str:
+            _authoring_error("bad_type", f"{base}.text")
+        if len(payload.text) > C.CONTENT_MAX_TEXT_BYTES:
+            _authoring_error(
+                "content_reject", f"records[{record_index}]", C.CONTENT_LIMIT_EXCEEDED
+            )
+        try:
+            put(payload.text.encode("utf-8"))
+        except UnicodeEncodeError:
+            _authoring_error("bad_value", f"{base}.text")
+    elif type(payload) is ContentAtomSchema:
+        put(_author_int(payload.atom_class, 1, f"{base}.atom_class"))
+        put(_author_int(payload.atom_width, 1, f"{base}.atom_width"))
+        if payload.atom_width not in (1, 2, 4):
+            _authoring_error("bad_value", f"{base}.atom_width")
+        entries = _author_tuple(payload.entries, f"{base}.entries")
+        if len(entries) > 0xFFFF:
+            _authoring_error("bad_shape", f"{base}.entries")
+        if payload.atom_class == C.ATOM_UNSIGNED:
+            if (
+                entries
+                or payload.allowed_mask is not None
+                or payload.min_value is None
+                or payload.max_value is None
+            ):
+                _authoring_error("bad_shape", base)
+            put(b"\0\0")
+            put(_author_atom(payload.min_value, payload.atom_width, f"{base}.min_value"))
+            put(_author_atom(payload.max_value, payload.atom_width, f"{base}.max_value"))
+        elif payload.atom_class in (C.ATOM_ENUM, C.ATOM_MASK):
+            if payload.min_value is not None or payload.max_value is not None:
+                _authoring_error("bad_shape", base)
+            put(_author_int(len(entries), 2, f"{base}.entries"))
+            if payload.atom_class == C.ATOM_MASK:
+                if payload.allowed_mask is None:
+                    _authoring_error("bad_shape", base)
+                put(
+                    _author_atom(
+                        payload.allowed_mask, payload.atom_width, f"{base}.allowed_mask"
+                    )
+                )
+            elif payload.allowed_mask is not None:
+                _authoring_error("bad_shape", base)
+            for index, entry in enumerate(entries):
+                path = f"{base}.entries[{index}]"
+                if type(entry) is not ContentAtomEntry:
+                    _authoring_error("bad_type", path)
+                put(_author_atom(entry.code, payload.atom_width, f"{path}.code"))
+                put(_author_int(entry.label_text_ref, 2, f"{path}.label_text_ref"))
+        else:
+            _authoring_error("bad_value", f"{base}.atom_class")
+    elif type(payload) is ContentAtomVector:
+        schema = _author_schema(prior, payload.atom_schema_ref, f"{base}.atom_schema_ref")
+        values = _author_tuple(payload.atoms, f"{base}.atoms")
+        if len(values) > 0xFFFF:
+            _authoring_error("bad_shape", f"{base}.atoms")
+        put(_author_int(payload.atom_schema_ref, 2, f"{base}.atom_schema_ref"))
+        put(_author_int(len(values), 2, f"{base}.atoms"))
+        for index, value in enumerate(values):
+            put(_author_atom(value, schema.atom_width, f"{base}.atoms[{index}]"))
+    elif type(payload) is ContentMatrix:
+        schema = _author_schema(prior, payload.atom_schema_ref, f"{base}.atom_schema_ref")
+        values = _author_tuple(payload.cells, f"{base}.cells")
+        put(_author_int(payload.atom_schema_ref, 2, f"{base}.atom_schema_ref"))
+        put(_author_int(payload.rows, 2, f"{base}.rows"))
+        put(_author_int(payload.columns, 2, f"{base}.columns"))
+        for index, value in enumerate(values):
+            put(_author_atom(value, schema.atom_width, f"{base}.cells[{index}]"))
+    elif type(payload) is ContentFieldSchema:
+        fields = _author_tuple(payload.fields, f"{base}.fields")
+        if len(fields) > 0xFFFF:
+            _authoring_error("bad_shape", f"{base}.fields")
+        put(_author_int(len(fields), 2, f"{base}.fields"))
+        for index, item in enumerate(fields):
+            path = f"{base}.fields[{index}]"
+            if type(item) is not ContentFieldSpec:
+                _authoring_error("bad_type", path)
+            put(_author_int(item.name_text_ref, 2, f"{path}.name_text_ref"))
+            put(_author_int(item.storage, 1, f"{path}.storage"))
+            put(b"\0")
+            put(_author_int(item.type_code, 2, f"{path}.type_code"))
+            put(_author_int(item.count, 2, f"{path}.count"))
+    elif type(payload) is ContentTuple:
+        schema_record = prior.get(payload.field_schema_ref)
+        if schema_record is None or type(schema_record.payload) is not ContentFieldSchema:
+            _authoring_error("bad_reference", f"{base}.field_schema_ref")
+        schema = schema_record.payload
+        assert isinstance(schema, ContentFieldSchema)
+        values = _author_tuple(payload.field_values, f"{base}.field_values")
+        if len(values) != len(schema.fields):
+            _authoring_error("bad_shape", f"{base}.field_values")
+        put(_author_int(payload.field_schema_ref, 2, f"{base}.field_schema_ref"))
+        for index, (definition, field_value) in enumerate(
+            zip(schema.fields, values, strict=True)
+        ):
+            path = f"{base}.field_values[{index}]"
+            if definition.storage == C.FIELD_INLINE_ATOM:
+                if type(field_value) is not ContentAtomFieldValue:
+                    _authoring_error("bad_shape", path)
+                atom_schema = _author_schema(prior, definition.type_code, path)
+                parts = _author_tuple(field_value.atoms, f"{path}.atoms")
+                if len(parts) != definition.count:
+                    _authoring_error("bad_shape", f"{path}.atoms")
+                for part, value in enumerate(parts):
+                    put(_author_atom(value, atom_schema.atom_width, f"{path}.atoms[{part}]"))
+            elif definition.storage == C.FIELD_RECORD_REF:
+                if type(field_value) is not ContentRecordRefFieldValue:
+                    _authoring_error("bad_shape", path)
+                parts = _author_tuple(field_value.record_refs, f"{path}.record_refs")
+                if len(parts) != definition.count:
+                    _authoring_error("bad_shape", f"{path}.record_refs")
+                for part, value in enumerate(parts):
+                    put(_author_int(value, 2, f"{path}.record_refs[{part}]"))
+            else:
+                _authoring_error("bad_reference", path)
+    elif type(payload) is ContentRegionSet:
+        regions = _author_tuple(payload.regions, f"{base}.regions")
+        if len(regions) > 0xFFFF:
+            _authoring_error("bad_shape", f"{base}.regions")
+        put(_author_int(payload.surface_matrix_ref, 2, f"{base}.surface_matrix_ref"))
+        put(_author_int(len(regions), 2, f"{base}.regions"))
+        for index, item in enumerate(regions):
+            path = f"{base}.regions[{index}]"
+            if type(item) is not ContentRegion:
+                _authoring_error("bad_type", path)
+            for name in (
+                "region_id",
+                "label_ref",
+                "row_start",
+                "row_end",
+                "column_start",
+                "column_end",
+            ):
+                put(_author_int(getattr(item, name), 2, f"{path}.{name}"))
+            put(_author_int(item.flags, 1, f"{path}.flags"))
+            put(b"\0")
+    elif type(payload) is ContentSemanticBinding:
+        put(_author_int(payload.binding_class, 1, f"{base}.binding_class"))
+        put(b"\0")
+        for name in ("namespace_id", "semantic_code", "argument", "auxiliary"):
+            put(_author_int(getattr(payload, name), 2, f"{base}.{name}"))
+    elif type(payload) is ContentOpaqueData:
+        binding_record = prior.get(payload.data_binding_ref)
+        if (
+            binding_record is None
+            or type(binding_record.payload) is not ContentSemanticBinding
+            or binding_record.payload.binding_class != C.BINDING_DATA
+        ):
+            _authoring_error("bad_reference", f"{base}.data_binding_ref")
+        binding = binding_record.payload
+        assert isinstance(binding, ContentSemanticBinding)
+        schema = _author_schema(prior, binding.argument, f"{base}.data_binding_ref")
+        values = _author_tuple(payload.data, f"{base}.data")
+        put(_author_int(payload.data_binding_ref, 2, f"{base}.data_binding_ref"))
+        for index, value in enumerate(values):
+            put(_author_atom(value, schema.atom_width, f"{base}.data[{index}]"))
+    elif type(payload) is ContentPredicateResult:
+        for name in (
+            "predicate_binding_ref",
+            "subject_opaque_data_ref",
+            "result_atom_vector_ref",
+        ):
+            put(_author_int(getattr(payload, name), 2, f"{base}.{name}"))
+    elif type(payload) is ContentFeedback:
+        for name in ("feedback_code", "display_ref", "predicate_result_ref"):
+            put(_author_int(getattr(payload, name), 2, f"{base}.{name}"))
+    elif type(payload) is ContentPassiveTrace:
+        actions = _author_tuple(payload.actions, f"{base}.actions")
+        if len(actions) > 0xFFFF:
+            _authoring_error("bad_shape", f"{base}.actions")
+        for name in (
+            "presentation_ref",
+            "region_set_ref",
+            "resulting_presentation_ref",
+            "limitation_text_ref",
+        ):
+            put(_author_int(getattr(payload, name), 2, f"{base}.{name}"))
+        put(_author_int(len(actions), 2, f"{base}.actions"))
+        for index, action in enumerate(actions):
+            if type(action) is not bytes:
+                _authoring_error("bad_type", f"{base}.actions[{index}]")
+            if len(action) != 4:
+                _authoring_error("bad_shape", f"{base}.actions[{index}]")
+            put(action)
+        put(_author_int(payload.expected_outcome, 1, f"{base}.expected_outcome"))
+        put(b"\0")
+        put(_author_int(payload.expected_feedback_ref, 2, f"{base}.expected_feedback_ref"))
+        put(_author_int(payload.expected_next_node_ref, 2, f"{base}.expected_next_node_ref"))
+    elif type(payload) is ContentLessonNode:
+        cases = _author_tuple(payload.cases, f"{base}.cases")
+        if len(cases) > 0xFFFF:
+            _authoring_error("bad_shape", f"{base}.cases")
+        for name in ("role", "response_shape", "answer_mode", "flags"):
+            put(_author_int(getattr(payload, name), 1, f"{base}.{name}"))
+        for name in (
+            "presentation_ref",
+            "region_set_ref",
+            "predicate_result_ref",
+            "passive_trace_ref",
+            "max_selections",
+            "item_event_budget",
+        ):
+            put(_author_int(getattr(payload, name), 2, f"{base}.{name}"))
+        put(_author_int(len(cases), 2, f"{base}.cases"))
+        for index, item in enumerate(cases):
+            path = f"{base}.cases[{index}]"
+            if type(item) is not ContentLessonCase:
+                _authoring_error("bad_type", path)
+            values = _author_tuple(item.region_ids, f"{path}.region_ids")
+            if len(values) > 0xFFFF:
+                _authoring_error("bad_shape", f"{path}.region_ids")
+            put(_author_int(item.case_class, 1, f"{path}.case_class"))
+            put(b"\0")
+            put(_author_int(len(values), 2, f"{path}.region_ids"))
+            for part, value in enumerate(values):
+                put(_author_int(value, 2, f"{path}.region_ids[{part}]"))
+            put(_author_int(item.feedback_ref, 2, f"{path}.feedback_ref"))
+            put(_author_int(item.next_node_ref, 2, f"{path}.next_node_ref"))
+        put(_author_int(payload.default_feedback_ref, 2, f"{base}.default_feedback_ref"))
+        put(_author_int(payload.default_next_node_ref, 2, f"{base}.default_next_node_ref"))
+    elif type(payload) is ContentRoot:
+        put(_author_int(payload.entry_node_ref, 2, f"{base}.entry_node_ref"))
+        put(_author_int(payload.global_event_budget, 2, f"{base}.global_event_budget"))
+    else:
+        _authoring_error("bad_type", base)
+    return bytes(output.data)
+
+
+def encode_content_v0(authoring) -> bytes:
+    if type(authoring) is not ContentAuthoringProjection:
+        _authoring_error("bad_type", "records")
+    version = _author_int(authoring.version, 2, "version")
+    records = _author_tuple(authoring.records, "records")
+    if len(records) > 0xFFFF:
+        _authoring_error("bad_shape", "records")
+    output = _AuthorBuffer("records")
+    output.put(version)
+    output.put(_author_int(len(records), 2, "records"))
+    prior: dict[int, ContentRecordView] = {}
+    spans: list[tuple[int, int]] = []
+    for index, record in enumerate(records):
+        path = f"records[{index}]"
+        if type(record) is not ContentRecordView:
+            _authoring_error("bad_type", path)
+        record_id = _author_int(record.record_id, 2, f"{path}.record_id")
+        try:
+            kind = record.kind
+        except TypeError:
+            _authoring_error("bad_type", f"{path}.payload")
+        payload = _author_payload(record, index, prior)
+        start = len(output.data)
+        output.put(record_id)
+        output.put(_author_int(kind, 2, f"{path}.payload"))
+        output.put(_author_int(len(payload), 4, path))
+        output.put(payload)
+        spans.append((start, len(output.data)))
+        prior[record.record_id] = record
+    candidate = bytes(output.data)
+    try:
+        stream_validation(candidate)
+    except ContentReject as error:
+        if error.code == C.CONTENT_BAD_VERSION:
+            path = "version"
+        elif error.code == C.CONTENT_BAD_RECORD_COUNT:
+            path = "records"
+        else:
+            path = "records"
+            for index, (start, end) in enumerate(spans):
+                if start <= error.raw_start < end:
+                    path = f"records[{index}]"
+                    break
+        _authoring_error("content_reject", path, error.code)
+    return candidate
 
 
 def stream_validation(raw_content_bytes: bytes):

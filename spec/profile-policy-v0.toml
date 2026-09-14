@@ -1,0 +1,868 @@
+schema = "golden-board.profile-policy/v0"
+policy_version = 0
+status = "pre-result-frozen"
+
+[bindings]
+curriculum_path = "spec/curriculum-v0.toml"
+curriculum_sha256 = "601b61eb433e8128e39dd8c62baee6ed1f5461f3ac9a2d0182114861f2ddf263"
+slice_path = "studies/m2/slice-v0.json"
+slice_sha256 = "e0e93a02820595661819f12e8b339e2a9a98f97ed58ab08043a40875d3c14767"
+slice_semantic_sha256 = "de7e22f0aa4316d9f32d9435287dd19bd6c04519aae1dc9bd816613f26929671"
+capacity_module_path = "python/golden_board/capacity.py"
+capacity_module_sha256 = "9c70306eaed963c682652b5b61b4cf8136e5652bbaf995cc49a4e1edd12a407d"
+game_set_path = "reports/game-set-v0.bin"
+game_set_sha256 = "e883055cd0417061cf04d596cbca75d039948a987180d26a80bd6d6888f4764e"
+game_set_identity = "ffe37ea482b590eb2b454041c0918d05a85161c8f0c604bbf58cc7b71de87db9"
+source_lock_path = "inputs/source-lock.toml"
+source_lock_sha256 = "f26623408c9d9a40f7c3633f8a623042a25f0c006e085718836e7f383301cb25"
+bootstrap_fixture_path = "conformance/bootstrap-v0.json"
+bootstrap_fixture_sha256 = "ef4a51fd3d587a4eb651d7271d94ab113df3653eed823fe9c78f32f58d045a61"
+recipe_fixture_path = "conformance/recipe-v0.json"
+recipe_fixture_sha256 = "50862edb1d0c9654e5c903735f86b41c7ca2958a1e36cffb70a7622ee9a20845"
+rs_fixture_path = "conformance/rs255-191-v0.json"
+rs_fixture_sha256 = "d4dcc0cc441f42c66dc19d6db636733fc577751baf073dc7f951cd3c3dd23f72"
+
+[candidate_set]
+transport_family_ids = ["eh72-replicated-v0", "rs255-191-v0"]
+section_check_ids = ["crc32c-v0", "crc64-ecma-v0"]
+profile_ids = [
+  "eh72-r2-crc32c-v0",
+  "eh72-r2-crc64-ecma-v0",
+  "eh72-r3-crc32c-v0",
+  "eh72-r3-crc64-ecma-v0",
+  "rs255-191-crc32c-v0",
+  "rs255-191-crc64-ecma-v0",
+]
+local_check_id = "crc32c-v0"
+common_plain_bytes = 191
+common_payload_bytes = 157
+candidate_addition_after_result_allowed = false
+candidate_revision_result = "restart_all_affected_profiles"
+
+[transport.eh72]
+id = "eh72-replicated-v0"
+complexity_class = 1
+common_input_bytes = 191
+transport_pad_bytes = 1
+transport_pad_value = 0
+data_bytes_per_codeword = 8
+encoded_bytes_per_codeword = 9
+codewords_per_unit = 24
+protected_unit_bytes = 216
+code_length_bits = 72
+data_length_bits = 64
+minimum_distance = 4
+position_first = 1
+position_last = 72
+hamming_parity_positions = [1, 2, 4, 8, 16, 32, 64]
+overall_parity_position = 72
+hamming_equation_position_last = 71
+bit_order = "msb-first"
+parity = "even"
+erasure_max = 3
+mixed_bound = 3
+mixed_formula = "2e_plus_s_le_bound"
+decoder = "bounded-fill-and-known-bit-change-enumeration"
+copy_counts = [2, 3]
+copy_aggregation = "checked-complete-copy-no-vote"
+
+[transport.rs255_191]
+id = "rs255-191-v0"
+complexity_class = 2
+common_input_bytes = 191
+protected_unit_bytes = 255
+symbol_bits = 8
+code_symbols = 255
+data_symbols = 191
+parity_symbols = 64
+field_modulus = 0x11d
+primitive_element = 0x02
+first_root_exponent = 0
+root_count = 64
+coefficient_order = "descending-power"
+layout = "systematic-data-then-parity"
+shortening = "none"
+bit_order = "msb-first"
+unknown_error_max = 32
+erasure_max = 64
+mixed_bound = 64
+mixed_formula = "2e_plus_s_le_bound"
+required_copy_count = 2
+copy_aggregation = "checked-complete-semantic-copy-no-vote"
+generator_coefficients_hex = "01c10aff3a80b7738c99935bc5dbdddc8e1c7815a49306cc28e6b60e79308f4de451552ba210c3a323959a2384646433b00ba186d084f4b0c0dde8ab7d9be4f2f5"
+
+[transport.rs255_191.decoder]
+id = "syndrome-bm-forney-v0"
+owner = "spec/bootstrap-v0.md-section-17"
+erased_symbol_fill = 0
+syndrome_first_root = 0
+syndrome_count = 64
+polynomial_coefficient_order = "ascending-degree-in-decoder"
+erasure_locator_factor = "one-plus-alpha-to-254-minus-position-times-z"
+modified_syndrome = "first-64-coefficients-of-syndrome-times-erasure-locator-then-drop-first-s"
+unknown_locator = "canonical-berlekamp-massey"
+bm_update_condition = "two-L-less-than-or-equal-to-n"
+chien_position_order = "0-through-254"
+chien_argument = "alpha-to-position-plus-1-mod-255"
+evaluator = "first-64-coefficients-of-syndrome-times-full-locator"
+formal_derivative = "odd-degree-locator-coefficients-only"
+magnitude = "alpha-to-254-minus-position-times-evaluator-at-chien-argument-divided-by-formal-derivative"
+correction_order = "position-ascending-after-all-magnitudes-derived"
+postcheck = "all-64-syndromes-zero-then-transport-pad-and-local-check"
+retry_count = 0
+alternate_erasure_fill_count = 0
+list_decoding = false
+check_directed_search = false
+syndrome_coefficients_max = 64
+erasure_locator_coefficients_max = 65
+bm_input_coefficients_max = 64
+unknown_error_locator_coefficients_max = 33
+full_locator_coefficients_max = 65
+evaluator_coefficients_max = 64
+derivative_coefficients_max = 64
+correction_positions_max = 64
+chien_position_evaluations = 255
+field_multiplication_calls_max = 80000
+field_inverse_calls_max = 128
+promoted_primitive_steps_max = 1000000
+status_parameter = 3
+status_algebra_boundary = 4
+status_no_unique_codeword = 5
+status_local_check = 6
+status_resource_limit = 11
+
+[check.crc32c]
+id = "crc32c-v0"
+check_id = 1
+width_bits = 32
+normal_polynomial = 0x1edc6f41
+reflected_polynomial = 0x82f63b78
+initial = 0xffffffff
+final_xor = 0xffffffff
+reflect_input = true
+reflect_output = true
+stored_order = "big-endian-semantic-integer"
+
+[check.crc64_ecma]
+id = "crc64-ecma-v0"
+check_id = 2
+width_bits = 64
+normal_polynomial_hex = "42f0e1eba9ea3693"
+initial = 0
+final_xor = 0
+reflect_input = false
+reflect_output = false
+stored_order = "big-endian-semantic-integer"
+
+[[profile]]
+id = "eh72-r2-crc32c-v0"
+profile_version = 1
+transport_id = "eh72-replicated-v0"
+section_check_id = "crc32c-v0"
+required_copy_count = 2
+complexity_class = 1
+map_id = "affine-interior-v1"
+
+[[profile]]
+id = "eh72-r2-crc64-ecma-v0"
+profile_version = 2
+transport_id = "eh72-replicated-v0"
+section_check_id = "crc64-ecma-v0"
+required_copy_count = 2
+complexity_class = 1
+map_id = "affine-interior-v1"
+
+[[profile]]
+id = "eh72-r3-crc32c-v0"
+profile_version = 3
+transport_id = "eh72-replicated-v0"
+section_check_id = "crc32c-v0"
+required_copy_count = 3
+complexity_class = 1
+map_id = "affine-interior-v1"
+
+[[profile]]
+id = "eh72-r3-crc64-ecma-v0"
+profile_version = 4
+transport_id = "eh72-replicated-v0"
+section_check_id = "crc64-ecma-v0"
+required_copy_count = 3
+complexity_class = 1
+map_id = "affine-interior-v1"
+
+[[profile]]
+id = "rs255-191-crc32c-v0"
+profile_version = 5
+transport_id = "rs255-191-v0"
+section_check_id = "crc32c-v0"
+required_copy_count = 2
+complexity_class = 2
+map_id = "affine-interior-v1"
+
+[[profile]]
+id = "rs255-191-crc64-ecma-v0"
+profile_version = 6
+transport_id = "rs255-191-v0"
+section_check_id = "crc64-ecma-v0"
+required_copy_count = 2
+complexity_class = 2
+map_id = "affine-interior-v1"
+
+[copy_class]
+replicated_id = "replicated-m2"
+nonreplicated_id = "nonreplicated-m2"
+replicated_tiers = ["core0", "core1", "core2"]
+nonreplicated_tiers = ["core3", "core4"]
+generic_shared_support_class = "replicated-m2"
+integrated_class = "nonreplicated-m2"
+required_copy_count_source = "profile.required_copy_count"
+nonreplicated_copy_count = 1
+inventory_copy_count = 2
+tier_frame_copy_count = 2
+
+[capacity]
+content_kind_order = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+bucket_order = ["concept_minima", "assessment", "integrated", "generic_shared_support"]
+section_scan = "next-fit-whole-slots"
+maximum_content_body_payload = 16384
+maximum_probe_payload = 16384
+assessment_form_count = 3
+assessment_pretest_items_per_family = 2
+assessment_posttest_items_per_family = 2
+assessment_delayed_items_per_essential_family = 1
+integrated_form_count = 3
+generic_support_fraction_numerator = 1
+generic_support_fraction_denominator = 100
+generic_support_rounding = "ceil"
+generic_support_minimum_cycles = 1
+reserve_fraction_numerator = 1
+reserve_fraction_denominator = 20
+reserve_equivalent_denominator = 19
+reserve_fragment_floor_count = 2
+reserve_fragment_footprint_bytes = 191
+
+[capacity.expected_envelope]
+concept_minima_bytes = 39518
+assessment_bytes = 61698
+integrated_bytes = 2637
+generic_shared_support_bytes = 1424
+authoring_payload_bytes = 105277
+bucket_count = 53
+slot_count = 4174
+section_count = 53
+slot_count_by_kind = [408, 31, 475, 404, 31, 404, 404, 408, 11, 475, 495, 131, 495, 2]
+generic_cycle_count = 2
+generic_slot_count = 60
+generic_section_count = 1
+real_content_body_payload_bytes = 13628
+required_tier_frame_payload_bytes = 38
+all_tier_frame_payload_bytes = 342
+real_slice_payload_excluding_inventory = 14008
+reserve_uses_full_inventory_allowance = true
+
+# Multiplicities are in numeric content-kind order. They are deliberately
+# conservative capacity atoms, not authored lesson templates or answer data.
+[[capacity.role_bundle]]
+id = "grounded_rule"
+role_ids = ["exact_rule", "observable_relation"]
+kind_multiplicity = [1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0, 1, 0]
+
+[[capacity.role_bundle]]
+id = "contrasting_worked"
+role_ids = ["worked_example"]
+kind_multiplicity = [1, 0, 2, 1, 0, 1, 1, 1, 0, 2, 2, 1, 2, 0]
+
+[[capacity.role_bundle]]
+id = "active_prediction_feedback"
+role_ids = ["practice", "feedback"]
+kind_multiplicity = [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 2, 1, 2, 0]
+
+[[capacity.role_bundle]]
+id = "distinct_held_out"
+role_ids = ["practice"]
+kind_multiplicity = [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0]
+
+[[capacity.role_bundle]]
+id = "passive_trace"
+role_ids = ["passive_trace"]
+kind_multiplicity = [0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0]
+
+[[capacity.role_bundle]]
+id = "heuristic"
+role_ids = ["heuristic", "feedback"]
+kind_multiplicity = [2, 0, 2, 1, 0, 1, 1, 2, 0, 2, 2, 1, 2, 0]
+requires_observable_basis = true
+requires_limitation_feedback = true
+requires_counterexample_dependency = true
+
+[[capacity.role_bundle]]
+id = "assessment_item"
+role_ids = ["practice", "feedback"]
+kind_multiplicity = [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0]
+
+[[capacity.role_bundle]]
+id = "integrated_item"
+role_ids = ["practice", "feedback", "passive_trace"]
+kind_multiplicity = [1, 0, 2, 1, 0, 1, 1, 1, 1, 2, 1, 1, 1, 0]
+
+[capacity.concept_minima]
+bundle_ids = [
+  "grounded_rule",
+  "contrasting_worked",
+  "active_prediction_feedback",
+  "distinct_held_out",
+  "passive_trace",
+]
+heuristic_bundle_id = "heuristic"
+concept_order_source = "curriculum.concept-file-order"
+heuristic_concept_set_source = "curriculum.authoring_minimums.heuristic_role_required_concept_ids"
+
+[capacity.assessment]
+bundle_id = "assessment_item"
+family_order_source = "curriculum.family-file-order"
+essential_family_set_source = "curriculum.sets.E"
+counterfactual_pair_uses_counted_posttest_slots = true
+assessment_only_template_uses_counted_posttest_slots = true
+
+[capacity.integrated]
+bundle_id = "integrated_item"
+task_order_source = "curriculum.integrated_task-file-order"
+minimum_source = "curriculum.integrated_task.minimum_per_form"
+
+[capacity.generic_shared_support]
+cycle_prefix = "one-maximum-prototype-for-each-kind-in-content-kind-order"
+cycle_suffix = "largest-role-bundle-tie-lowest-role-bundle-id"
+repeat_complete_cycle_only = true
+copy_class = "replicated-m2"
+
+[geometry]
+raw_bits_max = 4194304
+side_min = 64
+side_max = 2048
+side_step = 8
+shell_width_min = 8
+shell_width_max = 128
+shell_width_step = 8
+pair_order = "side-then-width-ascending"
+width_upper_formula = "min_128_floor_side_minus_8_over_2"
+lower_side_formula = "max_64_eight_times_ceil_sqrt_lower_bits_over_8"
+first_fit_rule = "first-complete-fit-in-pair-order"
+final_profile_claim = false
+
+[mapping]
+id = "affine-interior-v1"
+logical_bit_order = "canonical-unit-order-then-unit-msb-first"
+interior_side_formula = "side_minus_twice_width"
+population_formula = "interior_side_squared"
+row_stride = 2
+multiplier_formula = "twice_interior_side_minus_1"
+multiplier_coprime_proof = "gcd_twice_interior_side_minus_1_interior_side_squared_equals_1"
+offset_formula = "profile_version_times_40503_plus_width_times_257_mod_population"
+offset_profile_factor = 40503
+offset_width_factor = 257
+forward_formula = "physical_flat_equals_multiplier_times_logical_flat_plus_offset_mod_population"
+inverse_multiplier_formula = "population_minus_twice_interior_side_minus_1"
+inverse_formula = "logical_flat_equals_inverse_multiplier_times_physical_flat_minus_offset_mod_population"
+physical_coordinate_formula = "row_col_equals_divmod_physical_flat_by_interior_side_plus_shell_width"
+parameter_enumeration = "single-derived-map"
+independent_inverse_required = true
+
+[realism]
+global_one_fraction_scope = "complete-interior"
+global_one_fraction_min_numerator = 1
+global_one_fraction_min_denominator = 4
+global_one_fraction_max_numerator = 3
+global_one_fraction_max_denominator = 4
+tile_side = 32
+tile_one_count_min = 128
+tile_one_count_max = 896
+equal_run_limit_formula = "max_128_ceil_interior_side_over_4"
+repeated_row_limit_formula = "max_2_floor_interior_side_over_32"
+repeated_column_limit_formula = "max_2_floor_interior_side_over_32"
+all_one_value_rejected = true
+all_one_value_tile_rejected = true
+
+[resource_policy]
+checked_integer_width = 64
+section_attempt_ceiling = 4096
+attempt_deduplicate_identical_before_count = true
+attempt_ceiling_inclusive = true
+section_payload_bytes_max = 16384
+dependency_count_max = 4095
+inventory_entry_count_max = 4096
+fragment_payload_bytes = 157
+common_block_bytes = 191
+content_stream_bytes_max = 1048576
+recipe_encoded_bytes_max = 1048576
+recipe_nodes_max = 65535
+recipe_edges_max = 262140
+recipe_tables_max = 4096
+recipe_table_bytes_max = 1048576
+recipe_primitive_steps_max = 268435456
+recipe_scratch_bytes_max = 16777216
+candidate_wall_seconds_max = 3600
+wall_time_is_selection_metric = false
+
+[metric]
+work_unit = "one-executed-promoted-recipe-primitive"
+scratch = "peak-live-temporary-bytes-excluding-immutable-input-and-final-output"
+recipe_operation_kinds = "distinct-executed-opcode-values"
+table_count = "distinct-immutable-table-records"
+table_bytes = "sum-table-payload-bytes"
+graph_nodes = "validated-node-record-count"
+graph_edges = "sum-node-operand-and-control-dependencies"
+dependency_depth = "longest-value-or-control-dependency-path-in-nodes"
+shell_cells = "all-four-route-record-and-fixed-headroom-cells"
+plain_bits = "sum-common-plain-byte-count-times-eight-before-transport-copy"
+protected_bits = "sum-protected-unit-bits-after-required-copy-charge"
+total_bits = "side-times-side"
+reserve_bits = "reserve-probe-logical-payload-bytes-times-eight"
+time_role = "noncanonical-context-only"
+
+[robustness]
+scale = 1000000
+aggregate = "minimum-of-three-components"
+shell_component = "floor_scale_times_min_surviving_complete_routes_over_4"
+closure_component = "floor_scale_times_min_surviving_required_witnesses_over_clean_required_witnesses"
+correction_component = "floor_scale_times_min_remaining_mixed_bound_over_transport_mixed_bound"
+correction_case_ids = ["D2", "D3", "D6"]
+missing_unit_excluded_from_correction_component = true
+required_case_failure_result = "hard-gate-fail"
+
+[selection]
+required_automated_gate_ids = [1, 2, 3, 4, 5, 6, 7, 8]
+gate_order = [
+  "profile-and-cross-language-kat",
+  "bootstrap-recipe-shell",
+  "common-grammar-atomic-state",
+  "generated-resource-limits",
+  "provisional-capacity",
+  "damage-zero-wrong-accept",
+  "physical-independence",
+  "native-linux-reproducibility",
+  "preferred-human-feasibility",
+]
+lowest_passing_complexity_class_only = true
+near_minimum_numerator = 105
+near_minimum_denominator = 100
+near_minimum_formula = "candidate_bits_times_100_le_minimum_bits_times_105"
+finalist_max = 2
+rank_order = [
+  "robustness-descending",
+  "worst-case-work-ascending",
+  "scratch-bytes-ascending",
+  "total-bits-ascending",
+  "remaining-reserve-bytes-descending",
+  "candidate-id-ascending",
+]
+preference = "first-ranked-finalist"
+crc32c_default_when_only_check_different = true
+crc64_material_property_rule = "independent-exact-length-proof-closes-a-required-property-that-crc32c-does-not"
+human_gate_separate = true
+no_passing_result = "explicit-scope-revision"
+
+[lower_bound]
+section_envelope_bytes_formula = "18_plus_4_times_dependency_count_plus_payload_bytes_plus_check_bytes"
+fragment_count_formula = "ceil_section_envelope_bytes_over_157"
+plain_transport_bytes_formula = "fragment_count_times_191_times_copy_count"
+eh72_protected_bits_formula = "plain_fragment_count_times_copy_count_times_1728"
+rs255_191_protected_bits_formula = "plain_fragment_count_times_copy_count_times_2040"
+candidate_favorable_omissions_allowed = ["shell-headroom", "alignment-pad", "load-probe"]
+semantic_or_required_overhead_omission_allowed = false
+elimination_only_when_lower_bound_exceeds_bits_max = true
+
+[elimination_bound]
+schema = "golden-board.m2-elimination-bound/v0"
+keys = [
+  "schema",
+  "profile_policy_sha256",
+  "profile_limits_sha256",
+  "semantic_envelope_sha256",
+  "profile_id",
+  "side_max",
+  "protected_unit_bits",
+  "route_prefix_cells",
+  "category_row_fields",
+  "category_rows",
+  "protected_unit_count",
+  "protected_cells",
+  "lower_bound_cells",
+  "hard_ceiling_cells",
+  "candidate_favorable_omissions",
+  "result",
+]
+category_row_fields = ["category_id", "semantic_section_count", "logical_payload_bytes", "protected_unit_count", "protected_cells"]
+category_row_encoding = "each-row-is-a-positional-array-with-exact-length-and-order-of-category-row-fields"
+category_ids = ["inventory", "tier-frame", "real-content", "capacity-probe", "reserve-probe"]
+category_order = "listed-category-id-order"
+inventory_payload_rule = "exact-no-load-inventory-containing-inventory-tier-real-capacity-and-reserve-section-entries"
+route_prefix_cells_rule = "sum-of-the-four-exact-candidate-route-prefix-bit-lengths-excluding-headroom-and-fixed-pad"
+protected_unit_count_rule = "sum-of-exact-fragment-count-times-copy-count-for-every-required-category-section"
+protected_cells_rule = "protected-unit-count-times-selected-protected-unit-bits"
+lower_bound_cells_rule = "protected-cells-plus-route-prefix-cells"
+hard_ceiling_cells_rule = "side-max-squared"
+candidate_favorable_omissions_exact = ["shell-headroom", "alignment-pad", "load-probe"]
+result_ids = ["lower-bound-does-not-eliminate", "lower-bound-exceeds-hard-ceiling"]
+identity_preimage = "canonical-manifest-v0-of-exact-bound-object"
+unknown_keys = "reject"
+
+[limit_derivation]
+profile_tuple_count = 6
+matrix_cells_formula = "side_max_squared"
+protected_unit_count_formula = "floor_raw_bits_max_over_protected_unit_bits"
+common_block_count_formula = "protected_unit_count"
+common_plain_bytes_formula = "common_block_count_times_191"
+inventory_entry_count_formula = "floor_section_payload_max_minus_8_over_20"
+section_count_formula = "inventory_entry_count"
+section_envelope_bytes_formula = "18_plus_4_times_dependency_max_plus_section_payload_max_plus_largest_check_bytes"
+fragments_per_semantic_copy_formula = "ceil_section_envelope_bytes_over_157"
+reserve_payload_max_formula = "max_ceil_real_plus_authoring_plus_inventory_over_19_382"
+reserve_section_count_formula = "ceil_reserve_payload_over_maximum_probe_payload"
+damage_case_count_formula = "16_plus_4_plus_256_plus_128_plus_units_plus_21_plus_4_times_units_plus_d7_cases"
+d7_common_case_count_excluding_code_and_algebra = 402
+d7_eh_code_mutant_count = 3
+d7_eh_algebra_case_count = 3
+d7_rs_code_mutant_count = 5
+d7_rs_algebra_case_count = 33
+damage_sample_retry_formula = "raw_bits_max_times_64_plus_1024"
+obs_bits_bytes_formula = "4_plus_ceil_raw_bits_max_over_8"
+obs_matrix_bytes_formula = "2_plus_raw_bits_max"
+obs_units_bytes_formula = "4_plus_units_times_6_plus_protected_unit_bytes"
+componentwise_union_requires_all_profiles = true
+selection_damage_and_pilot_inputs_forbidden = true
+
+[semantic_envelope_manifest]
+schema = "golden-board.m2-semantic-envelope/v0"
+top_level_keys = [
+  "schema",
+  "slice_semantic_sha256",
+  "prototype_row_fields",
+  "prototype_rows",
+  "real_section_row_fields",
+  "real_section_rows",
+  "tier_frame_row_fields",
+  "tier_frame_rows",
+  "bucket_row_fields",
+  "bucket_rows",
+  "capacity_section_row_fields",
+  "capacity_section_rows",
+  "slot_row_fields",
+  "slot_rows",
+  "totals",
+]
+prototype_row_fields = ["kind", "prototype_id", "source_record_id", "frame_length"]
+real_section_row_fields = ["section_id", "closure_class", "copy_class", "logical_payload_bytes", "record_ids", "has_game_ordinal", "game_ordinal"]
+tier_frame_row_fields = ["section_id", "closure_class", "copy_class", "logical_payload_bytes", "dependency_ids"]
+bucket_row_fields = ["bucket_id", "tier", "copy_class", "logical_payload_bytes", "slot_count", "section_count"]
+capacity_section_row_fields = ["section_id", "bucket_id", "section_ordinal", "tier", "copy_class", "first_slot_ordinal", "slot_count", "logical_payload_bytes"]
+slot_row_fields = ["bucket_id", "slot_ordinal", "role_ordinal", "role_id", "kind", "prototype_id", "frame_length"]
+row_encoding = "each-row-is-a-positional-array-with-exact-length-and-order-of-corresponding-row-fields"
+row_scalar_types = "ids-counts-lengths-ordinals-and-kinds-are-u64-classes-tiers-and-names-are-ascii-strings-record-and-dependency-ids-are-u64-arrays-has-game-ordinal-is-boolean"
+absent_game_ordinal_sentinel = 65535
+totals_keys = ["prototype_count", "real_section_count", "tier_frame_count", "bucket_count", "capacity_section_count", "slot_count", "authoring_payload_bytes"]
+copy_class_ids = ["replicated-m2", "nonreplicated-m2", "fixed-two-m2"]
+required_real_copy_class = "replicated-m2"
+all_only_real_copy_class = "nonreplicated-m2"
+tier_frame_copy_class = "fixed-two-m2"
+capacity_class_translation = "replicated-core0-2-to-replicated-m2_else-nonreplicated-core3-4-to-nonreplicated-m2"
+capacity_section_id_first = 211
+capacity_section_id_rule = "contiguous-global-bucket-order-then-section-ordinal"
+prototype_order = "content-kind-ascending"
+real_section_order = "section-id-ascending"
+tier_frame_order = "section-id-ascending"
+bucket_order = "policy-derived-order"
+capacity_section_order = "bucket-order-then-section-ordinal"
+slot_order = "bucket-order-then-slot-ordinal"
+bucket_id_rule = "concept_minima-slash-concept-id-then-assessment-slash-family-id-then-integrated-slash-task-id-then-generic_shared_support"
+slot_ordinal_rule = "zero-based-within-bucket"
+role_ordinal_rule = "zero-based-role-occurrence-within-nongeneric-bucket-and-zero-based-complete-cycle-within-generic-bucket"
+generic_prefix_role_id = "all_content_kinds"
+generic_suffix_role_id = "largest-frozen-role-bundle-tie-lowest-role-id"
+generic_tier = "core0"
+expected_sha256 = "f81e29b04b307b147aec1c2602933c778e1c9198084e5d5c8e4e29cad1bdb0fd"
+unknown_keys = "reject"
+
+[manifestation]
+carrier_serialization = "damage-policy-OBS_BITS-u32-be-count-then-msb-packed-row-major-bits"
+carrier_unused_low_bits = "zero"
+protected_unit_order = "semantic-copy-id-ascending-then-section-id-ascending-then-fragment-index-ascending"
+physical_unit_ids = "contiguous-one-based-in-protected-unit-order"
+logical_bit_first = "physical-unit-id-minus-one-times-selected-protected-unit-bits"
+protected_unit_bit_order = "encoded-unit-byte-order-then-byte-msb-first"
+inventory_section = "id-1-type-inventory-version-0-closure-128-copy-count-2-empty-dependencies"
+tier_frame_sections = "ids-2-and-3-type-tier-frame-version-0-closure-128-copy-count-2-dependencies-exact-body-section-ids"
+real_section_dependencies = "empty"
+capacity_probe_sections = "type-capacity-probe-version-0-closure-129-empty-dependencies"
+reserve_probe_sections = "type-reserve-probe-version-0-closure-129-empty-dependencies"
+load_probe_sections = "type-load-probe-version-0-closure-129-empty-dependencies"
+capacity_section_id_rule = "semantic-envelope-capacity-section-ids"
+reserve_payload_bytes_source = "profile-limits-v0-semantic-capacity-reserve-payload-bytes"
+reserve_payload_may_shrink_to_realized_inventory = false
+reserve_section_id_rule = "contiguous-after-last-capacity-section-id"
+reserve_section_partition = "fewest-nonempty-sections-at-maximum-probe-payload"
+reserve_copy_class = "replicated-m2"
+load_section_id_rule = "contiguous-after-last-reserve-section-id"
+load_copy_class = "nonreplicated-m2"
+load_dependency_ids = "empty"
+load_max_fragments_formula = "ceil_18_plus_maximum-probe-payload-plus-check-bytes_over_157"
+load_section_count_rule = "smallest-count-L-such-that-L-greater-than-or-equal-to-ceil-Q-of-L-over-max-fragments-and-Q-of-L-greater-than-or-equal-to-L"
+load_remaining_unit_function = "Q-of-L-is-floor-interior-cells-minus-nonload-protected-cells-for-inventory-containing-L-load-entries-over-selected-protected-unit-bits"
+load_fragment_partition = "lexicographically-largest-positive-fragment-counts-each-at-most-max-fragments-summing-Q-of-L"
+load_payload_for_fragment_count = "largest-payload-at-most-maximum-probe-payload-whose-envelope-has-exact-fragment-count"
+fill_stream_order = "capacity-section-id-payload-offset-then-reserve-section-id-payload-offset-then-load-section-id-payload-offset-then-interior-fixed-pad-row-major-cell"
+fill_stream_restart = false
+load_section_count_domain = "0..4096"
+load_zero_case = "L-is-zero-if-and-only-if-Q-of-zero-is-zero"
+load_nonzero_case = "Q-of-L-is-positive-and-at-least-L"
+load_underflow_or-no-solution = "geometry-does-not-fit"
+shell_instruction_class = "calibration-route-envelope-define-table-endpoint-and-end-spans"
+shell_example_class = "worked-and-held-out-spans"
+shell_recipe_class = "recipe-package-spans"
+worst_case_section_attempts = "maximum-copy-count-across-carried-sections"
+worst_case_work_units = "protected-unit-count-times-selected-transport-decoder-invocations-per-unit-times-recipient-package-recipe-30-primitive-steps"
+eh72_decoder_invocations_per_unit = 24
+rs255_191_decoder_invocations_per_unit = 1
+scratch_bytes = "recipient-package-peak-live-scratch-bytes"
+
+[ownership_ledger]
+schema = "golden-board.m2-ownership-ledger/v0"
+keys = ["schema", "profile_id", "side", "shell_width", "mapping", "shell_rows", "unit_rows", "interior_fixed_pad", "cell_table", "cell_table_sha256"]
+shell_row_keys = ["sector_id", "route_prefix_cells", "headroom_cells", "fixed_pad_cells", "image_sha256"]
+shell_row_order = "sector-id-ascending"
+interior_fixed_pad_keys = ["logical_bit_first", "logical_bit_count", "fill_order"]
+interior_fixed_pad_set = "affine-image-of-logical-tail-starting-at-logical-bit-first-for-logical-bit-count-cells"
+interior_fixed_pad_fill_order = "unoccupied-interior-cells-in-physical-row-major-order"
+cell_table_keys = ["row_bytes", "row_count", "row_order", "owner_kind_ids", "owner_id_rule", "owner_bit_offset_rule"]
+cell_table_row_bytes = 9
+cell_table_row_format = "owner-kind-u8-then-owner-id-u32-be-then-owner-bit-offset-u32-be"
+cell_table_row_order = "canonical-matrix-row-major"
+cell_table_owner_kind_ids = ["1-shell-route", "2-shell-headroom", "3-shell-fixed-pad", "4-protected-unit", "5-interior-fixed-pad"]
+cell_table_owner_id_rule = "sector-id-for-shell-kinds-physical-unit-id-for-protected-unit-zero-for-interior-fixed-pad"
+cell_table_owner_bit_offset_rule = "zero-based-offset-within-named-owner"
+cell_table_sha256_preimage = "exact-concatenated-fixed-width-cell-table-rows-no-header"
+identity_preimage = "canonical-manifest-v0-of-exact-ledger-object"
+candidate_cross_fields = "mapping-shell-rows-and-unit-rows-byte-for-byte-equal-candidate-manifest-values"
+shell_image_sha256_preimage = "exact-sector-W-times-S-minus-W-local-traversal-bits-msb-packed-with-no-count-or-header"
+unknown_keys = "reject"
+
+[capacity_ledger]
+schema = "golden-board.m2-capacity-ledger/v0"
+keys = ["schema", "profile_id", "carrier_sha256", "section_rows", "unit_rows", "ledger"]
+section_rows_rule = "exact-candidate-manifest-section-rows"
+unit_rows_rule = "exact-candidate-manifest-unit-rows"
+ledger_rule = "exact-candidate-manifest-ledger"
+identity_preimage = "canonical-manifest-v0-of-exact-ledger-object"
+unknown_keys = "reject"
+
+[density_ledger]
+schema = "golden-board.m2-density-ledger/v0"
+keys = ["schema", "profile_id", "carrier_sha256", "scope_rows", "interior_regularity"]
+scope_row_keys = ["scope_id", "cell_count", "zero_count", "one_count", "one_density_ppm"]
+scope_ids = ["shell", "real-protected", "capacity-probe", "reserve-probe", "load-probe", "fixed-pad", "complete-interior"]
+scope_order = "listed-scope-id-order"
+scope_overlap = "diagnostic-only-complete-interior-overlaps-real-capacity-reserve-load-and-interior-fixed-pad-and-fixed-pad-is-shell-fixed-pad-union-interior-fixed-pad"
+density_ppm_formula = "floor_one-count-times-1000000-over-cell-count"
+empty_scope_result = "cell-count-zero-zero-count-zero-one-count-zero-and-density-ppm-zero"
+interior_regularity_keys = ["longest_horizontal_equal_run", "longest_vertical_equal_run", "tile_one_count_min", "tile_one_count_max", "repeated_row_count", "repeated_column_count"]
+interior_regular_scope = "complete-interior-only"
+horizontal_vertical_adjacency = "consecutive-cells-within-complete-interior-rows-or-columns"
+tile_rule = "aligned-32-by-32-tiles-from-interior-top-left-complete-tiles-only"
+repeated_row_rule = "rows-after-first-in-row-order-identical-to-any-earlier-complete-interior-row"
+repeated_column_rule = "columns-after-first-in-column-order-identical-to-any-earlier-complete-interior-column"
+identity_preimage = "canonical-manifest-v0-of-exact-ledger-object"
+unknown_keys = "reject"
+
+[candidate_manifest]
+schema = "golden-board.m2-candidate-manifest/v0"
+top_level_keys = [
+  "schema",
+  "profile_policy_sha256",
+  "profile_limits_sha256",
+  "bootstrap_spec_sha256",
+  "profile_id",
+  "profile_version",
+  "semantic_envelope_sha256",
+  "side",
+  "shell_width",
+  "mapping",
+  "shell_rows",
+  "section_rows",
+  "unit_rows",
+  "ownership_sha256",
+  "capacity_ledger_sha256",
+  "density_ledger_sha256",
+  "carrier_sha256",
+  "ledger",
+  "manifest_identity",
+]
+mapping_keys = ["id", "interior_side", "population", "multiplier", "offset", "inverse_multiplier"]
+section_row_keys = [
+  "section_id",
+  "section_type",
+  "closure_class",
+  "check_id",
+  "copy_count",
+  "dependency_ids",
+  "logical_payload_bytes",
+  "envelope_bytes",
+  "fragment_count",
+]
+shell_row_keys = ["sector_id", "route_prefix_cells", "headroom_cells", "fixed_pad_cells", "image_sha256"]
+unit_row_keys = [
+  "physical_unit_id",
+  "section_id",
+  "semantic_copy_id",
+  "fragment_index",
+  "transport_id",
+  "encoded_bytes",
+  "encoded_sha256",
+  "logical_bit_first",
+  "logical_bit_count",
+]
+section_order = "section-id-ascending"
+unit_order = "physical-unit-id-ascending"
+identity_field_format = "64-lowercase-hex"
+profile_id_domain = "candidate-set-profile-ids"
+profile_version_rule = "exact-version-of-profile-id"
+semantic_envelope_binding = "sha256-of-exact-canonical-semantic-envelope-manifest"
+side_range = "64..2048-step-8"
+shell_width_range = "8..min-128-floor-side-minus-8-over-2-step-8"
+mapping_id = "affine-interior-v1"
+mapping_integer_type = "u64"
+mapping_values_rule = "exactly-rederive-from-side-shell-width-profile-version"
+section_id_range = "1..4294967295"
+section_id_unique = true
+section_type_range = "1..6"
+closure_class_ids = [128, 129]
+check_id_domain = "selected-profile-check-id"
+copy_count_range = "1..3"
+dependency_id_range = "1..4294967295"
+dependency_order = "strictly-increasing"
+logical_payload_bytes_range = "0..16384"
+envelope_bytes_range = "18..32790"
+fragment_count_range = "1..209"
+physical_unit_id_range = "1..4294967295"
+physical_unit_id_unique = true
+semantic_copy_id_range = "0..2"
+fragment_index_range = "0..208"
+transport_id_domain = "selected-profile-transport-id"
+encoded_bytes_rule = "exact-selected-protected-unit-width"
+logical_bit_first_type = "u64"
+logical_bit_count_rule = "exact-selected-protected-unit-bits"
+ownership_rule = "each-logical-protected-bit-owned-exactly-once"
+carrier_sha256_preimage = "exact-carrier-serialization-from-manifestation-table"
+ownership_sha256_preimage = "canonical-manifest-v0-exact-ownership-ledger-object"
+capacity_ledger_sha256_preimage = "canonical-manifest-v0-exact-capacity-ledger-object"
+density_ledger_sha256_preimage = "canonical-manifest-v0-exact-density-ledger-object"
+manifest_identity_preimage = "identity-v0-manifest-domain-with-one-field-equal-canonical-manifest-v0-bytes-of-same-object-with-manifest-identity-key-omitted"
+array_items_max = 65535
+unknown_keys = "reject"
+
+[candidate_manifest.ledger]
+keys = [
+  "logical_bytes_by_owner",
+  "envelope_bytes",
+  "fragment_header_bytes",
+  "fragment_zero_pad_bytes",
+  "local_check_bytes",
+  "section_check_bytes",
+  "transport_pad_bytes",
+  "parity_bytes",
+  "shell_instruction_cells",
+  "shell_example_cells",
+  "shell_recipe_cells",
+  "shell_headroom_cells",
+  "shell_fixed_pad_cells",
+  "real_protected_cells",
+  "capacity_probe_cells",
+  "reserve_probe_cells",
+  "load_probe_cells",
+  "interior_fixed_pad_cells",
+  "protected_unit_count",
+  "codeword_count",
+  "worst_case_section_attempts",
+  "worst_case_work_units",
+  "scratch_bytes",
+  "unused_cells",
+  "total_cells",
+]
+logical_owner_row_keys = ["owner_id", "section_type", "closure_class", "copy_count", "logical_bytes"]
+logical_owner_row_order = "owner-id-ascii-ascending"
+logical_owner_id_rule = "section-colon-then-section-id-as-ten-zero-padded-decimal-digits"
+logical_owner_grouping = "exactly-one-row-per-section-including-inventory-tier-real-capacity-reserve-and-load"
+logical_owner_id_format = "nonempty-ascii-max-128"
+logical_owner_section_type_range = "1..6"
+logical_owner_closure_class_ids = [128, 129]
+logical_owner_copy_count_range = "1..3"
+logical_owner_logical_bytes_range = "0..1048576"
+logical_owner_bytes_rule = "one-row-per-semantic-section-logical-payload-bytes-not-copy-multiplied-with-copy-count-recorded-separately"
+envelope_bytes_formula = "sum-over-sections-of-copy-count-times-parenthesized-18-plus-4-times-dependency-count-excluding-payload-and-section-check"
+section_check_bytes_formula = "sum-over-sections-of-copy-count-times-selected-section-check-bytes"
+fragment_header_bytes_formula = "30-times-protected-unit-count"
+fragment_zero_pad_bytes_formula = "157-times-protected-unit-count-minus-sum-over-sections-of-copy-count-times-section-envelope-length"
+local_check_bytes_formula = "4-times-protected-unit-count"
+eh_transport_pad_bytes_formula = "protected-unit-count"
+eh_parity_bytes_formula = "24-times-protected-unit-count"
+eh_codeword_count_formula = "24-times-protected-unit-count"
+rs_transport_pad_bytes_formula = "zero"
+rs_parity_bytes_formula = "64-times-protected-unit-count"
+rs_codeword_count_formula = "protected-unit-count"
+protected_byte_reconciliation = "sum-copy-count-times-logical-payload-plus-envelope-plus-section-check-plus-fragment-header-plus-fragment-zero-pad-plus-local-check-plus-transport-pad-plus-parity-equals-sum-encoded-unit-bytes"
+scalar_value_type = "u64"
+scalar_value_range = "0..18446744073709551615"
+unused_cells_required = 0
+cell_sum_required = "all-shell-and-interior-owner-cells-equals-total-cells"
+
+[metric_row]
+schema = "golden-board.m2-profile-metric-row/v0"
+keys = [
+  "profile_id",
+  "complexity_class",
+  "operation_kind_count",
+  "table_count",
+  "table_bytes",
+  "graph_nodes",
+  "graph_edges",
+  "dependency_depth",
+  "recipe_cells",
+  "worked_example_cells",
+  "held_out_example_cells",
+  "shell_cells",
+  "convention_count",
+  "plain_bits",
+  "protected_bits",
+  "reserve_bits",
+  "total_bits",
+  "robustness_ppm",
+  "worst_case_work_units",
+  "scratch_bytes",
+  "remaining_reserve_bytes",
+  "gate_states",
+]
+gate_state_ids = ["pass", "fail", "not_evaluated"]
+profile_id_domain = "candidate-set-profile-ids"
+complexity_class_range = "1..2"
+count_and_byte_field_type = "u64"
+robustness_ppm_range = "0..1000000"
+gate_states_length = 9
+gate_states_order = "selection-gate-order"
+unknown_keys = "reject"
+
+[selection_row]
+schema = "golden-board.m2-selection-row/v0"
+keys = ["step", "surviving_before", "outcome", "evidence_sha256"]
+step_order = [
+  "gate-filter",
+  "lowest-complexity-class",
+  "near-minimum-band",
+  "rank",
+  "top-two",
+  "preference",
+]
+candidate_order = "candidate-id-ascending"
+step_type = "ascii-enum"
+surviving_before_type = "ordered-unique-profile-id-list"
+outcome_type = "ordered-unique-profile-id-list-or-no-passing-result-enum"
+evidence_sha256_format = "64-lowercase-hex"
+row_count = 6
+unknown_keys = "reject"
