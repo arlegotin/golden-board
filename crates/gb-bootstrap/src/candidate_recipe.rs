@@ -156,21 +156,21 @@ const CRC_BYTE: u16 = 40;
 const CRC_MODE: u16 = 41;
 
 #[derive(Clone, Copy)]
-struct Shape {
-    kind: u8,
-    width: u32,
+pub(crate) struct Shape {
+    pub(crate) kind: u8,
+    pub(crate) width: u32,
 }
 
 impl Shape {
-    const fn uint(width: u32) -> Self {
+    pub(crate) const fn uint(width: u32) -> Self {
         Self { kind: UINT, width }
     }
 
-    const fn bytes(width: u32) -> Self {
+    pub(crate) const fn bytes(width: u32) -> Self {
         Self { kind: BYTES, width }
     }
 
-    const fn status() -> Self {
+    pub(crate) const fn status() -> Self {
         Self {
             kind: STATUS,
             width: 16,
@@ -197,8 +197,8 @@ struct Node {
     immediate: u64,
 }
 
-struct RecipeBuilder {
-    id: u16,
+pub(crate) struct RecipeBuilder {
+    pub(crate) id: u16,
     inputs: Vec<Shape>,
     outputs: Vec<Shape>,
     nodes: Vec<Node>,
@@ -208,7 +208,7 @@ struct RecipeBuilder {
 }
 
 impl RecipeBuilder {
-    fn custom(id: u16, inputs: Vec<Shape>, outputs: Vec<Shape>) -> Self {
+    pub(crate) fn custom(id: u16, inputs: Vec<Shape>, outputs: Vec<Shape>) -> Self {
         Self {
             id,
             inputs,
@@ -236,7 +236,7 @@ impl RecipeBuilder {
         )
     }
 
-    fn push(
+    pub(crate) fn push(
         &mut self,
         opcode: u8,
         shape: Shape,
@@ -254,7 +254,7 @@ impl RecipeBuilder {
         u16::try_from(self.inputs.len() + self.nodes.len()).expect("bounded recipe value ID")
     }
 
-    fn constant(&mut self, width: u32, value: u64) -> u16 {
+    pub(crate) fn constant(&mut self, width: u32, value: u64) -> u16 {
         let key = (UINT, width, value);
         if let Some(existing) = self.constant_values.get(&key) {
             return *existing;
@@ -264,7 +264,7 @@ impl RecipeBuilder {
         result
     }
 
-    fn boolean(&mut self, value: bool) -> u16 {
+    pub(crate) fn boolean(&mut self, value: bool) -> u16 {
         let immediate = u64::from(value);
         let key = (BOOL, 1, immediate);
         if let Some(existing) = self.constant_values.get(&key) {
@@ -284,7 +284,7 @@ impl RecipeBuilder {
         result
     }
 
-    fn status(&mut self, status: u16) -> u16 {
+    pub(crate) fn status(&mut self, status: u16) -> u16 {
         if let Some(existing) = self.status_values.get(&status) {
             return *existing;
         }
@@ -371,7 +371,7 @@ impl RecipeBuilder {
         self.constant(16, u64::from(offset))
     }
 
-    fn table(&mut self, table: u16, element_width: u32) -> u16 {
+    pub(crate) fn table(&mut self, table: u16, element_width: u32) -> u16 {
         if let Some(value) = self.table_values.get(&table) {
             return *value;
         }
@@ -570,14 +570,14 @@ impl RecipeBuilder {
     }
 }
 
-struct BuiltRecipe {
+pub(crate) struct BuiltRecipe {
     builder: RecipeBuilder,
     edges: u64,
     steps: u64,
     scratch: u64,
 }
 
-fn finalize(builder: RecipeBuilder, earlier: &[BuiltRecipe]) -> BuiltRecipe {
+pub(crate) fn finalize(builder: RecipeBuilder, earlier: &[BuiltRecipe]) -> BuiltRecipe {
     let edges = builder
         .nodes
         .iter()
@@ -854,7 +854,7 @@ pub fn r3_slot_multiplier_table() -> [u8; 256] {
     table
 }
 
-fn r3_eh_tables() -> Vec<EncodedTable> {
+pub(crate) fn r3_eh_tables() -> Vec<EncodedTable> {
     let mut tables = eh_tables();
     tables.push((
         TABLE_R3_SLOT_MULTIPLIER,
@@ -867,7 +867,7 @@ fn r3_eh_tables() -> Vec<EncodedTable> {
     tables
 }
 
-type EncodedTable = (u16, u8, u32, u32, Vec<u8>);
+pub(crate) type EncodedTable = (u16, u8, u32, u32, Vec<u8>);
 
 fn rs_tables() -> Vec<EncodedTable> {
     vec![
@@ -879,7 +879,7 @@ fn rs_tables() -> Vec<EncodedTable> {
     ]
 }
 
-fn encode_package_with_tables(
+pub(crate) fn encode_package_with_tables(
     profile_version: u16,
     recipes: &[BuiltRecipe],
     tables: Vec<EncodedTable>,
@@ -1908,7 +1908,7 @@ pub fn r3_compact_abi_size_probe() -> Result<R3AbiSizeProbe> {
     })
 }
 
-fn fact_recipe(id: u16, profile_version: u16) -> RecipeBuilder {
+pub(crate) fn fact_recipe(id: u16, profile_version: u16) -> RecipeBuilder {
     match id {
         101 => {
             let mut recipe = RecipeBuilder::custom(
@@ -3135,7 +3135,7 @@ pub struct R3RecipeResourceRow {
     pub peak_scratch_bytes: u64,
 }
 
-fn r3_recipe_builders() -> Vec<RecipeBuilder> {
+pub(crate) fn r3_recipe_builders() -> Vec<RecipeBuilder> {
     let mut builders = vec![
         eh_scan(),
         eh_validate(),

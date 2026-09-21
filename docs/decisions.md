@@ -24,3 +24,16 @@ repetition is earlier in the frozen fallback order.
 The exact pre-result contract and restart barrier are in
 [`m2-r3-design.md`](m2-r3-design.md). The R1/R2 failures remain evidence. No R3
 carrier or D0--D7 result was observed before this decision.
+
+## 2026-09-16 — M2 reopens for the participant-driven revision
+
+The revised teaching, semantic slice and transport change the source of
+Gates 1–7 as well as Gate 8. The verifier-only reopen cannot cover this work.
+Revision 11 therefore sets M2 In progress and reopens Gates 1–8 without
+changing M0/M1 or the 512 KiB carrier ceiling. The exact previous source,
+owners, candidate, receipts, report, timeline, acquisition provenance and
+original quiz material are archived before authority changes, under
+`spec/m2-participant-revision-transition-v1.md`. The historical v7 candidate
+is excluded from the revised active set. No new gate result or fresh human
+success is asserted; fresh production and affected human evidence remain
+pending. The archive is internal provenance, not participant material.

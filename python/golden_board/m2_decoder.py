@@ -149,6 +149,7 @@ class _Route:
     transport_peak_scratch: int
     repetition_primitive_steps: int
     repetition_peak_scratch: int
+    definition_values: tuple[bytes, ...] = ()
 
 
 def _fail(reason: str) -> NoReturn:
@@ -783,6 +784,9 @@ class ObservationDecoder:
             if self.result_schema_version == 1
             else max(profile.protected_units for profile in self.profiles)
         )
+        self._initialize_caches()
+
+    def _initialize_caches(self) -> None:
         self._unit_cache: dict[
             tuple[int, bytes, tuple[int, ...]], m2_codec.Recovery
         ] = {}
@@ -819,6 +823,59 @@ class ObservationDecoder:
             tuple[bytes, int, tuple[bytes, ...]], bootstrap.RecipeResult
         ] = {}
 
+    @staticmethod
+    def _hierarchical_profile(profile):
+        return profile.profile_version == 7 and profile.transport_id == m2_codec.HIER_TRANSPORT
+
+    @staticmethod
+    def _inventory_version(profile):
+        return 1 if profile.profile_version == 7 else 0
+
+    @staticmethod
+    def _decode_inventory_payload(profile, raw):
+        return bootstrap.decode_inventory(raw)
+
+    @staticmethod
+    def _mapping_projection(route_version, profile, mapping):
+        return _route_mapping_projection(route_version, profile, mapping)
+
+    @staticmethod
+    def _mapping_digest(route_version, projection):
+        return _mapping_sha256(route_version, projection)
+
+    @staticmethod
+    def _route_version(profile):
+        return 1 if profile.profile_version == 7 else 0
+
+    @staticmethod
+    def _inventory_bootstrap_profile(profiles):
+        hierarchical = tuple(profile for profile in profiles
+                             if profile.transport_id == m2_codec.HIER_TRANSPORT)
+        if len(hierarchical) != 1:
+            _fail("profile-registry")
+        return hierarchical[0]
+
+    def _cache_store(self, cache, key, value, maximum):
+        """Historical admission; newer receivers may bound optional caches differently."""
+        if len(cache) >= maximum:
+            _fail("resource-limit")
+        cache[key] = value
+
+    def _charge_route_invocation(self, primitive_steps, peak_scratch):
+        """Versioned accounting hook; historical resource outputs are unchanged."""
+
+    def _charge_mapping_invocation(self, primitive_steps, peak_scratch):
+        """Historical mapping checks did not contribute to reported cost."""
+        return False
+
+    def _assemble_content_stream(self, frame, bodies):
+        """Versioned adapter hook; historical content validation is unchanged."""
+        return bootstrap.assemble_content_stream(frame, bodies)
+
+    def _assemble_semantic_copy(self, blocks, profile_version):
+        """Versioned pre-check hook; historical assembly is unchanged."""
+        return bootstrap.assemble_semantic_copy(blocks, profile_version)
+
     def _decode_route_package(
         self, raw: bytes, profile_version: int
     ) -> bootstrap.RecipePackage:
@@ -826,9 +883,7 @@ class ObservationDecoder:
         package = self._route_package_cache.get(key)
         if package is None:
             package = bootstrap.decode_recipe_package(raw, profile_version)
-            if len(self._route_package_cache) >= 256:
-                _fail("resource-limit")
-            self._route_package_cache[key] = package
+            self._cache_store(self._route_package_cache, key, package, 256)
         return package
 
     def _evaluate_route_recipe(
@@ -841,9 +896,7 @@ class ObservationDecoder:
         evaluated = self._route_evaluation_cache.get(key)
         if evaluated is None:
             evaluated = bootstrap.evaluate_recipe(package, recipe_id, values)
-            if len(self._route_evaluation_cache) >= 4_096:
-                _fail("resource-limit")
-            self._route_evaluation_cache[key] = evaluated
+            self._cache_store(self._route_evaluation_cache, key, evaluated, 4_096)
         return evaluated
 
     def _validate_route_records(
@@ -968,6 +1021,9 @@ class ObservationDecoder:
             for width_bytes in input_widths:
                 values.append(recipe_input[cursor : cursor + width_bytes])
                 cursor += width_bytes
+            self._charge_route_invocation(
+                recipe.primitive_steps, recipe.peak_live_scratch_bytes
+            )
             evaluated = self._evaluate_route_recipe(
                 package, recipe_id, tuple(values)
             )
@@ -1049,11 +1105,16 @@ class ObservationDecoder:
         if len(set(mapping_recipes)) != 1:
             _fail("route-mapping")
         mapping_recipe_id = mapping_recipes[0]
-        mapping_package, _ = recipes[mapping_recipe_id]
+        mapping_package, mapping_recipe = recipes[mapping_recipe_id]
         interior = side - 2 * width
         population = interior * interior
         outputs = []
         for logical in (0, 1, population - 1):
+            if self._charge_mapping_invocation(
+                mapping_recipe.primitive_steps, mapping_recipe.peak_live_scratch_bytes
+            ):
+                route_primitive_steps += mapping_recipe.primitive_steps
+                route_peak_scratch = max(route_peak_scratch, mapping_recipe.peak_live_scratch_bytes)
             evaluated = self._evaluate_route_recipe(
                 mapping_package,
                 mapping_recipe_id,
@@ -1175,9 +1236,7 @@ class ObservationDecoder:
                     )
             except (m2_codec.CodecError, ValueError, IndexError):
                 value = m2_codec.Recovery("corrupt", None, 0)
-            if len(self._transport_cache) >= 1_000_000:
-                _fail("resource-limit")
-            self._transport_cache[transport_key] = value
+            self._cache_store(self._transport_cache, transport_key, value, 1_000_000)
         if value.decoded is not None:
             try:
                 bootstrap.decode_common_block(
@@ -1185,9 +1244,7 @@ class ObservationDecoder:
                 )
             except bootstrap.BootstrapReject:
                 value = m2_codec.Recovery("corrupt", None, value.constructions)
-        if len(self._unit_cache) >= 1_000_000:
-            _fail("resource-limit")
-        self._unit_cache[key] = value
+        self._cache_store(self._unit_cache, key, value, 1_000_000)
         return value
 
     def _aggregate_v7_group(
@@ -1201,8 +1258,7 @@ class ObservationDecoder:
         factor = len(lanes)
         zero = bytes(m2_codec.COMMON_BYTES)
         if (
-            profile.profile_version != 7
-            or profile.transport_id != m2_codec.HIER_TRANSPORT
+            not self._hierarchical_profile(profile)
             or factor not in (1, 2, 5)
         ):
             _fail("physical-group")
@@ -1311,6 +1367,12 @@ class ObservationDecoder:
             constructions,
         )
 
+    def _read_route_prefix(self, cells, width, sector, length):
+        return _sector_bytes(cells, width, sector, length)
+
+    def _parse_route_record_frames(self, raw, count, package_bytes):
+        return _route_records(raw, count, package_bytes)
+
     def _parse_route(
         self, cells: _Cells, width: int, sector: int
     ) -> _Route | None:
@@ -1350,13 +1412,13 @@ class ObservationDecoder:
                 or prefix_cells > width * (cells.side - width)
             ):
                 raise DecoderError("route-envelope")
-            prefix = _sector_bytes(cells, width, sector, 64 + record_bytes)
+            prefix = self._read_route_prefix(cells, width, sector, 64 + record_bytes)
             if prefix is None:
                 raise DecoderError("route-erased")
             cache_key = (cells.side, width, sector, prefix)
             if cache_key in self._route_cache:
                 return self._route_cache[cache_key]
-            records, package_bytes = _route_records(
+            records, package_bytes = self._parse_route_record_frames(
                 prefix[64:], record_count, recipe_bytes
             )
             base = sector * 10_000
@@ -1380,9 +1442,7 @@ class ObservationDecoder:
                     cells.side,
                     width,
                 )
-                if len(self._validated_route_cache) >= 4_096:
-                    _fail("resource-limit")
-                self._validated_route_cache[validation_key] = validated
+                self._cache_store(self._validated_route_cache, validation_key, validated, 4_096)
             (
                 packages,
                 mapping,
@@ -1417,9 +1477,7 @@ class ObservationDecoder:
         except bootstrap.BootstrapReject:
             result = None
         if cache_key is not None:
-            if len(self._route_cache) >= 4_096:
-                _fail("resource-limit")
-            self._route_cache[cache_key] = result
+            self._cache_store(self._route_cache, cache_key, result, 4_096)
         return result
 
     def _discover_routes(self, cells: _Cells) -> tuple[_Route, ...]:
@@ -1457,7 +1515,7 @@ class ObservationDecoder:
             for key in sorted(
                 discovered,
                 key=lambda item: (
-                    self.profiles.index(discovered[item].profile),
+                    self.profile_order[discovered[item].profile.profile_id],
                     item[1],
                     item[-1],
                 ),
@@ -1478,14 +1536,14 @@ class ObservationDecoder:
         interior_cells = cells.interior(width)
         unit_bits = profile.protected_unit_bytes * 8
         count = min(profile.protected_units, population // unit_bits)
-        projection = _route_mapping_projection(
-            1 if profile.profile_version == 7 else 0,
+        projection = self._mapping_projection(
+            self._route_version(profile),
             profile,
             mapping,
         )
         unit_multiplier = (
             int(projection["unit_multiplier"])
-            if profile.profile_version == 7
+            if self._hierarchical_profile(profile)
             else 1
         )
         values: list[_ObservedUnit] = []
@@ -1494,7 +1552,7 @@ class ObservationDecoder:
             erasures: list[int] = []
             logical_first = (
                 (unit_multiplier * (unit_id - 1)) % count
-                if profile.profile_version == 7
+                if self._hierarchical_profile(profile)
                 else unit_id - 1
             ) * unit_bits
             for bit_offset in range(unit_bits):
@@ -1545,7 +1603,7 @@ class ObservationDecoder:
         witnesses: list[bootstrap.SectionWitness] = []
         for copy_id in sorted(groups):
             try:
-                observed_copy, envelope = bootstrap.assemble_semantic_copy(
+                observed_copy, envelope = self._assemble_semantic_copy(
                     groups[copy_id], profile.profile_version
                 )
                 section = bootstrap.decode_section_envelope(envelope)
@@ -1562,7 +1620,7 @@ class ObservationDecoder:
         try:
             _, envelope = bootstrap.recover_logical_section(witnesses)
             section = bootstrap.decode_section_envelope(envelope)
-            inventory = bootstrap.decode_inventory(section.payload)
+            inventory = self._decode_inventory_payload(profile, section.payload)
         except bootstrap.BootstrapReject:
             return None
         if inventory.version != profile.inventory_version:
@@ -1590,7 +1648,7 @@ class ObservationDecoder:
             first_block.section_id != 1
             or first_block.semantic_copy_id != 0
             or first_block.section_type != 1
-            or first_block.section_version != 1
+            or first_block.section_version != self._inventory_version(profile)
             or first_block.fragment_index != 0
             or first_block.fragment_count == 0
             or 5 * first_block.fragment_count > profile.protected_units
@@ -1622,7 +1680,7 @@ class ObservationDecoder:
                 block.section_id != 1
                 or block.semantic_copy_id != 0
                 or block.section_type != 1
-                or block.section_version != 1
+                or block.section_version != self._inventory_version(profile)
                 or block.fragment_index != fragment_index
                 or block.fragment_count != first_block.fragment_count
                 or block.section_envelope_length
@@ -1631,22 +1689,22 @@ class ObservationDecoder:
                 return None
             blocks.append(group.chosen_block)
         try:
-            observed_copy, envelope = bootstrap.assemble_semantic_copy(
+            observed_copy, envelope = self._assemble_semantic_copy(
                 blocks, profile.profile_version
             )
             section = bootstrap.decode_section_envelope(envelope)
-            inventory = bootstrap.decode_inventory(section.payload)
+            inventory = self._decode_inventory_payload(profile, section.payload)
         except bootstrap.BootstrapReject:
             return None
         if (
             observed_copy != 0
             or section.section_id != 1
             or section.section_type != 1
-            or section.section_version != 1
+            or section.section_version != self._inventory_version(profile)
             or section.closure_class != 128
             or section.check_id != 1
             or section.dependencies
-            or inventory.version != 1
+            or inventory.version != self._inventory_version(profile)
         ):
             return None
         return inventory, envelope
@@ -1730,7 +1788,7 @@ class ObservationDecoder:
             by_profile_section_copy.items()
         ):
             try:
-                _, envelope = bootstrap.assemble_semantic_copy(
+                _, envelope = self._assemble_semantic_copy(
                     (common for _, common in blocks),
                     profile_version_by_id[profile_id],
                 )
@@ -1767,19 +1825,18 @@ class ObservationDecoder:
             tuple(diagnostics),
         )
 
+    @staticmethod
+    def _diagnostic_raw_section_allowed(block: bootstrap.CommonBlock) -> bool:
+        # Historical v0 fallback: only bootstrap group representatives may
+        # contribute section1. Versioned receivers own their diagnostic scope.
+        return block.section_id != 1
+
     def _without_inventory_v7(
         self,
         profiles: Sequence[m2_codec.CandidateProfile],
         observations: Sequence[_ObservedUnit],
     ) -> DecodeResult:
-        v7_profiles = tuple(
-            profile
-            for profile in profiles
-            if profile.transport_id == m2_codec.HIER_TRANSPORT
-        )
-        if len(v7_profiles) != 1:
-            _fail("profile-registry")
-        v7 = v7_profiles[0]
+        v7 = self._inventory_bootstrap_profile(profiles)
         observed_by_id = {item.unit_id: item for item in observations}
         initial = self._aggregate_v7_group(
             v7, tuple(observed_by_id.get(unit_id) for unit_id in range(1, 6))
@@ -1799,7 +1856,7 @@ class ObservationDecoder:
                 first_block.section_id == 1
                 and first_block.semantic_copy_id == 0
                 and first_block.section_type == 1
-                and first_block.section_version == 1
+                and first_block.section_version == self._inventory_version(v7)
                 and first_block.fragment_index == 0
             )
             inventory_group_identity[0] = inventory_identity_valid
@@ -1893,7 +1950,7 @@ class ObservationDecoder:
                 # inventory exists.  A locally valid legacy splice is still a
                 # useful per-input diagnostic, but it must not replace that
                 # corrupt route-fixed identity with a foreign checked section.
-                if block.section_id != 1:
+                if self._diagnostic_raw_section_allowed(block):
                     valid_blocks.append((profile_id, state, common, block))
             else:
                 diagnostics.append(
@@ -1942,7 +1999,7 @@ class ObservationDecoder:
                     block.section_id == 1
                     and block.semantic_copy_id == 0
                     and block.section_type == 1
-                    and block.section_version == 1
+                    and block.section_version == self._inventory_version(v7)
                     and block.fragment_index == fragment_index
                     and block.fragment_count == inventory_fragment_count
                 ):
@@ -2024,7 +2081,7 @@ class ObservationDecoder:
                         resource=ResourceUsage(4_096),
                     )
             try:
-                _, envelope = bootstrap.assemble_semantic_copy(
+                _, envelope = self._assemble_semantic_copy(
                     (common for _, common in blocks),
                     profile_version_by_id[profile_id],
                 )
@@ -2088,16 +2145,16 @@ class ObservationDecoder:
             resource=ResourceUsage(len(attempted_envelopes)),
         )
 
-    @staticmethod
     def _expected_units(
+        self,
         profile: m2_codec.CandidateProfile,
         inventory: bootstrap.Inventory,
     ) -> tuple[_ExpectedUnit, ...]:
         result: list[_ExpectedUnit] = []
-        if inventory.version == 1:
+        if inventory.version >= 1:
             if (
-                profile.profile_version != 7
-                or profile.transport_id != m2_codec.HIER_TRANSPORT
+                inventory.version != self._inventory_version(profile)
+                or not self._hierarchical_profile(profile)
             ):
                 _fail("inventory-profile")
             for entry in inventory.entries:
@@ -2158,6 +2215,34 @@ class ObservationDecoder:
         if len(result) > profile.protected_units:
             _fail("resource-limit")
         return tuple(result)
+
+    def _recover_content_tiers(self, profile, inventory, unique_envelopes):
+        streams: list[bytes | None] = []
+        for frame_section_id in (2, 3):
+            try:
+                frame_envelope = bootstrap.decode_section_envelope(
+                    unique_envelopes[frame_section_id]
+                )
+                frame = bootstrap.decode_tier_frame(
+                    frame_envelope.payload, frame_section_id
+                )
+                bootstrap.validate_tier_against_inventory(
+                    frame, frame_envelope, inventory
+                )
+                body_payloads = {
+                    section_id: bootstrap.decode_section_envelope(
+                        unique_envelopes[section_id]
+                    ).payload
+                    for section_id in frame.body_section_ids
+                }
+                stream = self._assemble_content_stream(frame, body_payloads)
+            except (KeyError, bootstrap.BootstrapReject):
+                stream = None
+            streams.append(stream)
+        required_stream, all_stream = streams
+        if required_stream is None:
+            all_stream = None
+        return required_stream, all_stream, 0, 0
 
     def _recover_sections_v7(
         self,
@@ -2350,7 +2435,7 @@ class ObservationDecoder:
                             ),
                         )
                 try:
-                    observed_copy, envelope = bootstrap.assemble_semantic_copy(
+                    observed_copy, envelope = self._assemble_semantic_copy(
                         blocks, profile.profile_version
                     )
                     section = bootstrap.decode_section_envelope(envelope)
@@ -2388,31 +2473,7 @@ class ObservationDecoder:
             for item in section_results
             if item.envelope is not None
         }
-        streams: list[bytes | None] = []
-        for frame_section_id in (2, 3):
-            try:
-                frame_envelope = bootstrap.decode_section_envelope(
-                    unique_envelopes[frame_section_id]
-                )
-                frame = bootstrap.decode_tier_frame(
-                    frame_envelope.payload, frame_section_id
-                )
-                bootstrap.validate_tier_against_inventory(
-                    frame, frame_envelope, inventory
-                )
-                body_payloads = {
-                    section_id: bootstrap.decode_section_envelope(
-                        unique_envelopes[section_id]
-                    ).payload
-                    for section_id in frame.body_section_ids
-                }
-                stream = bootstrap.assemble_content_stream(frame, body_payloads)
-            except (KeyError, bootstrap.BootstrapReject):
-                stream = None
-            streams.append(stream)
-        required_stream, all_stream = streams
-        if required_stream is None:
-            all_stream = None
+        required_stream, all_stream, content_steps, content_scratch = self._recover_content_tiers(profile, inventory, unique_envelopes)
         artifact = (
             "ambiguous"
             if any(item.state == "ambiguous" for item in section_results)
@@ -2431,7 +2492,7 @@ class ObservationDecoder:
             1 for item in observations
         )
         primitive_steps = (
-            present_lanes * 24 * transport_primitive_steps
+            content_steps + present_lanes * 24 * transport_primitive_steps
             + repetition_group_count
             * (
                 1_728 * repetition_primitive_steps
@@ -2450,7 +2511,7 @@ class ObservationDecoder:
             ResourceUsage(
                 len(attempted_envelopes),
                 primitive_steps,
-                max(transport_peak_scratch, repetition_peak_scratch),
+                max(transport_peak_scratch, repetition_peak_scratch, content_scratch),
             ),
         )
 
@@ -2663,7 +2724,7 @@ class ObservationDecoder:
                     if len(candidate_envelope) == by_copy[copy_id][0].envelope_length:
                         attempted_envelopes.add(candidate_envelope)
                     try:
-                        observed_copy, envelope = bootstrap.assemble_semantic_copy(
+                        observed_copy, envelope = self._assemble_semantic_copy(
                             blocks, profile.profile_version
                         )
                         section = bootstrap.decode_section_envelope(envelope)
@@ -2733,7 +2794,7 @@ class ObservationDecoder:
                     ).payload
                     for section_id in frame.body_section_ids
                 }
-                stream = bootstrap.assemble_content_stream(frame, body_payloads)
+                stream = self._assemble_content_stream(frame, body_payloads)
             except (KeyError, bootstrap.BootstrapReject):
                 stream = None
             streams.append(stream)
@@ -2778,6 +2839,26 @@ class ObservationDecoder:
             if item.envelope is not None
         )
 
+    @staticmethod
+    def _route_group_key(route):
+        return (route.profile.profile_id, route.shell_width, route.mapping,
+                route.inventory_section_id)
+
+    def _recover_route_sections(self, route, observations):
+        return self._recover_sections(
+            route.profile,
+            observations,
+            retain_extra_inputs=False,
+            transport_primitive_steps=route.transport_primitive_steps,
+            transport_peak_scratch=route.transport_peak_scratch,
+            repetition_primitive_steps=(
+                route.repetition_primitive_steps
+            ),
+            repetition_peak_scratch=(
+                route.repetition_peak_scratch
+            ),
+        )
+
     def _decode_square(self, side: int, raw_cells: bytes) -> DecodeResult:
         results: list[DecodeResult] = []
         eligible_results: list[DecodeResult] = []
@@ -2811,9 +2892,9 @@ class ObservationDecoder:
                         polarity,
                         route.sector_id,
                         route.profile.profile_id,
-                        _mapping_sha256(
+                        self._mapping_digest(
                             route.route_version,
-                            _route_mapping_projection(
+                            self._mapping_projection(
                                 route.route_version,
                                 route.profile,
                                 route.mapping,
@@ -2829,12 +2910,7 @@ class ObservationDecoder:
                             hypothesis.mapping_sha256,
                         )
                     ] = hypothesis
-                    group_key = (
-                        route.profile.profile_id,
-                        route.shell_width,
-                        route.mapping,
-                        route.inventory_section_id,
-                    )
+                    group_key = self._route_group_key(route)
                     route_groups[group_key] = route
                     route_group_counts[group_key] = (
                         route_group_counts.get(group_key, 0) + 1
@@ -2846,19 +2922,7 @@ class ObservationDecoder:
                         route.shell_width,
                         route.mapping,
                     )
-                    result = self._recover_sections(
-                        route.profile,
-                        observations,
-                        retain_extra_inputs=False,
-                        transport_primitive_steps=route.transport_primitive_steps,
-                        transport_peak_scratch=route.transport_peak_scratch,
-                        repetition_primitive_steps=(
-                            route.repetition_primitive_steps
-                        ),
-                        repetition_peak_scratch=(
-                            route.repetition_peak_scratch
-                        ),
-                    )
+                    result = self._recover_route_sections(route, observations)
                     transport_primitive_steps += (
                         route_group_counts[group_key]
                         * result.resource.primitive_steps
@@ -3094,11 +3158,16 @@ def decode_observation(
     ).decode(channel, raw)
 
 
-def _canonical_array(value: list[dict[str, object]]) -> bytes:
+def _canonical_array(value: list[dict[str, object]], *, render_charge=None) -> bytes:
     try:
         wrapped = canonical_manifest.serialize_manifest({"rows": value})
-    except canonical_manifest.ManifestError:
+    except canonical_manifest.ManifestError as error:
+        if render_charge is not None and str(error) == 'manifest output exceeds byte limit':
+            render_charge(canonical_manifest.MAX_BYTES+1)
+            _fail('resource-limit')
         _fail("result-shape")
+    if render_charge is not None:
+        render_charge(len(wrapped))
     prefix, suffix = b'{"rows":', b"}\n"
     if not wrapped.startswith(prefix) or not wrapped.endswith(suffix):
         _fail("result-shape")
@@ -3121,19 +3190,25 @@ def render_decoder_result(
     ):
         _fail("result-shape")
     v1 = schema_version == 1
-    zero = "0" * 64
     profile_ids = (
-        (
-            "eh72-hier-r5-r2-r1-crc32c-v0",
-            "eh72-r2-crc64-ecma-v0",
-            "eh72-r3-crc32c-v0",
-            "eh72-r3-crc64-ecma-v0",
-            "rs255-191-crc32c-v0",
-            "rs255-191-crc64-ecma-v0",
-        )
-        if v1
-        else tuple(profile.profile_id for profile in m2_codec.candidate_profiles())
+        ("eh72-hier-r5-r2-r1-crc32c-v0", "eh72-r2-crc64-ecma-v0",
+         "eh72-r3-crc32c-v0", "eh72-r3-crc64-ecma-v0",
+         "rs255-191-crc32c-v0", "rs255-191-crc64-ecma-v0")
+        if v1 else tuple(profile.profile_id for profile in m2_codec.candidate_profiles())
     )
+    return _render_decoder_result(channel, result, schema_version, profile_ids)
+
+
+def _render_decoder_result(channel, result, schema_version, profile_ids, *, render_charge=None):
+    if (channel not in (OBS_BITS, OBS_MATRIX, OBS_UNITS)
+            or type(result) is not DecodeResult
+            or type(schema_version) is not int or schema_version not in (0, 1, 2)
+            or type(profile_ids) is not tuple or not profile_ids
+            or any(type(value) is not str or not value for value in profile_ids)
+            or len(set(profile_ids)) != len(profile_ids)):
+        _fail("result-shape")
+    v1 = schema_version >= 1
+    zero = "0" * 64
     profile_order = {profile_id: index for index, profile_id in enumerate(profile_ids)}
     if (
         result.artifact_state
@@ -3390,17 +3465,13 @@ def render_decoder_result(
         ):
             _fail("result-shape")
     value = {
-        "schema": (
-            "golden-board.m2-damage-decoder-result/v1"
-            if v1
-            else "golden-board.m2-damage-decoder-result/v0"
-        ),
+        "schema": f"golden-board.m2-damage-decoder-result/v{schema_version}",
         "channel": channel,
         "artifact_state": result.artifact_state,
         "established_profile_id": result.profile_id or "",
         "section_rows": section_rows,
         "fragment_diagnostics_sha256": sha256(
-            _canonical_array(fragment_rows)
+            _canonical_array(fragment_rows,render_charge=render_charge)
         ).hexdigest(),
         "m2_required_available": result.m2_required_stream is not None,
         "m2_all_available": result.m2_all_stream is not None,
@@ -3423,10 +3494,15 @@ def render_decoder_result(
     }
     try:
         raw = canonical_manifest.serialize_manifest(value)
-    except canonical_manifest.ManifestError:
+    except canonical_manifest.ManifestError as error:
+        if render_charge is not None and str(error) == 'manifest output exceeds byte limit':
+            render_charge(canonical_manifest.MAX_BYTES+1)
+            _fail('resource-limit')
         _fail("result-shape")
+    if render_charge is not None:
+        render_charge(len(raw))
     if v1 and len(raw) > 1_048_576:
-        _fail("result-shape")
+        _fail("resource-limit" if schema_version == 2 else "result-shape")
     return raw
 
 

@@ -7,6 +7,7 @@
 //! manifest, ownership ledger, case identity, and expected result are never
 //! accepted here.
 
+use crate::resources_v2::{self, Kernel, ReferenceLedger};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::OnceLock;
 
@@ -92,6 +93,15 @@ const FACT_NAMES: [&[u8]; 12] = [
     b"selected-section-check-inventory-v0",
     b"tier-frame-content-validation-v0",
 ];
+pub(crate) fn legacy_definition_fields(fact: u16, payload: &[u8]) -> bool {
+    if !(1..=12).contains(&fact) || payload.len() < 14 {
+        return false;
+    }
+    payload[4..6] == [3, 0]
+        && read_u32(payload, 6) == Some(FACT_NAMES[usize::from(fact - 1)].len() as u32)
+        && read_u32(payload, 10) == Some(1)
+        && payload.get(14..) == Some(FACT_NAMES[usize::from(fact - 1)])
+}
 const V7_TABLE_IDS: [u16; 13] = [3, 4, 5, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20];
 const V7_RECIPE_IDS: [u16; 22] = [
     1, 2, 3, 4, 30, 90, 92, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112,
@@ -514,6 +524,8 @@ fn observed_hierarchical_map(
     package_raw: &[u8],
     side: u16,
     width: u16,
+    mut resource: Option<&mut ResourceProjection>,
+    mut adapter: Option<&mut ReferenceLedger>,
 ) -> Result<HierarchicalMap> {
     if !(64..=2_048).contains(&side)
         || side % 8 != 0
@@ -533,8 +545,23 @@ fn observed_hierarchical_map(
         raw.extend_from_slice(&width.to_be_bytes());
         raw
     };
-    let cell_offset = recipe_u32(package, 109, &input(0))?;
-    let next = recipe_u32(package, 109, &input(1))?;
+    let v2 = resource.is_some();
+    let mut call = |logical| {
+        if let Some(resource) = resource.as_deref_mut() {
+            if let Some(m) = adapter.as_deref_mut() {
+                resources_v2::example_event(m, package, 109, 8)
+                    .map_err(|_| DamageV1Error::ResourceLimit)?;
+            }
+            charge_route_recipe(resource, package, 109)?;
+            if let Some(m) = adapter.as_deref_mut() {
+                m.vm_workspace(package.recipe_peak_scratch_bytes(109).unwrap())
+                    .map_err(|_| DamageV1Error::ResourceLimit)?;
+            }
+        }
+        recipe_u32(package, 109, &input(logical))
+    };
+    let cell_offset = call(0)?;
+    let next = call(1)?;
     if cell_offset >= population || next >= population {
         return Err(DamageV1Error::Reconstruction);
     }
@@ -565,6 +592,12 @@ fn observed_hierarchical_map(
         inverse_slot_multiplier,
         fixed_pad_cells,
     };
+    if v2 {
+        let last = call((population - 1) as u32)?;
+        if last != (cell_multiplier * (population - 1) + cell_offset) % population {
+            return Err(DamageV1Error::Reconstruction);
+        }
+    }
     for physical_ordinal in [0_u64, 1, unit_slot_count / 2, unit_slot_count - 1] {
         for bit in [0_u16, 1, 1_727] {
             let physical = map
@@ -589,11 +622,11 @@ fn observed_hierarchical_map(
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct ParsedRouteV1 {
-    width: u16,
-    sector: u8,
-    map: HierarchicalMap,
-    package: RecipePackage,
+pub(crate) struct ParsedRouteV1 {
+    pub(crate) width: u16,
+    pub(crate) sector: u8,
+    pub(crate) map: HierarchicalMap,
+    pub(crate) package: RecipePackage,
 }
 
 fn charge_route_recipe(
@@ -615,6 +648,27 @@ fn parse_sector_route_v1(
     width: usize,
     sector: u8,
     resource: &mut ResourceProjection,
+) -> Result<Option<ParsedRouteV1>> {
+    parse_sector_route_mode(matrix, width, sector, resource, false, None)
+}
+
+pub(crate) fn parse_sector_route_v2(
+    matrix: &ObsMatrix,
+    width: usize,
+    sector: u8,
+    resource: &mut ResourceProjection,
+    adapter: &mut ReferenceLedger,
+) -> Result<Option<ParsedRouteV1>> {
+    parse_sector_route_mode(matrix, width, sector, resource, true, Some(adapter))
+}
+
+fn parse_sector_route_mode(
+    matrix: &ObsMatrix,
+    width: usize,
+    sector: u8,
+    resource: &mut ResourceProjection,
+    v2: bool,
+    mut adapter: Option<&mut ReferenceLedger>,
 ) -> Result<Option<ParsedRouteV1>> {
     let Some(head) = route_bytes(matrix, width, sector, 64)? else {
         return Ok(None);
@@ -648,9 +702,30 @@ fn parse_sector_route_v1(
     {
         return Ok(None);
     }
+    if (64 + record_bytes) * 8 > width * (matrix.side - width) {
+        return Ok(None);
+    }
+    if let Some(m) = adapter.as_deref_mut() {
+        m.event(
+            Kernel::ShellRead,
+            8 * (64 + record_bytes) as u64,
+            (64 + record_bytes) as u64,
+        )
+        .map_err(|_| DamageV1Error::ResourceLimit)?;
+    }
     let Some(route) = route_bytes(matrix, width, sector, 64 + record_bytes)? else {
         return Ok(None);
     };
+    if let Some(m) = adapter.as_deref_mut() {
+        m.retain("route:prefix", route.len() as u64)
+            .map_err(|_| DamageV1Error::ResourceLimit)?;
+        m.event(
+            Kernel::RouteFrame,
+            route.len() as u64,
+            8 * record_count as u64,
+        )
+        .map_err(|_| DamageV1Error::ResourceLimit)?;
+    }
     let records = &route[64..];
     let base = u16::from(sector) * 10_000;
     let mut offset = 0_usize;
@@ -687,6 +762,43 @@ fn parse_sector_route_v1(
     }
     if offset != records.len() || record_count < 39 {
         return Ok(None);
+    }
+    if v2 {
+        let ledger = adapter.as_deref_mut().ok_or(DamageV1Error::ResourceLimit)?;
+        let Some((package, wire)) =
+            resources_v2::legacy_rows(&rows, 7, sector, package_bytes, resource, ledger)
+                .map_err(|_| DamageV1Error::ResourceLimit)?
+        else {
+            return Ok(None);
+        };
+        if package.recipe_ids().ne(V7_RECIPE_IDS)
+            || package.recipe_primitive_steps(30) != Some(EH_RECIPE_STEPS)
+            || package.recipe_peak_scratch_bytes(30) != Some(EH_RECIPE_SCRATCH)
+            || package.recipe_primitive_steps(113) != Some(REPETITION_RECIPE_STEPS)
+            || package.recipe_peak_scratch_bytes(113) != Some(REPETITION_RECIPE_SCRATCH)
+            || package_table_records(&wire)
+                .is_none_or(|r| r.iter().filter_map(|v| read_u16(v, 0)).ne(V7_TABLE_IDS))
+        {
+            return Ok(None);
+        }
+        let map = match observed_hierarchical_map(
+            &package,
+            &wire,
+            matrix.side as u16,
+            width as u16,
+            Some(resource),
+            Some(ledger),
+        ) {
+            Ok(v) => v,
+            Err(DamageV1Error::ResourceLimit) => return Err(DamageV1Error::ResourceLimit),
+            Err(_) => return Ok(None),
+        };
+        return Ok(Some(ParsedRouteV1 {
+            width: width as u16,
+            sector,
+            map,
+            package,
+        }));
     }
     for fact in 1_u16..=12 {
         let stage = FACT_STAGES[usize::from(fact - 1)];
@@ -754,9 +866,22 @@ fn parse_sector_route_v1(
     if declared_steps > RECIPE_STEP_LIMIT || declared_scratch > RECIPE_SCRATCH_LIMIT {
         return Err(DamageV1Error::ResourceLimit);
     }
+    if let Some(m) = adapter.as_deref_mut() {
+        m.event(
+            Kernel::RecipeParse,
+            package_row.3.len() as u64,
+            resources_v2::program_workspace(package_row.3)
+                .map_err(|_| DamageV1Error::ResourceLimit)?
+                .parsing(),
+        )
+        .map_err(|_| DamageV1Error::ResourceLimit)?;
+    }
     let Ok(package) = decode_recipe_package(package_row.3, PROFILE_V7) else {
         return Ok(None);
     };
+    if let Some(m) = adapter.as_deref_mut() {
+        resources_v2::retain_program(m, package_row.3).map_err(|_| DamageV1Error::ResourceLimit)?;
+    }
     if package.recipe_ids().ne(V7_RECIPE_IDS)
         || package.recipe_primitive_steps(30) != Some(EH_RECIPE_STEPS)
         || package.recipe_peak_scratch_bytes(30) != Some(EH_RECIPE_SCRATCH)
@@ -807,7 +932,15 @@ fn parse_sector_route_v1(
             if output_end != example.len() {
                 return Ok(None);
             }
+            if let Some(m) = adapter.as_deref_mut() {
+                resources_v2::example_event(m, &package, recipe_id, input_bytes)
+                    .map_err(|_| DamageV1Error::ResourceLimit)?;
+            }
             charge_route_recipe(resource, &package, recipe_id)?;
+            if let Some(m) = adapter.as_deref_mut() {
+                m.vm_workspace(package.recipe_peak_scratch_bytes(recipe_id).unwrap())
+                    .map_err(|_| DamageV1Error::ResourceLimit)?;
+            }
             if evaluate_serialized_recipe(&package, recipe_id, &example[12..input_end])
                 .ok()
                 .as_deref()
@@ -831,7 +964,20 @@ fn parse_sector_route_v1(
         return Ok(None);
     }
     let width = u16::try_from(width).map_err(|_| DamageV1Error::Observation)?;
-    let map = observed_hierarchical_map(&package, package_row.3, matrix.side as u16, width)?;
+    let mapping = observed_hierarchical_map(
+        &package,
+        package_row.3,
+        matrix.side as u16,
+        width,
+        if v2 { Some(resource) } else { None },
+        adapter.as_deref_mut(),
+    );
+    let map = match mapping {
+        Ok(map) => map,
+        Err(DamageV1Error::ResourceLimit) => return Err(DamageV1Error::ResourceLimit),
+        Err(_) if v2 => return Ok(None),
+        Err(error) => return Err(error),
+    };
     Ok(Some(ParsedRouteV1 {
         width,
         sector,
@@ -840,7 +986,7 @@ fn parse_sector_route_v1(
     }))
 }
 
-fn mapping_sha256_v1(map: HierarchicalMap) -> Result<String> {
+pub(crate) fn mapping_sha256_v1(map: HierarchicalMap) -> Result<String> {
     let value = object([
         ("id", string("affine-slot-then-interior-v1")),
         (
@@ -4442,6 +4588,22 @@ mod tests {
         assert_eq!(parsed.map, owner.draft.mapping);
         assert_eq!(resource.primitive_steps, 15_134);
         assert_eq!(resource.peak_scratch_bytes, 6_163);
+
+        let mut v2_resource = ResourceProjection::default();
+        let diagnostic = parse_sector_route_v2(
+            &matrix,
+            width,
+            0,
+            &mut v2_resource,
+            &mut ReferenceLedger::default(),
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(diagnostic.map, parsed.map);
+        assert_eq!(
+            v2_resource.primitive_steps,
+            15_134 + 3 * diagnostic.package.recipe_primitive_steps(109).unwrap()
+        );
 
         let mut define_drift = clean.clone();
         // First record is DEFINE fact 1: 8-byte record framing, 14-byte

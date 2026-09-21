@@ -1,0 +1,87 @@
+schema = "golden-board.m2-participant-revision-promotion-policy/v2"
+policy_version = 2
+scope = "revised-source-built-profile8; historical-profiles-and-participant-evidence-remain-distinct"
+authority = "docs/roadmap.md and docs/m2-spec.md, with the explicit revision owners below"
+production_admission = "all-required-fresh-evidence-and-four-source-bound-producers; no-flag-only-promotion"
+
+[candidate]
+active_profile_ids = ["eh72-hier-r5-r2-r1-lzss-crc32c-v1"]
+active_profile_versions = [8]
+historical_profiles = "diagnostic-inputs-and-preserved-history-only"
+selection = "retain-the-active-singleton-only-if-all-eight-automated-gates-pass; otherwise-no-finalist"
+provisional_geometry = "independently-derived-first-fit; final-dimensions-await-M4-actual-content"
+
+[owners]
+profile = "spec/profile-policy-v2.toml"
+policy_ceilings = "spec/profile-limits-v2.toml"
+damage = "spec/damage-policy-v2.toml"
+static = "spec/static-projection-v2.md"
+knowledge = "spec/knowledge-use-v2.md"
+first_use = "spec/first-use-v2.md"
+recovery = "spec/recovery-provenance-v2.md"
+accounting = "spec/resource-accounting-v2.md"
+analytic_bounds = "spec/receiver-bounds-v2.md"
+replay = "spec/damage-replay-v2.md"
+complete_damage = "spec/complete-damage-v2.md"
+boundary_kats = "spec/boundary-kat-v2.md"
+physical = "spec/physical-evidence-v2.md"
+transition = "spec/m2-participant-revision-transition-v1.md"
+
+[evidence]
+static_files = ["candidate-manifest.json", "semantic-envelope.json", "capacity-ledger.json", "ownership-ledger.json", "density-ledger.json", "geometry-search.json", "static-limits.json"]
+physical_files = ["carrier.bin", "route-0.bin", "route-1.bin", "route-2.bin", "route-3.bin"]
+knowledge_files = ["knowledge-use.json", "first-use.json", "recovery-provenance.json"]
+resource_files = ["receiver-bounds.json", "resource-limits.json"]
+damage_files = ["damage/manifest.json", "damage/boundary-kats.json"]
+independence_file = "independence-proof.json"
+all_hashes = "raw-sha256-of-exact-bytes; canonical-json-includes-one-trailing-lf"
+missing_evidence = "reject; no-zero-placeholder-no-inherited-pass"
+
+[gates]
+gate1 = "complete-exact-profile-and-cross-language-known-answer-agreement; source-derived-finite-bounds-exist-without-result-inputs"
+gate2 = "bootstrap-dependency-recipe-closure-and-shell-fit-headroom; fresh-observed-grounding-and-first-use-coverage"
+gate3 = "common-grammar-atomic-recovery-and-state-correctness; actual-carrier-observation-only-recovery-and-closed-conflict-failure-boundaries"
+gate4 = "independent-generated-source-only-static-resource-and-attempt-bounds; preliminary-clean-and-B0-observed-counters-within-those-bounds; complete-corpus-measured-maxima-checked-against-the-unchanged-bounds-as-a-gate6-postcondition"
+gate5 = "provisional-semantic-capacity-under-hard-carrier-ceiling; strict-source-built-first-fit-ownership-reserve-load-density; recovered-required-all-body-context-bound-to-the-same-source-content"
+gate6 = "complete-source-derived-D0-through-D7-and-separate-B0-replay; exact-oracle-receiver-convergence; all-promises-and-four-boundary-kats-pass; zero-accidental-wrong-accepts"
+gate7 = "eight-fresh-physical-predicates-plus-damage-promise-binding; same-static-route-premise-and-complete-damage-identity; zero-violations"
+gate8 = "four-independent-native-and-clean-linux-producers-agree-on-every-result-bearing-file; deterministic-selection-and-exact-bundles"
+gate_numbers = "M2-candidate-automated-gates1-through8; not-the-roadmap-global-G1-throughG16-labels"
+evaluation_order = "docs/m2-spec.md-section12.3-unchanged; a-failed-gate-keeps-later-unrun-gates-not_evaluated; damage-evaluated-only-after-gates1-through5-pass"
+
+[reproduction]
+producer_order = ["native-python", "native-rust", "linux-python", "linux-rust"]
+python_producers = "source-build-and-run-Python-operators-source-oracle-and-observation-receiver; no-Rust-output-or-retained-result-as-generation-input"
+rust_producers = "source-build-and-run-Rust-operators-independent-source-oracle-and-observation-receiver; no-Python-output-or-retained-result-as-generation-input"
+comparison = "complete-file-path-byte-length-mode-and-raw-hash-projection; exact-canonical-producer-evidence-except-producer-and-environment-identities"
+clean_linux = "existing-admitted-pinned-image; network-off; private-clean-materialized-source; no-host-generation-cache-input"
+source_freeze = "unchanged-complete-input-source-projection-before-and-after-each-producer-and-assembly"
+executable_freeze = "immutable-private-producer-executable-and-complete-transitive-source-preimages-bound-before-and-after-execution"
+development_evidence = "diagnostic-only-until-reexecuted-under-final-production-source-and-this-complete-contract"
+
+[identity_dag]
+upstream = "neutral-source-owners-code-fixtures-M0-M1-identities-and-normative-roadmap-projection"
+static = "source-to-streams-package-carrier-static-documents; candidate-self-identity-uses-its-owned-omitted-field-preimage"
+recovery = "carrier-to-observed-prefixes-checked-bodies-and-streams; exact-inputs-to-knowledge-and-first-use"
+replay = "same-source-carrier-to-observations-source-oracle-receiver-rows-and-measured-limits"
+proof = "static-and-recovery-premise-plus-complete-damage-to-nine-predicate-proof"
+publication = "source-and-evidence-to-producer-receipts-to-cross-language-selection-bundles-report"
+cycle_rule = "generated-promotion-evidence-receipts-report-and-Gate8-tree-are-not-upstream-source-inputs; never-insert-measured-maxima-into-hashed-neutral-owners"
+historical_archives = "preserved-separate-role; not-blindly-added-to-source-factory-inputs"
+
+[lifecycle]
+report_path = "reports/m2-feasibility-v2.json"
+transition = "apply-and-verify-exact-archive-first-participant-revision-transition-before-primary-source-replacement"
+in_progress = "canonical-report-and-Gate8-authority-absent-while-revised-evidence-is-incomplete"
+installation = "private-complete-staging; recursive-closed-tree-validation; no-replace-publication; tree-then-report-then-roadmap-status-last; roadmap-remains-sole-status-authority; exact-precondition-rollback-on-failure"
+candidate_ready = "only-after-all-automated-gates-pass-and-exact-participant-bundles-are-frozen"
+release = "fresh-host-full-and-clean-linux-reproduction; unchanged-report-hash-and-source-projection; historical-owner-admission-remains-closed"
+completion = "fresh-qualifying-technical-and-learner-validation-after-latest-material-revision; never-relabel-formative-or-assisted-results"
+
+[participants]
+working_style = "friendly-voluntary-pet-project-participants; prior-agreement-already-given"
+administration = "no-names-dates-timers-consent-forms-or-eligibility-questionnaires"
+receiver_assumption = "motivated-intelligent-receiver-recognizes-intentional-important-artifact; extra-effort-revisiting-and-trial-error-are-allowed"
+assistance = "record-substantive-hints-and-provided-adapters-in-plain-notes; do-not-call-assisted-discovery-unaided"
+historical_answers = "preserve-verbatim-and-bind-every-important-finding-to-the-revision; historical-success-and-failure-remain-historical"
+handoff = "one-short-owner-sequence-of-what-to-show-ask-and-save; exact-generated-package; no-extra-administrative-phase"

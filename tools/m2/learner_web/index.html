@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+  <title>Explore the patterns</title>
+  <style>
+    :root { color-scheme:light; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:#20272c; background:#f5f4ef; line-height:1.5; }
+    * { box-sizing:border-box; }
+    body { margin:0; }
+    button { font:inherit; cursor:pointer; border:1px solid #b8bebf; border-radius:6px; background:#fff; color:#20272c; padding:.62rem .95rem; }
+    button:hover:enabled { background:#edf2f2; border-color:#667879; }
+    button:focus-visible, summary:focus-visible { outline:3px solid #16779c; outline-offset:3px; }
+    button:disabled { cursor:default; opacity:.45; }
+    .primary { color:#fff; background:#215b60; border-color:#215b60; }
+    .primary:hover:enabled { background:#16464a; color:white; }
+    .shell { max-width:1420px; margin:auto; padding:1.7rem clamp(1rem,3vw,3rem) 4rem; }
+    header { display:flex; justify-content:space-between; gap:1.5rem; align-items:start; padding-bottom:1.2rem; border-bottom:1px solid #d8dcda; }
+    h1 { font-size:clamp(1.65rem,3vw,2.25rem); line-height:1.2; font-weight:650; margin:0 0 .45rem; letter-spacing:-.03em; }
+    h2 { font-size:1.08rem; margin:.1rem 0 .8rem; font-weight:650; }
+    p { margin:.35rem 0 .8rem; }
+    .muted { color:#5b666b; }
+    .toolbar,.actions,.choice-list { display:flex; gap:.65rem; flex-wrap:wrap; align-items:center; }
+    .toolbar { justify-content:flex-end; }
+    .help { margin:1.1rem 0; max-width:68rem; }
+    details { margin:.6rem 0; }
+    summary { cursor:pointer; width:fit-content; font-weight:550; }
+    .help details p { padding:.5rem 0; }
+    .status-row { display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin:1.4rem 0 .65rem; align-items:center; }
+    .eyebrow { font-size:.78rem; text-transform:uppercase; letter-spacing:.1em; font-weight:650; color:#50696b; }
+    #page-label { margin:0; font-size:1.1rem; }
+    .panel { background:#fff; border:1px solid #d6dcd9; border-radius:10px; padding:clamp(.8rem,2vw,1.5rem); margin-bottom:1rem; }
+    .view-controls { display:flex; align-items:center; flex-wrap:wrap; gap:.5rem; margin:0 0 .8rem; }
+    .view-controls button { padding:.4rem .75rem; }
+    .matrix-window { overflow:auto; padding:.6rem 0; max-height:75vh; }
+    .matrix { display:grid; grid-template-columns:repeat(var(--columns),var(--cell)); grid-template-rows:repeat(var(--rows),var(--cell)); --cell:2rem; width:max-content; isolation:isolate; padding:2px; }
+    .cell { display:flex; align-items:center; justify-content:center; border:1px solid #ced8d4; margin:-.5px; font:600 .82rem ui-monospace,SFMono-Regular,Consolas,monospace; background:hsl(var(--hue) 25% var(--shade)); color:#243b42; white-space:nowrap; }
+    .region-overlay { position:relative; z-index:1; padding:0; min-width:0; border:2px solid #607b7f; border-radius:3px; background:transparent; margin:1px; opacity:1; }
+    .region-overlay:disabled { opacity:1; }
+    .region-overlay:hover:enabled { background:#1b718214; border-color:#125767; }
+    .region-overlay.selected { border:3px solid #116685; background:#1b71821c; }
+    .region-number { position:absolute; top:-.62rem; left:.12rem; background:#52696e; color:white; border-radius:3px; min-width:1.2rem; padding:0 .22rem; font-size:.72rem; line-height:1.3; }
+    .selected .region-number { background:#116685; }
+    .matrix-caption { color:#6c7679; font-size:.76rem; margin:0 0 .4rem; }
+    .choice-list { margin-top:.9rem; }
+    .choice.selected { border:2px solid #116685; background:#e7f0f3; }
+    .choice { min-width:3rem; }
+    .atoms { display:flex; gap:.4rem; flex-wrap:wrap; }
+    .atom { background:#eff2f0; padding:.3rem .6rem; border-radius:4px; font-family:ui-monospace,Consolas,monospace; }
+    .raw-data { overflow-wrap:anywhere; max-height:14rem; overflow:auto; font: .8rem/1.6 ui-monospace,Consolas,monospace; color:#576367; }
+    .tuple-field + .tuple-field { margin-top:1.1rem; }
+    .interaction { position:sticky; bottom:0; border:1px solid #cdd7d4; border-radius:10px; padding:1rem 1.25rem; background:#fffffff5; backdrop-filter:blur(8px); box-shadow:0 -5px 25px #153f4510; }
+    #selection { min-height:1.5rem; margin:0 0 .6rem; }
+    #notice { min-height:1.5rem; margin:.6rem 0 0; font-size:.9rem; }
+    #notice.error,#load-error { color:#903624; }
+    #feedback-panel { border-left:4px solid #63858a; }
+    #example-panel { background:#eef4f2; border-color:#b3ccc5; }
+    #example-steps { margin:.6rem 0; padding-left:1.5rem; }
+    #example-steps li { color:#667772; }
+    #example-steps li.done { color:#203f37; }
+    #example-steps li.current { font-weight:650; }
+    .small { font-size:.82rem; }
+    .page-footer { margin-top:1.4rem; color:#64716f; }
+    #event-log { max-height:16rem; overflow:auto; font-size:.78rem; white-space:pre-wrap; overflow-wrap:anywhere; }
+    [hidden] { display:none !important; }
+    @media(max-width:700px) { header { flex-direction:column; } .toolbar { justify-content:flex-start; } .interaction { padding:.8rem; } .actions { gap:.45rem; } }
+  </style>
+  <script defer src="lesson-data.js"></script>
+  <script defer src="viewer.js"></script>
+  <script defer src="layout.js"></script>
+  <script defer src="ui.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div><h1>Explore the patterns</h1><p class="muted">Look at the examples, make a selection, and see what follows.</p></div>
+      <div class="toolbar"><button id="export" disabled>Export progress</button><button id="restart" disabled>Export &amp; restart</button></div>
+    </header>
+    <div class="help">
+      <p>Outlined areas can be selected. Their small corner numbers identify the selection controls. Use <strong>Commit</strong> to send your selection, then <strong>Next</strong> to continue.</p>
+      <details><summary>How the controls work</summary><p><strong>Reset</strong> clears your current selection. It uses one action, as does selecting or committing. You can commit an empty selection. A completed response stays fixed until you choose Next. <strong>Watch example</strong> walks through supplied actions separately from your response. Take each step at your own pace. <strong>Fit width</strong> and zoom change the display without using actions. Cells stay large enough to read; scroll inside a diagram when it cannot fit. Export whenever you want to stop; restarting exports this attempt before opening a new one.</p></details>
+    </div>
+    <p id="loading" role="status">Opening the lesson…</p><p id="load-error" role="alert" hidden></p>
+    <noscript>This offline viewer needs JavaScript enabled.</noscript>
+    <section id="lesson" hidden>
+      <div class="status-row"><div><div class="eyebrow" id="mode"></div><h2 id="page-label"></h2></div><button id="watch" class="primary" hidden>Watch example</button></div>
+      <div class="view-controls" role="group" aria-label="Display size">
+        <button id="fit-width" type="button" aria-pressed="true">Fit width</button>
+        <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+        <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+        <span id="display-size" class="small muted" role="status" aria-live="polite"></span>
+      </div>
+      <section class="panel" id="presentation-panel" aria-label="Current presentation"><div id="presentation"></div><div class="choice-list" id="choices" aria-label="Selection controls"></div></section>
+      <section class="panel" id="example-panel" hidden aria-label="Example playback">
+        <h2>Example</h2><p class="small muted">This demonstration does not change your response or use your actions.</p>
+        <div id="example-display"></div><ol id="example-steps"></ol><p id="example-status" role="status"></p>
+        <div class="actions"><button id="example-step" class="primary">Next example step</button><button id="example-replay">Replay example</button><button id="example-close">Close example</button></div>
+      </section>
+      <section class="panel" id="feedback-panel" hidden aria-label="Response feedback"><h2 id="feedback-label"></h2><div id="feedback"></div></section>
+      <section class="interaction" aria-label="Response controls">
+        <p id="selection" aria-live="polite"></p>
+        <div class="actions"><button id="reset">Reset</button><button id="commit" class="primary">Commit</button><button id="next" class="primary">Next</button><span id="budget" class="small muted"></span></div>
+        <p id="notice" role="status" aria-live="polite"></p>
+      </section>
+      <footer class="page-footer small"><span id="attempt-label"></span> · Everything runs in this folder. Export a file to keep your progress.<details><summary>Action log</summary><pre id="event-log"></pre></details></footer>
+    </section>
+  </main>
+</body>
+</html>

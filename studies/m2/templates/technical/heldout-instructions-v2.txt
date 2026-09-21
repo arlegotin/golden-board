@@ -1,0 +1,13 @@
+Use your saved method on each observation separately. channels.json names
+only the storage channel for each file. Save code, commands, actual outputs
+and a short account for each input in answers/heldout/a/ through d/.
+Do not fill unavailable data from the clean observation or another result.
+
+Answer content-query.json from the clean output you actually recovered and
+identify the references you followed. Save the answer and any resulting bytes
+in answers/heldout/content-query/. If the requested data is unavailable, say so.
+For generic_record, return its complete record bytes, their SHA-256 and your
+explanation of its fields and references. For chess_transition, return the
+recorded move bytes and resulting position, identifying the representation
+you used. Detailed output conventions are available only as explicit help.
+Keep unsupported conclusions and any later method changes explicit.

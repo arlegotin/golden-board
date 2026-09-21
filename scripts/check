@@ -12,12 +12,13 @@ usage() {
         '       scripts/check focused damage' \
         '       scripts/check focused repo' \
         '       scripts/check linux' \
+        '       scripts/check components' \
         '       scripts/check full' \
         '       scripts/check release' >&2
 }
 
 case "$#:$1" in
-    1:fast|1:full|1:linux|1:release) mode=$1 ;;
+    1:fast|1:full|1:linux|1:release|1:components) mode=$1 ;;
     2:focused)
         case "$2" in
             source|identity|chess|curriculum|content|transport|damage|repo) mode=$2 ;;
@@ -50,6 +51,13 @@ run_check() {
         printf 'check: %s failed\n' "$label" >&2
         return 1
     fi
+}
+
+revision_v2() {
+    { [ -f "$ROOT/docs/roadmap.md" ] && \
+        grep -F -x '| Roadmap revision | 11 |' "$ROOT/docs/roadmap.md" >/dev/null; } || \
+        [ -e "$ROOT/artifacts/history/m2-pre-participant-revision-v1" ] || \
+        [ -L "$ROOT/artifacts/history/m2-pre-participant-revision-v1" ]
 }
 
 # The independent verifier intentionally dispatches before host language
@@ -146,7 +154,9 @@ content() {
 
 transport() {
     candidate_root=$ROOT/artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0
-    if [ -d "$candidate_root" ]; then
+    if revision_v2; then
+        printf '%s\n' 'check: historical transport candidate excluded from revised authority'
+    elif [ -d "$candidate_root" ]; then
         run_check transport-r3-candidate uv run --locked --offline \
             --no-python-downloads python tools/m2/generate_candidates.py \
             --check || return 1
@@ -155,7 +165,23 @@ transport() {
     fi
     python_tests transport-python \
         python.tests.test_bootstrap python.tests.test_m2_slice \
-        python.tests.test_m2_runner python.tests.test_capacity \
+        python.tests.test_bootstrap_v2 python.tests.test_body_codec_v1 \
+        python.tests.test_recipe_wire_v1 \
+        python.tests.test_m2_body_recipe_v1 python.tests.test_m2_revision_recipe \
+        python.tests.test_m2_mapping_v2 python.tests.test_m2_teaching_recipe_v2 \
+        python.tests.test_content_teaching_v2 python.tests.test_position_teaching_v2 \
+        python.tests.test_m2_route_definitions_v2 \
+        python.tests.test_m2_route_v2 python.tests.test_m2_capacity_v2 \
+        python.tests.test_m2_route_receiver_v2 python.tests.test_m2_route_semantics_v2 \
+        python.tests.test_m2_knowledge_v2 python.tests.test_m2_technical_preview_v2 \
+        python.tests.test_m2_program_refinement_v2 python.tests.test_m2_resources_v2 \
+        python.tests.test_m2_receiver_bounds_v2 python.tests.test_m2_boundary_kat_v2 \
+        python.tests.test_m2_decoder_bridge_v2 \
+        python.tests.test_m2_damage_replay_v2 python.tests.test_m2_replay_damage_cli_v2 \
+        python.tests.test_m2_decoder_v2 python.tests.test_m2_policy_v2 python.tests.test_m2_static_v2 \
+        python.tests.test_m2_damage_v2 python.tests.test_m2_physical_v2 \
+        python.tests.test_m2_transport_v2 python.tests.test_m2_carrier_v2 \
+        python.tests.test_m2_runner python.tests.test_m2_runner_v1 python.tests.test_capacity \
         python.tests.test_m2_policy python.tests.test_m2_route_data \
         python.tests.test_m2_common_recipe \
         python.tests.test_m2_codec \
@@ -164,7 +190,24 @@ transport() {
         python.tests.test_m2_decoder \
         python.tests.test_m2_gate8 \
         python.tests.test_m2_gate8_policy \
+        python.tests.test_m2_gate8_policy_v2 python.tests.test_m2_source_v2 \
+        python.tests.test_m2_gate8_receipts_v2 python.tests.test_m2_gate8_evidence_v2 \
+        python.tests.test_m2_gate8_reports_v2 \
+        python.tests.test_m2_execution_v2 python.tests.test_m2_pair_execution_v2 \
+        python.tests.test_m2_pair_cancellation_v2 python.tests.test_m2_publication_v2 \
+        python.tests.test_m2_publication_cancellation_v2 \
+        python.tests.test_m2_command_execution_v2 python.tests.test_m2_execution_interop_v2 \
+        python.tests.test_m2_workflow_execution_v2 \
+        python.tests.test_m2_participant_bundle_v2 python.tests.test_m2_learner_assessment_v2 \
+        python.tests.test_m2_first_use_v2 python.tests.test_m2_recovery_provenance_v2 \
+        python.tests.test_m2_preflight_v2 python.tests.test_m2_complete_candidate_v2 \
+        python.tests.test_m2_complete_damage_v2 python.tests.test_m2_independence_v2 \
+        python.tests.test_m2_participant_revision_transition \
         python.tests.test_m2_learner_runner \
+        python.tests.test_m2_learner_content \
+        python.tests.test_m2_learner_session \
+        python.tests.test_m2_slice_v1 \
+        python.tests.test_m2_participant_mechanics \
         python.tests.test_m2_transport_fast || return 1
     run_check transport-rust-bootstrap rustup run 1.97.1 cargo test -p gb-bootstrap \
         --all-targets --locked --offline || return 1
@@ -175,25 +218,77 @@ transport() {
 transport_fast() {
     python_tests transport-fast-python \
         python.tests.test_m2_transport_fast \
+        python.tests.test_bootstrap_v2 python.tests.test_body_codec_v1 \
+        python.tests.test_recipe_wire_v1 \
+        python.tests.test_m2_body_recipe_v1 python.tests.test_m2_revision_recipe \
+        python.tests.test_m2_mapping_v2 python.tests.test_m2_teaching_recipe_v2 \
+        python.tests.test_content_teaching_v2 python.tests.test_position_teaching_v2 \
+        python.tests.test_m2_route_definitions_v2 \
+        python.tests.test_m2_route_v2 python.tests.test_m2_capacity_v2 \
+        python.tests.test_m2_route_receiver_v2 python.tests.test_m2_route_semantics_v2 \
+        python.tests.test_m2_knowledge_v2 python.tests.test_m2_technical_preview_v2 \
+        python.tests.test_m2_program_refinement_v2 python.tests.test_m2_resources_v2 \
+        python.tests.test_m2_receiver_bounds_v2 python.tests.test_m2_boundary_kat_v2 \
+        python.tests.test_m2_decoder_bridge_v2 \
+        python.tests.test_m2_damage_replay_v2 python.tests.test_m2_replay_damage_cli_v2 \
+        python.tests.test_m2_decoder_v2 python.tests.test_m2_policy_v2 python.tests.test_m2_static_v2 \
+        python.tests.test_m2_damage_v2 python.tests.test_m2_physical_v2 \
+        python.tests.test_m2_transport_v2 python.tests.test_m2_carrier_v2 \
         python.tests.test_m2_gate8_policy \
-        python.tests.test_m2_learner_runner || return 1
+        python.tests.test_m2_gate8_policy_v2 python.tests.test_m2_source_v2 \
+        python.tests.test_m2_gate8_receipts_v2 python.tests.test_m2_gate8_evidence_v2 \
+        python.tests.test_m2_gate8_reports_v2 \
+        python.tests.test_m2_execution_v2 python.tests.test_m2_pair_execution_v2 \
+        python.tests.test_m2_pair_cancellation_v2 python.tests.test_m2_publication_v2 \
+        python.tests.test_m2_publication_cancellation_v2 \
+        python.tests.test_m2_command_execution_v2 python.tests.test_m2_execution_interop_v2 \
+        python.tests.test_m2_workflow_execution_v2 \
+        python.tests.test_m2_participant_bundle_v2 python.tests.test_m2_learner_assessment_v2 \
+        python.tests.test_m2_complete_candidate_v2 \
+        python.tests.test_m2_participant_revision_transition \
+        python.tests.test_m2_learner_content \
+        python.tests.test_m2_learner_session \
+        python.tests.test_m2_slice_v1 \
+        python.tests.test_m2_participant_mechanics \
+        python.tests.test_m2_learner_runner python.tests.test_m2_runner_v1 || return 1
     run_check transport-fast-rust-bootstrap rustup run 1.97.1 cargo test \
         -p gb-bootstrap --test candidate --locked --offline \
         four_literal_eh72_encodings_are_exact || return 1
+    run_check transport-fast-rust-revision rustup run 1.97.1 cargo test \
+        -p gb-bootstrap --test body_codec_v1 --test recipe_wire_v1 \
+        --test bootstrap_v2 --test mapping_v2 --test body_recipe_v1 \
+        --test teaching_recipe_v2 --test route_v2 --test carrier_v2 \
+        --test route_receiver_v2 --test route_semantics_v2 --test knowledge_v2 \
+        --test damage_v2 --test static_v2 \
+        --test damage_corpus_v2 --test physical_v2 --test resources_v2 \
+        --test receiver_bounds_v2 --test boundary_kat_v2 \
+        --bin gb-revision-damage-decoder \
+        --locked --offline || return 1
     run_check transport-fast-rust-slice rustup run 1.97.1 cargo test \
         -p gb-slice --test slice --locked --offline \
-        exact_two_tier_compilation_and_projection
+        exact_two_tier_compilation_and_projection || return 1
+    run_check transport-fast-rust-slice-v1 rustup run 1.97.1 cargo test \
+        -p gb-slice --test slice_v1 --locked --offline
 }
 
 damage() {
     candidate_root=$ROOT/artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0
-    if [ -d "$candidate_root/damage" ]; then
+    if revision_v2; then
+        printf '%s\n' 'check: historical damage outputs excluded from revised authority'
+    elif [ -d "$candidate_root/damage" ]; then
         run_check damage-check "$GB_PYTHON" tools/m2/generate_damage.py --check || return 1
     else
         printf '%s\n' 'check: damage-check deferred to private Gate-8 regeneration'
     fi
     python_tests damage-python \
         python.tests.test_m2_damage \
+        python.tests.test_m2_damage_v2 python.tests.test_m2_damage_oracle_v2 \
+        python.tests.test_m2_complete_damage_v2 python.tests.test_m2_independence_v2 \
+        python.tests.test_m2_complete_candidate_v2 \
+        python.tests.test_m2_physical_v2 python.tests.test_m2_resources_v2 \
+        python.tests.test_m2_receiver_bounds_v2 python.tests.test_m2_boundary_kat_v2 \
+        python.tests.test_m2_decoder_bridge_v2 \
+        python.tests.test_m2_damage_replay_v2 python.tests.test_m2_replay_damage_cli_v2 \
         python.tests.test_m2_decoder \
         python.tests.test_m2_independence || return 1
     run_check damage-rust rustup run 1.97.1 cargo test -p gb-bootstrap \
@@ -202,6 +297,14 @@ damage() {
         --lib --locked --offline damage_v1::tests || return 1
     run_check damage-rust-independence-v1 rustup run 1.97.1 cargo test \
         -p gb-bootstrap --lib --locked --offline independence_v1::tests || return 1
+    run_check damage-rust-oracle-v2 rustup run 1.97.1 cargo test -p gb-bootstrap \
+        --lib --locked --offline damage_oracle_v2:: || return 1
+    run_check damage-rust-revision rustup run 1.97.1 cargo test -p gb-bootstrap \
+        --test damage_v2 --test damage_corpus_v2 --test damage_oracle_v2 \
+        --test complete_damage_v2 --test independence_v2 \
+        --test physical_v2 --test resources_v2 \
+        --test receiver_bounds_v2 --test boundary_kat_v2 \
+        --bin gb-revision-damage-decoder --locked --offline || return 1
     run_check damage-rust-bridge rustup run 1.97.1 cargo test -p gb-bootstrap \
         --bin gb-r3-damage-decoder --locked --offline || return 1
     run_check damage-rust-proof-cli rustup run 1.97.1 cargo test \
@@ -209,16 +312,27 @@ damage() {
 }
 
 repo() {
-    run_check repo-shell sh -n \
-        scripts/check tools/linux/acquire.sh tools/linux/container-verify.sh \
-        tools/linux/verify.sh || return 1
+    for shell_file in scripts/check tools/linux/acquire.sh \
+        tools/linux/container-verify.sh tools/linux/verify.sh \
+        tools/linux/container-verify-v2.sh tools/linux/verify-v2.sh; do
+        run_check repo-shell sh -n "$shell_file" || return 1
+    done
     run_check repo-rustfmt rustup run 1.97.1 cargo fmt --all --check || return 1
     run_check repo-working-diff git diff --check || return 1
     run_check repo-index-diff git diff --cached --check || return 1
     python_tests repo-python \
         python.tests.test_foundation.RepoContract \
         python.tests.test_foundation.RootCheckCLI \
+        python.tests.test_m2_linux_execution_v2 \
+        python.tests.test_m2_check_execution_v2 \
         python.tests.test_constants.ConstantsCodegen
+}
+
+# Internal prerequisite checks only. The v2 coordinator owns full/release
+# outcomes and invokes this command before its fresh producer work.
+components() {
+    repo && identity && chess && chess_oracle && source_full && curriculum && \
+        content && transport && damage
 }
 
 new_private_directory() {
@@ -346,6 +460,9 @@ release_freeze() {
 }
 
 release() {
+    if revision_v2; then
+        exec "$GB_PYTHON" tools/m2/verify_gate8_v2.py release
+    fi
     report=$ROOT/reports/m2-feasibility-v0.json
     [ -f "$report" ] || fail 'release: Candidate-ready report is missing'
     GB_M2_RELEASE_REPORT_SHA256=$(shasum -a 256 "$report") || return 1
@@ -377,6 +494,11 @@ case "$mode" in
     damage) damage ;;
     repo) repo ;;
     fast) repo && identity && chess && source_fast && curriculum && content && transport_fast ;;
-    full) repo && identity && chess && chess_oracle && source_full && curriculum && content && transport && damage && gate8_phase ;;
+    components) components ;;
+    full)
+        if revision_v2; then
+            exec "$GB_PYTHON" tools/m2/verify_gate8_v2.py full
+        fi
+        repo && identity && chess && chess_oracle && source_full && curriculum && content && transport && damage && gate8_phase ;;
     release) release ;;
 esac

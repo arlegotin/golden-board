@@ -5,15 +5,15 @@ use std::sync::Arc;
 
 use crate::{BootstrapError, RejectCode, Result};
 
-const PACKAGE_MAX: usize = 1_048_576;
-const RECIPE_MAX: usize = 256;
-const TABLE_MAX: usize = 4_096;
-const NODE_MAX: usize = 65_535;
-const EDGE_MAX: u64 = 262_140;
+pub(super) const PACKAGE_MAX: usize = 1_048_576;
+pub(super) const RECIPE_MAX: usize = 256;
+pub(super) const TABLE_MAX: usize = 4_096;
+pub(super) const NODE_MAX: usize = 65_535;
+pub(super) const EDGE_MAX: u64 = 262_140;
 const VALUE_WIDTH_MAX: u32 = 1_048_576;
 const ITERATION_MAX: u64 = 1_048_576;
-const STEP_MAX: u64 = 268_435_456;
-const SCRATCH_MAX: u64 = 16_777_216;
+pub(super) const STEP_MAX: u64 = 268_435_456;
+pub(super) const SCRATCH_MAX: u64 = 16_777_216;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -150,6 +150,14 @@ pub struct RecipePackage {
 }
 
 impl RecipePackage {
+    pub(crate) fn adapter_shape(&self, recipe_id: u16) -> Option<(u64, u64)> {
+        let r = self.recipes.get(&recipe_id)?;
+        let bytes = r
+            .outputs
+            .iter()
+            .try_fold(0u64, |a, d| a.checked_add(d.storage().ok()?))?;
+        Some((bytes, (r.inputs.len() + r.outputs.len()) as u64))
+    }
     pub fn recipe_ids(&self) -> impl Iterator<Item = u16> + '_ {
         self.recipes.keys().copied()
     }
@@ -943,6 +951,16 @@ fn parse_recipe(
 
 /// Parse and completely statically validate one recipe package.
 pub fn decode_recipe_package(raw: &[u8], expected_profile_version: u16) -> Result<RecipePackage> {
+    decode_recipe_package_admitted(raw, expected_profile_version, 7)
+}
+
+/// The compact-wire adapter alone additionally admits the new logical profile.
+/// This still parses fully expanded version-zero node framing and all semantics.
+pub(super) fn decode_recipe_package_admitted(
+    raw: &[u8],
+    expected_profile_version: u16,
+    maximum_profile_version: u16,
+) -> Result<RecipePackage> {
     if raw.len() > PACKAGE_MAX || raw.len() < 64 {
         return Err(recipe_error());
     }
@@ -950,7 +968,7 @@ pub fn decode_recipe_package(raw: &[u8], expected_profile_version: u16) -> Resul
         || read_u16(raw, 8)? != 0
         || read_u16(raw, 10)? != 0
         || read_u16(raw, 12)? != expected_profile_version
-        || !(1..=7).contains(&expected_profile_version)
+        || !(1..=maximum_profile_version).contains(&expected_profile_version)
         || read_u16(raw, 14)? != 0
         || raw[48..64].iter().any(|value| *value != 0)
     {
@@ -1491,6 +1509,17 @@ pub fn evaluate_recipe(
     recipe_id: u16,
     inputs: &[RecipeValue],
 ) -> Result<RecipeOutcome> {
+    if !(1..=7).contains(&package.profile_version) {
+        return Err(recipe_error());
+    }
+    evaluate_validated_recipe(package, recipe_id, inputs)
+}
+
+pub(super) fn evaluate_validated_recipe(
+    package: &RecipePackage,
+    recipe_id: u16,
+    inputs: &[RecipeValue],
+) -> Result<RecipeOutcome> {
     let recipe = package.recipes.get(&recipe_id).ok_or_else(recipe_error)?;
     if inputs.len() != recipe.inputs.len()
         || inputs.iter().zip(&recipe.inputs).any(|(value, expected)| {
@@ -1531,6 +1560,17 @@ pub fn evaluate_serialized_recipe(
     recipe_id: u16,
     input: &[u8],
 ) -> Result<Vec<u8>> {
+    if !(1..=7).contains(&package.profile_version) {
+        return Err(recipe_error());
+    }
+    evaluate_serialized_validated_recipe(package, recipe_id, input)
+}
+
+pub(super) fn evaluate_serialized_validated_recipe(
+    package: &RecipePackage,
+    recipe_id: u16,
+    input: &[u8],
+) -> Result<Vec<u8>> {
     let recipe = package.recipes.get(&recipe_id).ok_or_else(recipe_error)?;
     let mut offset = 0_usize;
     let mut values = Vec::with_capacity(recipe.inputs.len());
@@ -1547,7 +1587,7 @@ pub fn evaluate_serialized_recipe(
     if offset != input.len() {
         return Err(recipe_error());
     }
-    let outcome = evaluate_recipe(package, recipe_id, &values)?;
+    let outcome = evaluate_validated_recipe(package, recipe_id, &values)?;
     let mut output = outcome.status.to_be_bytes().to_vec();
     if outcome.status == 0 {
         for value in &outcome.outputs {

@@ -1,0 +1,12 @@
+Give the recipient directory only after the exact fresh release is ready.
+Keep this owner directory and its evaluation out of the recipient files.
+
+Invite the person to explore, try ideas, make mistakes and revisit examples.
+Ask them to export progress when finished or when they stop. Also ask what
+they think the patterns mean and what felt unclear, in their own words.
+No name, dates, time sheet, special prose format or extra form is needed.
+
+Save their actual export and plain notes. Replay the export with the bound
+lesson stream and score its twelve existing finals using semantic-evaluation.json.
+Record any substantive help in the plain notes. Scoring by itself does not
+establish independent learning; do not turn these files into a human outcome.

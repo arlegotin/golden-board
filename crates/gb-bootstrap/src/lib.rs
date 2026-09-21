@@ -1,14 +1,44 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+pub mod body_codec_v1;
+pub mod body_recipe_v1;
+pub mod bootstrap_v2;
 pub mod candidate;
 pub mod candidate_recipe;
 pub mod carrier;
+pub mod carrier_v2;
+pub mod complete_candidate_v2;
+pub mod complete_damage_v2;
 pub mod damage;
+pub mod damage_corpus_v2;
+pub mod damage_oracle_v2;
 pub mod damage_v1;
+pub mod damage_v2;
+pub mod first_use_v2;
+pub use damage_v2::boundary_kat_v2;
 pub mod gate8_v1;
 pub mod independence_v1;
+pub mod independence_v2;
+pub mod knowledge_v2;
+pub mod learner_bundle_v2;
+pub mod mapping_v2;
+pub mod participant_bundle_v2;
+pub mod physical_v2;
 pub mod policy;
+pub mod preflight_v2;
+pub mod producer_receipt_v2;
+pub mod receiver_bounds_v2;
 pub mod recipe;
+pub mod recipe_wire_v1;
+pub mod recovery_provenance_v2;
+pub mod replay_backend_v2;
+pub mod resources_v2;
+pub mod route_receiver_v2;
+pub mod route_semantics_v2;
+pub mod route_v2;
+pub mod source_v2;
+pub mod static_v2;
+pub mod teaching_recipe_v2;
 
 pub const MAX_RAW_BITS: usize = 4_194_304;
 pub const MAX_SIDE: usize = 2_048;
@@ -832,7 +862,7 @@ pub struct InventoryEntry {
     pub check_id: u8,
     pub copy_count: u8,
     /// Physical lane factor. Inventory v0 has no physical-lane field on wire
-    /// and is represented canonically as one; v1 carries exactly 1, 2, or 5.
+    /// and is represented canonically as one; v1/v2 carry exactly 1, 2, or 5.
     pub physical_replica_count: u8,
     pub dependencies: Vec<u32>,
     pub logical_payload_length: u32,
@@ -1036,6 +1066,10 @@ fn validate_dependency_graph(inventory: &Inventory) -> Result<()> {
 
 pub fn encode_inventory(inventory: &Inventory) -> Result<Vec<u8>> {
     validate_inventory(inventory, None)?;
+    encode_inventory_fields(inventory)
+}
+
+fn encode_inventory_fields(inventory: &Inventory) -> Result<Vec<u8>> {
     let dependencies: usize = inventory.entries.iter().try_fold(0usize, |sum, entry| {
         checked_add(sum, entry.dependencies.len())
     })?;
@@ -1081,14 +1115,24 @@ pub fn encode_inventory(inventory: &Inventory) -> Result<Vec<u8>> {
 }
 
 pub fn decode_inventory(raw: &[u8]) -> Result<Inventory> {
+    let inventory = decode_inventory_fields(raw, &[0, 1], MAX_ENVELOPE_BYTES)?;
+    validate_inventory(&inventory, Some(raw.len()))?;
+    Ok(inventory)
+}
+
+fn decode_inventory_fields(
+    raw: &[u8],
+    admitted_versions: &[u16],
+    maximum_bytes: usize,
+) -> Result<Inventory> {
     if raw.len() < 8 {
         return Err(BootstrapError::new(RejectCode::Inventory));
     }
-    if raw.len() > MAX_ENVELOPE_BYTES {
+    if raw.len() > maximum_bytes {
         return Err(BootstrapError::new(RejectCode::ResourceLimit));
     }
     let inventory_version = read_u16(raw, 0, RejectCode::Inventory)?;
-    if !matches!(inventory_version, 0 | 1)
+    if !admitted_versions.contains(&inventory_version)
         || read_u16(raw, 4, RejectCode::Inventory)? != 0
         || read_u16(raw, 6, RejectCode::Inventory)? != 64
     {
@@ -1173,12 +1217,10 @@ pub fn decode_inventory(raw: &[u8]) -> Result<Inventory> {
     if offset != raw.len() {
         return Err(BootstrapError::new(RejectCode::TrailingData));
     }
-    let inventory = Inventory {
+    Ok(Inventory {
         inventory_version,
         entries,
-    };
-    validate_inventory(&inventory, Some(raw.len()))?;
-    Ok(inventory)
+    })
 }
 
 pub fn dependency_closure(

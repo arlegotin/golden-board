@@ -1,0 +1,281 @@
+schema = "golden-board.m2-gate8-policy/v2"
+policy_version = 2
+status = "source-contract; no-production-result"
+candidate_id = "eh72-hier-r5-r2-r1-lzss-crc32c-v1"
+outcome_values_present = false
+scope = "Exact revised evidence roles, reproduction, singleton selection and Candidate-ready handoff; historical v0 admission remains exact."
+
+[authority]
+execution = "spec/gate8-execution-v2.md"
+promotion = "spec/m2-participant-revision-promotion-v2.toml"
+transition = "spec/m2-participant-revision-transition-v1.md"
+gate_order = "docs/m2-spec.md-section-12.3"
+report_base = "docs/m2-spec.md-section-19.2; only the explicit v2 replacements below apply"
+candidate_root = "artifacts/candidates/eh72-hier-r5-r2-r1-lzss-crc32c-v1"
+gate8_root = "artifacts/gate8"
+report_path = "reports/m2-feasibility-v2.json"
+historical_report = "reports/m2-feasibility-v0.json is absent after the archive-first transition; its preserved archive is never a revised result"
+gate_meaning = "This owner assigns exact preimages to existing Gates1..8; it adds no recovery promise, participant quiz, acquisition result or replacement for a failed prerequisite."
+
+[bounds]
+owner_bytes = 65536
+canonical_json_bytes = 1048576
+carrier_bits = 4194304
+carrier_file_bytes = 524292
+route_prefix_bytes = 32768
+source_files = 4096
+source_file_bytes = 8388608
+source_aggregate_bytes = 134217728
+executable_bytes = 536870912
+candidate_files = 4120
+candidate_aggregate_bytes = 570425344
+bundle_files = 256
+bundle_file_bytes = 4194306
+bundle_aggregate_bytes = 67108864
+gate8_files = 272
+gate8_aggregate_bytes = 83886080
+path_bytes = 255
+integer = "exact unsigned64; booleans are never integers; checked sums/products"
+file_type = "regular nonsymlink nonhardlink; no link ancestor or special file"
+modes = ["100644", "100755"]
+path = "nonempty printable-ASCII relative POSIX; no leading/trailing slash, backslash, empty/dot/dotdot component"
+hash = "64 lowercase hexadecimal characters; complete raw bytes; canonical JSON includes one final LF"
+limits_scope = "Evidence serialization only; no increase of the 512KiB physical carrier ceiling or neutral receiver limits."
+
+[candidate_files]
+fixed = ["bundle-preimages.json", "candidate-manifest.json", "capacity-ledger.json", "carrier.bin", "decoder-result.json", "density-ledger.json", "first-use.json", "geometry-search.json", "grammar-state-manifest.json", "independence-proof.json", "knowledge-use.json", "known-answer-manifest.json", "m2-all.content-v0.bin", "m2-required.content-v0.bin", "ownership-ledger.json", "preflight-resource-limits.json", "receiver-bounds.json", "recovery-provenance.json", "route-0.bin", "route-1.bin", "route-2.bin", "route-3.bin", "semantic-envelope.json", "static-limits.json"]
+complete_damage = "Exact admitted complete-damage-v2 tree: resource-limits.json, damage/manifest.json, damage/boundary-kats.json, nine D0..D7/B0 family manifests and every manifest-owned greedy shard. No hardcoded shard count."
+damage_families = ["D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "B0"]
+damage_family_manifest = "damage/{family}/manifest.json"
+damage_shard = "damage/{family}/{ordinal:06d}.json"
+damage_admission = "Run complete-damage-v2 full retained admission before enumerating its paths; a filename match alone cannot establish coverage, greedy partitioning or pass."
+mode = "100644 for every producer result file"
+preimages = "Static seven/physical five from static-projection-v2; actual observed decoder/streams/knowledge/first-use from recovery-provenance-v2; bounds from receiver-bounds-v2; measured files from fresh independent execution; proof from complete-damage-v2. No regenerated clean source substitutes for recovered bytes."
+
+[gates]
+order = [1, 2, 3, 4, 5, 6, 7, 8]
+states = ["pass", "fail", "not_evaluated"]
+gate1 = ["spec/profile-policy-v2.toml", "known-answer-manifest.json", "receiver-bounds.json"]
+gate2 = ["static-limits.json", "knowledge-use.json", "first-use.json", "route-0.bin", "route-1.bin", "route-2.bin", "route-3.bin"]
+gate3 = ["grammar-state-manifest.json", "recovery-provenance.json", "decoder-result.json", "m2-required.content-v0.bin", "m2-all.content-v0.bin"]
+gate4 = ["static-limits.json", "receiver-bounds.json", "preflight-resource-limits.json"]
+gate5 = ["candidate-manifest.json", "semantic-envelope.json", "capacity-ledger.json", "ownership-ledger.json", "density-ledger.json", "geometry-search.json", "carrier.bin", "recovery-provenance.json"]
+gate6 = ["damage/manifest.json", "damage/boundary-kats.json", "resource-limits.json"]
+gate7 = ["independence-proof.json"]
+gate8 = ["artifacts/gate8/cross-language-v2.json", "artifacts/gate8/linux-attestation-v2.json"]
+reached_roles = "A failed normally evaluated gate retains all its roles; later unrun gates are not_evaluated and have no fabricated evidence. Gate6 includes the entire complete-damage closure, not only the three root paths."
+preflight = "Under one unchanged source projection, native Python and Rust independently generate the preflight core (all fixed files except independence-proof.json and bundle-preimages.json). The coordinator compares complete known-answer, grammar, bound/resource and static/core bytes before starting D0..D7. Comparison is outside either producer; no foreign result, binary or receipt is a generation input."
+gate1_agreement = "Exact native Python/Rust known-answer bytes must agree before D0..D7 execution; source/profile/finite bounds must independently validate. B0 and the four KATs remain finite preflight checks. Four-producer equality later rechecks these same bytes."
+gate4_derivation = "Admit source-only analytic receiver bounds and exact static limits; every preliminary clean/B0 resource maximum and each of22 adapter maxima must be <= its corresponding analytic bound. The four KATs also execute their owned critical counter assertions; their receipts contain no invented resource sidecar."
+gate5_rule = "Full static first-fit, ownership, capacity, reserve, load and unchanged density checks, plus actual recovered required/all/body source context; mere static document presence or cross-language equality is not pass."
+gate6_postcondition = "After Gates1..5 pass, execute every D0..D7 and separate B0 case freshly; verify exact source-oracle/receiver convergence, four KATs, accidental promises/zero wrong accepts, and complete measured limits <= the SAME analytic Gate4 bounds for all3 resource counters and all22 adapter rows. No post-result ceiling replacement."
+gate7_rule = "All nine complete-damage-v2 independence predicates pass with positive owned witness counts and zero violations; use the same admitted static, actual-recovery and full-damage identities."
+early_failure = "No finalist, report or Candidate-ready status; preserve diagnostic failed evidence privately. A missing or tooling-invalid projection rejects rather than becoming a synthetic failed/pass row."
+
+[known_answer]
+path = "known-answer-manifest.json"
+schema = "golden-board.m2-known-answer/v2"
+keys = ["schema", "profile_id", "input_sha256", "package_sha256", "example_rows", "summary"]
+input_keys = ["profile_policy", "knowledge_use", "first_use", "recovery_provenance"]
+example_keys = ["sector_id", "record_id", "fact_id", "recipe_id", "kind", "input_bytes", "output_bytes", "status", "success", "record_sha256"]
+summary_keys = ["route_count", "example_count", "result"]
+generation = "Fresh actual four-prefix knowledge-use replay; join each example to its observed complete record-frame hash. Retain all128 examples in sector0..3 then observed-record order, four identical admitted packages, and all input hashes. No source-owner hash alone is a KAT."
+types = "Numeric fields exact u64 within observed recipe/record bounds; kind worked|held-out; status carried u16 including nonzero; success Boolean; hashes raw SHA256."
+result = "route_count=4 and example_count=128; pass iff every actual generic replay equals its carried output. A nonzero expected status can pass; failure suppression is checked. Missing or duplicate examples reject."
+
+[grammar_state]
+path = "grammar-state-manifest.json"
+schema = "golden-board.m2-grammar-state/v2"
+keys = ["schema", "profile_id", "input_sha256", "clean_result", "boundary_kats", "boundary_rows", "summary"]
+input_keys = ["candidate_manifest", "recovery_provenance", "decoder_result"]
+clean_keys = ["artifact_state", "established_profile_id", "section_count", "required_stream_sha256", "all_stream_sha256"]
+kat_keys = ["kat_id", "result", "bytes", "sha256"]
+boundary_keys = ["case_id", "observation_sha256", "replay_bytes", "replay_sha256", "decoder_result_sha256", "resource_projection_sha256", "artifact_state", "resource", "convergence"]
+summary_keys = ["boundary_case_count", "boundary_kat_count", "result"]
+generation = "Clean observation-only recovery exactly equals decoder-result.json and recovery-provenance-v2. Execute all four boundary-kat-v2 fixtures and all21 fresh B0 cases in ordinal order through the source oracle and observation-only receiver; never pass expected state/ownership to a receiver. B0 conformance may precede Gate3 and is repeated in full replay."
+boundary_preimage = "replay_bytes/hash cover the COMPLETE canonical damage-replay-v2 row including LF; result/sidecar hashes cover their complete canonical bytes. The exact fresh B0 identity supplies channel and observation. resource contains its exact three u64 counters. Python independently checks its source SEMANTIC projection; Rust independently checks its complete source result/resource projection. Per-producer convergence=pass means its own owned comparison passed, never an invented Python full-resource oracle. The coordinator must compare complete B0 replay/result/sidecar commitments and both full preflight cores before D0..D7; disagreement emits no qualifying convergence."
+types = "Closed result-v2 artifact states/profile identifiers; SHA256 hashes; exact u64 counts; KAT result pass|fail; ordered IDs exactly boundary-kat-v2 and B0-000000..B0-000020."
+result = "21 boundary rows and4 KAT rows; pass iff clean exact recovery establishes the active profile and both streams, every source/receiver row converges, and every fresh KAT passes. This finite grammar/state evidence is not human acquisition."
+
+[preflight_resources]
+path = "preflight-resource-limits.json"
+schema = "golden-board.m2-resource-limits/v2"
+owner = "spec/resource-accounting-v2.md"
+case_ids = "clean-observation followed by B0-000000..B0-000020, exactly22 rows"
+clean_identity_keys = ["case_id", "channel", "observation_bytes", "observation_sha256"]
+clean_identity = "case_id=clean-observation, channel=OBS_BITS, actual complete carrier file byte count and raw SHA256"
+corpus_preimage = "Concatenate the canonical clean identity then21 unchanged fresh B0 observation identities, each including LF. Hash the result."
+generation = "Aggregate the actual clean receiver sidecar and21 fresh B0 sidecars using ResourceAggregateV2's exact digest/maxima contract. Clean result bytes must equal recovery-provenance.decoder_result. This is preflight scope, never complete-corpus resource evidence."
+
+[source_projection]
+schema = "m2-evidence-source-v2"
+path = "artifacts/gate8/evidence-source-v2.json"
+keys = ["schema", "roadmap_normative_sha256", "entries"]
+row_keys = ["path", "mode", "byte_length", "sha256"]
+excluded_paths = ["docs/decisions.md", "docs/roadmap.md", "reports/m2-feasibility-v0.json", "reports/m2-feasibility-v2.json"]
+enumeration = "Every regular nonignored repository file inspected by host full, sorted uniquely by path; include all code/tests/locks/specs/templates and required tracked historical owners/evidence. Exclusions are exact, never prefix globs."
+roadmap = "Reuse docs/m2-spec19.2 roadmap-normative-v0 exact byte projection, including removal of only the two derived header rows."
+freeze = "Source and private executable identities checked before and after every preflight/full producer and assembly; source changes discard the run. Source/owners/code/templates are finalized before generation."
+dag = "Generated candidate/Gate8/receipt/report outputs and private snapshots/work roots are not source-factory inputs. Required archived SOURCE preimages stay bound; historical OUTPUTS never substitute for fresh production. No measured outcome is inserted into neutral owners."
+
+[producer_receipt]
+schema = "golden-board.m2-gate8-producer-receipt/v2"
+keys = ["schema", "profile_id", "producer_id", "source_projection_sha256", "executable_identity", "environment_identity", "file_rows"]
+producer_order = ["native-python", "native-rust", "linux-python", "linux-rust"]
+path = "artifacts/gate8/receipts/{producer_id}.json"
+file_keys = ["path", "mode", "bytes", "sha256"]
+executable_keys = ["implementation", "bytes", "sha256"]
+environment_keys = ["kind", "platform", "image_id", "acquisition_sha256"]
+environment = "kind=native|linux matching producer; platform nonempty printable ASCII <=64 bytes. Native image_id/acquisition_sha256 are literal none; Linux uses exact inherited acquired image identity and acquisition receipt hash. implementation=python|rust matches producer."
+files = "Every fixed candidate result and every admitted complete-damage path, once, path-bytewise sorted; relative to candidate root, mode100644. Exclude the receipt from its own preimage. Reject partial, extra, duplicate, unsafe or reordered paths."
+generation = "Each language independently source-builds carrier, observations, oracle expectations, receiver results, all conformance checks and full evidence before emitting one receipt. No foreign executable/output/receipt, archived carrier, cached result or retained candidate is an input."
+failure = "Internal generator/oracle/receiver disagreement, source change or incomplete output emits no success receipt. Converged losing evidence remains fail; cross-producer disagreement remains visible in the comparison."
+executable = "Actual Python interpreter or immutable private Rust executable raw bytes/length, checked before and after; complete repository transitive sources separately bound by source projection. Never execute a Cargo target that another build can replace."
+
+[cross_language]
+schema = "golden-board.m2-cross-language/v2"
+path = "artifacts/gate8/cross-language-v2.json"
+keys = ["schema", "profile_id", "source_projection_sha256", "producer_rows", "result"]
+row_keys = ["producer_id", "receipt_bytes", "receipt_sha256", "file_count", "file_rows_sha256", "result"]
+file_rows_preimage = "Canonical object {schema:golden-board.m2-producer-files/v2,rows:receipt.file_rows}, including LF."
+comparison = "Validate all four complete source-bound receipts and their source/executable/environment provenance; compare their full ordered file_rows objects exactly, including path/mode/length/hash. Only producer/executable/environment identity differences are excluded. Do not compare a convenient subset or only the result-bearing root hashes."
+result = "Every producer row result and overall result are pass iff all four complete file tables are exactly equal; otherwise all are fail. Preserve all four receipt identities on disagreement; no majority or preferred-implementation tie break."
+
+[bundle_preimages]
+path = "bundle-preimages.json"
+schema = "golden-board.m2-bundle-preimages/v2"
+keys = ["schema", "profile_id", "source_projection_sha256", "bundle_rows"]
+row_keys = ["bundle_id", "manifest_bytes", "manifest_sha256", "file_rows"]
+bundle_order = ["technical-v2", "learner-v2"]
+file_keys = ["role_id", "path", "mode", "bytes", "sha256"]
+file_order = "Exact bundle participant_files then owner_files role order, with every file once."
+generation = "Each of four producers independently generates and validates ALL raw participant/owner files and their complete final bundle manifests in its private bundle stage OUTSIDE the candidate root. Compute each hash/length from those actual fresh bytes. No hashing unseen declared inputs, cached bundles, another producer's output, old expected answers or unexecuted implementation."
+receipt = "Include this complete canonical projection among producer file_rows. It binds every raw bundle preimage without putting Gate8 authority files below the candidate root."
+assembly = "Independently regenerate all actual bundle files/manifests outside candidate; compare the complete projection with the exact producer projection committed by all four receipts, and rehash every staged file before installing those same bytes under Gate8. Missing or differing file/manifest rejects."
+dag = "Bundle manifests bind source projection, static candidate and actual recovery only; never receipts/comparison/generated-evidence/report. The projection excludes its own hash."
+
+[linux]
+environment_owner = "spec/gate8-policy-v0.toml linux_acquisition_receipt and observed_image_admission ONLY; immutable inherited environment binding, not historical Gate8 outcomes"
+attestation_schema = "golden-board.m2-linux-attestation/v2"
+attestation_path = "artifacts/gate8/linux-attestation-v2.json"
+attestation_keys = ["schema", "source_projection_sha256", "image_id", "platform", "acquisition_sha256", "native_receipt_sha256", "linux_receipt_sha256", "host_full", "linux_full", "execution_snapshots_equal", "canonical_bytes_equal"]
+receipt_maps = "native_receipt_sha256 has exactly native-python/native-rust; linux_receipt_sha256 exactly linux-python/linux-rust. Values are complete receipt hashes."
+execution = "Admit existing pinned linux/arm64 acquisition/image/Dockerfile; network none; clean private materialized complete source; read-only source and separate output mount. No host generation cache or candidate output input."
+snapshot = "Compare complete host/container execution-snapshot identity transiently, never serialize its report-dependent hash. Serialized source_projection_sha256 binds the stable source projection."
+standalone = "A clean-Linux verifier may receive the two exact source-bound native receipts as comparison-only evidence, never producer generation inputs; no synthesized native receipt."
+success = "Fresh host_full and linux_full pass; execution_snapshots_equal and canonical_bytes_equal are exact true after actual checks; acquisition alone is not a Linux execution receipt."
+
+[selection]
+schema = "golden-board.m2-selection/v2"
+path = "artifacts/gate8/selection-v2.json"
+keys = ["schema", "profile_id", "profile_policy_sha256", "cross_language_sha256", "gate_rows", "retained_finalist_ids", "provisional_preferred_id", "selection_steps"]
+gate_row_keys = ["gate_id", "result", "evidence_rows"]
+evidence_row_keys = ["path", "bytes", "sha256"]
+evidence_order = "Repository-relative paths, unique bytewise ascending within each gate. Candidate role paths are prefixed with authority.candidate_root; source and Gate8 paths retain their exact repository paths. Gate6 expands to the entire already admitted complete-damage tree, including resource-limits.json, boundary KATs, every family manifest and every shard. Gate8 contains the exact comparison and Linux attestation. An unrun gate has an empty evidence_rows array."
+step_order = ["gate-filter", "lowest-complexity-class", "near-minimum-band", "rank", "top-two", "preference"]
+step_keys = ["step", "surviving_before", "outcome", "evidence_sha256"]
+step_preimage = "Canonical object {schema:golden-board.m2-selection-step-evidence/v2,profile_policy_sha256,cross_language_sha256,gate_rows,step,surviving_before,outcome}; exact source/projection values and LF."
+unevaluated_cross = "cross_language_sha256 is literal none exactly when gate8 is not_evaluated and no comparison is supplied; otherwise it is SHA256 of the actual canonical comparison. After a failed gate-filter, later surviving_before arrays are empty while every outcome remains literal no-passing-result."
+rule = "Only the active singleton is enumerable. It survives iff Gates1..8 are all exactly pass. Then every six-step outcome is that singleton; otherwise the first gate-filter outcome and every later outcome is literal no-passing-result, retained IDs empty and preferred none. No historical candidate competes and no robustness value is invented for ranking."
+human = "Gate9 not_evaluated and no qualifying round before fresh human validation. Automated selection cannot reuse assisted/historical success."
+
+[metrics]
+schema = "golden-board.m2-profile-metrics/v2"
+keys = ["carrier_cells", "carrier_bytes", "shell_width", "physical_units", "logical_groups", "package_encoded_bytes", "package_expanded_bytes", "recipe_count", "recipe_nodes", "recipe_edges", "table_count", "table_payload_bytes", "shell_instruction_cells", "shell_example_cells", "shell_recipe_cells", "required_stream_bytes", "all_stream_bytes", "uncompressed_capacity_bytes", "reserve_payload_bytes", "carrier_headroom_bytes", "measured_primitive_steps", "measured_peak_scratch_bytes", "measured_section_attempts"]
+static = "From static-limits.selected_manifestation: cells,carrier_bytes,shell_width,physical_units,logical_groups; route_package: encoded_bytes,expanded_bytes,recipe_count,node_count,edge_count,table_count,table_payload_bytes, in the corresponding metric order."
+shell = "capacity-ledger.ledger.shell_instruction_cells,shell_example_cells,shell_recipe_cells"
+content = "Actual recovered required/all file lengths; semantic-envelope.totals.content_capacity_before_reserve_bytes and reserve_payload_bytes; carrier_headroom_bytes=524288-selected_manifestation.carrier_bytes"
+measured = "Complete resource-limits.maximum_resource primitive_steps,peak_scratch_bytes,section_attempts; never preliminary maxima or the historical19 metrics."
+admission = "All23 exact u64 values independently derived; no caller overrides. Candidate-ready metrics exist only after their complete evidence; an unrun measurement is never fabricated as zero."
+
+[bundle_common]
+schema = "golden-board.m2-participant-bundle/v2"
+keys = ["schema", "bundle_id", "profile_id", "source_projection_sha256", "candidate_manifest_sha256", "recovery_provenance_sha256", "content_stream_sha256", "participant_files", "owner_files", "release_rows"]
+file_keys = ["role_id", "path", "mode", "bytes", "sha256"]
+release_keys = ["ordinal", "release_id", "participant_role_ids"]
+file_root = "artifacts/gate8/bundles/{technical-or-learner}"
+manifest = "artifacts/gate8/bundles/{technical-or-learner}-v2.json"
+paths = "Bundle-relative paths; exact role tables below; participant and owner sets disjoint; manifests/expected hashes never handed to participant. All files mode100644."
+release = "Contiguous ordinal0 onward; every participant role released exactly once in declared order; owner roles never released except export help explicitly recorded as supplied."
+source = "Files copied from exact source projection or generated from current actual recovered bytes. Validate complete recursive tree, modes, lengths and hashes. No saved historical kit or prior participant answers."
+administration = "No names, dates, timing, consent, eligibility questionnaires or extra quiz. Motivated intelligent person may take time, revisit and try ideas. Save code/commands/outputs and plain notes, including substantive help."
+
+[technical_bundle]
+bundle_id = "technical-v2"
+content_stream = "Actual recovered m2-all.content-v0.bin; never exposed before discovery"
+release_ids = ["clean", "adapter", "heldouts", "final-account"]
+participant_roles = ["clean-instructions", "opening", "allowed-tools", "storage", "artifact", "adapter-instructions", "channels", "channel-fixtures", "heldout-instructions", "channel-map", "observation-a", "observation-b", "observation-c", "observation-d", "content-query", "final-account"]
+participant_paths = ["recipient/01-clean/READ-ME.txt", "recipient/01-clean/opening.md", "recipient/01-clean/allowed-tools.md", "recipient/01-clean/storage.txt", "recipient/01-clean/observation.bits", "recipient/02-adapter/READ-ME.txt", "recipient/02-adapter/channel-formats.md", "recipient/02-adapter/channel-mechanics-fixtures.json", "recipient/03-heldouts/READ-ME.txt", "recipient/03-heldouts/channels.json", "recipient/03-heldouts/observation-a.bin", "recipient/03-heldouts/observation-b.bin", "recipient/03-heldouts/observation-c.bin", "recipient/03-heldouts/observation-d.bin", "recipient/03-heldouts/content-query.json", "recipient/04-final-account/final-account-question.md"]
+release_counts = [5, 3, 7, 1]
+owner_roles = ["instructions", "optional-export-help", "clean-expected", "a-expected", "b-expected", "c-expected", "d-expected", "query-expected", "query-position"]
+owner_paths = ["owner/READ-ME.txt", "owner/optional-help/export-format.md", "owner/expected/clean.json", "owner/expected/a.json", "owner/expected/b.json", "owner/expected/c.json", "owner/expected/d.json", "owner/expected/content-query.json", "owner/expected/query-position.bin"]
+literal_sources = { clean-instructions = "studies/m2/templates/technical/clean-instructions-v2.txt", opening = "studies/m2/templates/technical/neutral-opening-prompt.md", allowed-tools = "studies/m2/templates/technical/allowed-tools.md", storage = "studies/m2/templates/technical/storage-v2.txt", adapter-instructions = "studies/m2/templates/technical/adapter-instructions-v2.txt", channels = "studies/m2/templates/technical/channel-formats.md", channel-fixtures = "studies/m2/templates/technical/channel-mechanics-fixtures.json", heldout-instructions = "studies/m2/templates/technical/heldout-instructions-v2.txt", final-account = "studies/m2/templates/technical/final-account-question.md", optional-export-help = "studies/m2/templates/technical/export-format.md", instructions = "studies/m2/templates/technical/owner-instructions-v2.txt" }
+generated_sources = "artifact=actual source-built carrier; a=D3/0,b=D2/0,c=D4/0,d=D7/11 freshly generated by damage-corpus-v2; neutral channel-map names only a..d/channel. Expected files are actual fresh decoder result-v2 bytes after source-oracle agreement, never participant inputs."
+content_query = "Retain existing v0 selector schema: generic_record.record_id=12; chess_transition game_ordinal=0,ply_ordinal=0. Recompute actual record/move/resulting Position from recovered current all stream; never reuse old answers."
+owner_instruction = "Copy the exact owner-instructions-v2.txt source bytes. It is one concise sheet: show only clean directory; ask reconstruction and save code/command/notes/output outside input. Preserve submitted clean method, then show adapter and preserve it, then show a..d/query together, then final account. No decoder/learner runner/expected outputs before discovery. Optional export conventions stay owner-held and are supplied only as explicit substantive help, never credited as discovered. Exposure requires fresh release."
+
+[learner_bundle]
+bundle_id = "learner-v2"
+content_stream = "Actual recovered m2-required.content-v0.bin admitted by runner-v1"
+release_ids = ["lesson"]
+participant_roles = ["instructions", "browser", "layout", "ui", "viewer", "lesson-data", "content-stream", "generic-runner", "revised-runner"]
+participant_paths = ["recipient/READ-ME.txt", "recipient/index.html", "recipient/layout.js", "recipient/ui.js", "recipient/viewer.js", "recipient/lesson-data.js", "recipient/lesson.content-v0.bin", "recipient/learner_runner.py", "recipient/learner_runner_v1.py"]
+release_counts = [9]
+owner_roles = ["owner-instructions", "semantic-evaluation"]
+owner_paths = ["owner/READ-ME.txt", "owner/semantic-evaluation.json"]
+preimages = "Exact nine recipient files owned by runner-v1/package_learner_v1.build_files, using recovered required bytes. No old generic heldout-node28, predecoded source substitution, English answer labels or scoring answers in recipient files."
+evaluation = "Exact canonical golden-board.m2-lesson-owner/v2 under spec/learner-assessment-v2.md, derived independently from authored intent studies/m2/learner-assessment-v2.toml, public chess semantics and actual recovered required stream. Revalidate the whole65-page typed stream/root/budgets; retain only the existing12 final judgment/evidence rows in the assessment. No authored correct-region IDs, computed answer positions/masks/counts or another implementation's generated evaluation is a source input. Owner-side only."
+literal_sources = { instructions = "studies/m2/templates/learner/instructions-v1.txt", browser = "tools/m2/learner_web/index.html", layout = "tools/m2/learner_web/layout.js", ui = "tools/m2/learner_web/ui.js", viewer = "tools/m2/learner_web/viewer.js", generic-runner = "tools/m2/learner_runner.py", revised-runner = "tools/m2/learner_runner_v1.py", owner-instructions = "studies/m2/templates/learner/owner-instructions-v2.txt" }
+owner_instruction = "Give recipient directory only after exact fresh release; ask exploration and exported progress plus own-word meaning/uncertainty. Save actual export and plain notes; score existing final judgments using the bound owner evaluation. No new quiz or forms; no human result implied by packaging."
+
+[report]
+schema = "m2-feasibility-v2"
+keys = ["schema", "roadmap_revision", "m1_repository_baseline", "semantic_input_identities", "spec_policy_limit_source_lock_identities", "candidate_rows", "retained_finalist_ids", "provisional_preferred_id", "selection_steps", "provisional_capacity_envelope", "preferred_carrier_identity_and_density", "damage_summary_D0_through_D7", "cross_language_and_linux_results", "technical_round_summaries", "qualifying_technical_round_id", "learner_round_summaries", "qualifying_learner_round_id", "m2_pilot_envelope", "permitted_administrative_counts", "accepted_limitations", "generated_evidence_hashes"]
+base = "Keep exact docs/m2-spec19.2 IdentityRow, DamageRow, CandidateRow keys/types and top-level shapes except replacements explicitly below. Candidate metrics are exactly this owner's23 derived fields. Gate states and singleton selection come from this owner; no historical19-metric lookup."
+revision = 11
+m1_repository_baseline = "0feaf4b559f48507f2457e6d203f25c969a98589"
+semantic_paths = ["docs/64_games.md", "reports/source-doctor.json", "reports/source-compilation-v0.json", "reports/game-set-v0.bin", "studies/m2/slice-v1.json"]
+normative_paths = ["conformance/registry.toml", "docs/m0-spec.md", "docs/m1-spec.md", "docs/m2-spec.md", "inputs/source-lock.toml", "roadmap-normative-v0", "spec/body-codec-v1.md", "spec/body-recipe-v1.md", "spec/bootstrap-v0.md", "spec/bootstrap-v1.md", "spec/bootstrap-v2.md", "spec/boundary-kat-v2.md", "spec/carrier-v2.md", "spec/chess-v0.md", "spec/complete-damage-v2.md", "spec/constants-v0.toml", "spec/content-teaching-v2.md", "spec/content-v0.md", "spec/curriculum-v0.toml", "spec/damage-corpus-v2.md", "spec/damage-oracle-v2.md", "spec/damage-policy-v0.toml", "spec/damage-policy-v1.toml", "spec/damage-policy-v2.toml", "spec/damage-replay-v2.md", "spec/decoder-bridge-v2.md", "spec/first-use-v2.md", "spec/gate8-execution-v2.md", "spec/gate8-policy-v2.toml", "spec/identity-v0.md", "spec/knowledge-use-v2.md", "spec/learner-assessment-v2.md", "spec/m2-participant-revision-promotion-v2.toml", "spec/m2-participant-revision-transition-v1.md", "spec/physical-evidence-v2.md", "spec/position-teaching-v2.md", "spec/profile-limits-v0.toml", "spec/profile-limits-v1.toml", "spec/profile-limits-v2.toml", "spec/profile-policy-v0.toml", "spec/profile-policy-v1.toml", "spec/profile-policy-v2.toml", "spec/program-refinement-v2.md", "spec/receiver-bounds-v2.md", "spec/recipe-teaching-v2.md", "spec/recipe-teaching-v2.toml", "spec/recipe-wire-v1.md", "spec/recovery-provenance-v2.md", "spec/resource-accounting-v2.md", "spec/route-definitions-v2.md", "spec/route-v2.md", "spec/runner-v0.md", "spec/runner-v1.md", "spec/slice-v0.md", "spec/slice-v1.md", "spec/source-v0.md", "spec/static-projection-v2.md", "studies/m2/learner-assessment-v2.toml"]
+tuple = "SHA256 of canonical {schema:golden-board.m2-profile-tuple/v2,candidate:exact profile-policy-v2.candidate object}; policy_identity hashes raw profile-policy-v2 bytes; complexity C1."
+hard_gate_keys = ["profile-and-cross-language-kat", "bootstrap-recipe-shell", "common-grammar-atomic-state", "generated-resource-limits", "provisional-capacity", "damage-zero-wrong-accept", "physical-independence", "native-linux-reproducibility", "preferred-human-feasibility"]
+hard_gate_mapping = "The first eight keys correspond in order to selection gate_rows numeric gate_id1..8; the ninth is always not_evaluated in Candidate-ready output."
+reason_code = "singleton-automated-pass"
+reason = "The active revised candidate passes automated gates 1-8; independent technical and learner validation is pending."
+ledger_kinds = ["capacity_ledger", "ownership_ledger", "density_ledger", "static_limits", "receiver_bounds", "resource_limits", "preflight_resource_limits", "damage_manifest"]
+ledger_paths = ["capacity-ledger.json", "ownership-ledger.json", "density-ledger.json", "static-limits.json", "receiver-bounds.json", "resource-limits.json", "preflight-resource-limits.json", "damage/manifest.json"]
+ledger_names = "Each retained ledger IdentityRow name is the exact active candidate ID; kind/path pairings are parallel arrays above, and rows sort uniquely by kind/name."
+human = "technical_round_summaries,learner_round_summaries,permitted_administrative_counts are empty; qualifying IDs none; preferred-human-feasibility not_evaluated. This Candidate-ready overlay does not admit future human summaries or impose forms."
+limitations = ["Final transport dimensions remain provisional until the M4 actual-content rerun.", "Technical and learner validation is pending."]
+capacity = "profile_limits_sha256 hashes receiver-bounds.json; semantic_envelope_sha256 hashes current semantic; side_search_policy_sha256 hashes geometry-search.json; retained_ledger_identities includes current capacity/ownership/density/static-limits/receiver-bounds/resource-limits/preflight-resource-limits/damage root, uniquely sorted kind/name."
+damage = "Eight accidental family rows hash damage/Dx/manifest.json, with existing guarantees; B0/KATs remain separately bound through root, never accidental family rows."
+linux = "Source projection is v2; host_full/linux_full pass and all equality Booleans true only after complete fresh checks."
+pilot_keys = ["profile_id", "source_projection_sha256", "candidate_manifest_sha256", "recovery_provenance_sha256", "technical_bundle_sha256", "learner_bundle_sha256", "required_stream_sha256", "all_stream_sha256", "generated_evidence_sha256", "state"]
+pilot = "State exactly validation-pending; all fields bind their current generated raw preimages. This v2 pilot object replaces the old fixed-node/export/geometry envelope; geometry and complete route/control commitments are already explicit in current static/recovery/first-use evidence, not supplied as participant hints."
+admission = "Only after every automated gate, selection, four receipts, full comparison, Linux attestation and exact two bundles independently validate. Report itself is excluded from all source/evidence preimages. No losing/partial run publishes a Candidate-ready report."
+
+[generated_evidence]
+schema = "golden-board.m2-generated-evidence/v2"
+path = "artifacts/gate8/generated-evidence-v2.json"
+keys = ["schema", "source_projection_sha256", "candidate_file_rows", "gate8_file_rows"]
+row_keys = ["path", "mode", "bytes", "sha256"]
+candidate_rows = "Every exact candidate result including dynamic damage shards, path relative to repository, sorted unique."
+gate8_rows = "Every Gate8 file except this manifest itself, sorted unique; includes complete bundle files, bundle manifests, all receipts, source projection, comparison, selection and Linux attestation. No report, mutable roadmap, private stage or output from another run."
+report_flattening = "Report generated_evidence_hashes is the unique sorted IdentityRow projection of both file arrays: kind=generated_file,name=repository-relative-path,sha256=row.sha256. Add one kind=generated_manifest/name=artifacts/gate8/generated-evidence-v2.json identity for this manifest. The report never hashes itself."
+
+[lifecycle]
+fixed_gate8_files = ["artifacts/gate8/bundles/learner-v2.json", "artifacts/gate8/bundles/technical-v2.json", "artifacts/gate8/cross-language-v2.json", "artifacts/gate8/evidence-source-v2.json", "artifacts/gate8/generated-evidence-v2.json", "artifacts/gate8/linux-attestation-v2.json", "artifacts/gate8/receipts/linux-python.json", "artifacts/gate8/receipts/linux-rust.json", "artifacts/gate8/receipts/native-python.json", "artifacts/gate8/receipts/native-rust.json", "artifacts/gate8/selection-v2.json"]
+dynamic = "Only exact technical/learner manifest-owned files; no inferred extra files, caches, partial receipts or unknown directories."
+precondition = "Exact archive-first transition verified, roadmap revision11/In progress, revised report and Gate8 tree absent. All source/owners/code/tests/templates finalized before one source freeze."
+pre_gate8_check = "Fresh isolated source generation validates reached prerequisites without requiring generated Gate8/report; no source/live-candidate mutation. Native preflight agreement gates entry to complete damage."
+stage = "Private complete candidate and Gate8/report stages; validate all recursive sets/preimages and prospective roadmap before publishing. Revalidate source/executable identities and current filesystem preconditions. fsync files/directories; atomic no-replace for new trees/report."
+install_order = ["complete-revised-candidate-tree", "complete-gate8-tree", "tracked-v2-report", "roadmap-status"]
+candidate_reuse = "An existing candidate root may only be retained if complete independently regenerated tree is byte/mode/path-identical. A mismatch rejects without overwrite; historical candidate has a distinct untouched root."
+status = "Roadmap remains sole authority. Update only admitted revision11 In-progress status cells and transition sentence to Candidate ready - independent validation pending with exact active ID/report hash, preserving all other bytes and historical evidence. Tree/report presence alone is not status."
+project_state = "Candidate ready"
+m2_status = "Candidate ready — independent validation pending"
+pre_ready_tail = "No current Candidate-ready claim is admitted. The 512 KiB ceiling is unchanged, and fresh technical and learner validation remains pending."
+candidate_ready_tail = "The revised candidate passes gates 1–8 with provisional preferred candidate `{candidate_id}` and tracked report `reports/m2-feasibility-v2.json` SHA-256 `{report_sha256}`; automated native and clean-Linux evidence passes, while technical and learner validation remains pending. The 512 KiB ceiling is unchanged."
+status_edit = "Require exactly one pre_ready_tail within the M2 status row and replace it with candidate_ready_tail after exact active-ID/lowercase-report-hash substitution. Change only derived Project state value In progress to project_state and M2 status value In progress to m2_status; preserve all other bytes, revision11 and historical text."
+rollback = "On any pre-status failure remove only newly installed outputs owned by this transaction. On status write/fsync failure restore exact precondition roadmap then remove owned new outputs; never delete a preexisting identical candidate or follow links."
+candidate_ready_check = "Regenerate independently in private storage and compare every candidate/Gate8/report byte and final roadmap relation; no write. Partial presence rejects."
+release = "Fresh host full and clean-Linux full over same stable source, private producer executables and exact report/complete evidence; historical receipts and development previews are not release evidence. No participant exposure before successful fresh release."

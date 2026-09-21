@@ -1,0 +1,90 @@
+schema = "golden-board.profile-policy/v2"
+policy_version = 2
+status = "development"
+scope = "source-owned-profile-shape-only; no-selected-geometry-or-production-admission"
+production_authority = "spec/m2-participant-revision-promotion-v2.toml"
+
+[owners]
+bootstrap = "spec/bootstrap-v2.md"
+carrier = "spec/carrier-v2.md"
+route = "spec/route-v2.md"
+definitions = "spec/route-definitions-v2.md"
+content_teaching = "spec/content-teaching-v2.md"
+recipe_wire = "spec/recipe-wire-v1.md"
+body_codec = "spec/body-codec-v1.md"
+body_recipe = "spec/body-recipe-v1.md"
+recipe_teaching = "spec/recipe-teaching-v2.md"
+slice = "spec/slice-v1.md"
+declaration = "studies/m2/slice-v1.json"
+capacity_inheritance = "spec/profile-policy-v0.toml"
+
+[candidate]
+id = "eh72-hier-r5-r2-r1-lzss-crc32c-v1"
+profile_version = 8
+transport_id = "eh72-hier-repetition-v0"
+section_check_id = "crc32c-v0"
+check_bytes = 4
+semantic_copy_count = 1
+complexity_class = 1
+protected_unit_bytes = 216
+inventory_version = 2
+route_version = 2
+recipe_wire_version = 1
+body_versions = [0, 1]
+content_version = 0
+placement_id = "affine-slot-then-interior-v2"
+physical_replica_counts = [1, 2, 5]
+
+[registry]
+order = [8, 2, 3, 4, 5, 6, 7]
+active_versions = [8]
+foreign_profiles = "diagnostics-only; never-establish-profile8-artifact-or-tiers"
+legacy_shape_source = "spec/profile-policy-v0.toml and spec/profile-policy-v1.toml"
+legacy_limits_scope = "historical-fixture-bounds-not-selected-profile8-geometry"
+
+[geometry]
+raw_bits_max = 4194304
+carrier_bytes_max = 524288
+side_min = 64
+side_max = 2048
+side_step = 8
+shell_width_min = 8
+shell_width_max = 128
+shell_width_step = 8
+width_upper = "min(128,(side-8)//2)"
+search_order = "side-ascending-then-width-ascending"
+selected_values = "absent-until-independent-static-first-fit-and-full-limits-promotion"
+maximum_units_formula = "floor((side_max-2*shell_width_min)^2/1728)"
+
+[storage]
+spine_ids = [1, 2, 3, 16, 17, 18]
+required_body_ids = [16, 17, 18]
+all_body_ranges = [[16, 18], [100, 163], [200, 210]]
+game_section_range = [100, 163]
+game_ordinals = [0, 63]
+probe_first_id = 211
+spine_factor = 5
+replicated_factor = 2
+nonreplicated_factor = 1
+capacity_payload_bytes = 105277
+reserve_formula = "max(382,ceil((uncompressed-real-body-and-tier-bytes+16384+105277)/19))"
+stored_payload_bytes_max = 16384
+decoded_body_bytes_max = 16384
+inventory_payload_bytes_max = 16384
+dependency_count_max = 4095
+inventory_entry_count_max = 4096
+semantic_copy_id = 0
+
+[mapping]
+table_id = 17
+table_index = "(side-2*width)/8"
+unit_population = "floor((side-2*width)^2/1728)"
+slot = "table17[index]*(unit_id-1) mod unit_population"
+cell_multiplier = "2*(side-2*width)-1"
+cell_offset = "(8*40503+width*257) mod (side-2*width)^2"
+admission = "multiple-of-eight-geometry; nonzero-table-entry; one-based-unit; bit0..1727; exact-inverse-and-pad-domains"
+
+[admission]
+development_loader = "bounded-exact-source-owner-set; absent-generated-values-are-not-zero-measurements"
+production = "reject-until-complete-independent-limits-and-promotion-owner-admission"
+historical = "all-v0-v1-owners-public-admissions-and-results-remain-exact"

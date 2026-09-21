@@ -3,10 +3,17 @@
 | Field | Value |
 |---|---|
 | Prepared | 2026-08-20 |
-| Roadmap | Revision 10, M2 Linux verifier provenance refresh |
+| Roadmap | Revision 11, M2 participant-driven semantic and transport revision |
 | Execution contract | [`docs/m2-spec.md`](m2-spec.md) |
 | Baseline | `0feaf4b559f48507f2457e6d203f25c969a98589` (`m2` branch) |
-| Plan status | Gates 1–7 remain exact for the sole R3 v7 candidate; gate 8 is reopened only for the acquired Linux verifier provenance refresh |
+| Plan status | In progress; Gates 1–8 reopened; prior R3 results are historical |
+
+**Revision 11 current scope:** M2 is In progress; Gates 1–8 reopen for the
+participant-driven semantic and transport revision. Prior R3 descriptions
+below are historical evidence, not current gate outcomes. M0/M1 and the
+512 KiB ceiling are unchanged. The archive-first transition is owned by
+[`spec/m2-participant-revision-transition-v1.md`](../spec/m2-participant-revision-transition-v1.md).
+Fresh production evidence and affected human validation remain pending.
 
 **Goal:** Execute M2 on the current branch and leave a bounded, independently
 reproducible proof that an elite technical recipient unit can recover a real
@@ -58,6 +65,65 @@ the architecture.
 `linux/arm64` container image for clean verification; standard-library code by
 default. New dependencies require a concrete smaller implementation than a
 bounded local implementation and must work in locked offline checks.
+
+## Revision 11 integration sequence
+
+This section is the current implementation sequence. The R1/R2/R3 packets
+below remain preserved execution history; their old candidate/report paths,
+metric sets and verifier-only reopen are not instructions to regenerate a
+current result. Read the exact revision owners in
+[`docs/m2-spec.md` Section 19.2](m2-spec.md#192-report-schema),
+[`spec/m2-participant-revision-promotion-v2.toml`](../spec/m2-participant-revision-promotion-v2.toml),
+[`spec/gate8-policy-v2.toml`](../spec/gate8-policy-v2.toml) and
+[`spec/gate8-execution-v2.md`](../spec/gate8-execution-v2.md). This plan changes
+no owner threshold and records no production gate outcome.
+
+1. Preserve and verify the prepared historical tuple under the archive-first
+   transition owner. Apply that exact transition before primary source
+   replacement. Its revision-11 `In progress` roadmap is the initial authority;
+   do not change its normative bytes or infer authority from generated files.
+2. Complete the reviewed source owners, independent implementations, bounded
+   tests, neutral templates and exact recovered-stream bundles. Resolve source
+   defects before the freeze. Use the complete finding ledger at
+   [`studies/m2/participant-learnings-v1.md`](../studies/m2/participant-learnings-v1.md)
+   to retain all original assistance limits and implemented repairs.
+3. Freeze complete source in an ordinary repository with a directory `.git`.
+   `scripts/check components` runs the existing repo, identity, chess/oracle,
+   source, curriculum, content, transport and damage component suites. Revised
+   dispatch excludes historical retained candidate/damage `--check` outputs
+   from current authority; all historical and current component tests remain.
+   Component success alone is not `full`, Linux, Gate8 or Candidate ready.
+4. The v2 coordinator's `bootstrap` command runs components and independent
+   native preflights, compares the complete fresh cores before releasing any
+   D0–D7 work, runs the independent native and clean-Linux producer pairs, and
+   freshly assembles the current complete candidate and bundles. Each producer
+   uses its own source construction, observations, oracle and receiver. The
+   damage replay owner states the Python semantic-oracle and Rust full-oracle
+   scopes and requires the complete cross-language result/resource comparison.
+5. Admit full damage and its separately named boundary probes, measured limits,
+   actual observation recovery, nine physical predicates, all four receipts,
+   both exact bundles, deterministic selection and every raw preimage. Render
+   the report from the pending roadmap without an early Candidate-ready claim.
+   Publish only complete admitted outputs, with the roadmap status last and
+   the exact rollback boundaries from the execution owner.
+6. Revised `scripts/check full` delegates to `verify_gate8_v2.py full`: fresh
+   native generation and fresh assembly comparison use admitted retained Linux
+   receipts. `scripts/check release` delegates to its `release` command, which
+   also runs fresh clean-Linux producers against the same frozen source and
+   verifies unchanged installed evidence/report/roadmap. Neither command
+   rewrites authority. No absent or stale result can substitute for execution.
+7. After successful composed release, hand off only the generated recipient
+   files in their declared order and keep evaluator answers owner-only. Use
+   the short owner instructions; no new names, dates, timing forms, agreements
+   or administrative quiz are required. The technical and learner qualifying
+   evidence remains pending until a fresh trial actually establishes it.
+
+The independent implementations and focused/development comparisons are
+tracked in
+[`docs/superpowers/plans/2026-09-16-m2-participant-revision.md`](superpowers/plans/2026-09-16-m2-participant-revision.md).
+That ledger is not roadmap authority and does not turn incomplete production
+or human work into a checked milestone. The 512 KiB ceiling, M0/M1 truth and
+existing technical/learner thresholds remain unchanged.
 
 ## 1. How to use this plan
 
@@ -878,6 +944,11 @@ result-aware case replacement.
   is yet a finalist.
 
 ## 15. Packet P8 — Reproduce gate 8, select, and freeze Candidate-ready evidence
+
+For revision 11, execute the integration sequence above and the exact v2
+execution owner. The following P8 checklist is preserved historical R3 text;
+its v0 paths, old selection projections and verifier-only reopen do not
+supersede the current v2 contract.
 
 **Depends on:** P7.
 

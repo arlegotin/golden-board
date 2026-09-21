@@ -2061,6 +2061,7 @@ class RepoContract(unittest.TestCase):
         "tools/m2/generate_damage.py",
         "tools/linux/Dockerfile",
         "tools/linux/acquire.sh", "tools/linux/container-verify.sh",
+        "tools/linux/container-verify-v2.sh", "tools/linux/verify-v2.sh",
         "tools/linux/image.env", "tools/linux/snapshot.py",
         "tools/linux/verify.sh",
     ]
@@ -2161,6 +2162,7 @@ class RepoContract(unittest.TestCase):
                 self.assertTrue(os.access(ROOT / relative, os.X_OK), relative)
         for relative in (
             "tools/linux/acquire.sh", "tools/linux/container-verify.sh",
+            "tools/linux/container-verify-v2.sh", "tools/linux/verify-v2.sh",
             "tools/linux/snapshot.py", "tools/linux/verify.sh",
         ):
             self.assertTrue(os.access(ROOT / relative, os.X_OK), relative)
@@ -2236,6 +2238,12 @@ class RepoContract(unittest.TestCase):
         r3_design = ROOT / "docs/m2-r3-design.md"
         decisions = ROOT / "docs/decisions.md"
         report = ROOT / "reports/m2-feasibility-v0.json"
+        if re.search(r"^\| Roadmap revision \| 11 \|$", roadmap, re.MULTILINE):
+            from golden_board.m2_gate8_policy_v2 import load_gate8_policy_v2
+            revision_policy = load_gate8_policy_v2(
+                (ROOT / "spec/gate8-policy-v2.toml").read_bytes()
+            )
+            report = ROOT / revision_policy.document["authority"]["report_path"]
         if r3_design.is_file():
             self.assertTrue(decisions.is_file() and not decisions.is_symlink())
             self.assertIn("M2 R3 uses hierarchical physical repetition", decisions.read_text())

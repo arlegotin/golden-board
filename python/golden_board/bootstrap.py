@@ -737,9 +737,14 @@ class Inventory:
 
 
 def encode_inventory(inventory: Inventory) -> bytes:
+    return _encode_inventory(inventory, maximum_inventory_version=1)
+
+
+def _encode_inventory(inventory: Inventory, *, maximum_inventory_version: int) -> bytes:
     if (
         not isinstance(inventory, Inventory)
-        or inventory.version not in (0, 1)
+        or maximum_inventory_version not in (1, 2)
+        or inventory.version not in range(maximum_inventory_version + 1)
         or not 3 <= len(inventory.entries) <= INVENTORY_ENTRY_MAX
     ):
         _reject(INVENTORY, "inventory")
@@ -768,12 +773,12 @@ def encode_inventory(inventory: Inventory) -> bytes:
             or entry.check_id not in (1, 2)
             or (
                 entry.copy_count != 1
-                if inventory.version == 1
+                if inventory.version >= 1
                 else entry.copy_count not in (1, 2, 3)
             )
             or (
                 entry.physical_replica_count not in (1, 2, 5)
-                if inventory.version == 1
+                if inventory.version >= 1
                 else entry.physical_replica_count != 1
             )
             or not 0 <= entry.logical_payload_length <= 0xFFFF_FFFF
@@ -793,7 +798,7 @@ def encode_inventory(inventory: Inventory) -> bytes:
             ordinals.append(ordinal)
         else:
             _reject(INVENTORY, f"entries[{index}].game_ordinal")
-        if inventory.version == 1:
+        if inventory.version >= 1:
             flags |= entry.physical_replica_count << 1
         fixed_header = b"".join(
             (
@@ -808,8 +813,8 @@ def encode_inventory(inventory: Inventory) -> bytes:
                 _be16(ordinal, "game_ordinal"),
             )
         )
-        if inventory.version == 1:
-            decode_inventory_entry_v1_header(fixed_header)
+        if inventory.version >= 1:
+            _inventory_entry_header(fixed_header, inventory.version)
         output.extend(fixed_header)
         output.extend(
             b"".join(_be32(value, "dependency") for value in entry.dependencies)
@@ -874,6 +879,10 @@ def _validate_inventory_fixed_entries(
             == {1, 2, 3, 16}
             and by_id[16].section_type == 3
         )
+    elif inventory_version == 2:
+        from .bootstrap_v2 import _validate_entries
+        _validate_entries(entries)
+        valid = True
     else:
         valid = False
     if not valid:
@@ -932,7 +941,18 @@ def decode_inventory_entry_v1_header(data: bytes) -> tuple[int, bool]:
     return factor, has_ordinal
 
 
+def _inventory_entry_header(data: bytes, version: int) -> tuple[int, bool]:
+    if version == 2:
+        from .bootstrap_v2 import decode_inventory_entry_header
+        return decode_inventory_entry_header(data)
+    return decode_inventory_entry_v1_header(data)
+
+
 def decode_inventory(data: bytes) -> Inventory:
+    return _decode_inventory(data, maximum_inventory_version=1)
+
+
+def _decode_inventory(data: bytes, *, maximum_inventory_version: int) -> Inventory:
     if (
         type(data) is not bytes
         or len(data) < 8
@@ -940,7 +960,7 @@ def decode_inventory(data: bytes) -> Inventory:
     ):
         _reject(INVENTORY, "inventory.header")
     inventory_version = _u16(data, 0)
-    if inventory_version not in (0, 1):
+    if maximum_inventory_version not in (1, 2) or inventory_version not in range(maximum_inventory_version + 1):
         _reject(INVENTORY, "inventory.version")
     count = _u16(data, 2)
     if not 3 <= count <= INVENTORY_ENTRY_MAX:
@@ -960,8 +980,8 @@ def decode_inventory(data: bytes) -> Inventory:
         payload_length = _u32(data, offset + 14)
         ordinal_raw = _u16(data, offset + 18)
         projected_v1 = (
-            decode_inventory_entry_v1_header(data[offset : offset + 20])
-            if inventory_version == 1
+            _inventory_entry_header(data[offset : offset + 20], inventory_version)
+            if inventory_version >= 1
             else None
         )
         if dependency_count > DEPENDENCY_MAX:
@@ -982,19 +1002,19 @@ def decode_inventory(data: bytes) -> Inventory:
             or check_id not in (1, 2)
             or (
                 copies != 1
-                if inventory_version == 1
+                if inventory_version >= 1
                 else copies not in (1, 2, 3)
             )
             or (
                 flags & ~0x0F
-                if inventory_version == 1
+                if inventory_version >= 1
                 else flags & ~1
             )
             or section_id in dependencies
         ):
             _reject(INVENTORY, f"entries[{index}]")
-        physical_replica_count = flags >> 1 if inventory_version == 1 else 1
-        if inventory_version == 1 and physical_replica_count not in (1, 2, 5):
+        physical_replica_count = flags >> 1 if inventory_version >= 1 else 1
+        if inventory_version >= 1 and physical_replica_count not in (1, 2, 5):
             _reject(INVENTORY, f"entries[{index}].physical_replica_count")
         if projected_v1 is not None and projected_v1 != (
             physical_replica_count,
@@ -1572,6 +1592,20 @@ def decode_recipe_package(data: bytes, expected_profile_version: int) -> RecipeP
     and no evaluator-visible object is returned before all thirteen stages pass.
     """
 
+    return _decode_recipe_package(
+        data, expected_profile_version, maximum_profile_version=7
+    )
+
+
+def _decode_recipe_package(
+    data: bytes, expected_profile_version: int, *, maximum_profile_version: int
+) -> RecipePackage:
+    """Validate expanded v0 grammar under an explicit private profile boundary.
+
+    The compact-wire codec alone admits diagnostic profile 8 here. Public v0
+    decoding and evaluation retain their original version/profile admission.
+    """
+
     # Stage 1: cap and complete fixed header.
     if type(data) is not bytes or not 64 <= len(data) <= RECIPE_PACKAGE_MAX:
         _recipe_reject("package.length")
@@ -1581,7 +1615,8 @@ def decode_recipe_package(data: bytes, expected_profile_version: int) -> RecipeP
         or _u16(data, 8) != 0
         or _u16(data, 10) != 0
         or type(expected_profile_version) is not int
-        or not 1 <= expected_profile_version <= 7
+        or maximum_profile_version not in (7, 8)
+        or not 1 <= expected_profile_version <= maximum_profile_version
         or _u16(data, 12) != expected_profile_version
         or _u16(data, 14) != 0
         or any(data[48:64])
@@ -2376,6 +2411,14 @@ def evaluate_recipe(
     # Reparse retained wire bytes to defend the evaluator from forged dataclass
     # instances and from any future accidental validation/evaluation drift.
     trusted = decode_recipe_package(package.encoded, package.profile_version)
+    return _evaluate_validated_recipe(trusted, recipe_id, inputs)
+
+
+def _evaluate_validated_recipe(
+    trusted: RecipePackage, recipe_id: int, inputs: Sequence[bytes]
+) -> RecipeResult:
+    """Execute only after the owning public entrypoint reparses its wire bytes."""
+
     if type(recipe_id) is not int:
         raise TypeError("recipe_id must be an integer")
     if isinstance(inputs, (bytes, bytearray, str)):

@@ -2019,9 +2019,7 @@ class _Context:
                 m2_codec.CopyObservation(_packed(bits), erased)
             )
         try:
-            result = m2_codec.aggregate_replica_group(
-                self.profile, tuple(observations)
-            )
+            result = self._oracle_aggregate_group(tuple(observations))
         except m2_codec.CodecError as error:
             raise DamageError("r3-group") from error
         if not invalid_indices:
@@ -2062,6 +2060,18 @@ class _Context:
             expected.section_version,
             expected.section_envelope_length,
         )
+
+    def _oracle_aggregate_group(self, observations):
+        return m2_codec.aggregate_replica_group(self.profile, observations)
+
+    def _oracle_inventory_decode(self, raw):
+        return bootstrap.decode_inventory(raw)
+
+    def _oracle_registry_profiles(self):
+        return m2_codec.r3_registry_profiles(self.profile)
+
+    def _oracle_body_payload(self, envelope):
+        return bootstrap.decode_section_envelope(envelope).payload
 
     def evaluate(
         self,
@@ -2491,7 +2501,7 @@ class _Context:
             _fail("inventory-order")
         if inventory_result.envelope is not None:
             try:
-                observed_inventory = bootstrap.decode_inventory(
+                observed_inventory = self._oracle_inventory_decode(
                     bootstrap.decode_section_envelope(
                         inventory_result.envelope
                     ).payload
@@ -2541,7 +2551,7 @@ class _Context:
                     )
             visible_sections = tuple(section_results)
         else:
-            registry = m2_codec.r3_registry_profiles(self.profile)
+            registry = self._oracle_registry_profiles()
             initial_rows = self.rows_by_group[(1, 0)]
             initial = group_results[(1, 0)]
             initial_lane = {
@@ -2615,7 +2625,7 @@ class _Context:
                     candidate_profile, recovery, block = candidates[0]
                     common = recovery.decoded
                     state_name = recovery.state
-                    if candidate_profile.profile_version == 7 and unit_id <= 5:
+                    if candidate_profile.profile_version == self.profile.profile_version and unit_id <= 5:
                         lane_state, lane_block = initial_lane[unit_id]
                         state_name = {
                             0: "missing",
@@ -2694,9 +2704,7 @@ class _Context:
                     stream = bootstrap.assemble_content_stream(
                         frame,
                         {
-                            section_id: bootstrap.decode_section_envelope(
-                                envelope_by_id[section_id]
-                            ).payload
+                            section_id: self._oracle_body_payload(envelope_by_id[section_id])
                             for section_id in frame.body_section_ids
                         },
                     )

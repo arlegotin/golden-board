@@ -4,6 +4,7 @@
 //! candidate-neutral bootstrap owners.  Damage coordinates and the clean
 //! carrier are kept on the generator/oracle side and are never decoder input.
 
+use crate::resources_v2::{self, Kernel, ReferenceLedger};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::OnceLock;
 
@@ -1754,6 +1755,68 @@ fn observed_map(
     Ok(map)
 }
 
+// V2 diagnostic scheduling: three actual charged probes. The historical
+// observed_map call schedule and public decoder outputs remain untouched.
+fn observed_map_v2(
+    package: &crate::recipe::RecipePackage,
+    side: u16,
+    width: u16,
+    resource: &mut ResourceProjection,
+    mut adapter: Option<&mut ReferenceLedger>,
+) -> Result<AffineMap> {
+    if !(64..=2048).contains(&side)
+        || side % 8 != 0
+        || !(8..=128).contains(&width)
+        || width % 8 != 0
+        || u32::from(width) * 2 + 8 > u32::from(side)
+    {
+        return Err(DamageError::Coordinate);
+    }
+    let interior_side = side - 2 * width;
+    let population = u64::from(interior_side) * u64::from(interior_side);
+    let mut call = |logical: u64| {
+        let mut input = (logical as u32).to_be_bytes().to_vec();
+        input.extend(side.to_be_bytes());
+        input.extend(width.to_be_bytes());
+        if let Some(m) = adapter.as_deref_mut() {
+            resources_v2::example_event(m, package, 109, input.len())
+                .map_err(|_| DamageError::ResourceLimit)?;
+        }
+        charge_recipe(resource, package, 109, 1)?;
+        if let Some(m) = adapter.as_deref_mut() {
+            m.vm_workspace(package.recipe_peak_scratch_bytes(109).unwrap())
+                .map_err(|_| DamageError::ResourceLimit)?;
+        }
+        recipe_u32(package, 109, &input)
+    };
+    let offset = call(0)?;
+    let next = call(1)?;
+    if offset >= population || next >= population {
+        return Err(DamageError::Route);
+    }
+    let multiplier = (next + population - offset) % population;
+    let inverse_multiplier = modular_inverse(multiplier, population)?;
+    let map = AffineMap {
+        side,
+        shell_width: width,
+        interior_side,
+        population,
+        multiplier,
+        offset,
+        inverse_multiplier,
+    };
+    let last = call(population - 1)?;
+    if map
+        .forward(population - 1)
+        .map_err(|_| DamageError::Route)?
+        != last
+        || map.inverse(last).map_err(|_| DamageError::Route)? != population - 1
+    {
+        return Err(DamageError::Route);
+    }
+    Ok(map)
+}
+
 /// Parse one complete route directly from observed sector cells.  This checks
 /// the frozen calibration, envelope, closed record graph, package structure,
 /// endpoint, and terminal record; it never compares against a generated route.
@@ -1762,6 +1825,27 @@ fn parse_sector_route(
     width: usize,
     sector: u8,
     resource: &mut ResourceProjection,
+) -> Result<Option<ParsedRoute>> {
+    parse_sector_route_mode(matrix, width, sector, resource, false, None)
+}
+
+pub(crate) fn parse_sector_route_v2(
+    matrix: &ObsMatrix,
+    width: usize,
+    sector: u8,
+    resource: &mut ResourceProjection,
+    adapter: &mut ReferenceLedger,
+) -> Result<Option<ParsedRoute>> {
+    parse_sector_route_mode(matrix, width, sector, resource, true, Some(adapter))
+}
+
+fn parse_sector_route_mode(
+    matrix: &ObsMatrix,
+    width: usize,
+    sector: u8,
+    resource: &mut ResourceProjection,
+    v2: bool,
+    mut adapter: Option<&mut ReferenceLedger>,
 ) -> Result<Option<ParsedRoute>> {
     let Some(head) = route_bytes(matrix, width, sector, 64)? else {
         return Ok(None);
@@ -1785,6 +1869,7 @@ fn parse_sector_route(
         || envelope[10] != sector
         || envelope[11] != sector
         || profile_by_version(profile_version).is_none()
+        || v2 && !(2..=6).contains(&profile_version)
         || !(37..=256).contains(&record_count)
         || record_bytes > 30_720
         || package_bytes > 1_048_576
@@ -1798,9 +1883,30 @@ fn parse_sector_route(
     {
         return Ok(None);
     }
+    if (64 + record_bytes) * 8 > width * (matrix.side - width) {
+        return Ok(None);
+    }
+    if let Some(m) = adapter.as_deref_mut() {
+        m.event(
+            Kernel::ShellRead,
+            8 * (64 + record_bytes) as u64,
+            (64 + record_bytes) as u64,
+        )
+        .map_err(|_| DamageError::ResourceLimit)?;
+    }
     let Some(route) = route_bytes(matrix, width, sector, 64 + record_bytes)? else {
         return Ok(None);
     };
+    if let Some(m) = adapter.as_deref_mut() {
+        m.retain("route:prefix", route.len() as u64)
+            .map_err(|_| DamageError::ResourceLimit)?;
+        m.event(
+            Kernel::RouteFrame,
+            route.len() as u64,
+            8 * record_count as u64,
+        )
+        .map_err(|_| DamageError::ResourceLimit)?;
+    }
     let records = &route[64..];
     let base = u16::from(sector) * 10_000;
     let mut offset = 0_usize;
@@ -1837,6 +1943,39 @@ fn parse_sector_route(
     }
     if offset != records.len() || record_count < 39 {
         return Ok(None);
+    }
+    if v2 {
+        let ledger = adapter.as_deref_mut().ok_or(DamageError::ResourceLimit)?;
+        let Some((package, _wire)) = resources_v2::legacy_rows(
+            &rows,
+            profile_version,
+            sector,
+            package_bytes,
+            resource,
+            ledger,
+        )
+        .map_err(|_| DamageError::ResourceLimit)?
+        else {
+            return Ok(None);
+        };
+        let map = match observed_map_v2(
+            &package,
+            matrix.side as u16,
+            width as u16,
+            resource,
+            Some(ledger),
+        ) {
+            Ok(v) => v,
+            Err(DamageError::ResourceLimit) => return Err(DamageError::ResourceLimit),
+            Err(_) => return Ok(None),
+        };
+        return Ok(Some(ParsedRoute {
+            profile_version,
+            width: width as u16,
+            sector,
+            map,
+            package,
+        }));
     }
     for fact in 1_u16..=12 {
         let stage = FACT_STAGES[usize::from(fact - 1)];
@@ -1876,7 +2015,25 @@ fn parse_sector_route(
         }
     }
     let package = rows[36 + table_count];
+    if v2 && (package.1 != 5 || package.3.len() != package_bytes) {
+        return Ok(None);
+    }
+    if let Some(m) = adapter.as_deref_mut() {
+        m.event(
+            Kernel::RecipeParse,
+            package.3.len() as u64,
+            resources_v2::program_workspace(package.3)
+                .map_err(|_| DamageError::ResourceLimit)?
+                .parsing(),
+        )
+        .map_err(|_| DamageError::ResourceLimit)?;
+    }
     let parsed_package = decode_recipe_package(package.3, profile_version).ok();
+    if parsed_package.is_some() {
+        if let Some(m) = adapter.as_deref_mut() {
+            resources_v2::retain_program(m, package.3).map_err(|_| DamageError::ResourceLimit)?;
+        }
+    }
     if package.0 != 5
         || package.1 != 5
         || package.2 != base + 6_001
@@ -1928,7 +2085,15 @@ fn parse_sector_route(
             if output_end != example.len() {
                 return Ok(None);
             }
+            if let Some(m) = adapter.as_deref_mut() {
+                resources_v2::example_event(m, &parsed_package, recipe_id, input_bytes)
+                    .map_err(|_| DamageError::ResourceLimit)?;
+            }
             charge_recipe(resource, &parsed_package, recipe_id, 1)?;
+            if let Some(m) = adapter.as_deref_mut() {
+                m.vm_workspace(parsed_package.recipe_peak_scratch_bytes(recipe_id).unwrap())
+                    .map_err(|_| DamageError::ResourceLimit)?;
+            }
             if evaluate_serialized_recipe(&parsed_package, recipe_id, &example[12..input_end])
                 .ok()
                 .as_deref()
@@ -1952,7 +2117,21 @@ fn parse_sector_route(
         return Ok(None);
     }
     let width = u16::try_from(width).map_err(|_| DamageError::Coordinate)?;
-    let map = observed_map(&parsed_package, matrix.side as u16, width)?;
+    let map = if v2 {
+        match observed_map_v2(
+            &parsed_package,
+            matrix.side as u16,
+            width,
+            resource,
+            adapter.as_deref_mut(),
+        ) {
+            Ok(map) => map,
+            Err(DamageError::ResourceLimit) => return Err(DamageError::ResourceLimit),
+            Err(_) => return Ok(None),
+        }
+    } else {
+        observed_map(&parsed_package, matrix.side as u16, width)?
+    };
     Ok(Some(ParsedRoute {
         profile_version,
         width,
@@ -1962,7 +2141,7 @@ fn parse_sector_route(
     }))
 }
 
-fn mapping_sha256(map: AffineMap) -> Result<String> {
+pub(crate) fn mapping_sha256(map: AffineMap) -> Result<String> {
     let value = ManifestValue::Object(BTreeMap::from([
         (
             "id".to_owned(),
@@ -3442,6 +3621,72 @@ mod tests {
             16_384,
         )
         .unwrap()
+    }
+
+    #[test]
+    fn revised_legacy_package_record_guard_precedes_observed_parser() {
+        let package = build_eh_recipe_package(3).unwrap();
+        let images = crate::carrier::build_route_images(
+            include_bytes!("../../../spec/route-data-v0.json"),
+            3,
+            &package,
+            2040,
+            128,
+        )
+        .unwrap();
+        let mut matrix = ObsMatrix {
+            side: 2040,
+            values: vec![0; 2040 * 2040],
+        };
+        for (bit, value) in images.sectors[0].bits.iter().enumerate() {
+            let (r, c) = crate::sector_cell_at(2040, 128, 0, bit).unwrap();
+            matrix.values[r * 2040 + c] = *value;
+        }
+        let clean_matrix = matrix.clone();
+        let raw = route_bytes(
+            &matrix,
+            128,
+            0,
+            images.sectors[0].route_prefix_cells as usize / 8,
+        )
+        .unwrap()
+        .unwrap();
+        let mut at = 64;
+        while raw[at + 1] != 5 {
+            at += 8 + read_u32(&raw, at + 4).unwrap() as usize;
+        }
+        for bit in 0..8 {
+            let (r, c) = crate::sector_cell_at(2040, 128, 0, (at + 1) * 8 + bit).unwrap();
+            matrix.values[r * 2040 + c] = (4u8 >> (7 - bit)) & 1;
+        }
+        let mut resource = ResourceProjection::default();
+        let mut ledger = ReferenceLedger::default();
+        assert!(
+            parse_sector_route_v2(&matrix, 128, 0, &mut resource, &mut ledger)
+                .unwrap()
+                .is_none()
+        );
+        assert_eq!(resource.primitive_steps, 0);
+        assert_eq!(ledger.rows()[Kernel::RecipeParse as usize].calls(), 0);
+        let mut matrix = clean_matrix;
+        let wrong_id = 6000u16.to_be_bytes();
+        for (byte, value) in wrong_id.into_iter().enumerate() {
+            for bit in 0..8 {
+                let (r, c) =
+                    crate::sector_cell_at(2040, 128, 0, (at + 2 + byte) * 8 + bit).unwrap();
+                matrix.values[r * 2040 + c] = (value >> (7 - bit)) & 1;
+            }
+        }
+        let mut resource = ResourceProjection::default();
+        let mut ledger = ReferenceLedger::default();
+        assert!(
+            parse_sector_route_v2(&matrix, 128, 0, &mut resource, &mut ledger)
+                .unwrap()
+                .is_none()
+        );
+        assert_eq!(ledger.rows()[Kernel::RecipeParse as usize].calls(), 1);
+        assert_eq!(ledger.rows()[Kernel::RouteExample as usize].calls(), 24);
+        assert!(resource.primitive_steps > 0);
     }
 
     #[test]

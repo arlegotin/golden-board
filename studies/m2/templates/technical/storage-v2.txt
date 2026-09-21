@@ -1,0 +1,5 @@
+The observation is a binary file. Its first four bytes give the exact
+number N of following binary symbols, as an unsigned big-endian integer.
+The symbols are packed eight per byte, most-significant bit first. Read
+exactly N symbols; unused low bits of the final byte, if any, are zero.
+This describes file storage only. Preserve the file unchanged.

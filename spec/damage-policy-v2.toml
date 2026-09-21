@@ -1,0 +1,166 @@
+schema = "golden-board.damage-policy/v2"
+policy_version = 2
+status = "development"
+scope = "observation-decoder-contract-and-static-program-costs; no-damage-results-or-full-corpus-admission"
+profile_policy_path = "spec/profile-policy-v2.toml"
+production_authority = "spec/m2-participant-revision-promotion-v2.toml"
+
+[inheritance]
+path = "spec/damage-policy-v1.toml"
+sha256 = "b3b28f00d3ba04addbed4517eb1abb4ecd02796176eaaecdbc1d47f1f39509df"
+rule = "retain-channel-transform-erasure-sampling-attempt-conflict-availability-resource-and-promise-meanings; replace-only-explicit-versioned-profile-wire-and-body-rules"
+historical_counts_and_results = "not-inherited"
+
+[corpus]
+families = ["D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"]
+state = "operators-and-derived-counts-not-yet-frozen"
+gate6_admission = false
+guarantees = ["all_declared_m2_sections_exact", "all_declared_m2_sections_exact", "m2_required_closure", "m2_required_closure", "m2_required_closure", "all_declared_m2_sections_exact", "m2_required_closure", "correct_or_explicit_failure"]
+counts = "derive-from-new-carrier-and-complete-owned-operators; never-copy-v7-counts"
+new_negative_scope = "compact-wire; compressed-body-length-distance-flags-EOF; checked-required-and-all-only-content-control; foreign-profile7"
+outcome_values_present = false
+
+[decoder]
+allowed_inputs = "exact-serialized-observation-and-source-owned-candidate-neutral-code-and-policy-only"
+forbidden_inputs = "clean-carrier; candidate-manifest; builder-sections; compiled-content; case-id; expected-result; saved-output"
+registry_profile_order = [8, 2, 3, 4, 5, 6, 7]
+establishing_profile_versions = [8]
+obs_bits_parse = "u32-be-count-and-exact-msb-packed-bits; zero-unused-low-bits"
+obs_matrix_parse = "u16-be-side-and-side-squared-bytes-in-0-1-2;2-is-erasure"
+obs_units_parse = "u32-be-count-at-most2389; repeated-u32-id-u16-byte-length-and-bytes; IDs-unique-nonzero-u32-not-bounded-by-count-or2389; extra-IDs-diagnostic"
+obs_units_order = "input-id-ascending-then-all-registry-procedures-without-short-circuit"
+square_order = "transform0..7-then-polarity0..1; xor-only-known-bits"
+route_order = "width8..128-by8-with-geometry-domain-then-sector0..3"
+route_source = "observed-shell-only; no-source-builder-import-or-generated-route-equality"
+route_wire = "route2; exact47-record-skeleton; compact-package1; package-tables-once; endpoint1"
+route_examples = "execute-every-observed-primary-and-additional-example; exact-declared-interface; STATUS16; nonzero-status-has-no-data"
+route_definitions = "descriptor-and-numeric-structural-validation-is-development-framing-only; production-also-requires-explicit-mathematical-relationship-validation-and-carried-use-ablation"
+mapping = "derive109-affine-values-and17-slot-table-from-observed-package; enforce-bootstrap-v2-full-domains"
+grouping = "IDs1..5-bootstrap-inventory2; then-checked-inventory-factor-groups; no-header-remapping"
+group_acceptance = "enumerate-all-lanes-and-raw-REP; deduplicate-complete-blocks; zero-none; one-accept; two-or-more-conflict"
+verified = "matching-all-known-no-correction-valid-lane; raw-REP-alone-is-recovered"
+body = "version0-raw; version1-complete-carried-recipe202; atomic-output;16KiB-stored-and-decoded-bounds"
+body_execution_square = "checked-inventory-physical-count-equals-observed-geometry-Q; execute202-from-observed-compact-package; native-equivalent-only-if-observed-logical202-transitive-program-and-table-closure-equals-independently-source-owned-neutral-body-VM-closure-and-explicit-native/VM-refinement-KAT-passes; charge-identical-observed-logical-resources; changed-program-uses-observed-generic-VM"
+body_execution_units = "OBS_UNITS-has-no-carried-route; checked-inventory-physical-count-at-most2389; source-owned-body-codec-v1-is-a-known-channel-transform-with-exact-declared202-charge-and-explicit-native/VM-refinement-KAT; this-is-not-acquisition-evidence"
+body_refinement = "compare-valid-malformed-padding-boundary-and-max-length-results-status-and-output-availability-against-generic202; neutral-body-compiler-only-implements-known-transform-specification-never-regenerates-full-route-lesson-or-carrier; no-SHA-equality-as-knowledge-use-proof; never-claim-native-shortcut-itself-supplies-carried-knowledge"
+required = "recover-every-required-body-before-full-content-v0-validation; invalid-required-exposes-neither-stream"
+all_only = "invalid-or-missing-all-only-may-expose-valid-required-with-degraded-artifact"
+diagnostic = "checked-foreign-or-uninventoried-sections-never-establish-profile8-catalog-or-content"
+no_inventory = "retain-only-observed-diagnostics-and-independently-checked-sections; no-invented-catalog-completeness"
+route_conflict = "enumerate-distinct-valid-routes; ambiguous-only-if-distinct-complete-checked-downstream-results-survive"
+
+[resource]
+counter_type = "u64"
+cache_changes_logical_charge = false
+section_attempt_limit = 4096
+attempt_eligibility = "deduplicated-complete-header-dependency-payload-and-declared-check-width-structure"
+attempt_charge_point = "immediately-before-stored-check-comparison"
+wrong_check_width_consumes_attempt = false
+wrong_stored_order_consumes_attempt = true
+lane_charge = "24*recipe30-exact-declared-steps-for-each-present-lane"
+repetition_charge = "1728*recipe113-exact-steps+24*recipe30-exact-steps-for-each-factor2-or5-group-with-any-present-lane"
+body_charge = "one-full-declared-recipe202-charge-per-invoked-compressed-body-per-logical-route-path; shared-required/all-body-decoded-once-within-that-path; raw-bodies-do-not-invoke202"
+route_charge = "every-worked-held-additional-and-mapping-recipe-actually-invoked-before-accept-or-first-stable-reject"
+aggregate_charge = "sum-all-logical-invocations-even-when-cached; checked-u64; no-invented-aggregate-per-recipe-cap"
+peak_scratch = "maximum-live-declared-recipe-and-adapter-state; include-body-decoder-buffers"
+global_exhaustion = "resource-limit-with-no-partial-canonical-result"
+program_rows_scope = "exact-static-resource-declarations-from-source-built-packages; not-measured-carrier-or-damage-limits"
+
+[decoder_result]
+schema = "golden-board.m2-damage-decoder-result/v2"
+schema_selection = "always-v2-under-this-owner-including-pre-profile-failure"
+profile_allowlist = [8, 2, 3, 4, 5, 6, 7]
+established_profile_allowlist = [8]
+shape = "inherit-v1-fields-and-status-meaning; profile-domain-v2; do-not-change-old-schema-admission"
+artifact_state_precedence = ["resource-limit", "ambiguous", "exact", "degraded", "failure"]
+resource_limit_projection = "empty-established-profile-sections-diagnostics-hypotheses; no-streams; only-channel-state-and-exact-resource-counters-remain"
+
+[[program_resource]]
+profile_version = 8
+profile_id = "eh72-hier-r5-r2-r1-lzss-crc32c-v1"
+recipe_id = 30
+package_sha256 = "4ef1abdc2f5d630af217b77e0f54766b8c9f98263d6b8482ed1f6e472c08abee"
+primitive_steps = 80435
+peak_scratch_bytes = 4613
+provenance = "source-built-compact-teaching-package; independent-Rust-byte-agreement"
+
+[[program_resource]]
+profile_version = 2
+profile_id = "eh72-r2-crc64-ecma-v0"
+recipe_id = 30
+package_sha256 = "cce1758613d7f10278533409e07103ae15162972fcf30030e17c233e39664011"
+primitive_steps = 80435
+peak_scratch_bytes = 4613
+provenance = "spec/damage-policy-v1.toml:decoder.fixture_resource_profile"
+
+[[program_resource]]
+profile_version = 3
+profile_id = "eh72-r3-crc32c-v0"
+recipe_id = 30
+package_sha256 = "8c91ba74f9bbed97aed89191e8d8d30a9a0c4d32bd5ac98b63a4c19ed71fb0e7"
+primitive_steps = 80435
+peak_scratch_bytes = 4613
+provenance = "spec/damage-policy-v1.toml:decoder.fixture_resource_profile"
+
+[[program_resource]]
+profile_version = 4
+profile_id = "eh72-r3-crc64-ecma-v0"
+recipe_id = 30
+package_sha256 = "de237fcd9d53581710404bd8b00152cb68f50adef48e715fdd4572e786bae4b8"
+primitive_steps = 80435
+peak_scratch_bytes = 4613
+provenance = "spec/damage-policy-v1.toml:decoder.fixture_resource_profile"
+
+[[program_resource]]
+profile_version = 5
+profile_id = "rs255-191-crc32c-v0"
+recipe_id = 30
+package_sha256 = "2dd94f23f63bd4fbeb8d56565a9cc9a7e0a2054d3483e364cfb60e7751058e91"
+primitive_steps = 1698049
+peak_scratch_bytes = 7688
+provenance = "spec/damage-policy-v1.toml:decoder.fixture_resource_profile"
+
+[[program_resource]]
+profile_version = 6
+profile_id = "rs255-191-crc64-ecma-v0"
+recipe_id = 30
+package_sha256 = "1c05a1f57394d292487f46561492619358fe2d12e42e3a20194d5917f351e555"
+primitive_steps = 1698049
+peak_scratch_bytes = 7688
+provenance = "spec/damage-policy-v1.toml:decoder.fixture_resource_profile"
+
+[[program_resource]]
+profile_version = 7
+profile_id = "eh72-hier-r5-r2-r1-crc32c-v0"
+recipe_id = 30
+package_sha256 = "4bd8e0d485ae6e6a65f4edc4ef2aaac9585a2bcd8c4623e44d69f1dad3b0ec8e"
+primitive_steps = 80435
+peak_scratch_bytes = 4613
+provenance = "spec/profile-policy-v1.toml:generated; spec/damage-policy-v1.toml:generated"
+
+[[program_resource]]
+profile_version = 8
+profile_id = "eh72-hier-r5-r2-r1-lzss-crc32c-v1"
+recipe_id = 113
+package_sha256 = "4ef1abdc2f5d630af217b77e0f54766b8c9f98263d6b8482ed1f6e472c08abee"
+primitive_steps = 24
+peak_scratch_bytes = 10
+provenance = "source-built-compact-teaching-package; independent-Rust-byte-agreement"
+
+[[program_resource]]
+profile_version = 7
+profile_id = "eh72-hier-r5-r2-r1-crc32c-v0"
+recipe_id = 113
+package_sha256 = "4bd8e0d485ae6e6a65f4edc4ef2aaac9585a2bcd8c4623e44d69f1dad3b0ec8e"
+primitive_steps = 24
+peak_scratch_bytes = 10
+provenance = "spec/damage-policy-v1.toml:generated"
+
+[[program_resource]]
+profile_version = 8
+profile_id = "eh72-hier-r5-r2-r1-lzss-crc32c-v1"
+recipe_id = 202
+package_sha256 = "4ef1abdc2f5d630af217b77e0f54766b8c9f98263d6b8482ed1f6e472c08abee"
+primitive_steps = 2375776
+peak_scratch_bytes = 98394
+provenance = "spec/body-recipe-v1.md; source-built-compact-teaching-package; independent-Rust-byte-agreement"

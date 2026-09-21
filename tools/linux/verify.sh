@@ -123,6 +123,13 @@ case "$host_snapshot_sha256" in
     *) fail 'host execution-snapshot identity is malformed' ;;
 esac
 
+# A partial revised transition must reject in v2, never enter the old path.
+if grep -F -x '| Roadmap revision | 11 |' "$ROOT/docs/roadmap.md" >/dev/null || \
+    [ -e "$ROOT/artifacts/history/m2-pre-participant-revision-v1" ] || \
+    [ -L "$ROOT/artifacts/history/m2-pre-participant-revision-v1" ]; then
+    exec sh "$SCRIPT_DIR/verify-v2.sh" "$ROOT" "$host_snapshot_sha256" "$image_id"
+fi
+
 report=$ROOT/reports/m2-feasibility-v0.json
 gate8=$ROOT/artifacts/gate8
 if [ ! -e "$report" ] && [ ! -e "$gate8" ]; then

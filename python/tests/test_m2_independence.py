@@ -5,7 +5,7 @@ from hashlib import sha256
 from pathlib import Path
 import unittest
 
-from golden_board import canonical_manifest, identity, m2_independence
+from golden_board import canonical_manifest, identity, m2_independence, m2_physical_v2
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -198,6 +198,25 @@ class M2IndependenceProof(unittest.TestCase):
                 schema = canonical_manifest.validate_canonical_manifest(
                     candidate_raw
                 )["schema"]
+                if schema == "golden-board.m2-candidate-manifest/v2":
+                    physical = canonical_manifest.validate_canonical_manifest(
+                        m2_physical_v2.build_physical_evidence_v2(
+                            candidate_raw,
+                            (base / "capacity-ledger.json").read_bytes(),
+                            ownership_raw,
+                            (base / "semantic-envelope.json").read_bytes(),
+                        )
+                    )
+                    self.assertEqual(
+                        tuple(row["witness_count"] for row in physical["predicate_rows"]),
+                        (3_297_856, 4_161_600, 863_744, 3_297_024,
+                         4_161_600, 2_688_768, 58_776, 1_098),
+                    )
+                    for row in physical["predicate_rows"]:
+                        with self.subTest(predicate=row["predicate_id"]):
+                            self.assertEqual(row["violation_count"], 0)
+                            self.assertEqual(row["result"], "pass")
+                    continue
                 if schema == "golden-board.m2-candidate-manifest/v1":
                     candidate = m2_independence._validate_candidate_v1(
                         candidate_raw, ownership_raw
@@ -224,6 +243,7 @@ class M2IndependenceProof(unittest.TestCase):
                         )
                     )
                     continue
+                self.assertEqual(schema, "golden-board.m2-candidate-manifest/v0")
                 candidate = m2_independence._validate_candidate(
                     candidate_raw, ownership_raw
                 )

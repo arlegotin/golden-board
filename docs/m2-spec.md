@@ -2,11 +2,28 @@
 
 | Field | Value |
 |---|---|
-| Status | Gates 1–7 remain exact for the sole R3 v7 candidate; gate 8 is reopened only for the acquired Linux verifier provenance refresh |
-| Roadmap | Revision 10, M2 Linux verifier provenance refresh |
+| Status | In progress; Gates 1–8 reopened; prior R3 results are historical |
+| Roadmap | Revision 11, M2 participant-driven semantic and transport revision |
 | Repository baseline | `0feaf4b559f48507f2457e6d203f25c969a98589` (`m2` branch) |
 | Prepared | 2026-08-20 |
 | Scope | Raw-symbol discovery, bootstrap notation, protected transport comparison, provisional full carrier, early technical reconstruction, and learner representation feasibility |
+
+**Revision 11 current scope:** M2 is In progress; Gates 1–8 reopen for the
+participant-driven semantic and transport revision. Prior R3 descriptions
+below are historical evidence, not current gate outcomes. M0/M1 and the
+512 KiB ceiling are unchanged. The archive-first transition is owned by
+[`spec/m2-participant-revision-transition-v1.md`](../spec/m2-participant-revision-transition-v1.md).
+Fresh production evidence and affected human validation remain pending.
+
+For this revision, the active source, evidence and lifecycle binding is
+[`spec/m2-participant-revision-promotion-v2.toml`](../spec/m2-participant-revision-promotion-v2.toml),
+with the exact report/bundle contract in
+[`spec/gate8-policy-v2.toml`](../spec/gate8-policy-v2.toml) and execution in
+[`spec/gate8-execution-v2.md`](../spec/gate8-execution-v2.md). Their explicit
+replacements govern the revised candidate; historical R1/R2/R3 descriptions,
+bytes and outcomes below remain preserved in their original domains. Section
+19.2 states the current report binding. No result in this source document
+advances the roadmap or substitutes for fresh production evidence.
 
 ## 1. Purpose, authority, and completion meaning
 
@@ -3041,6 +3058,83 @@ depends. Ordinary checks regenerate automated evidence in temporary storage and
 compare the tracked report fields; they never rewrite it.
 
 ### 19.2 Report schema
+
+#### Revision 11 current report and evidence binding
+
+This section remains the report-shape owner. For the revised M2 candidate,
+[`spec/gate8-policy-v2.toml`](../spec/gate8-policy-v2.toml) is incorporated by
+reference for its closed report keys, replacements, source identities,
+selection, metrics, bundles, generated-evidence projection and lifecycle.
+Its `report.base` reuses the row keys/types and top-level shapes below only
+where that owner does not explicitly replace them. The current schema is
+`m2-feasibility-v2`, the roadmap revision is 11, and the tracked path is
+`reports/m2-feasibility-v2.json`. Historical v0/R3 report and pilot projections
+in Sections 19.1–19.5 remain historical; they cannot be admitted as the current
+result. The exact roadmap-normative-v0 byte projection below is still reused.
+
+The active profile and unchanged policy ceilings come from
+`spec/profile-policy-v2.toml` and `spec/profile-limits-v2.toml`; promotion and
+unchanged gate order are bound by
+`spec/m2-participant-revision-promotion-v2.toml`. The current report derives
+exactly the v2 owner's 23 metrics from admitted current evidence. It retains
+the sole active candidate only after automated gates 1–8 pass. A failed gate
+leaves later unrun gates `not_evaluated`; no partial or losing run publishes a
+Candidate-ready report. Historical candidates remain distinct diagnostic or
+archive inputs, never alternative active finalists.
+
+The required evidence follows these owning boundaries:
+
+| Evidence | Exact owner |
+|---|---|
+| Independently source-built carrier, streams, capacity, ownership, density and static limits | `spec/static-projection-v2.md`, `spec/carrier-v2.md`, `spec/slice-v1.md` |
+| Actual observed prefixes, checked body envelopes and recovered required/all streams | `spec/recovery-provenance-v2.md` |
+| Finite carried relationship/use evidence from those observed bytes | `spec/knowledge-use-v2.md`, `spec/first-use-v2.md` |
+| Source-derived bounds and exact observed logical accounting | `spec/receiver-bounds-v2.md`, `spec/resource-accounting-v2.md` |
+| Full accidental damage, separate reauthored boundary probes and compact complete evidence | `spec/damage-corpus-v2.md`, `spec/damage-oracle-v2.md`, `spec/damage-replay-v2.md`, `spec/complete-damage-v2.md`, `spec/boundary-kat-v2.md` |
+| Fresh physical predicates and complete damage-promise binding | `spec/physical-evidence-v2.md`, `spec/complete-damage-v2.md` |
+| Four independent source-bound receipts, exact released files, comparison, selection and report | `spec/gate8-policy-v2.toml` |
+| Archive-first source replacement and fresh execution/publication | `spec/m2-participant-revision-transition-v1.md`, `spec/gate8-execution-v2.md` |
+
+The actual recovered required stream supplies the generic learner bundle;
+source-equivalent reconstructed bytes cannot replace observation recovery.
+The twelve unchanged final questions use authored intent and independent
+public-chess derivation under `spec/learner-assessment-v2.md`; their answers
+remain owner-only. `spec/runner-v1.md` preserves the old runner admission and
+derives revised command/output bounds from the validated stream. Technical
+recipient and owner files follow the v2 policy's exact roles and release order.
+Finite software checks and shared question authorship are not fresh human
+acquisition evidence.
+
+The source projection and generated-evidence manifest use their v2 closed
+schemas. The report binds all five semantic input identities and every
+normative-owner path named by the v2 policy. Generated file identities flatten
+the complete admitted candidate and Gate8 trees; source, receipts, report and
+roadmap are ordered so none hashes itself. The acquisition receipt proves the
+admitted environment only. Host/container execution-snapshot hashes are
+compared transiently and never inserted into the source-stable attestation.
+
+Current Candidate-ready output has empty technical/learner summary and
+administrative-count arrays, qualifying IDs `none`, and human gate 9
+`not_evaluated`. The v2 pilot object is exactly `validation-pending`. This
+binding introduces no human-success schema, form, timer or additional
+participant phase; fresh affected human validation remains necessary for M2.
+The historical participation and completed-trial material below is preserved,
+not reissued as revised participant instructions.
+
+Apply and verify the exact archive-first transition before replacing primary
+source. Keep its pending revision-11 roadmap unchanged during generation.
+After all source owners, code, tests and templates are final, fresh producers
+and assembly follow `spec/gate8-execution-v2.md`; install candidate, Gate8,
+report and derived roadmap status in that order. `scripts/check components`
+is only the non-Gate8 prerequisite suite. Revised `full` and `release` use the
+v2 coordinator; release requires fresh native and clean-Linux reproduction.
+No development comparison or retained historical pass enables handoff.
+
+#### Preserved v0 and R3 report contract
+
+The following text preserves its historical schemas, evidence and field
+meanings. Only the explicitly inherited shapes and roadmap projection above
+are reused by the current v2 report.
 
 `docs/m2-spec.md` Section 19.2 is the M2 report-shape owner. For the active R3
 candidate, the exact Gate-8-only paths, preimages, submanifest schemas, v1

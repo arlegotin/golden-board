@@ -1545,9 +1545,16 @@ def aggregate_replica_group(
 ) -> ReplicaGroupResult:
     """Return the fixed diagnostic projection of one v7 physical group."""
 
-    zero = bytes(COMMON_BYTES)
     if not _is_r3_profile(profile):
         raise CodecError("replica-profile")
+    return _aggregate_replica_group(profile.profile_version, profile.physical_replica_counts,
+                                    observations)
+
+
+def _aggregate_replica_group(expected_profile_version, physical_replica_counts,
+                             observations):
+    """Shared composition; public profile admission remains caller-owned."""
+    zero = bytes(COMMON_BYTES)
     if isinstance(observations, (bytes, bytearray, str)):
         raise CodecError("replicas-type")
     try:
@@ -1555,7 +1562,7 @@ def aggregate_replica_group(
     except TypeError as error:
         raise CodecError("replicas-type") from error
     factor = len(lanes)
-    if factor not in profile.physical_replica_counts:
+    if factor not in physical_replica_counts:
         raise CodecError("replica-count")
 
     valid: list[tuple[Recovery, bool]] = []
@@ -1582,7 +1589,7 @@ def aggregate_replica_group(
         normalized.append((bits, erased))
         try:
             result = _eh72_decode_unit(
-                lane.encoded, lane.erasures, profile.profile_version
+                lane.encoded, lane.erasures, expected_profile_version
             )
         except CodecError:
             result = Recovery("corrupt", None, 0)
@@ -1621,7 +1628,7 @@ def aggregate_replica_group(
             result = _eh72_decode_unit(
                 _bits_to_bytes(repetition_bits),
                 repetition_erasures,
-                profile.profile_version,
+                expected_profile_version,
             )
         except CodecError:
             result = Recovery("corrupt", None, 0)

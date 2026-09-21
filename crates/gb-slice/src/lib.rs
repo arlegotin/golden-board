@@ -1,5 +1,8 @@
 //! Independent, fail-closed compiler for the reviewed M2 semantic slice.
 
+pub mod v1;
+pub use v1::compile_slice_v1;
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 

@@ -1,0 +1,4 @@
+These files describe storage for the later observations only.
+Keep your clean-method files unchanged. If needed, add a thin input adapter
+and save it with its command in answers/adapter/. Tell the owner when ready.
+Do not change the interpretation to match a later input without saying so.

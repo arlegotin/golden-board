@@ -1,0 +1,22 @@
+Use this kit after its fresh release check has passed.
+
+1. Give the person recipient/01-clean/. Ask them to work out what the data
+   conveys, using its own evidence. Time, wrong starts and backtracking are
+   welcome. Save their working code, run command, notes and real outputs in
+   answers/clean/ outside the input folder.
+2. When they are ready, keep a copy of that submitted method. Give them
+   recipient/02-adapter/. They can add a storage adapter; save it and its
+   command in answers/adapter/, preserving the earlier method.
+3. Give recipient/03-heldouts/. Ask them to run the saved method separately
+   on a, b, c and d, and answer content-query.json from their actual clean
+   recovered output. Save outputs and notes in answers/heldout/a/ through d/
+   and answers/heldout/content-query/. Note any later interpretation changes.
+4. Give recipient/04-final-account/. Save their account in
+   answers/final-account.txt and collect the code, commands and actual outputs.
+
+The expected outputs are for your comparison after the person has worked.
+The optional export-format.md supplies conventions; if you give that help,
+note it in the existing answers. Supplied conventions are not independent
+discoveries. An incomplete but reproducible attempt is useful too.
+
+No names, dates, timers, consent forms, eligibility questions or extra quiz.

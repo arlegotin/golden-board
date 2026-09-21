@@ -1,0 +1,9 @@
+Read opening.md and allowed-tools.md, then examine observation.bits.
+storage.txt describes only how its binary symbols are stored in the file.
+
+Work out what the data conveys and explain how its own evidence supports
+your reading. Trying ideas, wrong starts and backtracking are welcome.
+Save working code, the command needed to run it, notes and actual outputs
+in answers/clean/ outside this input folder. Keep uncertainties and rival
+interpretations in your own words. An unfinished reproducible result is useful.
+Tell the owner when you are ready for the next inputs. No extra form is needed.

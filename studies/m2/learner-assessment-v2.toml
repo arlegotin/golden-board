@@ -1,0 +1,145 @@
+schema = "golden-board.m2-learner-assessment-source/v2"
+
+[[questions]]
+id = "final-grid"
+family = "grid"
+kind = "occupancy"
+prefix_kind = "game"
+prefix_value = ""
+prefix_plies = 7
+suffix = ""
+option_moves = []
+reverse = false
+page_ordinal = 53
+
+[[questions]]
+id = "final-turn"
+family = "turn"
+kind = "transition"
+prefix_kind = "literal"
+prefix_value = "b2b3"
+prefix_plies = 0
+suffix = ""
+option_moves = ["b1c3", "b8c6"]
+reverse = false
+page_ordinal = 54
+
+[[questions]]
+id = "final-sliding"
+family = "sliding"
+kind = "transition"
+prefix_kind = "literal"
+prefix_value = "g2g3 d7d5"
+prefix_plies = 0
+suffix = ""
+option_moves = ["f1h3", "f1h4"]
+reverse = false
+page_ordinal = 55
+
+[[questions]]
+id = "final-knight"
+family = "knight"
+kind = "transition"
+prefix_kind = "literal"
+prefix_value = "g1h3 e7e5"
+prefix_plies = 0
+suffix = ""
+option_moves = ["h3h5", "h3g5"]
+reverse = false
+page_ordinal = 56
+
+[[questions]]
+id = "final-capture"
+family = "capture"
+kind = "transition"
+prefix_kind = "literal"
+prefix_value = "g2g4 h7h5"
+prefix_plies = 0
+suffix = ""
+option_moves = ["g4h5", "g4f5"]
+reverse = false
+page_ordinal = 57
+
+[[questions]]
+id = "final-control"
+family = "attack"
+kind = "control"
+prefix_kind = "literal"
+prefix_value = "b2b3 e7e6"
+prefix_plies = 0
+suffix = ""
+option_moves = []
+reverse = true
+page_ordinal = 58
+
+[[questions]]
+id = "final-castling"
+family = "castling"
+kind = "transition"
+prefix_kind = "fixture"
+prefix_value = "castling-positive-second-kingside"
+prefix_plies = 0
+suffix = "a7a6 a2a3"
+option_moves = ["e8e6", "e8g8"]
+reverse = false
+page_ordinal = 59
+
+[[questions]]
+id = "final-en-passant"
+family = "en_passant"
+kind = "transition"
+prefix_kind = "literal"
+prefix_value = "e2e4 a7a6 e4e5 d7d5"
+prefix_plies = 0
+suffix = ""
+option_moves = ["e5d6", "e5f6"]
+reverse = false
+page_ordinal = 60
+
+[[questions]]
+id = "final-self-check"
+family = "self_check"
+kind = "transition"
+prefix_kind = "literal"
+prefix_value = "d2d4 e7e6 b1c3 f8b4"
+prefix_plies = 0
+suffix = ""
+option_moves = ["c3b5", "a2a3"]
+reverse = false
+page_ordinal = 61
+
+[[questions]]
+id = "final-promotion"
+family = "promotion"
+kind = "transition"
+prefix_kind = "fixture"
+prefix_value = "promotion-quiet-queen"
+prefix_plies = 0
+suffix = "g1f3 g8f6"
+option_moves = ["b7a8n", "b7a8"]
+reverse = false
+page_ordinal = 62
+
+[[questions]]
+id = "final-history"
+family = "history"
+kind = "history"
+prefix_kind = "literal"
+prefix_value = "b1a3 b8a6 a3b1 a6b8"
+prefix_plies = 0
+suffix = ""
+option_moves = []
+reverse = true
+page_ordinal = 63
+
+[[questions]]
+id = "final-game"
+family = "game"
+kind = "record_transition"
+prefix_kind = "game"
+prefix_value = ""
+prefix_plies = 5
+suffix = ""
+option_moves = ["g8f6"]
+reverse = true
+page_ordinal = 64

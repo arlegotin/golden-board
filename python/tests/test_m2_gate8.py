@@ -1266,8 +1266,18 @@ class M2Gate8CliLifecycle(unittest.TestCase):
                     path.unlink()
 
     def test_assembly_lifecycle_needs_no_retained_refresh_fixture(self) -> None:
-        with mock.patch.object(
-            self, "refresh_prior_values", side_effect=AssertionError("archive read")
+        read_bytes = Path.read_bytes
+
+        def historical_fixture_only(path: Path) -> bytes:
+            if path == ROOT / "docs/roadmap.md":
+                raise AssertionError("live roadmap read")
+            return read_bytes(path)
+
+        with (
+            mock.patch.object(
+                self, "refresh_prior_values", side_effect=AssertionError("archive read")
+            ),
+            mock.patch.object(Path, "read_bytes", historical_fixture_only),
         ):
             self.test_assembly_tree_is_report_last_idempotent_and_rolls_back()
 
@@ -2379,30 +2389,14 @@ class M2Gate8CliLifecycle(unittest.TestCase):
         report = canonical_manifest.serialize_manifest(
             {"schema": "m2-feasibility-v0"}
         )
-        pre_roadmap = (ROOT / "docs/roadmap.md").read_bytes()
-        policy = m2_gate8.load_gate8_policy(
-            (ROOT / "spec/gate8-policy-v0.toml").read_bytes()
-        )
-        transition = policy["roadmap_transition"]
-        pending_sentence = transition["pre_gate8_terminal_sentence"].encode()
-        if b"| Project state | Candidate ready |\n" in pre_roadmap:
-            lines = pre_roadmap.splitlines(keepends=True)
-            prefix = "| M2 — Full-carrier bootstrap and transport feasibility | ".encode()
-            rows = [i for i, line in enumerate(lines) if line.startswith(prefix)]
-            self.assertEqual(len(rows), 1)
-            row = lines[rows[0]]
-            start = row.index(b"The candidate passes gates 1")
-            self.assertTrue(row.endswith(b" |\n"))
-            lines[rows[0]] = (
-                row[:start].replace(
-                    "Candidate ready — independent validation pending".encode(),
-                    b"In progress", 1,
-                ) + pending_sentence + b" |\n"
-            )
-            pre_roadmap = b"".join(lines).replace(
-                b"| Project state | Candidate ready |\n",
-                b"| Project state | In progress |\n", 1,
-            )
+        # Historical v0 admission pins this complete revision-10 preimage.
+        # The fixture is the roadmap at 3779f391a2e93ef428c84ae62ea7cbc94e84a0e8
+        # with only the v0-owned Candidate-ready status transition reversed.
+        # It is test input, never current authority or a retained evidence read.
+        pre_roadmap = (
+            ROOT / "python/tests/fixtures/m2-pre-gate8-roadmap-v10.md"
+        ).read_bytes()
+        self.assertEqual(len(pre_roadmap), 189_838)
         self.assertEqual(
             hashlib.sha256(pre_roadmap).hexdigest(),
             "153f66d0713c04d357c3bf980b3fde1feae328d7751099e5c9bb019c6f98b1f1",
