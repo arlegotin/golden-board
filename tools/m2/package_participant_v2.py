@@ -1,7 +1,9 @@
 """Revised participant preimages from fresh own-language source/recovery.
 
-No publication or human pass occurs here. The production coordinator calls
-this only after the automated prerequisites and validates both complete kits.
+No publication or human pass occurs here. The production coordinator validates
+both complete kits after its automated prerequisites. Provisional trials may
+use these same builders after focused readiness under participant-trials-v1;
+packaging alone grants neither trial readiness nor final qualification.
 """
 from hashlib import sha256
 from pathlib import Path

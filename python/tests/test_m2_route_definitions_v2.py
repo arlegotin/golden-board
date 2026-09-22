@@ -25,7 +25,7 @@ class RouteDefinitions(unittest.TestCase):
     def test_exact_finite_shape_and_fresh_immutable_records(self):
         self.assertEqual(tuple(r.fact_id for r in self.rows), tuple(range(1, 13)))
         self.assertEqual(tuple(len(r.value) for r in self.rows),
-                         (16,64,96,296,226,210,636,544,464,294,314,2421))
+                         (16,64,96,296,226,210,636,544,464,430,314,2421))
         again = build_route_definitions_v2(self.compiled, self.source)
         self.assertEqual(again, self.rows)
         self.assertIsNot(again[0], self.rows[0])
@@ -84,6 +84,40 @@ class RouteDefinitions(unittest.TestCase):
         self.assertEqual(rows[4][-2:], b'\0\1')
         self.assertEqual(rows[5][-2:], b'\1\0')
         self.assertEqual(rows[8][-3:], b'\0\0\0')
+
+    def test_group_trace_connects_physical_allocation_raw_unknowns_and_decision(self):
+        from golden_board.m2_teaching_recipe_v2 import build_teaching_recipe_package
+        from golden_board.m2_transport_v2 import aggregate_replica_group
+        value = self.rows[9].value
+        self.assertEqual(len(value),430,'Missing runnable recovery traces')
+        self.assertEqual(tuple(int.from_bytes(value[i:i+4],'big') for i in range(48,72,4)),
+                         (400,0,1,5,11,15))
+        a = self.rows[6].value[134:325]
+        encoded = self.rows[7].value[112:328]
+        lanes = []
+        for first,count in zip(value[402:412:2],value[403:412:2],strict=True):
+            unknown = tuple(range(first,first+count))
+            lane = bytearray(encoded)
+            for bit in unknown:
+                lane[bit//8] &= ~(1 << (7-bit%8))
+            lanes.append(m2_codec.CopyObservation(bytes(lane),unknown))
+        recovered = aggregate_replica_group(lanes)
+        self.assertEqual(recovered.lane_states,(1,)*5)
+        self.assertEqual(recovered.repetition_block,a)
+        self.assertEqual(recovered.group_state,3)
+        guessed = aggregate_replica_group(tuple(m2_codec.CopyObservation(lane.encoded,()) for lane in lanes))
+        self.assertEqual(guessed.lane_states,(1,)*5)
+        self.assertEqual((guessed.repetition_state,guessed.group_state),(1,1))
+        self.assertNotEqual(guessed.repetition_block,a)
+        self.assertEqual(value[412:],bytes((0,0,0,0,0,1,1,0,1,1,3,1,1,1,1,1,1,3)))
+        package = recipe_wire_v1.decode_recipe_package_v1(build_teaching_recipe_package(),8)
+        for start in (*range(294,402,12),412):
+            trace = value[start:start+12]
+            result = recipe_wire_v1.evaluate_recipe_v1(package,110,
+                tuple(bytes((v,)) for v in trace[:9]))
+            self.assertEqual((result.status,b''.join(result.outputs)),(0,trace[9:]))
+        self.assertEqual(value[351:354],bytes((3,4,0)))
+        self.assertEqual(value[363:366],bytes((2,3,1)))
 
     def test_mutations_separate_local_crc_from_envelope_identity(self):
         value = self.rows[6].value

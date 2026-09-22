@@ -33,7 +33,12 @@ Caches replay the same logical charge; they never discount it.
   changed mapping program's universal refinement.
   Route2's exact admission order is package parse, mapping/transport closure
   refinement, carried record examples, table17/smallest-multiplier search,
-  the three mapping109 calls, then local DEFINE validation. Legacy routes0/1
+  the three mapping109 calls, the ten fact10 embedded110 traces in their
+  carried order, then local DEFINE validation. Each embedded call charges
+  its full observed program and route-example adapter cost before execution;
+  a failure retains that charge and stops the remaining schedule. The32
+  framed WORKED/HELD_OUT records remain32; embedded traces are additional
+  observed calls, not invented framed records. Legacy routes0/1
   have no program-refinement kernel event.
 * At most64 complete valid route paths proceed to transport. The attempted65th
   path is global resource-limit, after retaining prior discovery costs. Every
@@ -145,7 +150,7 @@ source-owned bounds and fail-closed checks:
 | route-frame | bounded observed prefix parser; prefix bytes |
 | recipe-parse | complete compact/logical semantic validation; wire bytes |
 | program-refinement | observed transitive closure comparisons; logical nodes |
-| route-example | each worked/held/additional/mapping call adapter; input bytes |
+| route-example | each worked/held/additional/mapping/embedded-group call adapter; input bytes |
 | definition-validation | complete local numeric relationship validator; DEFINE bytes |
 | mapping-search | bounded smallest-multiplier search; candidate/distance tests |
 | unit-extraction | affine gathering and erasure conversion; encoded cells |

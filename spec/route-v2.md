@@ -31,6 +31,10 @@ bootstrap-v1 fact graph, except:
   all sectors. Its interface and literal outputs replace recipe106's pair.
 - Fact 9 retains its exact sector input values but derives profile-8 outputs
   with the new offset. No profile-7 output is relabeled.
+- Fact10's pair executes active recipe110 on the conflict and REP-only traces
+  in its own DEFINE, identically in all four sectors. Derive its inputs from
+  the actual damaged-lane constructions; its output is union/state/acceptance.
+  The former integer-concatenation pair remains historical.
 - Append the six `additional` rows of recipe-teaching-v2.toml immediately
   after fact6's primary pair, in source order. Their IDs end in 10..15 and
   their kinds are WORKED, HELD_OUT, WORKED, HELD_OUT, WORKED, HELD_OUT.
@@ -48,7 +52,7 @@ must decode exactly to their original source after prescribed corruption.
 
 Exactly one PACKAGE record follows the facts, stage5/id sector*10000+6001.
 It contains the complete compact profile-8 package: all inherited programs
-except the now-unused106 (109 uses profile8), body recipes201–203, teaching recipes210–214, and all
+except the now-unused106 (109 uses profile8 and110 is the active group decision), body recipes201–203, teaching recipes210–214, and all
 their tables including21, each in increasing ID order. Version2 has **no
 standalone TABLE records**: every table is already fully framed and carried
 once inside that complete package. This is an explicit removal of redundant
@@ -56,6 +60,16 @@ copies, not table omission or a reference to host data. Fact5 teaches those
 package/table boundaries. Then emit the unchanged stage5 endpoint record
 id7001 (u32 section1) and end record id7002 (empty), relative to sector base.
 There are exactly47 records before any separately owned further extension.
+
+Observed admission also executes all ten12-byte decision traces embedded in
+fact10, with the active observed110, after its three mapping109 calls and
+before local definition validation. Every trace includes its nine one-byte
+inputs and three result bytes; prepend status0 for comparison. The primary
+fact10 pair must be the conflict/REP-only rows of that same DEFINE. Independently
+validate that each trace derives from its actual common blocks, damaged or
+erased lane observations and physical identity. A VM-consistent invented trace
+is insufficient. All45 route VM calls are charged under resource-accounting-v2;
+the32 framed example count and existing receiver bounds are unchanged.
 
 The exact29-recipe set is owned by recipe-teaching-v2. Omission of106 does
 not alter its historical/base packages or permit omission of any live recipe.

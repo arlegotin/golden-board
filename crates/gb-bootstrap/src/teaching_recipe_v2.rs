@@ -143,10 +143,10 @@ fn parse(source: &[u8]) -> Result<Source> {
     let mut builders = Vec::new();
     let mut steps = BTreeMap::<u16, u64>::new();
     let mut interfaces = BTreeMap::from([(105, vec![Shape::uint(32)])]);
-    for (index, value) in bounded_array(&root["recipes"], 5, 5)?.iter().enumerate() {
+    for (index, value) in bounded_array(&root["recipes"], 6, 6)?.iter().enumerate() {
         let row = exact_table(value, &["id", "inputs", "outputs", "nodes"])?;
         let id = number(&row["id"])?;
-        if id != 210 + index as u64 {
+        if id != [110, 210, 211, 212, 213, 214][index] {
             return Err(invalid());
         }
         let id = id as u16;
@@ -265,11 +265,13 @@ pub fn build_teaching_recipe_package_from_source(source: &[u8]) -> Result<Vec<u8
     tables.push(source.table);
     tables.sort_by_key(|row| row.0);
     let mut recipes = Vec::new();
-    for builder in revision_recipe_builders()
+    let mut builders: Vec<_> = revision_recipe_builders()
         .into_iter()
-        .filter(|builder| builder.id != 106)
+        .filter(|builder| ![106, 110].contains(&builder.id))
         .chain(source.builders)
-    {
+        .collect();
+    builders.sort_by_key(|builder| builder.id);
+    for builder in builders {
         recipes.push(finalize(builder, &recipes));
     }
     let expanded = encode_package_with_tables(8, &recipes, tables);

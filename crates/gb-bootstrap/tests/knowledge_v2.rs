@@ -15,7 +15,7 @@ impl Fixture {
     fn inputs(&self) -> KnowledgeInputs<'_> {
         KnowledgeInputs {
             prefixes: self.prefixes.each_ref().map(Vec::as_slice),
-            side: 2040,
+            side: 2048,
             width: 112,
             required_stream: &self.required,
             all_stream: &self.all,

@@ -7,7 +7,7 @@ from .m2_resources_v2 import (
     ADAPTER_KERNELS, RESOURCE_OWNER_SHA256, checked, add, multiply, content_workspace,
 )
 
-BOUNDS_OWNER_SHA256 = '7f9a8dfc96739ad9d97b42dd0c58a1fef4d325012319fc938c73939720c19951'
+BOUNDS_OWNER_SHA256 = '7b1d9ded63816f502e4d8c2196c1c4fb13beee59d3094d12828a76ae912fa2e9'
 _PATHS = ('spec/profile-policy-v2.toml', 'spec/profile-limits-v2.toml',
           'spec/damage-policy-v2.toml', 'spec/resource-accounting-v2.md',
           'spec/receiver-bounds-v2.md')

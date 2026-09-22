@@ -32,7 +32,7 @@ class CarriedKnowledge(unittest.TestCase):
             cursor=end
         cls.bodies={row.section_id:b''.join(frames[rid] for rid in row.record_ids)
                     for row in cls.compiled.atomic_assignments if row.section_id in (100,200)}
-        cls.arguments=dict(side=2040,width=112,
+        cls.arguments=dict(side=2048,width=112,
             required_stream=cls.compiled.required_content_bytes,
             all_stream=raw,body_payloads=cls.bodies)
         with (patch('builtins.open',side_effect=AssertionError('source access')),

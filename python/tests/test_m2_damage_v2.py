@@ -25,8 +25,8 @@ class RevisedDamageObservations(unittest.TestCase):
 
     def test_counts_domains_and_lazy_case_identity(self):
         corpus = self.corpus
-        self.assertEqual(corpus.family_counts,(16,4,256,128,1908,21,7632,415))
-        self.assertEqual(sum(corpus.family_counts),10380)
+        self.assertEqual(corpus.family_counts,(16,4,256,128,1925,21,7700,415))
+        self.assertEqual(sum(corpus.family_counts),10465)
         self.assertEqual(corpus.boundary_count,21)
         for family,ordinal in (('D0',True),('D8',0),('D0',16),('D7',415),('D3',-1)):
             with self.subTest(family=family,ordinal=ordinal), self.assertRaises(ValueError):
@@ -41,8 +41,8 @@ class RevisedDamageObservations(unittest.TestCase):
     def test_omission_and_ordering_use_physical_ids(self):
         from golden_board.m2_decoder import _parse_units
         corpus = self.corpus
-        omitted = _parse_units(corpus.case('D4',1907).observation,2389)
-        self.assertEqual(tuple(row.unit_id for row in omitted),tuple(range(1,1908)))
+        omitted = _parse_units(corpus.case('D4',1924).observation,2389)
+        self.assertEqual(tuple(row.unit_id for row in omitted),tuple(range(1,1925)))
         expected = corpus.case('D5',0).observation
         for ordinal in (1,2,3,4,5,20):
             units = _parse_units(corpus.case('D5',ordinal).observation,2389)
@@ -55,7 +55,7 @@ class RevisedDamageObservations(unittest.TestCase):
         combined = corpus.case('D6',0).observation[2:]
         self.assertEqual(first.count(2),corpus.width*(corpus.side-corpus.width))
         self.assertEqual(combined.count(2)-first.count(2),1728)
-        for ordinal in (1,1907,1908,0):
+        for ordinal in (1,1924,1925,0):
             another = corpus.case('D6',ordinal).observation[2:]
             self.assertEqual(another.count(2),corpus.width*(corpus.side-corpus.width)+1728)
         self.assertEqual(corpus.case('D6',0).observation[2:],combined)
@@ -63,8 +63,8 @@ class RevisedDamageObservations(unittest.TestCase):
             base = corpus.damage_coordinates(ordinal)
             extra = corpus.damage_coordinates(ordinal,1)
             self.assertEqual(extra[:-1],base)
-            self.assertEqual(len(base),1649)
-            self.assertEqual(len(set(extra)),1650)
+            self.assertEqual(len(base),1664)
+            self.assertEqual(len(set(extra)),1665)
 
     def test_new_compressed_cases_keep_integrity_but_reject_codec(self):
         from golden_board import body_codec_v1

@@ -147,8 +147,13 @@ rejects. Check mode writes no canonical path. Historical v0 dispatch stays exact
 
 Release runs the full host and clean-Linux flow afresh against the installed
 revision and verifies unchanged source, report, complete evidence and roadmap.
-Only a successful release enables the existing simple participant handoff.
-Fresh qualifying human evidence is still required to finish M2.
+Successful release remains required for final acceptance. Participant exposure
+instead defaults to the focused readiness and frozen provisional-trial rules
+in `m2-participant-trials-v1.md`; it can precede exhaustive production. A human
+success remains pending until its exact final candidate passes every gate and
+the preserved trial bindings reconcile. Fresh qualifying human evidence is
+still required to finish M2. This changes scheduling, not these commands' work
+or receipt admission, and does not add a shortcut to bootstrap/full/release.
 
 Coordinator commands `bootstrap`, `full` and `release` take no additional
 arguments. Each owns its actual component-check exit and fresh native pair.

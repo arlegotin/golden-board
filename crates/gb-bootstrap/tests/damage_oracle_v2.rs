@@ -290,7 +290,7 @@ fn admitted_bootstrap_context_retains_five_physical_positions_before_inventory()
     for ordinal in [0, 11, 16, 401, 402, 414] {
         let case = corpus.case("D7", ordinal).unwrap();
         let value = oracle.project("D7", ordinal, case.bytes()).unwrap();
-        assert_eq!(value.fragments().len(), 1908, "D7-{ordinal}");
+        assert_eq!(value.fragments().len(), 1925, "D7-{ordinal}");
         for (index, row) in value.fragments()[..5].iter().enumerate() {
             assert_eq!(row.input_id, index as u32 + 1);
             assert_eq!(

@@ -33,10 +33,14 @@ def _case(package, recipe_id, inputs, expected):
             + len(actual).to_bytes(4, 'big') + incoming + actual)
 
 
-def _primary(package, fact, sector, held):
+def _primary(package, fact, sector, held, definition):
     if fact.fact_id == 6:
         row = teaching_examples()[int(held)]
         return _case(package, row.recipe_id, row.inputs, row.output)
+    if fact.fact_id == 10:
+        start = 294+12*(4+int(held))
+        trace = definition.value[start:start+12]
+        return _case(package,110,tuple(bytes((v,)) for v in trace[:9]),b'\0\0'+trace[9:])
     source = fact.held_source if held else fact.worked_source
     per_sector = fact.held_sector_sources if held else fact.worked_sector_sources
     incoming = per_sector[sector] if per_sector else old._mask_input(
@@ -85,7 +89,7 @@ def _build(compiled):
                        + definition.value)
             append(fact.stage, 1, 100*fid+1, payload, f'define:{fid}')
             for held in (False, True):
-                payload = fid.to_bytes(2, 'big') + _primary(package, fact, sector, held)
+                payload = fid.to_bytes(2, 'big') + _primary(package, fact, sector, held, definition)
                 append(fact.stage, 3 if held else 2, 100*fid+2+int(held), payload,
                        f'{"held-out" if held else "worked"}:{fid}')
             if fid == 6:

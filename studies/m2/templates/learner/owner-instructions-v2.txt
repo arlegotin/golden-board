@@ -1,4 +1,8 @@
-Give the recipient directory only after the exact fresh release is ready.
+Use the focused-checked, frozen lesson from a successful provisional or qualifying
+technical recovery, following spec/m2-participant-trials-v1.md. Full release may
+follow. Preserve the exact lesson, evaluation and conditions before exposure;
+a successful blind result remains provisional until final checks and matching
+candidate bindings pass. An already released matching kit can also be used.
 Keep this owner directory and its evaluation out of the recipient files.
 
 Invite the person to explore, try ideas, make mistakes and revisit examples.

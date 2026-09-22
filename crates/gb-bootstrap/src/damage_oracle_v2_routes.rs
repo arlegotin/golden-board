@@ -583,6 +583,20 @@ impl<'a> DiscoveryScanner<'a> {
                         && shape.output_bytes == 16_388
                         && shape.descriptors == 5,
                 )?;
+                let group = program
+                    .recipe_records
+                    .get(&110)
+                    .ok_or(ScanError::Unavailable)?;
+                need(n16(group, 4)? == 9 && n16(group, 6)? == 4)?;
+                for (index, (kind, width)) in [(0, 2); 6]
+                    .into_iter()
+                    .chain([(1, 1); 3])
+                    .chain([(5, 16), (0, 2), (0, 8), (1, 1)])
+                    .enumerate()
+                {
+                    let at = 32 + 12 * index;
+                    need(group.get(at + 2) == Some(&kind) && n32(group, at + 4)? == width)?;
+                }
             }
             for row in rows.iter().filter(|r| r.kind == 4) {
                 let id = n16(&row.payload, 0)?;
@@ -619,6 +633,14 @@ impl<'a> DiscoveryScanner<'a> {
                     )?;
                     let input = take(&row.payload, 12, input_length)?;
                     let expected_output = take(&row.payload, 12 + input_length, output_length)?;
+                    if version == 2 && fact == 10 {
+                        let definition = definitions.get(9).ok_or(ScanError::Unavailable)?;
+                        let start = 294 + 12 * if row.kind == 2 { 4 } else { 5 };
+                        let trace = take(definition, start, 12)?;
+                        let mut expected = vec![0, 0];
+                        expected.extend(&trace[9..]);
+                        need(input == &trace[..9] && expected_output == expected)?;
+                    }
                     let inputs = examples.entry(fact).or_default();
                     need(!inputs.iter().any(|old| old.as_slice() == input))?;
                     inputs.push(input.to_vec());
@@ -642,6 +664,13 @@ impl<'a> DiscoveryScanner<'a> {
                 need(actual == expected)?;
             }
             if version == 2 {
+                let definition = definitions.get(9).ok_or(ScanError::Unavailable)?;
+                for start in (0..9).map(|index| 294 + index * 12).chain([412]) {
+                    let trace = take(definition, start, 12)?;
+                    let mut expected = vec![0, 0];
+                    expected.extend(&trace[9..]);
+                    need(self.call(&program, 110, &trace[..9], ledger)? == expected)?;
+                }
                 let total = definitions.iter().map(|v| v.len() as u64).sum::<u64>();
                 ledger.adapter(
                     Kernel::DefinitionValidation,

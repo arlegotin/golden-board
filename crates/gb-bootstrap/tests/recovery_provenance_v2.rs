@@ -107,8 +107,8 @@ fn rebound_carrier_with_all_route_calibrations_corrupt_has_no_source_fallback() 
     let mut d = fixture().clone();
     let mut candidate = validate_canonical_manifest(&d[1]).unwrap();
     for sector in 0..4 {
-        let (r, c) = gb_bootstrap::sector_cell_at(2040, 112, sector, 0).unwrap();
-        let flat = r * 2040 + c;
+        let (r, c) = gb_bootstrap::sector_cell_at(2048, 112, sector, 0).unwrap();
+        let flat = r * 2048 + c;
         d[0][4 + flat / 8] ^= 1 << (7 - flat % 8);
     }
     rebind(&mut d, &mut candidate);
@@ -130,8 +130,8 @@ fn actual_recovery_feeds_both_evidence_producers() {
     assert_eq!(e.bodies().len(), 78);
     assert_eq!(e.required_stream().len(), 42432);
     assert_eq!(e.all_stream().len(), 55664);
-    assert!(e.prefixes().iter().all(|p| p.len() == 25285));
-    assert_eq!(e.first_use().len(), 126923);
+    assert!(e.prefixes().iter().all(|p| p.len() == 25809));
+    assert_eq!(e.first_use().len(), 129784);
     obj(&mut v).insert("result".into(), V::String("failure".into()));
     assert!(validate_recovery_provenance_v2(&serialize_manifest(&v).unwrap(), input(d)).is_err());
     // Optional development comparison export; never consumed as a test input.

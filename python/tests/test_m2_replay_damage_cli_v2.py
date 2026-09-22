@@ -77,11 +77,17 @@ class ReplayDamageCliV2(unittest.TestCase):
         self.assertEqual(keys[0],('D0',0));self.assertEqual(keys[-1],('B0',20))
         self.assertEqual(tuple(sum(f==family for f,_ in keys) for family in tool.FAMILIES),counts+(21,))
         selected=tool.case_keys(counts,21,'preflight')
-        self.assertEqual(len(selected),38)
-        self.assertEqual(len(set(selected)),38)
+        self.assertEqual(len(selected),39)
+        self.assertEqual(len(set(selected)),39)
         for args in ((counts[:-1],21,'all'),(counts,True,'all'),(counts,21,'partial'),
                      ((True,)+counts[1:],21,'all'),(counts,20,'all')):
             with self.subTest(args=args),self.assertRaises(ValueError):tool.case_keys(*args)
+
+    def test_focused_replay_covers_every_participant_observation(self):
+        from tools.m2.package_technical_preview_v2 import CASES
+        selected=tool.case_keys((16,4,256,128,1908,21,7632,415),21,'preflight')
+        self.assertEqual(set(CASES)-set(selected),set(),
+                         'An observation handed to a participant escaped focused validation')
 
     def test_stage_is_removed_on_error_and_existing_destination_is_preserved(self):
         with tempfile.TemporaryDirectory() as directory:

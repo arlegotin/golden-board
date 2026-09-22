@@ -37,3 +37,23 @@ original quiz material are archived before authority changes, under
 is excluded from the revised active set. No new gate result or fresh human
 success is asserted; fresh production and affected human evidence remain
 pending. The archive is internal provenance, not participant material.
+
+## 2026-09-22 — M2 tests teaching before exhaustive verification
+
+The owner requested a shorter feedback loop after two participant rounds
+exposed teaching gaps following multi-day verification. M2 now defaults to
+repair, focused checks of the actual carrier and every participant observation,
+a frozen provisional trial, then feedback. Once the required trials succeed on
+a stable candidate, complete all damage, native/Linux, physical, assembly and
+release requirements. A preserved blind success can qualify afterward only
+against matching final source, materials, expected results and conditions.
+Formative/helped work and exhausted unchanged-candidate retries retain their
+original meanings. No final gate or participant threshold is weakened.
+
+The smallest workflow owner is
+[`spec/m2-participant-trials-v1.md`](../spec/m2-participant-trials-v1.md).
+The prior validated v2 tuple is archived before source edits under
+`artifacts/history/m2-v2-before-provisional-trials-v1`; active authority is back
+to the existing In-progress roadmap. Original submissions are unchanged. This
+workflow change itself runs focused checks, not another exhaustive release;
+the next task is the documented recovery-teaching repair.

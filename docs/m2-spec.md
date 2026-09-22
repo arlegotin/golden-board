@@ -25,6 +25,17 @@ bytes and outcomes below remain preserved in their original domains. Section
 19.2 states the current report binding. No result in this source document
 advances the roadmap or substitutes for fresh production evidence.
 
+**Default participant iteration:**
+[`spec/m2-participant-trials-v1.md`](../spec/m2-participant-trials-v1.md)
+permits a frozen provisional blind trial after focused source/clean/held-out
+checks, before exhaustive damage, Gate8 or release. Failed trials return directly
+to repair. Successful technical and exact-stream learner trials remain pending
+until the same stable candidate passes every final automated gate and its trial
+bindings reconcile. This explicitly supersedes release-before-exposure ordering
+in the historical sections below, without changing final thresholds, freshness,
+assistance, saved-method checkpoints or retry limits. No names, dates, timers,
+agreements or new participant forms are introduced.
+
 ## 1. Purpose, authority, and completion meaning
 
 This document turns roadmap M2 into an executable development contract. It is
@@ -2657,6 +2668,12 @@ No hidden help is traded for a favorable time result.
 
 ### 16.7 Clean checkpoint and held-outs
 
+For the active revision, pre-exposure automated readiness and provisional
+qualification follow `spec/m2-participant-trials-v1.md`. Full release is not an
+entry requirement. The saved-method boundary and staged information below remain
+mandatory; the active no-timers/no-forms participant policy supersedes historical
+administrative clock wording.
+
 The unit first receives only the clean `OBS_BITS` reconstruction question. When
 it declares the decoder ready—or at the first of 12 unit-active hours or five
 elapsed days—the facilitator makes **checkpoint A** by copying and SHA-256
@@ -2744,6 +2761,13 @@ Retrospective recollection supports design diagnosis; it is not proof of the
 exact cognitive path.
 
 ### 16.10 Pass and retry rule
+
+A successful predeclared provisional blind trial can qualify after complete
+automated verification of its matching final candidate; it need not be repeated
+solely because those checks ran later. Preserve its source/package, expected
+results and conditions and reconcile them under `spec/m2-participant-trials-v1.md`.
+Until then its result is pending. Formative or helped work cannot be relabeled,
+and changing the workflow does not reset an exhausted unchanged-candidate retry.
 
 A result-bearing round passes only when all roadmap tasks succeed within the
 envelope, the evaluator reproduces the submitted outputs, critical hints are

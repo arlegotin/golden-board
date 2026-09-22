@@ -25,13 +25,13 @@ class NumericRouteSemantics(unittest.TestCase):
             'reports/game-set-v0.bin', 'spec/content-v0.md',
             'spec/constants-v0.toml', 'spec/curriculum-v0.toml')))
         cls.route = decode_observed_route_v2(
-            build_route_prefixes_v2(cls.compiled)[0], 2040, 112, 0)
+            build_route_prefixes_v2(cls.compiled)[0], 2048, 112, 0)
 
     def validate(self, definitions=None, package=None):
         return validate_local_definitions(
             self.route.definitions if definitions is None else definitions,
             self.route.package if package is None else package,
-            side=2040, width=112, sector=0)
+            side=2048, width=112, sector=0)
 
     def test_observed_facts_then_recovered_context_without_source_access(self):
         with patch('builtins.open', side_effect=AssertionError('source access')):
@@ -52,6 +52,17 @@ class NumericRouteSemantics(unittest.TestCase):
             raw[-1] ^= 1
             definitions[index] = bytes(raw)
             with self.subTest(fact=index+1), self.assertRaises(DecoderError):
+                self.validate(tuple(definitions))
+
+    def test_group_traces_bind_raw_candidates_identity_and_unknown_symbols(self):
+        # Keep framing intact while changing a derived mask, identity outcome,
+        # or erased-range construction. No VM call is needed to detect a lie.
+        for offset in (294+12*4+5,294+12*8+8,402,412+5,429):
+            definitions = list(self.route.definitions)
+            raw = bytearray(definitions[9])
+            raw[offset] ^= 1
+            definitions[9] = bytes(raw)
+            with self.subTest(offset=offset), self.assertRaises(DecoderError):
                 self.validate(tuple(definitions))
 
     def test_context_claim_is_deferred_then_bound_to_actual_stream(self):

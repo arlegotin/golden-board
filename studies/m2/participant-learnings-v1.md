@@ -16,6 +16,49 @@ and assessment audit. The detailed local audit is
 `artifacts/work/participant-revision/all-participant-findings.md`. Original
 submissions and exposed packets are not rewritten to match this revision.
 
+## Recovery-teaching repair after revised technical trials 08 and 10
+
+The later trials preserve the earlier findings below and sharpen C05. Trial10
+independently recovered the clean carrier, both exact streams and all136
+sections, implemented the VM/decompression, answered all12 technical predictions,
+and reconstructed the queried canonical67-byte position correctly. Those are
+substantial successes. Its saved method plus thin adapter did not recover the
+held-out observations: the gaps were local-check handling, unknown symbols and
+the observation-to-unit bridge. Its subsequent CRC-guided recovery program
+recovered useful results but changed the saved method after that checkpoint.
+Trial08's helped continuation independently demonstrates that the all-lane/raw
+repetition procedure can be acquired after explicit guidance. Neither result
+qualifies the earlier saved-method checkpoint. Detailed unaltered answers and
+analysis remain in the08/10 quiz folders.
+
+The old primary fact10 VM example merely concatenated integers; executing it
+did not exercise the group decision described elsewhere in the carried bytes.
+The repair replaces only active teaching recipe110 with a finite executable
+decision and links it to actual whole-block constructions. It keeps all lane
+and raw-repetition candidates, compares complete checked191-byte values,
+deduplicates identical values, rejects conflicts and checks expected physical
+identity. A new five-lane erasure construction makes each individual lane fail
+while original known/unknown symbols still recover A through repetition.
+Unknown stored zeroes never become known observations. The physical allocation
+example now names the same section400 as its actual A/B blocks.
+
+All ten carried decision traces are independently reconstructed and executed
+by the observed VM in both implementations; every execution is charged. The
+finite two-class example is not a complete carrier decoder or a widened error
+correction promise. Clean/content/lesson teaching and all previous obligations
+remain. Extra effort, trials, backtracking and multiple sessions remain welcome;
+the next blind trial tests whether the revised material teaches the complete
+procedure before the held-outs, rather than testing speed.
+
+Use the default focused-check/provisional-trial order in
+`spec/m2-participant-trials-v1.md`. After focused readiness, a fresh participant
+receives the normal four stages without extra hints or forms. Exhaustive damage,
+native/Linux production and release wait for stable provisional success. All
+carrier identities and full-run measurements below are historical checkpoints
+of the preceding revision; they do not validate this edited source. Current
+focused results and exact handoff identities belong in the next frozen trial's
+ordinary owner notes. M2 remains In progress; no new human pass is claimed.
+
 ## What the successful trials establish
 
 - The original four stages established real partial route/recipe discoveries,

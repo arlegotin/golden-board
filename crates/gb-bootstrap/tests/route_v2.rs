@@ -92,7 +92,7 @@ fn complete_routes_have_exact_v2_framing_order_and_one_complete_package() {
 #[test]
 fn definition_descriptors_and_all_example_lengths_bind_their_actual_bytes() {
     let prefixes = build_route_prefixes(&slice()).unwrap();
-    let expected_lengths = [16, 64, 96, 296, 226, 210, 636, 544, 464, 294, 314];
+    let expected_lengths = [16, 64, 96, 296, 226, 210, 636, 544, 464, 430, 314];
     for prefix in &prefixes {
         for (_, kind, _, payload) in records(prefix) {
             if kind == 1 {
@@ -127,10 +127,53 @@ fn definition_descriptors_and_all_example_lengths_bind_their_actual_bytes() {
 }
 
 #[test]
+fn group_decision_examples_execute_carrier_derived_conflict_and_repetition_traces() {
+    use gb_bootstrap::recipe_wire_v1::{decode_recipe_package_v1, evaluate_serialized_recipe_v1};
+    let package = decode_recipe_package_v1(&build_teaching_recipe_package().unwrap(), 8).unwrap();
+    for prefix in build_route_prefixes(&slice()).unwrap() {
+        let rows = records(&prefix);
+        let definition = &rows.iter().find(|r| r.2 % 10000 == 1001).unwrap().3[14..];
+        assert_eq!(definition.len(), 430);
+        let expected = [
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0],
+            [1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1],
+            [1, 0, 0, 0, 0, 2, 1, 1, 1, 3, 4, 0],
+            [0, 0, 0, 0, 0, 2, 1, 0, 1, 2, 3, 1],
+            [1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 1],
+            [1, 2, 0, 0, 0, 0, 1, 1, 1, 3, 4, 0],
+            [1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 2, 0],
+        ];
+        for (trace, want) in definition[294..402].chunks_exact(12).zip(expected) {
+            assert_eq!(trace, want);
+            let output = evaluate_serialized_recipe_v1(&package, 110, &trace[..9]).unwrap();
+            assert_eq!(output[..2], [0, 0]);
+            assert_eq!(output[2..], trace[9..]);
+        }
+        for (id, index) in [(1002, 4), (1003, 5)] {
+            let example = rows.iter().find(|r| r.2 % 10000 == id).unwrap().3;
+            assert_eq!(u16_at(example, 2), 110);
+            assert_eq!(&example[12..21], &expected[index][..9]);
+            assert_eq!(&example[21..23], &[0, 0]);
+            assert_eq!(&example[23..], &expected[index][9..]);
+        }
+        assert_eq!(&definition[402..412], &[59, 5, 60, 5, 61, 5, 62, 5, 63, 5]);
+        assert_eq!(&definition[412..424], &[0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 3, 1]);
+        assert_eq!(&definition[424..], &[1, 1, 1, 1, 1, 3]);
+    }
+}
+
+#[test]
 fn complete_images_charge_every_cell_and_reject_geometry_and_insufficient_fit() {
     let compiled = slice();
     let prefixes = build_route_prefixes(&compiled).unwrap();
-    let images = build_route_images(&compiled, 2040, 112).unwrap();
+    let images = build_route_images(&compiled, 2048, 112).unwrap();
+    assert_eq!(prefixes[0].len(), 25809);
+    assert_eq!(
+        build_route_images(&compiled, 2040, 112).unwrap_err(),
+        CarrierError::RouteFit
+    );
     let total: usize = prefixes.iter().map(|prefix| prefix.len() * 8).sum();
     assert_eq!(images.instruction_cells, total as u64);
     assert_eq!(images.headroom_cells, total.div_ceil(20).max(1024) as u64);
@@ -143,7 +186,7 @@ fn complete_images_charge_every_cell_and_reject_geometry_and_insufficient_fit() 
         images.headroom_cells
     );
     for (sector, image) in images.sectors.iter().enumerate() {
-        assert_eq!(image.bits.len(), 112 * (2040 - 112));
+        assert_eq!(image.bits.len(), 112 * (2048 - 112));
         assert!(image.bits.iter().all(|bit| *bit <= 1));
         assert_eq!(
             image.route_prefix_cells,

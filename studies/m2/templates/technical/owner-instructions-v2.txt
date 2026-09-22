@@ -1,4 +1,8 @@
-Use this kit after its fresh release check has passed.
+Use the focused-checked, frozen trial package under
+spec/m2-participant-trials-v1.md. Full release may follow the trial. Preserve
+the exact files, expected results and conditions before exposure; a successful
+blind result stays provisional until matching final automated checks pass.
+An already released matching kit can also be used. Packaging alone is not a pass.
 
 1. Give the person recipient/01-clean/. Ask them to work out what the data
    conveys, using its own evidence. Time, wrong starts and backtracking are

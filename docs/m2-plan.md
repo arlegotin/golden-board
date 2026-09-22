@@ -52,10 +52,13 @@ all nine predicates pass with zero violations. The candidate passes gates
 **Architecture:** Freeze the shared normative owners, build the real content
 slice, then freeze every result-sensitive policy against that actual input.
 Build bootstrap routes and candidate implementations independently in Python
-and Rust; generate complete provisional carriers before running the frozen
-damage policy; reproduce every gate-8 candidate natively and in clean Linux
-before selection; then expose only the preferred frozen carrier to simple,
-checkpointed technical and learner pilots.
+and Rust; check the actual trial carrier and every supplied observation with
+focused tests, then run frozen provisional technical and exact-stream learner
+trials. Iterate on their feedback before exhaustive verification. Once the
+required trials succeed on a stable candidate, run the complete damage,
+native/Linux, selection and release requirements and reconcile the preserved
+trial with the final candidate. The exact default is
+[`spec/m2-participant-trials-v1.md`](../spec/m2-participant-trials-v1.md).
 Ignored working artifacts feed one compact tracked report. No raw participant
 workspace, release package, service, database, or workflow system is part of
 the architecture.
@@ -67,6 +70,21 @@ default. New dependencies require a concrete smaller implementation than a
 bounded local implementation and must work in locked offline checks.
 
 ## Revision 11 integration sequence
+
+**Default during participant-driven revision:** repair → focused checks → frozen
+provisional trial → feedback. Do not execute steps 3–6's exhaustive work merely
+to enable another trial. First satisfy the focused readiness and freeze rules
+in `spec/m2-participant-trials-v1.md`, using the actual clean carrier, every
+handed-out observation, independent Python/Rust comparisons and affected
+regressions. A learner may follow a successful provisional technical recovery
+on its exact recovered stream. Existing participants may provide formative
+feedback; unchanged-candidate retry limits still apply to fresh blind trials.
+
+The exhaustive production sequence below is the final stable-candidate barrier,
+after the required provisional trials succeed. A trial success is pending until
+that barrier and exact source/package/evaluation reconciliation pass. This
+sequence change does not make the currently unresolved carrier eligible for an
+unchanged third fresh attempt; first repair its documented teaching gap.
 
 This section is the current implementation sequence. The R1/R2/R3 packets
 below remain preserved execution history; their old candidate/report paths,
@@ -112,11 +130,13 @@ no owner threshold and records no production gate outcome.
    also runs fresh clean-Linux producers against the same frozen source and
    verifies unchanged installed evidence/report/roadmap. Neither command
    rewrites authority. No absent or stale result can substitute for execution.
-7. After successful composed release, hand off only the generated recipient
-   files in their declared order and keep evaluator answers owner-only. Use
-   the short owner instructions; no new names, dates, timing forms, agreements
-   or administrative quiz are required. The technical and learner qualifying
-   evidence remains pending until a fresh trial actually establishes it.
+7. After successful composed release, reconcile the already preserved provisional
+   trials with the exact final source, recipient files, expected outcomes and
+   conditions. Only matching successful fresh trials may now qualify; a material
+   change requires affected fresh validation. If no provisional trial exists,
+   the same handoff may still run after release. Keep evaluator answers owner-only
+   and use the short owner instructions; no new names, dates, timers, agreements
+   or administrative quiz are required. Never manufacture a human result.
 
 The independent implementations and focused/development comparisons are
 tracked in
@@ -1075,8 +1095,11 @@ without rewriting tracked evidence.
 
 ## 16. Packet P9 — Run the technical full-carrier recipient-unit pilot
 
-**Depends on:** P8 and ordinary owner authorization to contact friendly
-participants.
+**Depends on:** the active focused trial-readiness/freeze rules in
+`spec/m2-participant-trials-v1.md` and ordinary owner authorization to contact
+friendly participants. P8 exhaustive verification may follow a successful
+provisional trial; final qualification still depends on it. The historical
+administrative wording below does not override the active no-forms policy.
 
 **Purpose:** Test the actual hardest claim with one elite individual or fixed
 elite team while allowing realistic trial, error, collaboration, and multiple
@@ -1198,7 +1221,7 @@ transcription.
 
 ## 17. Packet P10 — Run the exact-stream learner micro-pilot
 
-**Depends on:** a qualifying P9 technical recovered stream and the already
+**Depends on:** a successful provisional or qualifying P9 technical recovered stream and the already
 sealed latest learner bundle.
 
 **Purpose:** Establish narrow representation feasibility with a fresh
@@ -1206,8 +1229,8 @@ chess-naive individual, not population efficacy or transport reconstruction.
 
 **Actions**
 
-- [ ] Verify the learner input manifest binds the exact qualifying technical
-  unit's recovered content-stream bytes; no developer-decoded substitute or
+- [ ] Verify the learner input manifest binds the successful provisional or
+  qualifying technical unit's exact recovered content-stream bytes; no developer-decoded substitute or
   semantic rewrite is allowed.
 - [ ] Select one fresh eligible chess-naive **individual**. A team/collaborative
   learner session may be formative but cannot close G7.
@@ -1267,11 +1290,12 @@ truthfully without publishing a product or preserving unnecessary raw data.
   timestamps in deterministic bytes, secrets, hidden network dependencies,
   stale generators, unregistered normative files, accidental M3/M4 work, and
   unrelated owner changes.
-- [ ] Run the final public gates:
+- [ ] Run the final composed public gate if no still-applicable successful
+  result exists for these frozen final inputs. Reuse completed focused checks;
+  `release` incorporates the required component checks. Repeat verification only
+  for changed inputs, failures or unresolved concerns:
 
 ```sh
-scripts/check fast
-scripts/check focused transport
 scripts/check release
 git diff --check
 ```
@@ -1312,7 +1336,7 @@ git diff --check
 | Profile limits are exceeded during M2 | Repair an incorrect derivation and rerun every affected candidate, or revise the owner/policy before further outcomes; never widen only the failing consumer |
 | D0--D7 case fails | Preserve exact seed/operator/manifest/result and eliminate or redesign under the spec fallback; do not replace the case |
 | Any wrong canonical accept | Candidate fails the applicable damage gate; semantic plausibility, CRC width, or “unlikely” reasoning cannot waive it |
-| No candidate passes gates 1--7 | Stop before human exposure; use the predeclared fallback order or record `Needs revision`/`Stopped` truthfully |
+| Every candidate has a known gates 1--7 failure | Repair or use the predeclared fallback order before a provisional blind trial; pending exhaustive verification alone does not bar a focused-checked trial under `spec/m2-participant-trials-v1.md` |
 | Gate-8 candidate differs across language/environment | Record candidate-specific failure and recompute selection; root checks pass only if they reproduce that truthful failure |
 | Docker daemon/image unavailable | Preserve automated native work and record the exact blocker; do not claim gate 8 or M2 completion |
 | Complete execution snapshot differs | Diagnose Git layer/platform/cache/acquisition mismatch; never hash the snapshot into the report or substitute a clean `HEAD` clone |
@@ -1337,14 +1361,14 @@ dependency barriers:
 
 | Moment | Required check shape |
 |---|---|
-| Before executable M2 work | existing `scripts/check full` once |
-| Repository/source-lock/Linux admission | direct tests, `focused source`, `focused repo`, `linux`, then `fast` |
+| Start or resume M2 development | `scripts/check fast` and affected direct/component checks; no automatic `full` |
+| Repository/source-lock/Linux admission | direct tests, `focused source`, `focused repo`; clean Linux when its actual inputs change or at final verification |
 | Content authoring and real slice | direct Python/Rust tests, existing `focused content`/relevant chess-curriculum checks, then `fast` |
 | Bootstrap/candidate primitive slices | direct language/KAT tests and the real `focused transport`; `fast` after coherent changes |
-| Complete carriers and D0--D7 convergence | dedicated candidate/damage tests and host `full` |
-| Gate 8 and Candidate-ready freeze | direct/focused convergence, then one composed `release` (`full` plus `linux` plus freeze assertions) |
-| Immediately before human exposure | exact frozen bundle/evaluator hashes plus last green applicable automated evidence; never mutate released bytes |
-| Final closure | `fast`, focused transport, one composed `release`, and final diff/status check |
+| Teaching/candidate repair and provisional trial | actual source-built clean carrier, Python/Rust agreement on every supplied observation, affected boundary regressions and bounded `--selection preflight`; freeze exact source, package, evaluation and conditions |
+| Immediately after an unresolved provisional trial | preserve the result, repair the diagnosed mechanism, then repeat focused checks; no exhaustive rerun merely to enable feedback |
+| Stable candidate after required provisional successes | complete D0--D7/B0, resource/physical evidence, four producers, Gate8 assembly and composed `release` as required by the existing commands |
+| Final closure | reconcile preserved successful trials with final source/materials/evaluation; reuse still-applicable final verification, rerunning only when inputs, failures or unresolved concerns require it; final diff/status check |
 
 `fast` owns only cheap transport/schema/direct cases. Host `full` owns complete
 candidate, damage, and report reproduction once those consumers exist. `linux`
@@ -1357,6 +1381,23 @@ generation, both full environments, and report regeneration after every local
 helper edit. Run the smallest affected direct/focused suite, then pay the
 expensive cost at the packet barrier that can actually invalidate its result.
 
+The active bounded replay command is:
+
+```sh
+PYTHONPATH=python:. uv run --locked --offline --no-python-downloads python \
+  tools/m2/replay_damage_v2.py --selection preflight --workers 2 \
+  --receiver python-rust --rust-decoder /absolute/path/to/gb-revision-damage-decoder \
+  --output-dir /absolute/new/private/trial-preflight
+```
+
+Build the Rust decoder from the same frozen source with the pinned toolchain
+before using it. The selection has 39 cases, including all four participant
+observations and 21 B0 cases; it is not the 10,401-case complete replay. Package
+the current actual carrier/lesson using the existing participant builders and
+apply all readiness rules in `spec/m2-participant-trials-v1.md`. The command alone
+does not replace affected component tests, clean/package validation or the
+pre-exposure freeze. Use existing ignored folders and logs, not new forms.
+
 ## 21. Optional review checkpoints
 
 These are useful diff/review boundaries, not mandatory commits or approvals:
@@ -1368,13 +1409,14 @@ These are useful diff/review boundaries, not mandatory commits or approvals:
 4. Both independent candidate-codec lanes complete their direct evidence.
 5. Complete carriers, capacity/ownership ledgers, and full-set provisional
    limits converge.
-6. Frozen D0--D7 and physical-independence results close gates 1--7.
-7. Every survivor completes gate 8, then selection and Candidate-ready bundles
-   freeze.
-8. Technical qualifying or diagnosed retry/redesign boundary.
-9. Exact-stream learner qualifying or diagnosed representation-revision
-   boundary.
-10. Compact report, decision entry, release gate, and truthful status closure.
+6. Focused readiness and frozen provisional technical trial; diagnose and repair
+   before further exhaustive work if unresolved.
+7. Exact-stream provisional learner trial or diagnosed representation revision.
+8. Stable successful trials followed by complete D0--D7, physical evidence,
+   gate 8, deterministic selection, assembly and composed release.
+9. Exact reconciliation of the preserved trials with the final verified
+   candidate, then human qualification.
+10. Compact report, decision entry and truthful status closure.
 
 Combine checkpoints when the smaller intermediate diff would be invalid. Split
 one when it materially improves independent review or keeps human exposure

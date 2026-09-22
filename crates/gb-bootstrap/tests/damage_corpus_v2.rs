@@ -33,7 +33,7 @@ fn accidental_inventory_is_separate_from_checked_boundary_reauthoring() {
     let corpus = fixture();
     assert_eq!(corpus.case_count("D7").unwrap(), 415);
     assert_eq!(corpus.case_count("B0").unwrap(), 21);
-    assert_eq!(corpus.accidental_case_count(), 10380);
+    assert_eq!(corpus.accidental_case_count(), 10465);
     for family in ["D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "B0"] {
         assert!(
             corpus
@@ -236,7 +236,7 @@ fn package(raw: &[u8]) -> usize {
 fn compact_mutants_change_exact_fields_in_all_four_complete_prefixes() {
     let corpus = fixture();
     let clean = unpack(corpus.case("D0", 0).unwrap().bytes());
-    let side = 2040;
+    let side = 2048;
     for n in 0..6 {
         let actual = unpack(corpus.case("D7", 408 + n).unwrap().bytes());
         let mut expected = clean.clone();
@@ -292,7 +292,7 @@ fn donor_conflict_uses_complete_source_built_prefix_at_width128() {
     let corpus = fixture();
     let clean = unpack(corpus.case("D0", 0).unwrap().bytes());
     let actual = unpack(corpus.case("D7", 10).unwrap().bytes());
-    let side = 2040;
+    let side = 2048;
     let package = gb_bootstrap::candidate_recipe::build_eh_recipe_package(3).unwrap();
     let donor = gb_bootstrap::carrier::build_route_images(
         include_bytes!("../../../spec/route-data-v0.json"),
@@ -335,7 +335,7 @@ fn inherited_positions_and_all_coordinate_strata_remain_present() {
         let case = corpus.case("D3", ordinal).unwrap();
         assert_eq!(case.channel(), "OBS_MATRIX");
     }
-    assert_eq!(corpus.case("D6", 7631).unwrap().channel(), "OBS_MATRIX");
+    assert_eq!(corpus.case("D6", 7699).unwrap().channel(), "OBS_MATRIX");
 }
 
 #[test]
@@ -345,7 +345,7 @@ fn undercoverage_reauthors_only_inventory_and_preserves_observed_unit_count() {
     let clean_bits = unpack(corpus.case("D0", 0).unwrap().bytes());
     let actual = unpack(corpus.case("B0", 20).unwrap().bytes());
     let clean = ObsUnits::parse(corpus.case("D5", 0).unwrap().bytes()).unwrap();
-    let mapping = gb_bootstrap::mapping_v2::derive(2040, 112).unwrap();
+    let mapping = gb_bootstrap::mapping_v2::derive(2048, 112).unwrap();
     let mut inventory = BTreeMap::new();
     let mut before = BTreeMap::new();
     let mut expected = clean_bits.clone();
@@ -359,9 +359,9 @@ fn undercoverage_reauthors_only_inventory_and_preserves_observed_unit_count() {
             let physical = mapping
                 .forward(u64::from(entry.physical_unit_id), bit)
                 .unwrap();
-            let row = physical as usize / 1816 + 112;
-            let col = physical as usize % 1816 + 112;
-            let flat = row * 2040 + col;
+            let row = physical as usize / 1824 + 112;
+            let col = physical as usize % 1824 + 112;
+            let flat = row * 2048 + col;
             encoded[usize::from(bit) / 8] |= actual[flat] << (7 - bit % 8);
             expected[flat] = actual[flat];
         }
@@ -410,7 +410,7 @@ fn undercoverage_reauthors_only_inventory_and_preserves_observed_unit_count() {
         .unwrap();
     target.logical_payload_length -= 157;
     assert_eq!(new, expected);
-    assert_eq!(clean.entries.len(), 1908);
+    assert_eq!(clean.entries.len(), 1925);
 }
 
 #[test]

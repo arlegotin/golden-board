@@ -461,12 +461,34 @@ fn group(
     section: u32,
     a: &[u8; 191],
     b: &[u8; 191],
-) -> ([u8; 8], [u8; 9]) {
+) -> Result<([u8; 8], [u8; 9], [u8; 12])> {
+    need(matches!(lanes.len(), 1 | 2 | 5))?;
+    let classify = |raw: &[u8; 191]| -> Result<u8> {
+        if raw == a {
+            Ok(1)
+        } else if raw == b {
+            Ok(2)
+        } else {
+            Err(SemanticError)
+        }
+    };
+    let matches_identity = |raw: &[u8; 191]| {
+        crate::decode_common_block(raw, 8).is_ok_and(|c| {
+            c.section_id == section
+                && c.semantic_copy_id == 0
+                && c.section_type == 4
+                && c.section_version == 0
+                && c.fragment_index == 0
+                && c.fragment_count == 1
+                && c.section_envelope_length == 23
+        })
+    };
+    let mut trace = [0; 12];
     let mut distinct = BTreeSet::new();
     let mut states = vec![];
     let mut present = 0;
     let mut identity = true;
-    for l in lanes {
+    for (index, l) in lanes.iter().enumerate() {
         match l {
             None => states.push(0),
             Some(l) => {
@@ -474,9 +496,13 @@ fn group(
                 match decode_eh_unit_fast(l, 8) {
                     Err(_) => states.push(1),
                     Ok(d) => {
-                        states.push(2);
-                        identity &= crate::decode_common_block(&d.common, 8)
-                            .is_ok_and(|c| c.section_id == section);
+                        states.push(if d.quality == crate::candidate::DecodeQuality::Verified {
+                            2
+                        } else {
+                            3
+                        });
+                        trace[index] = classify(&d.common)?;
+                        identity &= matches_identity(&d.common);
                         distinct.insert(d.common);
                     }
                 }
@@ -484,18 +510,19 @@ fn group(
         }
     }
     let lane_count = distinct.len();
-    let rep = if lanes.len() > 1 {
-        aggregate_repetition_observation(lanes)
-            .ok()
-            .flatten()
-            .and_then(|x| decode_eh_unit_fast(&x, 8).ok())
+    let repetition = if lanes.len() > 1 {
+        aggregate_repetition_observation(lanes).map_err(|_| SemanticError)?
     } else {
         None
     };
+    let rep = repetition
+        .as_ref()
+        .and_then(|x| decode_eh_unit_fast(x, 8).ok());
     let rep_valid = rep.is_some();
     let equals = rep.as_ref().is_some_and(|d| distinct.contains(&d.common));
     if let Some(d) = rep {
-        identity &= crate::decode_common_block(&d.common, 8).is_ok_and(|c| c.section_id == section);
+        trace[5] = classify(&d.common)?;
+        identity &= matches_identity(&d.common);
         distinct.insert(d.common);
     }
     identity &= !distinct.is_empty();
@@ -512,27 +539,42 @@ fn group(
         conflict as u8,
     ];
     let mut summary = [0u8; 9];
+    let verified = states.contains(&2);
     for (i, x) in states.into_iter().enumerate().take(5) {
         summary[i] = x;
     }
-    summary[5] = if rep_valid { 3 } else { 1 };
+    summary[5] = if rep_valid {
+        3
+    } else if repetition.is_some() {
+        1
+    } else {
+        0
+    };
     summary[6] = distinct.len() as u8;
     summary[7] = if conflict {
         4
-    } else if accepted && rep_valid {
-        3
-    } else if accepted {
-        2
+    } else if distinct.len() == 1 {
+        if verified { 2 } else { 3 }
+    } else if present == 0 {
+        0
     } else {
         1
     };
     summary[8] = u8::from(distinct.contains(a)) | u8::from(distinct.contains(b)) << 1;
-    (row, summary)
+    trace[6..].copy_from_slice(&[
+        u8::from(present != 0),
+        u8::from(verified),
+        u8::from(identity),
+        summary[8],
+        summary[7],
+        u8::from(accepted),
+    ]);
+    Ok((row, summary, trace))
 }
 fn tenth(raw: &[u8], a: [u8; 191], b: [u8; 191]) -> Result<()> {
     let mut out = vec![];
     let mut next = 1;
-    for (section, fragment, f, r) in [(1, 0, 2, 5), (1, 1, 2, 5), (211, 0, 2, 2), (211, 1, 2, 2)] {
+    for (section, fragment, f, r) in [(1, 0, 2, 5), (1, 1, 2, 5), (400, 0, 1, 5), (401, 0, 1, 2)] {
         longs(&mut out, &[section, fragment, f, r, next, next + r - 1]);
         next += r;
     }
@@ -556,8 +598,11 @@ fn tenth(raw: &[u8], a: [u8; 191], b: [u8; 191]) -> Result<()> {
         vec![Some(lane(a, &[])), Some(lane(b, &[]))],
         vec![Some(lane(a, &[]))],
     ];
+    let mut traces = Vec::new();
     for (i, lanes) in cases.iter().enumerate() {
-        out.extend(group(lanes, if i == 8 { 401 } else { 400 }, &a, &b).0);
+        let (row, _, trace) = group(lanes, if i == 8 { 401 } else { 400 }, &a, &b)?;
+        out.extend(row);
+        traces.extend(trace);
     }
     for (which, lanes) in [conflict, rep].iter().enumerate() {
         for i in 0..5 {
@@ -569,7 +614,7 @@ fn tenth(raw: &[u8], a: [u8; 191], b: [u8; 191]) -> Result<()> {
                 words(&mut out, &[start as u16, (start + 1) as u16]);
             }
         }
-        out.extend(group(lanes, 400, &a, &b).1);
+        out.extend(group(lanes, 400, &a, &b)?.1);
     }
     for length in [22u16, 157, 158, 314, 315] {
         let fragments = length.div_ceil(157);
@@ -578,6 +623,26 @@ fn tenth(raw: &[u8], a: [u8; 191], b: [u8; 191]) -> Result<()> {
             &[length, fragments, length - 157 * (fragments - 1), length],
         );
     }
+    need(out.len() == 294 && traces.len() == 108)?;
+    out.extend(traces);
+    let mut unknown = Vec::new();
+    for first in [59u8, 60, 61, 62, 63] {
+        out.extend([first, 5]);
+        let mut observation = lane(a, &[]);
+        for bit in first..first + 5 {
+            observation.encoded[usize::from(bit) / 8] &= !(1 << (7 - bit % 8));
+        }
+        observation.erasures = (first..first + 5)
+            .map(|bit| crate::candidate::EhErasure {
+                codeword: 0,
+                position: bit + 1,
+            })
+            .collect();
+        unknown.push(Some(observation));
+    }
+    let (_, states, trace) = group(&unknown, 400, &a, &b)?;
+    out.extend(trace);
+    out.extend(&states[..6]);
     exact(raw, out)
 }
 fn graph(adjacency: u16, selected: u8) -> Option<u8> {
@@ -1286,7 +1351,7 @@ pub fn validate_definitions(
     values: &[&[u8]],
     package: &RecipePackageV1,
 ) -> Result<ContextCommitments> {
-    const WIDTHS: [usize; 12] = [16, 64, 96, 296, 226, 210, 636, 544, 464, 294, 314, 2421];
+    const WIDTHS: [usize; 12] = [16, 64, 96, 296, 226, 210, 636, 544, 464, 430, 314, 2421];
     need(values.len() == 12)?;
     for (value, width) in values.iter().zip(WIDTHS) {
         need(value.len() == width)?;

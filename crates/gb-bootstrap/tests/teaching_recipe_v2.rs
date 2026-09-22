@@ -75,7 +75,7 @@ fn all_owner_examples_evaluate_with_exact_serialized_status_and_data() {
 }
 
 #[test]
-fn additions_preserve_every_inherited_program_and_table_and_derive_resources() {
+fn additions_preserve_inherited_programs_except_removed106_and_replaced110() {
     let previous = expand_recipe_package_v1(&build_revision_recipe_package().unwrap(), 8).unwrap();
     let compact = build_teaching_recipe_package().unwrap();
     use sha2::{Digest, Sha256};
@@ -91,7 +91,7 @@ fn additions_preserve_every_inherited_program_and_table_and_derive_resources() {
     let (new_tables, new_recipes) = records(&expanded);
     assert_eq!(new_tables.len(), old_tables.len() + 1);
     // Active recipe-teaching-v2 now owns an exact29-recipe set. The
-    // historical/base package still retains its original106 bytes.
+    // historical/base package retains its original106 and110 bytes.
     assert_eq!(
         new_recipes.keys().copied().collect::<Vec<_>>(),
         vec![
@@ -100,16 +100,17 @@ fn additions_preserve_every_inherited_program_and_table_and_derive_resources() {
         ]
     );
     assert_eq!(old_recipes[&106].len(), 228);
+    assert_ne!(new_recipes[&110], old_recipes[&110]);
     for (id, record) in old_tables {
         assert_eq!(new_tables[&id], record);
     }
     let expected_retained: BTreeMap<_, _> = old_recipes
         .into_iter()
-        .filter(|(id, _)| *id != 106)
+        .filter(|(id, _)| ![106, 110].contains(id))
         .collect();
     let actual_retained: BTreeMap<_, _> = new_recipes
         .iter()
-        .filter(|(id, _)| **id < 210)
+        .filter(|(id, _)| **id < 210 && **id != 110)
         .map(|(id, raw)| (*id, *raw))
         .collect();
     assert_eq!(actual_retained, expected_retained);
@@ -199,17 +200,17 @@ fn bounded_source_rejects_shape_reference_type_and_example_mutations_atomically(
             4 => value["tables"][0]["type"] = 3.into(),
             5 => value["recipes"][0]["id"] = 211.into(),
             6 => {
-                value["recipes"][0]["nodes"][0]
+                value["recipes"][1]["nodes"][0]
                     .as_array_mut()
                     .unwrap()
                     .push(0.into());
             }
-            7 => value["recipes"][0]["nodes"][0][0] = 26.into(),
-            8 => value["recipes"][0]["nodes"][0][3] = 1.into(),
-            9 => value["recipes"][0]["nodes"][0][4] = 1.into(),
-            10 => value["recipes"][0]["nodes"][1][4] = 65535.into(),
-            11 => value["recipes"][4]["nodes"][0][7] = 214.into(),
-            12 => value["recipes"][4]["nodes"][0][8] = i64::MAX.into(),
+            7 => value["recipes"][1]["nodes"][0][0] = 26.into(),
+            8 => value["recipes"][1]["nodes"][0][3] = 1.into(),
+            9 => value["recipes"][1]["nodes"][0][4] = 1.into(),
+            10 => value["recipes"][1]["nodes"][1][4] = 65535.into(),
+            11 => value["recipes"][5]["nodes"][0][7] = 214.into(),
+            12 => value["recipes"][5]["nodes"][0][8] = i64::MAX.into(),
             13 => value["recipes"][0]["inputs"][0][1] = 0.into(),
             14 => value["examples"][0]["output"] = "0001".into(),
             15 => value["examples"][0]["inputs"][0] = "0600".into(),
@@ -222,5 +223,40 @@ fn bounded_source_rejects_shape_reference_type_and_example_mutations_atomically(
             build_teaching_recipe_package_from_source(changed.as_bytes()).is_err(),
             "mutation {mutation}"
         );
+    }
+}
+
+#[test]
+fn group_decision_keeps_all_six_sources_and_separates_identity_from_local_state() {
+    let package = decode_recipe_package_v1(&build_teaching_recipe_package().unwrap(), 8).unwrap();
+    for (input, output) in [
+        ([0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0]),
+        ([0, 0, 0, 0, 0, 0, 1, 0, 0], [0, 0, 0, 1, 0]),
+        ([1, 0, 0, 0, 0, 2, 1, 1, 1], [0, 0, 3, 4, 0]),
+        ([0, 0, 0, 0, 0, 2, 1, 0, 1], [0, 0, 2, 3, 1]),
+        ([1, 1, 1, 1, 1, 1, 1, 1, 1], [0, 0, 1, 2, 1]),
+        ([1, 0, 0, 0, 0, 0, 1, 1, 0], [0, 0, 1, 2, 0]),
+    ] {
+        assert_eq!(
+            evaluate_serialized_recipe_v1(&package, 110, &input).unwrap(),
+            output
+        );
+    }
+    for slot in 0..6 {
+        for mask in 1..=3 {
+            let mut input = [0; 9];
+            input[slot] = mask;
+            input[6] = 1;
+            input[8] = 1;
+            let output = if mask == 3 {
+                [0, 0, 3, 4, 0]
+            } else {
+                [0, 0, mask, 3, 1]
+            };
+            assert_eq!(
+                evaluate_serialized_recipe_v1(&package, 110, &input).unwrap(),
+                output
+            );
+        }
     }
 }

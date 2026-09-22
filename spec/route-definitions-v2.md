@@ -159,8 +159,8 @@ The fact stages/dependencies are:
    primitive 109 is not that adapter.
 
 10. Carry four rows of six u32:
-    `(1,0,2,5,1,5),(1,1,2,5,6,10),(211,0,2,2,11,12),
-    (211,1,2,2,13,14)` for `(section,fragment,F,R,first,last)`.
+    `(1,0,2,5,1,5),(1,1,2,5,6,10),(400,0,1,5,11,15),
+    (401,0,1,2,16,17)` for `(section,fragment,F,R,first,last)`.
     This explicitly incomplete illustrative roster demonstrates cumulative
     allocation; it is not an accepted inventory. Append identity-field offsets
     `0,4,8,10,12,16,18,22` as eight u8, with widths from fact 7.
@@ -198,7 +198,38 @@ The fact stages/dependencies are:
     Append five rows of four u16 `(L,F,last,reassembled)` for envelope lengths
     `22,157,158,314,315`, where `F=ceil(L/157)`, `last=L-157(F-1)`, and
     reassembled=L. These are fragment-length examples, not claims that an
-    arbitrary byte concatenation is a valid section or inventory. Total 294.
+    arbitrary byte concatenation is a valid section or inventory.
+
+    Append nine twelve-byte execution traces in the same order as the nine
+    group cases. Each contains the nine input bytes of active recipe110,
+    followed by its three successful output bytes (without STATUS16).
+    Derive each equality-class bit from an actual full checked common block
+    matching A or B; an unknown value rejects this finite construction.
+    Pad the lane slots to five, then place raw repetition in slot six. Derive
+    the presence, verified-lane and identity flags from that same observation.
+    Execute the carried generic recipe, and compare its union/state/acceptance
+    to the independent complete group outcome. The conflict and REP-only
+    traces are also the ordinary WORKED/HELD_OUT pair for fact10, so running
+    that pair now requires the group decision rather than concatenation.
+
+    Finally append five `(first_erased_bit:u8,count:u8)` rows
+    `(59,5),(60,5),(61,5),(62,5),(63,5)`, then a twelve-byte execution trace
+    and six u8 states (five lanes, raw repetition). Construct the physical
+    group11..15 from encoded A, keeping each lane's five marked bits unknown.
+    Clear their storage bits to zero as required by the observation ABI; those
+    zeroes remain erasures and never contribute known symbols to repetition.
+    Each individual first EH word exceeds its erasure bound. The overlapping
+    ranges make treating their storage zeroes as known observations fail
+    recovery; the correct unknown-symbol interpretation recovers A. Repetition uses
+    the original known/unknown symbols from all five lanes, including those
+    whose individual decoding failed; it recovers A. Expected lane states are
+    all1, REP state3, union mask1 (encoded01hex), group state3, acceptance1.
+    Unknown symbols never become guessed zeroes, and failed lanes are not
+    removed before repetition. This connects the actual allocation, whole
+    units, raw combination, checked candidates and final decision. Missing
+    physical IDs keep their slots; section identity is checked after collection.
+    Total430 bytes. Inventory/section/stream acceptance still requires fact11;
+    a locally accepted group alone cannot establish any of those outcomes.
 
 ## Facts 11–12
 
@@ -295,7 +326,7 @@ The fact stages/dependencies are:
 ## Admission and remaining limits
 
 The current expected value sizes are
-`16,64,96,296,226,210,636,544,464,294,314,2421`, total 5581 bytes. This is
+`16,64,96,296,226,210,636,544,464,430,314,2421`, total 5717 bytes. This is
 an audited construction target, not a cap or a passing fit. Compared with the
 3779-byte design estimate, 26 bytes explicitly frame package TABLEs, 16 bytes
 ground selected-profile rejection, 8 bytes carry ordinal admission outcomes,

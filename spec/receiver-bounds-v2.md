@@ -48,7 +48,9 @@ permits fewer units. Let G be the registry length.
 - Inventory/layout call bound Y = J×(Q+1), allowing every discovered
   inventory candidate before unique admission.
 - Body calls M = J×I; assembled tiers at most2J.
-- Route VM calls A×(route_records+3), lane calls24L, repetition calls
+- Route VM calls A×(route_records+3); route2's32 framed examples, three
+  mapping calls and ten embedded group traces total45, within the existing
+  47+3 allowance. No call is free and no bound increases. Lane calls24L, repetition calls
   (1728+24)K and body calls M. Multiply their sum by T. Per-program scratch
   is Z; it is not the aggregate observation workspace.
 

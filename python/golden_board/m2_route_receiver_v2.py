@@ -14,7 +14,7 @@ from .m2_route_semantics_v2 import validate_local_definitions
 from .m2_resources_v2 import recipe_storage, recipe_workspace, definition_workspace
 
 _STAGES = (0,0,1,1,2,2,3,3,4,4,5,5)
-_WIDTHS = (16,64,96,296,226,210,636,544,464,294,314,2421)
+_WIDTHS = (16,64,96,296,226,210,636,544,464,430,314,2421)
 _PRIMARY = (101,102,103,104,105,211,107,113,109,110,111,112)
 _RECIPES = (1,2,3,4,30,90,92,99,*range(100,106),*range(107,114),201,202,203,210,211,212,213,214)
 _TABLES = (3,4,5,10,11,12,13,14,15,17,18,19,20,21)
@@ -132,6 +132,12 @@ def _decode_observed_route_v2(data, side, width, sector, usage, charge, adapter,
     _require(mapping_program_refined(package),'mapping-program')
     _require(transport_programs_refined(package),'transport-program')
     recipes = {r.recipe_id:r for r in logical.recipes}
+    group_program = recipes[110]
+    _require(tuple((d.value_type,d.width) for d in group_program.inputs) ==
+             ((bootstrap.UINT,2),)*6+((bootstrap.BOOL,1),)*3
+             and tuple((d.value_type,d.width) for d in group_program.outputs) ==
+             ((bootstrap.STATUS,16),(bootstrap.UINT,2),(bootstrap.UINT,8),(bootstrap.BOOL,1)),
+             'group-interface')
     body_program = recipes[202]
     _require(tuple((d.value_type,d.width) for d in body_program.inputs) ==
              ((bootstrap.BYTES,16384),(bootstrap.UINT,16))
@@ -172,6 +178,10 @@ def _decode_observed_route_v2(data, side, width, sector, usage, charge, adapter,
                      and int.from_bytes(payload[2:4],'big') == recipe_id,'example-header')
             ilen,olen = int.from_bytes(payload[4:8],'big'),int.from_bytes(payload[8:12],'big')
             _require(olen >= 2 and len(payload) == 12+ilen+olen,'example-length')
+            if fact == 10:
+                start = 294+12*(4+(kind == 3))
+                trace = definitions[9][start:start+12]
+                _require(payload[12:] == trace[:9]+b'\0\0'+trace[9:],'group-primary')
             widths = tuple(d.width if d.value_type == bootstrap.BYTES else (d.width+7)//8
                            for d in recipes[recipe_id].inputs)
             _require(sum(widths) == ilen,'example-interface')
@@ -218,6 +228,10 @@ def _decode_observed_route_v2(data, side, width, sector, usage, charge, adapter,
     mapping = dict(id='affine-slot-then-interior-v2',interior_side=interior,population=population,
                    unit_population=units,unit_multiplier=slot,unit_inverse_multiplier=pow(slot,-1,units),
                    cell_multiplier=affine,offset=offset,cell_inverse_multiplier=pow(affine,-1,population))
+    for start in (*range(294,402,12),412):
+        trace = definitions[9][start:start+12]
+        result = evaluate(110,tuple(bytes((v,)) for v in trace[:9]))
+        _require(result.status == 0 and b''.join(result.outputs) == trace[9:],'group-decision-trace')
     adapter('definition-validation',sum(map(len,definitions)),definition_workspace(definitions,raw_package))
     commitments = validate_local_definitions(tuple(definitions),package,side=side,width=width,sector=sector)
     return ObservedRouteV2(sector,end,package,tuple(definitions),commitments,example_count,1,

@@ -176,15 +176,18 @@ def _flip(raw, positions):
     return bytes(result)
 
 
-def _group(lanes, common, expected_section=400):
+def _group(lanes, common, expected_section=400, erasures=None):
     """Finite composition of profile-neutral primitives, not v7 admission."""
-    states,valid = [],[]
-    for lane in lanes:
+    lane_erasures = ((),)*len(lanes) if erasures is None else erasures
+    states,valid,lane_values = [],[],[]
+    for lane,unknown in zip(lanes,lane_erasures,strict=True):
         if lane is None:
             states.append(0)
+            lane_values.append(None)
             continue
-        result = codec._eh72_decode_unit(lane,(),8)
+        result = codec._eh72_decode_unit(lane,unknown,8)
         states.append({'corrupt':1,'verified':2,'recovered':3}[result.state])
+        lane_values.append(result.decoded)
         if result.decoded is not None:
             valid.append(result.decoded)
     rep = None
@@ -192,8 +195,10 @@ def _group(lanes, common, expected_section=400):
         bits,erasures = [],[]
         lane_bits = tuple(_bits(lane) if lane is not None else None for lane in lanes)
         for index in range(1728):
-            ones = sum(row[index] for row in lane_bits if row is not None)
-            zeros = sum(row is not None for row in lane_bits)-ones
+            known_values = tuple(row[index] for row,unknown in zip(lane_bits,lane_erasures,strict=True)
+                                 if row is not None and index not in unknown)
+            ones = sum(known_values)
+            zeros = len(known_values)-ones
             known,value = codec.repetition_symbol_counts(len(lanes),zeros,ones)
             bits.append(value)
             if not known:
@@ -218,13 +223,24 @@ def _group(lanes, common, expected_section=400):
     state = 4 if conflict else 2 if accepted and 2 in states else 3 if accepted else 0 if not any(states) else 1
     mask = sum(1<<i for i,raw in enumerate(common) if raw in distinct)
     construction = bytes(states)+bytes((3 if rep is not None else 1,len(distinct),state,mask))
-    return summary,construction
+    def candidate_mask(raw):
+        _check(raw is None or raw in common,'group.unknown-example-block')
+        return 0 if raw is None else 1 << common.index(raw)
+    inputs = bytes(tuple(candidate_mask(raw) for raw in lane_values)
+        +(0,)*(5-len(lanes))+(candidate_mask(rep),int(any(states)),int(2 in states),int(identity)))
+    local_state = 4 if conflict else (2 if 2 in states else 3) if len(distinct)==1 else 1 if any(states) else 0
+    output = bytes((mask,local_state,int(accepted)))
+    from .m2_teaching_recipe_v2 import build_teaching_recipe_package
+    package = recipe_wire_v1.decode_recipe_package_v1(build_teaching_recipe_package(),8)
+    checked = recipe_wire_v1.evaluate_recipe_v1(package,110,tuple(bytes((v,)) for v in inputs))
+    _check(checked.status == 0 and b''.join(checked.outputs) == output,'group.decision')
+    return summary,construction,inputs+output
 
 
 def _ten(common, encoded):
     a,c = encoded
     result = bytearray(_ints((x for row in ((1,0,2,5,1,5),(1,1,2,5,6,10),
-        (211,0,2,2,11,12),(211,1,2,2,13,14)) for x in row), 4))
+        (400,0,1,5,11,15),(401,0,1,2,16,17)) for x in row), 4))
     result.extend(bytes((0,4,8,10,12,16,18,22)))
     conflict = (a,)+tuple(_flip(c,(2*i,2*i+1)) for i in range(4))
     rep_only = tuple(_flip(c,(2*i,2*i+1)) for i in range(5))
@@ -249,6 +265,20 @@ def _ten(common, encoded):
             framed = b.encode_common_block(b.CommonBlock(8,400,0,4,0,i,count,length,chunk))
             _check(b.decode_common_block(framed,8).payload == chunk, 'fragment.length')
         result.extend(_ints((length,count,len(chunks[-1]),sum(map(len,chunks)))))
+    for i,lanes in enumerate(cases):
+        result.extend(_group(lanes,common,401 if i == 8 else 400)[2])
+    ranges = tuple((59+i,5) for i in range(5))
+    result.extend(bytes(value for row in ranges for value in row))
+    unknown = tuple(tuple(range(first,first+count)) for first,count in ranges)
+    erased_lanes = []
+    for positions in unknown:
+        lane = bytearray(a)
+        for bit in positions:
+            lane[bit//8] &= ~(1 << (7-bit%8))
+        erased_lanes.append(bytes(lane))
+    _,states,trace = _group(tuple(erased_lanes),common,erasures=unknown)
+    _check(states[:6] == bytes((1,1,1,1,1,3)),'group.raw-unknown-repetition')
+    result.extend(trace+states[:6])
     return bytes(result)
 
 
@@ -373,7 +403,7 @@ def build_route_definitions_v2(
     seven,eight,encoded = _seven_eight(common)
     values = (*_first_six(),seven,eight,_nine(),_ten(common,encoded),_eleven(common),
               _twelve(compiled,required,all_frames,miniature))
-    _check(tuple(map(len,values)) == (16,64,96,296,226,210,636,544,464,294,314,2421), 'value.sizes')
+    _check(tuple(map(len,values)) == (16,64,96,296,226,210,636,544,464,430,314,2421), 'value.sizes')
     metadata = ((0,()),(0,(1,)),(1,(1,)),(1,(2,3)),(2,(3,4)),(2,(5,)),
                 (3,(6,)),(3,(6,7)),(4,(6,8)),(4,(7,8,9)),(5,(10,)),(5,(11,)))
     return tuple(RouteDefinitionV2(i,stage,dependencies,value)

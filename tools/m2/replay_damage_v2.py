@@ -36,7 +36,7 @@ OWNERS=('spec/profile-policy-v2.toml','spec/profile-limits-v2.toml','spec/damage
 FACTORY_PATHS=(*SOURCE_PATHS,*OWNERS,'studies/m2/slice-v1.json',
     'spec/profile-policy-v0.toml','spec/route-data-v0.json')
 PREFLIGHT=(('D0',0),('D0',7),('D1',0),('D2',0),('D3',0),('D3',96),('D4',0),('D6',0),
-    *(('D7',i) for i in (0,10,16,401,402,405,408,413,414)),*(('B0',i) for i in range(21)))
+    *(('D7',i) for i in (0,10,11,16,401,402,405,408,413,414)),*(('B0',i) for i in range(21)))
 _CONTEXT=None
 _INIT_ERROR=None
 

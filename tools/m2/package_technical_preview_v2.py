@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare a local, unreleased technical preview; never a Gate8 bundle/pass."""
+"""Prepare a development preview; trial readiness is separate from packaging."""
 import argparse
 from hashlib import sha256
 import os
@@ -59,14 +59,20 @@ recorded move bytes and resulting position, identifying the representation
 you used. Detailed output conventions are available only as explicit help.
 Keep unsupported conclusions and any later method changes explicit.
 '''
-OWNER='''LOCAL DEVELOPMENT PREVIEW — NOT RELEASED
+OWNER='''LOCAL DEVELOPMENT PREVIEW — NOT FINAL VERIFICATION
 
-Do not show this kit to anyone yet. It is not a qualifying participant round,
-Candidate-ready bundle or fresh-release receipt. Historical assisted successes
-and historical packets remain separate. A fresh release and its exact revised
-production bindings are still required before exposure.
+Participant feedback may precede full release under
+spec/m2-participant-trials-v1.md. This packager alone does not establish trial
+readiness: first run the required focused checks, independently compare the
+actual clean and every handed-out observation, and freeze source, files,
+expected results and conditions. Reconcile this preview with the current
+production participant files before declaring a provisional blind trial.
+Formative feedback remains formative. A predeclared successful blind result
+stays pending until the matching candidate passes all final automated checks.
+Historical assisted successes and packets remain separate. This preview is
+neither a Candidate-ready bundle nor a fresh-release receipt.
 
-When a later owner-authorized release is ready, the intended simple sequence is:
+After those readiness checks, use this simple sequence:
 
 1. Copy only recipient/01-clean/ into the person's offline workspace. Ask them
    to read READ-ME.txt and reconstruct what the data conveys. Give ordinary

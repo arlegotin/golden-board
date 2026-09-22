@@ -11,21 +11,45 @@ class TeachingRecipes(unittest.TestCase):
         cls.raw = build_teaching_recipe_package()
         cls.package = recipe_wire_v1.decode_recipe_package_v1(cls.raw, 8)
 
+    def test_group_decision_includes_raw_repetition_and_preserves_conflicts(self):
+        recipe = next(r for r in self.package.logical.recipes if r.recipe_id == 110)
+        self.assertEqual(tuple((d.value_type,d.width) for d in recipe.inputs),
+                         ((bootstrap.UINT,2),)*6+((bootstrap.BOOL,1),)*3,
+                         'Fact10 still executes concatenation instead of the candidate decision')
+        cases = (
+            ((0,0,0,0,0,0,0,0,0), (0,0,0)),
+            ((0,0,0,0,0,0,1,0,0), (0,1,0)),
+            ((1,0,0,0,0,0,1,1,1), (1,2,1)),
+            ((1,1,1,1,1,1,1,1,1), (1,2,1)),
+            ((1,0,0,0,0,2,1,1,1), (3,4,0)),
+            ((0,0,0,0,0,2,1,0,1), (2,3,1)),
+            ((1,0,0,0,0,1,1,1,1), (1,2,1)),
+            ((1,2,0,0,0,0,1,1,1), (3,4,0)),
+            ((1,0,0,0,0,0,1,1,0), (1,2,0)),
+        )
+        for values, expected in cases:
+            with self.subTest(values=values):
+                actual = recipe_wire_v1.evaluate_recipe_v1(self.package,110,
+                    tuple(bytes((v,)) for v in values))
+                self.assertEqual(actual,bootstrap.RecipeResult(0,tuple(bytes((v,)) for v in expected)))
+
     def test_existing_programs_are_unchanged_and_new_resources_are_derived(self):
         old = recipe_wire_v1.decode_recipe_package_v1(build_revision_recipe_package(), 8).logical
         current = self.package.logical
-        retained=tuple(r for r in old.recipes if r.recipe_id!=106)
+        retained=tuple(r for r in old.recipes if r.recipe_id not in (106,110))
         self.assertNotIn(106,tuple(r.recipe_id for r in current.recipes))
         self.assertIn(106,tuple(r.recipe_id for r in old.recipes))
-        self.assertEqual(current.recipes[:len(retained)], retained)
+        self.assertEqual(tuple(r for r in current.recipes if r.recipe_id < 210 and r.recipe_id != 110), retained)
+        self.assertNotEqual(next(r for r in current.recipes if r.recipe_id == 110),
+                            next(r for r in old.recipes if r.recipe_id == 110))
         self.assertEqual(current.tables[:-1], old.tables)
-        self.assertEqual(tuple(r.recipe_id for r in current.recipes[len(retained):]),
+        self.assertEqual(tuple(r.recipe_id for r in current.recipes if r.recipe_id >= 210),
                          (210, 211, 212, 213, 214))
         self.assertEqual(current.tables[-1].table_id, 21)
         self.assertEqual(current.tables[-1].payload, b'\x07\x08\x09')
         self.assertEqual(current.maximum_primitive_steps, old.maximum_primitive_steps)
         self.assertEqual(current.peak_live_scratch_bytes, old.peak_live_scratch_bytes)
-        self.assertEqual(len(self.raw) - len(build_revision_recipe_package()), 2033)
+        self.assertEqual(len(self.raw) - len(build_revision_recipe_package()), 2421)
 
     def test_carried_examples_discriminate_failures_and_output_suppression(self):
         rows = teaching_examples()

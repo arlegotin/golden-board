@@ -12,7 +12,7 @@ from . import bootstrap as b, bootstrap_v2, chess, content as c, m2_codec, recip
 from .m2_transport_v2 import aggregate_replica_group
 from .m2_decoder import DecoderError
 
-_WIDTHS = (16,64,96,296,226,210,636,544,464,294,314,2421)
+_WIDTHS = (16,64,96,296,226,210,636,544,464,430,314,2421)
 _AUTHORITY = object()
 
 
@@ -249,8 +249,10 @@ def _flip(raw, positions):
     return bytes(result)
 
 
-def _group(lanes, expected_section):
-    obs = tuple(None if lane is None else m2_codec.CopyObservation(lane,()) for lane in lanes)
+def _group(lanes, expected_section, erasures=None):
+    erasures = ((),)*len(lanes) if erasures is None else erasures
+    obs = tuple(None if lane is None else m2_codec.CopyObservation(lane,unknown)
+                for lane,unknown in zip(lanes,erasures,strict=True))
     group = aggregate_replica_group(obs)
     lane_blocks = {block for state,block in zip(group.lane_states,group.lane_blocks,strict=True) if state in (2,3)}
     rep = group.repetition_state == 3
@@ -265,10 +267,27 @@ def _group(lanes, expected_section):
     return group,row,distinct
 
 
+def _group_trace(group, row, common):
+    # Equality classes stand for complete checked 191-byte candidates. A failed
+    # lane's placeholder bytes are never a candidate or an equality key.
+    def mask(block):
+        _check(block in common,'fact10.candidate')
+        return 1 << common.index(block)
+    lanes = tuple(mask(block) if state in (2,3) else 0
+                  for state,block in zip(group.lane_states,group.lane_blocks,strict=True))
+    rep = mask(group.repetition_block) if group.repetition_state == 3 else 0
+    union = rep
+    for value in lanes:
+        union |= value
+    return (*lanes, *((0,)*(5-len(lanes))), rep,
+            int(row[1]>0), int(2 in group.lane_states), row[5],
+            union, group.group_state, row[6])
+
+
 def _fact10(raw, common, encoded):
     r = _Read(raw,'fact10')
     last = 0
-    for sid,fragment,count,factor in ((1,0,2,5),(1,1,2,5),(211,0,2,2),(211,1,2,2)):
+    for sid,fragment,count,factor in ((1,0,2,5),(1,1,2,5),(400,0,1,5),(401,0,1,2)):
         r.expect((sid,fragment,count,factor,last+1,last+factor),(4,)*6)
         last += factor
     r.expect((0,4,8,10,12,16,18,22),(1,)*8)
@@ -291,6 +310,23 @@ def _fact10(raw, common, encoded):
     for length in (22,157,158,314,315):
         count = (length+156)//157
         r.expect((length,count,length-157*(count-1),length))
+    for index,lanes in enumerate(lane_sets):
+        group,row,_ = _group(lanes,401 if index == 8 else 400)
+        r.expect(_group_trace(group,row,common),(1,)*12)
+    erased_ranges = tuple((59+i,5) for i in range(5))
+    for erased_range in erased_ranges:
+        r.expect(erased_range,(1,1))
+    erased,lanes = [],[]
+    for first,count in erased_ranges:
+        unknown = tuple(range(first,first+count))
+        lane = bytearray(a)
+        for bit in unknown:
+            lane[bit//8] &= ~(1 << (7-bit%8))
+        lanes.append(bytes(lane))
+        erased.append(unknown)
+    group,row,_ = _group(tuple(lanes),400,tuple(erased))
+    r.expect(_group_trace(group,row,common),(1,)*12)
+    r.expect((*group.lane_states,group.repetition_state),(1,)*6)
     r.end()
 
 

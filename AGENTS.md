@@ -18,6 +18,13 @@ M1's executable contract and plan are
 M2's executable contract and plan are
 [`docs/m2-spec.md`](docs/m2-spec.md) and [`docs/m2-plan.md`](docs/m2-plan.md).
 
+M2 iteration defaults to **fix → focused checks → frozen provisional participant
+trial → feedback**. Run exhaustive damage/native/Linux/release verification
+after the required trials succeed on a stable candidate, not before every
+teaching experiment. Follow [`spec/m2-participant-trials-v1.md`](spec/m2-participant-trials-v1.md)
+for readiness, unchanged-package reconciliation and final qualification. Keep
+all final gates; never call a provisional or assisted result a completed pass.
+
 Root checks:
 
 ```sh

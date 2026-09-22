@@ -1,5 +1,12 @@
 # M2 participant revision implementation plan
 
+**Scheduling update, 2026-09-22:** Use
+[`spec/m2-participant-trials-v1.md`](../../../spec/m2-participant-trials-v1.md)
+and [the current workflow plan](2026-09-22-m2-provisional-trials.md).
+Focused-checked frozen participant trials now precede exhaustive verification
+by default. Earlier release-before-exposure steps below are execution history,
+not a requirement to spend another full run before each teaching experiment.
+
 > Use superpowers:subagent-driven-development for independent tasks and review.
 > Continue through implementation and verification; the owner's “proceed” is
 > authorization, not a request for another approval cycle.

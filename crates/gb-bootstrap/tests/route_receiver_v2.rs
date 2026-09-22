@@ -20,12 +20,24 @@ fn observed_complete_route_admits_only_after_every_example_and_mapping() {
     let prefixes = gb_bootstrap::route_v2::build_route_prefixes(&slice()).unwrap();
     for (sector, prefix) in prefixes.iter().enumerate() {
         let mut cost = ResourceProjection::default();
-        let route = admit_route_prefix(prefix, 2040, 112, sector as u8, &mut cost)
+        let route = admit_route_prefix(prefix, 2048, 112, sector as u8, &mut cost)
             .unwrap()
             .unwrap();
-        assert_eq!(route.mapping().unit_slot_count(), 1908);
-        assert_eq!(route.package().encoded.len(), 18273);
-        assert!(cost.primitive_steps > 0);
+        assert_eq!(route.mapping().unit_slot_count(), 1925);
+        assert_eq!(route.package().encoded.len(), 18661);
+        let logical = &route.package().logical;
+        let mut expected_steps = 3 * logical.recipe_primitive_steps(109).unwrap()
+            + 10 * logical.recipe_primitive_steps(110).unwrap();
+        let mut at = 64;
+        while at < prefix.len() {
+            let length = u32::from_be_bytes(prefix[at + 4..at + 8].try_into().unwrap()) as usize;
+            if [2, 3].contains(&prefix[at + 1]) {
+                let recipe = u16::from_be_bytes(prefix[at + 10..at + 12].try_into().unwrap());
+                expected_steps += logical.recipe_primitive_steps(recipe).unwrap();
+            }
+            at += 8 + length;
+        }
+        assert_eq!(cost.primitive_steps, expected_steps);
         assert_eq!(cost.section_attempts, 0);
     }
 }
@@ -124,5 +136,108 @@ fn contradictory_numeric_definition_rejects_after_owned_example_schedule() {
             .unwrap()
             .is_some()
     );
-    assert_eq!(cost.primitive_steps, full.primitive_steps);
+    assert_eq!(cost, full);
+}
+
+#[test]
+fn malformed_group_traces_and_valid_but_unrelated_primary_examples_reject() {
+    let original = gb_bootstrap::route_v2::build_route_prefixes(&slice()).unwrap()[0].clone();
+    let package = gb_bootstrap::recipe_wire_v1::decode_recipe_package_v1(
+        &gb_bootstrap::teaching_recipe_v2::build_teaching_recipe_package().unwrap(),
+        8,
+    )
+    .unwrap();
+    let mut preceding_cost = ResourceProjection::default();
+    let mut at = 64;
+    let mut fact10 = 0;
+    let mut primary = 0;
+    while at < original.len() {
+        let id = u16::from_be_bytes(original[at + 2..at + 4].try_into().unwrap());
+        if id == 1001 {
+            fact10 = at + 8 + 14;
+        }
+        if id == 1002 {
+            primary = at + 8 + 12;
+        }
+        if primary == 0 && [2, 3].contains(&original[at + 1]) {
+            let recipe = u16::from_be_bytes(original[at + 10..at + 12].try_into().unwrap());
+            preceding_cost.primitive_steps +=
+                package.logical.recipe_primitive_steps(recipe).unwrap();
+            preceding_cost.peak_scratch_bytes = preceding_cost
+                .peak_scratch_bytes
+                .max(package.logical.recipe_peak_scratch_bytes(recipe).unwrap());
+        }
+        at += 8 + u32::from_be_bytes(original[at + 4..at + 8].try_into().unwrap()) as usize;
+    }
+    for offset in [294 + 4 * 12 + 5, 294 + 8 * 12 + 10, 402, 412 + 5, 424] {
+        let mut changed = original.clone();
+        changed[fact10 + offset] ^= 1;
+        assert!(
+            admit_route_prefix(&changed, 2048, 112, 0, &mut ResourceProjection::default())
+                .unwrap()
+                .is_none()
+        );
+    }
+    let mut changed = original.clone();
+    let unrelated = &original[fact10 + 294 + 5 * 12..fact10 + 294 + 6 * 12];
+    changed[primary..primary + 9].copy_from_slice(&unrelated[..9]);
+    changed[primary + 11..primary + 14].copy_from_slice(&unrelated[9..]);
+    let mut rejected_cost = ResourceProjection::default();
+    assert!(
+        admit_route_prefix(&changed, 2048, 112, 0, &mut rejected_cost)
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(rejected_cost, preceding_cost);
+}
+
+#[test]
+fn embedded_traces_execute_observed110_even_when_both_framed_group_examples_pass() {
+    use gb_bootstrap::recipe_wire_v1::{decode_recipe_package_v1, evaluate_serialized_recipe_v1};
+    use gb_bootstrap::teaching_recipe_v2::build_teaching_recipe_package_from_source;
+    let original = gb_bootstrap::route_v2::build_route_prefixes(&slice()).unwrap()[0].clone();
+    let mut source: toml::Value =
+        toml::from_str(include_str!("../../../spec/recipe-teaching-v2.toml")).unwrap();
+    // The verified singleton state constant is unused by conflict and REP-only.
+    source["recipes"][0]["nodes"][9][8] = 1.into();
+    let changed_package =
+        build_teaching_recipe_package_from_source(toml::to_string(&source).unwrap().as_bytes())
+            .unwrap();
+    let package = decode_recipe_package_v1(&changed_package, 8).unwrap();
+    let mut changed = original.clone();
+    let mut at = 64;
+    while at < changed.len() {
+        let length = u32::from_be_bytes(changed[at + 4..at + 8].try_into().unwrap()) as usize;
+        let kind = changed[at + 1];
+        if [2, 3].contains(&kind)
+            && u16::from_be_bytes(changed[at + 8..at + 10].try_into().unwrap()) == 10
+        {
+            assert_eq!(
+                evaluate_serialized_recipe_v1(&package, 110, &changed[at + 20..at + 29]).unwrap(),
+                changed[at + 29..at + 34]
+            );
+        }
+        if kind == 5 {
+            assert_eq!(length, changed_package.len());
+            changed[at + 8..at + 8 + length].copy_from_slice(&changed_package);
+        }
+        at += 8 + length;
+    }
+    let mut clean_cost = ResourceProjection::default();
+    assert!(
+        admit_route_prefix(&original, 2048, 112, 0, &mut clean_cost)
+            .unwrap()
+            .is_some()
+    );
+    let mut rejected_cost = ResourceProjection::default();
+    assert!(
+        admit_route_prefix(&changed, 2048, 112, 0, &mut rejected_cost)
+            .unwrap()
+            .is_none()
+    );
+    // The third embedded trace rejects and retains its VM charge.
+    assert_eq!(
+        rejected_cost.primitive_steps + 7 * package.logical.recipe_primitive_steps(110).unwrap(),
+        clean_cost.primitive_steps
+    );
 }

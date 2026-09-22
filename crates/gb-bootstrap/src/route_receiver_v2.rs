@@ -157,7 +157,7 @@ fn tables(raw: &[u8]) -> Option<BTreeMap<u16, &[u8]>> {
     Some(rows)
 }
 fn definition_shape(fact: u16, payload: &[u8]) -> bool {
-    let lengths = [16, 64, 96, 296, 226, 210, 636, 544, 464, 294, 314, 2421];
+    let lengths = [16, 64, 96, 296, 226, 210, 636, 544, 464, 430, 314, 2421];
     if !(1..=12).contains(&fact)
         || payload.len() != 14 + lengths[usize::from(fact - 1)]
         || u16_at(payload, 0) != Some(fact)
@@ -367,6 +367,7 @@ fn admit_route_prefix_mode(
     if package.logical.recipe_ids().ne(RECIPE_IDS)
         || !mapping_refines(&package)
         || !transport_refines_and_body_interface(&package)
+        || !group_decision_interface(&package)
     {
         return Ok(None);
     }
@@ -381,9 +382,21 @@ fn admit_route_prefix_mode(
         .filter(|row| row.0 == 1)
         .map(|row| row.2[14..].to_vec())
         .collect::<Vec<_>>();
-    for (_, recipe, payload) in &rows {
+    for (kind, recipe, payload) in &rows {
         if let Some(recipe) = recipe {
             let input = u32_at(payload, 4).unwrap() as usize;
+            if u16_at(payload, 0) == Some(10) {
+                let start = 294 + 12 * if *kind == 2 { 4 } else { 5 };
+                let trace = &definitions[9][start..start + 12];
+                if input != 9
+                    || u32_at(payload, 8) != Some(5)
+                    || payload[12..21] != trace[..9]
+                    || payload[21..23] != [0, 0]
+                    || payload[23..] != trace[9..]
+                {
+                    return Ok(None);
+                }
+            }
             if let Some(m) = adapter.as_deref_mut() {
                 resources_v2::example_event(m, &package.logical, *recipe, input)
                     .map_err(|_| RouteError::ResourceLimit)?;
@@ -442,6 +455,27 @@ fn admit_route_prefix_mode(
         let mut output = vec![0, 0];
         output.extend(expected.to_be_bytes());
         if evaluate_serialized_recipe_v1(&package, 109, &input).ok() != Some(output) {
+            return Ok(None);
+        }
+    }
+    let group_definition = &definitions[9];
+    // These ten derived traces are definitions, not additional framed records.
+    // Execute with ordinary VM accounting before independently validating their
+    // relationship to the carried raw observations and expected group identity.
+    for start in (0..9).map(|index| 294 + index * 12).chain([412]) {
+        let trace = &group_definition[start..start + 12];
+        if let Some(m) = adapter.as_deref_mut() {
+            resources_v2::example_event(m, &package.logical, 110, 9)
+                .map_err(|_| RouteError::ResourceLimit)?;
+        }
+        charge_recipe(resource, &package, 110)?;
+        if let Some(m) = adapter.as_deref_mut() {
+            m.vm_workspace(package.logical.recipe_peak_scratch_bytes(110).unwrap())
+                .map_err(|_| RouteError::ResourceLimit)?;
+        }
+        let mut expected = vec![0, 0];
+        expected.extend(&trace[9..]);
+        if evaluate_serialized_recipe_v1(&package, 110, &trace[..9]).ok() != Some(expected) {
             return Ok(None);
         }
     }
@@ -763,9 +797,66 @@ fn transport_refines_and_body_interface(package: &RecipePackageV1) -> bool {
     true
 }
 
+fn group_decision_interface(package: &RecipePackageV1) -> bool {
+    let Some(raw) = crate::recipe_wire_v1::expand_recipe_package_v1(&package.encoded, 8).ok()
+    else {
+        return false;
+    };
+    let Some(frames) = expanded_frames(&raw) else {
+        return false;
+    };
+    let Some(frame) = frames.get(&(1, 110)) else {
+        return false;
+    };
+    if u16_at(frame, 4) != Some(9) || u16_at(frame, 6) != Some(4) {
+        return false;
+    }
+    [(0, 2); 6]
+        .into_iter()
+        .chain([(1, 1); 3])
+        .chain([(5, 16), (0, 2), (0, 8), (1, 1)])
+        .enumerate()
+        .all(|(index, (kind, width))| {
+            let at = 32 + 12 * index;
+            frame.get(at + 2) == Some(&kind) && u32_at(frame, at + 4) == Some(width)
+        })
+}
+
 #[cfg(test)]
 mod substituted_program_tests {
     use super::*;
+
+    #[test]
+    fn group_decision_rejects_wider_masks_even_when_trace_bytes_still_evaluate() {
+        use crate::teaching_recipe_v2::{
+            build_teaching_recipe_package, build_teaching_recipe_package_from_source,
+        };
+        let original =
+            decode_recipe_package_v1(&build_teaching_recipe_package().unwrap(), 8).unwrap();
+        assert!(group_decision_interface(&original));
+        let mut source: toml::Value =
+            toml::from_str(include_str!("../../../spec/recipe-teaching-v2.toml")).unwrap();
+        let row = &mut source["recipes"][0];
+        for input in &mut row["inputs"].as_array_mut().unwrap()[..6] {
+            input[1] = 3.into();
+        }
+        row["outputs"][1][1] = 3.into();
+        for node in row["nodes"].as_array_mut().unwrap() {
+            if node[1].as_integer() == Some(0) && node[2].as_integer() == Some(2) {
+                node[2] = 3.into();
+            }
+        }
+        let raw =
+            build_teaching_recipe_package_from_source(toml::to_string(&source).unwrap().as_bytes())
+                .unwrap();
+        let changed = decode_recipe_package_v1(&raw, 8).unwrap();
+        assert_eq!(
+            evaluate_serialized_recipe_v1(&changed, 110, &[1, 0, 0, 0, 0, 2, 1, 1, 1]).unwrap(),
+            [0, 0, 3, 4, 0]
+        );
+        assert!(!group_decision_interface(&changed));
+    }
+
     #[test]
     fn valid_replacement_transport_and_mapping_programs_reject_refinement() {
         let original = crate::body_recipe_v1::build_revision_recipe_package().unwrap();

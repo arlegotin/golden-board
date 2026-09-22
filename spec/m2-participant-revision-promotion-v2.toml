@@ -25,6 +25,7 @@ replay = "spec/damage-replay-v2.md"
 complete_damage = "spec/complete-damage-v2.md"
 boundary_kats = "spec/boundary-kat-v2.md"
 physical = "spec/physical-evidence-v2.md"
+participant_trials = "spec/m2-participant-trials-v1.md"
 transition = "spec/m2-participant-revision-transition-v1.md"
 
 [evidence]
@@ -57,7 +58,7 @@ comparison = "complete-file-path-byte-length-mode-and-raw-hash-projection; exact
 clean_linux = "existing-admitted-pinned-image; network-off; private-clean-materialized-source; no-host-generation-cache-input"
 source_freeze = "unchanged-complete-input-source-projection-before-and-after-each-producer-and-assembly"
 executable_freeze = "immutable-private-producer-executable-and-complete-transitive-source-preimages-bound-before-and-after-execution"
-development_evidence = "diagnostic-only-until-reexecuted-under-final-production-source-and-this-complete-contract"
+development_evidence = "focused-automated-evidence-is-not-full-gate-evidence; predeclared-frozen-blind-trials-may-precede-exhaustive-verification-under-participant-trials-v1; provisional-human-success-remains-pending-until-all-final-checks-and-exact-trial-reconciliation-pass"
 
 [identity_dag]
 upstream = "neutral-source-owners-code-fixtures-M0-M1-identities-and-normative-roadmap-projection"
@@ -76,9 +77,11 @@ in_progress = "canonical-report-and-Gate8-authority-absent-while-revised-evidenc
 installation = "private-complete-staging; recursive-closed-tree-validation; no-replace-publication; tree-then-report-then-roadmap-status-last; roadmap-remains-sole-status-authority; exact-precondition-rollback-on-failure"
 candidate_ready = "only-after-all-automated-gates-pass-and-exact-participant-bundles-are-frozen"
 release = "fresh-host-full-and-clean-linux-reproduction; unchanged-report-hash-and-source-projection; historical-owner-admission-remains-closed"
-completion = "fresh-qualifying-technical-and-learner-validation-after-latest-material-revision; never-relabel-formative-or-assisted-results"
+completion = "fresh-qualifying-technical-and-learner-validation-after-latest-material-revision; provisional-blind-success-may-qualify-after-matching-complete-automated-verification; never-relabel-formative-or-assisted-results"
 
 [participants]
+default_iteration = "repair-focused-checks-frozen-provisional-trial-feedback; exhaustive-damage-native-linux-assembly-and-release-after-required-trial-success-on-a-stable-candidate"
+readiness = "spec/m2-participant-trials-v1.md; actual-source-carrier-clean-and-all-handed-out-observations-independently-checked-before-exposure; no-stale-kit-or-preview-manifest-only-admission"
 working_style = "friendly-voluntary-pet-project-participants; prior-agreement-already-given"
 administration = "no-names-dates-timers-consent-forms-or-eligibility-questionnaires"
 receiver_assumption = "motivated-intelligent-receiver-recognizes-intentional-important-artifact; extra-effort-revisiting-and-trial-error-are-allowed"

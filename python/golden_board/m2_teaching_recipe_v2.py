@@ -45,7 +45,7 @@ def _source():
     if (set(source) != {'version', 'tables', 'recipes', 'examples'}
             or type(source['version']) is not int or source['version'] != 1
             or type(source['tables']) is not list or len(source['tables']) != 1
-            or type(source['recipes']) is not list or len(source['recipes']) != 5
+            or type(source['recipes']) is not list or len(source['recipes']) != 6
             or type(source['examples']) is not list or len(source['examples']) != 8):
         raise ValueError('teaching-source-shape')
     return source
@@ -53,7 +53,7 @@ def _source():
 
 def _programs(source):
     result = []
-    for expected_id, row in zip(range(210, 215), source['recipes'], strict=True):
+    for expected_id, row in zip((110,210,211,212,213,214), source['recipes'], strict=True):
         if (set(row) != {'id', 'inputs', 'outputs', 'nodes'}
                 or _uint(row['id'], 65535) != expected_id
                 or type(row['nodes']) is not list or not 1 <= len(row['nodes']) <= 100):
@@ -106,11 +106,12 @@ def build_teaching_recipe_package() -> bytes:
         r.recipe_id, tuple((d.value_type, d.width) for d in r.inputs),
         tuple((d.value_type, d.width) for d in r.outputs),
         tuple((n.opcode, n.output_type, n.output_width, n.arguments,
-               n.auxiliary_u16, n.immediate_u64) for n in r.nodes)) for r in old.recipes if r.recipe_id != 106)
+               n.auxiliary_u16, n.immediate_u64) for n in r.nodes)) for r in old.recipes if r.recipe_id not in (106,110))
     tables = tuple(m2_recipe._table_record(t.table_id, t.element_type, t.element_width,
                                          t.element_count, t.payload) for t in old.tables)
     tables += (m2_recipe._table_record(21, bootstrap.UINT, 8, 3, b'\x07\x08\x09'),)
-    raw = _encode_profile8_package(inherited + _programs(source), tables)
+    programs = tuple(sorted(inherited + _programs(source), key=lambda row: row.recipe_id))
+    raw = _encode_profile8_package(programs, tables)
     package = recipe_wire_v1.decode_recipe_package_v1(raw, 8)
     for row in _examples(source):
         actual = recipe_wire_v1.evaluate_recipe_v1(package, row.recipe_id, row.inputs)

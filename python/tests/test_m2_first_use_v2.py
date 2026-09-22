@@ -28,17 +28,17 @@ class FirstUse(unittest.TestCase):
               patch('io.open', side_effect=AssertionError('source access')),
               patch('golden_board.m2_route_v2.build_route_prefixes_v2',
                     side_effect=AssertionError('source reconstruction'))):
-            cls.raw = build_first_use_v2(cls.prefixes, side=2040, width=112)
+            cls.raw = build_first_use_v2(cls.prefixes, side=2048, width=112)
         cls.value = canonical_manifest.validate_canonical_manifest(cls.raw)
 
     def test_complete_package_and_literal_prerequisite_coverage(self):
         v=self.value
         self.assertEqual(v['summary']['result'],'pass')
         self.assertEqual((len(v['route_rows']),len(v['node_rows']),len(v['recipe_rows']),
-                          len(v['table_rows']),len(v['opcode_rows'])),(4,1162,29,14,25))
-        self.assertEqual(v['inputs']['package']['bytes'],18273)
+                          len(v['table_rows']),len(v['opcode_rows'])),(4,1184,29,14,25))
+        self.assertEqual(v['inputs']['package']['bytes'],18661)
         t=next(t for t in v['table_rows'] if t[0]==17)
-        self.assertEqual(v['mapping_use'][:4],[9,17,227,t[3]+227])
+        self.assertEqual(v['mapping_use'][:4],[9,17,228,t[3]+228])
         self.assertEqual(len(v['literal_rows']),37)
         self.assertEqual(v['copy_rows'],[[70,1,33,0],[71,2,33,8],[72,4,34,0],[73,4,34,3]])
         positions={op:i for i,op in enumerate(v['opcode_order'])}
@@ -47,7 +47,7 @@ class FirstUse(unittest.TestCase):
             self.assertTrue(nodes)
             self.assertTrue(all(positions[d]<positions[op] for d in deps))
         self.assertTrue({1,2,5,6,21,23,24}<set(v['opcode_order'][:positions[22]]))
-        validate_first_use_v2(self.raw,self.prefixes,side=2040,width=112)
+        validate_first_use_v2(self.raw,self.prefixes,side=2048,width=112)
 
     def test_missing_late_and_circular_opcode_definitions_reject(self):
         good={1:(),2:(1,),3:(2,)}
@@ -82,22 +82,22 @@ class FirstUse(unittest.TestCase):
         for key in ('node_rows','field_rows','literal_rows','use_rows','table_rows'):
             value=deepcopy(self.value);value[key].pop()
             with self.subTest(key=key),self.assertRaises(FirstUseError):
-                validate_first_use_v2(canonical_manifest.serialize_manifest(value),self.prefixes,side=2040,width=112)
+                validate_first_use_v2(canonical_manifest.serialize_manifest(value),self.prefixes,side=2048,width=112)
         value=deepcopy(self.value);value['opcode_rows'][0][1]=6
         with self.assertRaises(FirstUseError):
-            validate_first_use_v2(canonical_manifest.serialize_manifest(value),self.prefixes,side=2040,width=112)
+            validate_first_use_v2(canonical_manifest.serialize_manifest(value),self.prefixes,side=2048,width=112)
 
     def test_malformed_geometry_bytes_and_missing_grounding_reject(self):
-        for prefixes,side,width in ((list(self.prefixes),2040,112),(self.prefixes,True,112),
-                                   (self.prefixes[:3],2040,112),(self.prefixes,2040,113),
-                                   ((self.prefixes[0]+b'\0',*self.prefixes[1:]),2040,112)):
+        for prefixes,side,width in ((list(self.prefixes),2048,112),(self.prefixes,True,112),
+                                   (self.prefixes[:3],2048,112),(self.prefixes,2048,113),
+                                   ((self.prefixes[0]+b'\0',*self.prefixes[1:]),2048,112)):
             with self.assertRaises(FirstUseError):
                 build_first_use_v2(prefixes,side=side,width=width)
         raw=bytearray(self.prefixes[0])
         fact6=next(r for r in self.value['route_rows'][0]['definition_spans'] if r[0]==6)
         raw[fact6[1]+24*6+5]^=1
         with self.assertRaises(FirstUseError):
-            build_first_use_v2((bytes(raw),*self.prefixes[1:]),side=2040,width=112)
+            build_first_use_v2((bytes(raw),*self.prefixes[1:]),side=2048,width=112)
 
 
 if __name__ == '__main__':
