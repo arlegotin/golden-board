@@ -150,5 +150,5 @@ fn complete_tree_regenerates_physical_and_actual_recovery_premises() {
     assert_eq!(proof.recovery_provenance().bodies().len(), 78);
     assert_eq!(proof.recovery_provenance().required_stream().len(), 42432);
     assert_eq!(proof.recovery_provenance().all_stream().len(), 55664);
-    assert_eq!(proof.recovery_provenance().first_use().len(), 129784);
+    assert_eq!(proof.recovery_provenance().first_use().len(), 129618);
 }

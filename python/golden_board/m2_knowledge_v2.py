@@ -78,7 +78,7 @@ def _topology():
 def _records(prefix):
     offset,records=64,[]
     while offset<len(prefix):
-        _require(len(records)<47 and offset+8<=len(prefix),'record-count')
+        _require(len(records)<48 and offset+8<=len(prefix),'record-count')
         stage,kind=prefix[offset:offset+2]
         rid=int.from_bytes(prefix[offset+2:offset+4],'big')
         length=int.from_bytes(prefix[offset+4:offset+8],'big')
@@ -87,7 +87,7 @@ def _records(prefix):
         records.append(dict(record_id=rid,stage=stage,kind=kind,byte_offset=offset,
                             payload_bytes=length,**_identity(prefix[offset:end])))
         offset=end
-    _require(len(records)==47,'record-count')
+    _require(len(records)==48,'record-count')
     return records
 
 
@@ -119,7 +119,7 @@ def _facts_and_examples(prefix,records):
                 output_bytes=olen,status=status,success=True))
             target=next(row for row in facts if row['fact_id']==fact)
             target['worked_record_ids' if kind==2 else 'held_out_record_ids'].append(record['record_id'])
-    _require(seen==set(range(1,13)) and len(examples)==32
+    _require(seen==set(range(1,13)) and len(examples)==33
              and all(row['worked_record_ids'] and row['held_out_record_ids'] for row in facts),'fact-coverage')
     return facts,examples
 
@@ -129,7 +129,7 @@ def _ablate(prefix,record,operator):
     end=start+record['bytes']
     if operator=='remove':
         changed=bytearray(prefix[:start]+prefix[end:])
-        changed[46:48]=(46).to_bytes(2,'big')
+        changed[46:48]=(int.from_bytes(prefix[46:48],'big')-1).to_bytes(2,'big')
         changed[48:52]=(len(changed)-64).to_bytes(4,'big')
         changed[56:60]=(8*len(changed)).to_bytes(4,'big')
     else:
@@ -151,7 +151,7 @@ def build_knowledge_use_v2(prefixes, *, side, width, required_stream, all_stream
     try:
         for sector,prefix in enumerate(prefixes):
             route=decode_observed_route_v2(prefix,side,width,sector)
-            _require(route.prefix_bytes==len(prefix) and route.example_count==32
+            _require(route.prefix_bytes==len(prefix) and route.example_count==33
                      and route.inventory_section_id==1,'observed-route')
             if admitted:
                 _require(route.package.encoded==admitted[0].package.encoded

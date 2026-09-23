@@ -458,7 +458,7 @@ fn lane(block: [u8; 191], flips: &[usize]) -> EhObservation {
 }
 fn group(
     lanes: &[Option<EhObservation>],
-    section: u32,
+    key: &[u8],
     a: &[u8; 191],
     b: &[u8; 191],
 ) -> Result<([u8; 8], [u8; 9], [u8; 12])> {
@@ -472,15 +472,24 @@ fn group(
             Err(SemanticError)
         }
     };
+    need(key.len() == 20)?;
     let matches_identity = |raw: &[u8; 191]| {
-        crate::decode_common_block(raw, 8).is_ok_and(|c| {
-            c.section_id == section
-                && c.semantic_copy_id == 0
-                && c.section_type == 4
-                && c.section_version == 0
-                && c.fragment_index == 0
-                && c.fragment_count == 1
-                && c.section_envelope_length == 23
+        let mut at = 0;
+        [
+            (0, 2),
+            (4, 4),
+            (8, 2),
+            (10, 2),
+            (12, 2),
+            (16, 2),
+            (18, 2),
+            (22, 4),
+        ]
+        .into_iter()
+        .all(|(offset, width)| {
+            let matches = raw[offset..offset + width] == key[at..at + width];
+            at += width;
+            matches
         })
     };
     let mut trace = [0; 12];
@@ -572,79 +581,192 @@ fn group(
     Ok((row, summary, trace))
 }
 fn tenth(raw: &[u8], a: [u8; 191], b: [u8; 191]) -> Result<()> {
-    let mut out = vec![];
-    let mut next = 1;
-    for (section, fragment, f, r) in [(1, 0, 2, 5), (1, 1, 2, 5), (400, 0, 1, 5), (401, 0, 1, 2)] {
-        longs(&mut out, &[section, fragment, f, r, next, next + r - 1]);
-        next += r;
+    need(raw.len() == 443 && raw[..4] == [0, 4, 0, 6])?;
+    let mut roster = Vec::new();
+    for (i, expected) in [
+        [1u16, 0, 2, 5, 1, 5],
+        [1, 1, 2, 5, 6, 10],
+        [400, 0, 1, 5, 11, 15],
+        [401, 0, 1, 2, 16, 17],
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let row = (0..6)
+            .map(|j| u16_at(raw, 4 + i * 12 + 2 * j))
+            .collect::<Result<Vec<_>>>()?;
+        need(row == expected)?;
+        roster.push(row);
     }
-    out.extend([0, 4, 8, 10, 12, 16, 18, 22]);
-    let conflict = vec![
-        Some(lane(a, &[])),
-        Some(lane(b, &[0, 1])),
-        Some(lane(b, &[2, 3])),
-        Some(lane(b, &[4, 5])),
-        Some(lane(b, &[6, 7])),
-    ];
-    let rep: Vec<_> = (0..5).map(|i| Some(lane(b, &[2 * i, 2 * i + 1]))).collect();
-    let cases = vec![
-        vec![None; 5],
-        vec![Some(lane(b, &[0, 1]))],
-        vec![Some(lane(a, &[]))],
-        vec![Some(lane(a, &[])); 5],
-        conflict.clone(),
-        rep.clone(),
-        vec![Some(lane(a, &[])), None],
-        vec![Some(lane(a, &[])), Some(lane(b, &[]))],
-        vec![Some(lane(a, &[]))],
-    ];
-    let mut traces = Vec::new();
-    for (i, lanes) in cases.iter().enumerate() {
-        let (row, _, trace) = group(lanes, if i == 8 { 401 } else { 400 }, &a, &b)?;
-        out.extend(row);
-        traces.extend(trace);
+    need(raw[52..61] == [0, 4, 8, 10, 12, 16, 18, 22, 2])?;
+    let keys = [take(raw, 61, 20)?, take(raw, 81, 20)?];
+    for (key, section) in keys.iter().zip([400, 401]) {
+        need(
+            u16_at(key, 0)? == 8
+                && u32_at(key, 2)? == section
+                && u16_at(key, 6)? == 0
+                && u16_at(key, 8)? == 4
+                && u16_at(key, 10)? == 0
+                && u16_at(key, 12)? == 0
+                && u16_at(key, 14)? == 1
+                && u32_at(key, 16)? == 23,
+        )?;
     }
-    for (which, lanes) in [conflict, rep].iter().enumerate() {
-        for i in 0..5 {
-            if which == 0 && i == 0 {
-                out.extend([1, 0, 0, 0, 0, 0]);
+    need(raw[101..106] == [0, 111, 0, 13, 4])?;
+    let expected_templates = [
+        [0u8, 0, 0, 0],
+        [0, 0, 59, 5],
+        [0, 0, 0, 1],
+        [1, 0, 0, 2],
+        [1, 0, 2, 2],
+        [1, 0, 4, 2],
+        [1, 0, 6, 2],
+        [1, 0, 8, 2],
+        [0, 1, 59, 5],
+        [0, 1, 60, 5],
+        [0, 1, 61, 5],
+        [0, 1, 62, 5],
+        [0, 1, 63, 5],
+    ];
+    let mut templates = Vec::new();
+    for (row, expected) in raw[106..158].chunks_exact(4).zip(expected_templates) {
+        need(row == expected)?;
+        let block = if row[0] == 0 { a } else { b };
+        let mut observation = lane(block, &[]);
+        for bit in usize::from(row[2])..usize::from(row[2]) + usize::from(row[3]) {
+            if row[1] == 0 {
+                observation.encoded[bit / 8] ^= 1 << (7 - bit % 8);
             } else {
-                let start = if which == 0 { 2 * (i - 1) } else { 2 * i };
-                out.extend([2, 2]);
-                words(&mut out, &[start as u16, (start + 1) as u16]);
+                observation.encoded[bit / 8] &= !(1 << (7 - bit % 8));
+                observation.erasures.push(crate::candidate::EhErasure {
+                    codeword: (bit / 72) as u8,
+                    position: (bit % 72 + 1) as u8,
+                });
             }
         }
-        out.extend(group(lanes, 400, &a, &b)?.1);
+        templates.push(observation);
     }
-    for length in [22u16, 157, 158, 314, 315] {
-        let fragments = length.div_ceil(157);
-        words(
-            &mut out,
-            &[length, fragments, length - 157 * (fragments - 1), length],
-        );
-    }
-    need(out.len() == 294 && traces.len() == 108)?;
-    out.extend(traces);
-    let mut unknown = Vec::new();
-    for first in [59u8, 60, 61, 62, 63] {
-        out.extend([first, 5]);
-        let mut observation = lane(a, &[]);
-        for bit in first..first + 5 {
-            observation.encoded[usize::from(bit) / 8] &= !(1 << (7 - bit % 8));
-        }
-        observation.erasures = (first..first + 5)
-            .map(|bit| crate::candidate::EhErasure {
-                codeword: 0,
-                position: bit + 1,
+    need(raw[158..162] == [0, 110, 8, 24])?;
+    let expected_cases = [
+        [11u8, 0, 0, 0, 0, 0],
+        [11, 4, 0, 0, 0, 0],
+        [11, 1, 0, 0, 0, 0],
+        [11, 3, 0, 0, 0, 0],
+        [11, 1, 4, 5, 6, 7],
+        [11, 4, 5, 6, 7, 8],
+        [11, 9, 10, 11, 12, 13],
+        [16, 1, 1, 0, 0, 0],
+    ];
+    let mut groups = Vec::new();
+    for (row, expected) in raw[162..354].chunks_exact(24).zip(expected_cases) {
+        need(row[..6] == expected)?;
+        let physical = u16::from(row[0]);
+        let owner = roster
+            .iter()
+            .find(|r| r[4] <= physical && physical <= r[5])
+            .ok_or(SemanticError)?;
+        let factor = usize::from(owner[3]);
+        need(row[1 + factor..6].iter().all(|id| *id == 0))?;
+        let key = keys
+            .iter()
+            .find(|key| {
+                u32_at(key, 2).ok() == Some(u32::from(owner[0]))
+                    && u16_at(key, 12).ok() == Some(owner[1])
+                    && u16_at(key, 14).ok() == Some(owner[2])
             })
-            .collect();
-        unknown.push(Some(observation));
+            .ok_or(SemanticError)?;
+        let observations = row[1..1 + factor]
+            .iter()
+            .map(|id| {
+                if *id == 0 {
+                    Ok(None)
+                } else {
+                    Ok(Some(
+                        templates
+                            .get(usize::from(*id - 1))
+                            .ok_or(SemanticError)?
+                            .clone(),
+                    ))
+                }
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let (_, states, trace) = group(&observations, key, &a, &b)?;
+        need(row[6..12] == states[..6] && row[12..24] == trace)?;
+        groups.push(observations);
     }
-    let (_, states, trace) = group(&unknown, 400, &a, &b)?;
-    out.extend(trace);
-    out.extend(&states[..6]);
-    exact(raw, out)
+    need(raw[354..356] == [3, 4])?;
+    for (row, expected_bit) in raw[356..368].chunks_exact(4).zip([0u16, 63, 72]) {
+        let bit = u16_at(row, 0)?;
+        need(
+            bit == expected_bit
+                && u16::from(row[2]) == bit / 72
+                && u16::from(row[3]) == bit % 72 + 1,
+        )?;
+    }
+    need(raw[368..373] == [7, 0, 0, 0, 30])?;
+    let rep = aggregate_repetition_observation(&groups[usize::from(raw[368] - 1)])
+        .map_err(|_| SemanticError)?
+        .ok_or(SemanticError)?;
+    let word = usize::from(raw[370]);
+    let mut input = rep.encoded[word * 9..word * 9 + 9].to_vec();
+    let positions = rep
+        .erasures
+        .iter()
+        .filter(|e| usize::from(e.codeword) == word)
+        .map(|e| e.position)
+        .collect::<Vec<_>>();
+    need(positions.len() <= 3)?;
+    input.push(positions.len() as u8);
+    input.extend(positions);
+    input.resize(13, 0);
+    need(raw[373..386] == input)?;
+    need(
+        decode_eh_unit_fast(&rep, 8)
+            .map_err(|_| SemanticError)?
+            .common
+            == a,
+    )?;
+    need(raw[386..390] == [0, 113, 4, 8])?;
+    for (row, expected) in raw[390..422].chunks_exact(8).zip([
+        [2u8, 0, 1, 2, 2, 2],
+        [5, 0, 1, 1, 1, 1],
+        [5, 1, 2, 2, 2, 2],
+        [5, 2, 2, 2, 2, 2],
+    ]) {
+        need(row[..6] == expected)?;
+        let r = usize::from(row[0]);
+        need(matches!(r, 2 | 5) && row[1 + r..6].iter().all(|s| *s == 2))?;
+        let zeros = row[1..1 + r].iter().filter(|s| **s == 0).count();
+        let ones = row[1..1 + r].iter().filter(|s| **s == 1).count();
+        let erased = r - zeros - ones;
+        let zero = 2 * ones + erased < r;
+        let one = 2 * zeros + erased < r;
+        need(row[6..] == [u8::from(zero != one), u8::from(one && !zero)])?;
+    }
+    need(raw[422] == 5)?;
+    for (row, length) in raw[423..443]
+        .chunks_exact(4)
+        .zip([22u16, 157, 158, 314, 315])
+    {
+        let count = length.div_ceil(157);
+        let last = length - 157 * (count - 1);
+        need(u16_at(row, 0)? == length && u16::from(row[2]) == count && u16::from(row[3]) == last)?;
+        need(
+            (0..count)
+                .map(|i| {
+                    if i + 1 == count {
+                        u16::from(row[3])
+                    } else {
+                        157
+                    }
+                })
+                .sum::<u16>()
+                == length,
+        )?;
+    }
+    Ok(())
 }
+
 fn graph(adjacency: u16, selected: u8) -> Option<u8> {
     fn visit(i: usize, a: u16, active: &mut u8, done: &mut u8) -> bool {
         let bit = 8 >> i;
@@ -1351,7 +1473,7 @@ pub fn validate_definitions(
     values: &[&[u8]],
     package: &RecipePackageV1,
 ) -> Result<ContextCommitments> {
-    const WIDTHS: [usize; 12] = [16, 64, 96, 296, 226, 210, 636, 544, 464, 430, 314, 2421];
+    const WIDTHS: [usize; 12] = [16, 64, 96, 296, 226, 210, 636, 544, 464, 443, 314, 2421];
     need(values.len() == 12)?;
     for (value, width) in values.iter().zip(WIDTHS) {
         need(value.len() == width)?;

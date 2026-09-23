@@ -38,12 +38,12 @@ pub enum RouteError {
 }
 pub type Result<T> = std::result::Result<T, RouteError>;
 const STAGES: [u8; 12] = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5];
-const PRIMARY: [u16; 12] = [101, 102, 103, 104, 105, 211, 107, 113, 109, 110, 111, 112];
+const PRIMARY: [u16; 12] = [101, 102, 103, 104, 105, 211, 107, 113, 109, 111, 107, 112];
 const RECIPE_IDS: [u16; 29] = [
     1, 2, 3, 4, 30, 90, 92, 99, 100, 101, 102, 103, 104, 105, 107, 108, 109, 110, 111, 112, 113,
     201, 202, 203, 210, 211, 212, 213, 214,
 ];
-const TABLE_IDS: [u16; 14] = [3, 4, 5, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21];
+const TABLE_IDS: [u16; 15] = [3, 4, 5, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22];
 fn u16_at(raw: &[u8], at: usize) -> Option<u16> {
     Some(u16::from_be_bytes(
         raw.get(at..at.checked_add(2)?)?.try_into().ok()?,
@@ -157,7 +157,7 @@ fn tables(raw: &[u8]) -> Option<BTreeMap<u16, &[u8]>> {
     Some(rows)
 }
 fn definition_shape(fact: u16, payload: &[u8]) -> bool {
-    let lengths = [16, 64, 96, 296, 226, 210, 636, 544, 464, 430, 314, 2421];
+    let lengths = [16, 64, 96, 296, 226, 210, 636, 544, 464, 443, 314, 2421];
     if !(1..=12).contains(&fact)
         || payload.len() != 14 + lengths[usize::from(fact - 1)]
         || u16_at(payload, 0) != Some(fact)
@@ -188,7 +188,7 @@ fn definition_shape(fact: u16, payload: &[u8]) -> bool {
 }
 fn skeleton(sector: u8) -> Vec<(u8, u8, u16, Option<u16>)> {
     let base = u16::from(sector) * 10000;
-    let mut out = Vec::with_capacity(47);
+    let mut out = Vec::with_capacity(48);
     for fact in 1..=12u16 {
         let stage = STAGES[usize::from(fact - 1)];
         for kind in 1..=3u8 {
@@ -208,6 +208,9 @@ fn skeleton(sector: u8) -> Vec<(u8, u8, u16, Option<u16>)> {
                     Some(recipe),
                 ));
             }
+        }
+        if fact == 10 {
+            out.push((stage, 2, base + 1004, Some(30)));
         }
         if fact == 12 {
             out.push((stage, 2, base + 1210, Some(203)));
@@ -258,7 +261,7 @@ fn admit_route_prefix_mode(
         || head[10] != sector
         || head[11] != sector
         || u16_at(head, 12) != Some(8)
-        || u16_at(head, 14) != Some(47)
+        || u16_at(head, 14) != Some(48)
         || u32_at(head, 16) != Some((raw.len() - 64) as u32)
         || u32_at(head, 24) != Some((raw.len() * 8) as u32)
         || u16_at(head, 28) != Some(256)
@@ -268,12 +271,12 @@ fn admit_route_prefix_mode(
         return Ok(None);
     }
     if let Some(m) = adapter.as_deref_mut() {
-        m.event(Kernel::RouteFrame, raw.len() as u64, 8 * 47)
+        m.event(Kernel::RouteFrame, raw.len() as u64, 8 * 48)
             .map_err(|_| RouteError::ResourceLimit)?;
     }
     let wanted = skeleton(sector);
     let mut cursor = 64usize;
-    let mut rows = Vec::with_capacity(47);
+    let mut rows = Vec::with_capacity(48);
     for (stage, kind, id, recipe) in wanted {
         let Some(header) = raw.get(cursor..cursor + 8) else {
             return Ok(None);
@@ -321,10 +324,10 @@ fn admit_route_prefix_mode(
         rows.push((kind, recipe, payload));
         cursor = end;
     }
-    if cursor != raw.len() || rows[45].2 != 1u32.to_be_bytes() || !rows[46].2.is_empty() {
+    if cursor != raw.len() || rows[46].2 != 1u32.to_be_bytes() || !rows[47].2.is_empty() {
         return Ok(None);
     }
-    let package_raw = rows[44].2;
+    let package_raw = rows[45].2;
     if u32_at(head, 20) != Some(package_raw.len() as u32) {
         return Ok(None);
     }
@@ -368,6 +371,7 @@ fn admit_route_prefix_mode(
         || !mapping_refines(&package)
         || !transport_refines_and_body_interface(&package)
         || !group_decision_interface(&package)
+        || !word_constructor_interface(&package)
     {
         return Ok(None);
     }
@@ -386,13 +390,22 @@ fn admit_route_prefix_mode(
         if let Some(recipe) = recipe {
             let input = u32_at(payload, 4).unwrap() as usize;
             if u16_at(payload, 0) == Some(10) {
-                let start = 294 + 12 * if *kind == 2 { 4 } else { 5 };
-                let trace = &definitions[9][start..start + 12];
-                if input != 9
-                    || u32_at(payload, 8) != Some(5)
-                    || payload[12..21] != trace[..9]
-                    || payload[21..23] != [0, 0]
-                    || payload[23..] != trace[9..]
+                let (expected_input, expected_output) = if *recipe == 111 {
+                    let start = 106 + 4 * if *kind == 2 { 8 } else { 1 };
+                    let mut expected_input = definitions[7][112..121].to_vec();
+                    expected_input.extend(&definitions[7][328..337]);
+                    expected_input.extend(&definitions[9][start..start + 4]);
+                    let Some(expected_output) = constructed_word(&expected_input) else {
+                        return Ok(None);
+                    };
+                    (expected_input, expected_output)
+                } else {
+                    let mut expected_output = vec![0, 0];
+                    expected_output.extend(&definitions[6][134..142]);
+                    (definitions[9][373..386].to_vec(), expected_output)
+                };
+                if payload[12..12 + input] != expected_input
+                    || payload[12 + input..] != expected_output
                 {
                     return Ok(None);
                 }
@@ -459,10 +472,37 @@ fn admit_route_prefix_mode(
         }
     }
     let group_definition = &definitions[9];
-    // These ten derived traces are definitions, not additional framed records.
+    // These derived witnesses are definitions, not additional framed records.
     // Execute with ordinary VM accounting before independently validating their
     // relationship to the carried raw observations and expected group identity.
-    for start in (0..9).map(|index| 294 + index * 12).chain([412]) {
+    if group_definition[101..106] != [0, 111, 0, 13, 4] {
+        return Ok(None);
+    }
+    for descriptor in group_definition[106..158].chunks_exact(4) {
+        let mut input = definitions[7][112..121].to_vec();
+        input.extend(&definitions[7][328..337]);
+        input.extend(descriptor);
+        let Some(expected) = constructed_word(&input) else {
+            return Ok(None);
+        };
+        if let Some(m) = adapter.as_deref_mut() {
+            resources_v2::example_event(m, &package.logical, 111, input.len())
+                .map_err(|_| RouteError::ResourceLimit)?;
+        }
+        charge_recipe(resource, &package, 111)?;
+        if let Some(m) = adapter.as_deref_mut() {
+            m.vm_workspace(package.logical.recipe_peak_scratch_bytes(111).unwrap())
+                .map_err(|_| RouteError::ResourceLimit)?;
+        }
+        let actual = evaluate_serialized_recipe_v1(&package, 111, &input).ok();
+        if actual != Some(expected) {
+            return Ok(None);
+        }
+    }
+    if group_definition[158..160] != [0, 110] {
+        return Ok(None);
+    }
+    for start in (0..8).map(|index| 174 + index * 24) {
         let trace = &group_definition[start..start + 12];
         if let Some(m) = adapter.as_deref_mut() {
             resources_v2::example_event(m, &package.logical, 110, 9)
@@ -476,6 +516,69 @@ fn admit_route_prefix_mode(
         let mut expected = vec![0, 0];
         expected.extend(&trace[9..]);
         if evaluate_serialized_recipe_v1(&package, 110, &trace[..9]).ok() != Some(expected) {
+            return Ok(None);
+        }
+    }
+    if group_definition[368..373] != [7, 0, 0, 0, 30] {
+        return Ok(None);
+    }
+    let erasure_recipe = u16_at(group_definition, 371).unwrap();
+    let erasure_input = &group_definition[373..386];
+    if let Some(m) = adapter.as_deref_mut() {
+        resources_v2::example_event(m, &package.logical, erasure_recipe, erasure_input.len())
+            .map_err(|_| RouteError::ResourceLimit)?;
+    }
+    charge_recipe(resource, &package, erasure_recipe)?;
+    if let Some(m) = adapter.as_deref_mut() {
+        m.vm_workspace(
+            package
+                .logical
+                .recipe_peak_scratch_bytes(erasure_recipe)
+                .unwrap(),
+        )
+        .map_err(|_| RouteError::ResourceLimit)?;
+    }
+    let mut expected = vec![0, 0];
+    expected.extend(&definitions[6][134..142]);
+    if evaluate_serialized_recipe_v1(&package, erasure_recipe, erasure_input).ok() != Some(expected)
+    {
+        return Ok(None);
+    }
+    if group_definition[386..390] != [0, 113, 4, 8] {
+        return Ok(None);
+    }
+    let repetition_recipe = u16_at(group_definition, 386).unwrap();
+    for row in group_definition[390..422].chunks_exact(8) {
+        let factor = usize::from(row[0]);
+        if !matches!(factor, 2 | 5)
+            || row[1..6].iter().any(|symbol| *symbol > 2)
+            || row[1 + factor..6].iter().any(|symbol| *symbol != 2)
+        {
+            return Ok(None);
+        }
+        let symbols = &row[1..1 + factor];
+        let input = [
+            row[0],
+            symbols.iter().filter(|s| **s == 0).count() as u8,
+            symbols.iter().filter(|s| **s == 1).count() as u8,
+        ];
+        if let Some(m) = adapter.as_deref_mut() {
+            resources_v2::example_event(m, &package.logical, repetition_recipe, input.len())
+                .map_err(|_| RouteError::ResourceLimit)?;
+        }
+        charge_recipe(resource, &package, repetition_recipe)?;
+        if let Some(m) = adapter.as_deref_mut() {
+            m.vm_workspace(
+                package
+                    .logical
+                    .recipe_peak_scratch_bytes(repetition_recipe)
+                    .unwrap(),
+            )
+            .map_err(|_| RouteError::ResourceLimit)?;
+        }
+        if evaluate_serialized_recipe_v1(&package, repetition_recipe, &input).ok()
+            != Some(vec![0, 0, row[6], row[7]])
+        {
             return Ok(None);
         }
     }
@@ -795,6 +898,66 @@ fn transport_refines_and_body_interface(package: &RecipePackageV1) -> bool {
         }
     }
     true
+}
+
+fn constructed_word(input: &[u8]) -> Option<Vec<u8>> {
+    if input.len() != 22 || input[18] > 1 || input[19] > 1 {
+        return None;
+    }
+    let first = usize::from(input[20]);
+    let count = usize::from(input[21]);
+    if first + count > 72 {
+        return None;
+    }
+    let source = usize::from(input[18]) * 9;
+    let mut word = input[source..source + 9].to_vec();
+    let mut mask = [0u8; 9];
+    for bit in first..first + count {
+        let flag = 1 << (7 - bit % 8);
+        if input[19] == 1 {
+            word[bit / 8] &= !flag;
+            mask[bit / 8] |= flag;
+        } else {
+            word[bit / 8] ^= flag;
+        }
+    }
+    let mut expected = vec![0, 0];
+    expected.extend(word);
+    expected.extend(mask);
+    Some(expected)
+}
+
+fn word_constructor_interface(package: &RecipePackageV1) -> bool {
+    let Some(raw) = crate::recipe_wire_v1::expand_recipe_package_v1(&package.encoded, 8).ok()
+    else {
+        return false;
+    };
+    let Some(frames) = expanded_frames(&raw) else {
+        return false;
+    };
+    let Some(frame) = frames.get(&(1, 111)) else {
+        return false;
+    };
+    if u16_at(frame, 4) != Some(6) || u16_at(frame, 6) != Some(3) {
+        return false;
+    }
+    [
+        (2, 72),
+        (2, 72),
+        (1, 1),
+        (1, 1),
+        (0, 8),
+        (0, 8),
+        (5, 16),
+        (2, 72),
+        (2, 72),
+    ]
+    .into_iter()
+    .enumerate()
+    .all(|(index, (kind, width))| {
+        let at = 32 + 12 * index;
+        frame.get(at + 2) == Some(&kind) && u32_at(frame, at + 4) == Some(width)
+    })
 }
 
 fn group_decision_interface(package: &RecipePackageV1) -> bool {

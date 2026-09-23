@@ -109,10 +109,10 @@ fn complete_proof_has_observed_spans_and_distinct_rejection_classes() {
     for (sector, row) in routes.iter().enumerate() {
         let row = object(row);
         let frames = array(&row["record_rows"]);
-        assert_eq!(frames.len(), 47);
+        assert_eq!(frames.len(), 48);
         assert_eq!(array(&row["fact_rows"]).len(), 12);
         let examples = array(&row["example_rows"]);
-        assert_eq!(examples.len(), 32);
+        assert_eq!(examples.len(), 33);
         assert!(examples.iter().any(|v| object(v)["status"] != V::U64(0)));
         let mut end = 64;
         for frame in frames {

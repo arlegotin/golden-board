@@ -24,41 +24,6 @@ RECOVERY=('all.content-v0.bin','body-100.bin','body-200.bin','decoder-resources.
           'decoder-result.json','knowledge-use.json','required.content-v0.bin',
           'route-0.bin','route-1.bin','route-2.bin','route-3.bin')
 CASES=(('D3',0),('D2',0),('D4',0),('D7',11))
-STORAGE=b'''The observation is a binary file. Its first four bytes give the exact
-number N of following binary symbols, as an unsigned big-endian integer.
-The symbols are packed eight per byte, most-significant bit first. Read
-exactly N symbols; unused low bits of the final byte, if any, are zero.
-This describes file storage only. Preserve the file unchanged.
-'''
-START=b'''Read opening.md and allowed-tools.md, then examine observation.bits.
-Storage.txt describes only how its binary symbols are stored in the file.
-
-Work out what the data conveys and explain how its own evidence supports
-your reading. Trying ideas, wrong starts and backtracking are welcome.
-Save working code, the command needed to run it, notes and actual outputs
-in answers/clean/ outside this input folder. Keep uncertainties and rival
-interpretations in your own words. An unfinished reproducible result is useful.
-Tell the owner when you are ready for the next inputs. No extra form is needed.
-'''.replace(b'Storage.txt',b'storage.txt')
-ADAPTER=b'''These files describe storage for the later observations only.
-Keep your clean-method files unchanged. If needed, add a thin input adapter
-and save it with its command in answers/adapter/. Tell the owner when ready.
-Do not change the interpretation to match a later input without saying so.
-'''
-HELDOUT=b'''Use your saved method on each observation separately. channels.json names
-only the storage channel for each file. Save code, commands, actual outputs
-and a short account for each input in answers/heldout/a/ through d/.
-Do not fill unavailable data from the clean observation or another result.
-
-Answer content-query.json from the clean output you actually recovered and
-identify the references you followed. Save the answer and any resulting bytes
-in answers/heldout/content-query/. If the requested data is unavailable, say so.
-For generic_record, return its complete record bytes, their SHA-256 and your
-explanation of its fields and references. For chess_transition, return the
-recorded move bytes and resulting position, identifying the representation
-you used. Detailed output conventions are available only as explicit help.
-Keep unsupported conclusions and any later method changes explicit.
-'''
 OWNER='''LOCAL DEVELOPMENT PREVIEW — NOT FINAL VERIFICATION
 
 Participant feedback may precede full release under
@@ -75,12 +40,15 @@ neither a Candidate-ready bundle nor a fresh-release receipt.
 After those readiness checks, use this simple sequence:
 
 1. Copy only recipient/01-clean/ into the person's offline workspace. Ask them
-   to read READ-ME.txt and reconstruct what the data conveys. Give ordinary
-   local tools and room for sustained effort, false starts and backtracking.
+   to read READ-ME.txt and the complete opening, including the saved-method
+   stages, and derive their recovery method from the data's own evidence. Give
+   ordinary local tools and room for sustained effort, revisiting examples,
+   false starts and backtracking. Keep all later formats, mechanics fixtures
+   and observations withheld until their existing stages.
    They save working code, the run command, notes and actual output files in
    answers/clean/. Do not supply this kit's manifest, owner directory, repository,
    decoder, learner runner, inferred geometry, hashes or expected answers.
-2. When they declare their clean method ready, keep an unchanged copy of those
+2. When they declare their recovery method ready, keep an unchanged copy of those
    submitted files. Give only recipient/02-adapter/. They may add a thin storage
    adapter and save it in answers/adapter/. Keep the earlier method unchanged;
    do not confirm whether it is correct. Save that method plus adapter before
@@ -152,15 +120,15 @@ def participant_files(root,carrier,cases):
     require(len(cases)==4 and tuple(c.channel for c in cases)==
             ('OBS_MATRIX','OBS_MATRIX','OBS_UNITS','OBS_UNITS'),'heldout-channels')
     template=root/'studies/m2/templates/technical'
-    files={'recipient/01-clean/READ-ME.txt':START,
+    files={'recipient/01-clean/READ-ME.txt':read_file(template/'clean-instructions-v2.txt'),
         'recipient/01-clean/opening.md':read_file(template/'neutral-opening-prompt.md'),
         'recipient/01-clean/allowed-tools.md':read_file(template/'allowed-tools.md'),
-        'recipient/01-clean/storage.txt':STORAGE,
+        'recipient/01-clean/storage.txt':read_file(template/'storage-v2.txt'),
         'recipient/01-clean/observation.bits':carrier,
-        'recipient/02-adapter/READ-ME.txt':ADAPTER,
+        'recipient/02-adapter/READ-ME.txt':read_file(template/'adapter-instructions-v2.txt'),
         'recipient/02-adapter/channel-formats.md':read_file(template/'channel-formats.md'),
         'recipient/02-adapter/channel-mechanics-fixtures.json':read_file(template/'channel-mechanics-fixtures.json'),
-        'recipient/03-heldouts/READ-ME.txt':HELDOUT,
+        'recipient/03-heldouts/READ-ME.txt':read_file(template/'heldout-instructions-v2.txt'),
         'recipient/03-heldouts/channels.json':manifest.serialize_manifest(dict(observations=[
             dict(file=f'observation-{letter}.bin',channel=case.channel)
             for letter,case in zip('abcd',cases,strict=True)])),
@@ -205,6 +173,7 @@ def build_files(root,carrier,recovery_files):
         'spec/damage-corpus-v2.md','spec/damage-oracle-v2.md','spec/resource-accounting-v2.md',
         'spec/knowledge-use-v2.md','tools/m2/package_technical_preview_v2.py',
         *(f'studies/m2/templates/technical/{name}' for name in ('neutral-opening-prompt.md','allowed-tools.md',
+          'clean-instructions-v2.txt','storage-v2.txt','adapter-instructions-v2.txt','heldout-instructions-v2.txt',
           'channel-formats.md','channel-mechanics-fixtures.json','export-format.md','final-account-question.md')))
     sources={p:read_file(root/p) for p in source_paths}
     raws=tuple(sources[p] for p in SOURCES)

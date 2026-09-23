@@ -2685,6 +2685,23 @@ hashing:
 - recovered stream/section states; and
 - open-ended tool/document/help/prior-knowledge account.
 
+The initial question MUST disclose the whole saved-method task before the unit
+declares readiness: develop a general recovery method supported by the artifact,
+including damaged or missing data and explicit uncertainty/failure; preserve
+that method; add only a thin storage adapter after later file formats are
+released; then run the unchanged method and saved adapter on new observations.
+It must make clear that later substantive changes are useful diagnostic work,
+not a replacement result for the saved method. Sustained effort, multiple
+sessions and revisiting the artifact's own checks and examples remain welcome.
+This is advance task disclosure, not an artifact-specific hint. It supplies no
+geometry, ownership, selected code, recovery procedure, format, damage operator,
+case, answer or readiness feedback. The later schemas, mechanics fixtures and
+actual observations remain withheld until their existing stages below; no
+pre-checkpoint practice observation or additional participant task is introduced.
+This prospective clarification does not change scoring or reclassify any
+historical round. Both preview and production packagers copy the same technical
+instruction templates; a private duplicate may not change the task wording.
+
 No correctness feedback is given. Only after checkpoint A does the facilitator
 release the pre-frozen neutral storage schemas and tiny nonsemantic mechanics
 fixtures for later `OBS_MATRIX` and `OBS_UNITS` inputs. They were sealed before

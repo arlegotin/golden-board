@@ -56,6 +56,30 @@ fn validates_observed_relationships_and_retains_unresolved_contexts() {
     assert_eq!(result.required(), ContextState::Unresolved);
     assert_eq!(result.all(), ContextState::Unresolved);
 }
+
+#[test]
+fn same_decoded_result_cannot_disconnect_the_case7_constructed_input() {
+    use gb_bootstrap::recipe_wire_v1::evaluate_serialized_recipe_v1;
+    let (_, values, package) = input();
+    let correct = &values[9][373..386];
+    let mut misplaced = values[7][112..121].to_vec();
+    misplaced.extend([0, 0, 0, 0]);
+    assert_ne!(correct, &misplaced);
+    assert_eq!(
+        evaluate_serialized_recipe_v1(package, 30, correct).unwrap(),
+        evaluate_serialized_recipe_v1(package, 30, &misplaced).unwrap(),
+    );
+    let mut changed = values.clone();
+    changed[9][373..386].copy_from_slice(&misplaced);
+    assert_eq!(&changed[9][162..354], &values[9][162..354]);
+    assert!(
+        validate_definitions(
+            &changed.iter().map(Vec::as_slice).collect::<Vec<_>>(),
+            package
+        )
+        .is_err()
+    );
+}
 #[test]
 fn contradictions_in_each_fact_and_miniature_consequence_reject() {
     let (_, values, package) = input();
@@ -70,11 +94,25 @@ fn contradictions_in_each_fact_and_miniature_consequence_reject() {
         (7, 112),
         (8, 39),
         (9, 110),
-        (9, 294 + 4 * 12 + 5),
-        (9, 294 + 8 * 12 + 10),
-        (9, 402),
-        (9, 412 + 5),
-        (9, 424),
+        (9, 162 + 7 * 24),
+        (9, 61),
+        (9, 63),
+        (9, 67),
+        (9, 69),
+        (9, 71),
+        (9, 73),
+        (9, 75),
+        (9, 77),
+        (9, 101),
+        (9, 103),
+        (9, 106),
+        (9, 158),
+        (9, 369),
+        (9, 362),
+        (9, 383),
+        (9, 392),
+        (9, 420),
+        (9, 174 + 3 * 24 + 7),
         (10, 73),
         (11, 210),
         (11, 206 + 1639 - 1),

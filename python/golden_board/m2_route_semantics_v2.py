@@ -12,7 +12,7 @@ from . import bootstrap as b, bootstrap_v2, chess, content as c, m2_codec, recip
 from .m2_transport_v2 import aggregate_replica_group
 from .m2_decoder import DecoderError
 
-_WIDTHS = (16,64,96,296,226,210,636,544,464,430,314,2421)
+_WIDTHS = (16,64,96,296,226,210,636,544,464,443,314,2421)
 _AUTHORITY = object()
 
 
@@ -249,7 +249,7 @@ def _flip(raw, positions):
     return bytes(result)
 
 
-def _group(lanes, expected_section, erasures=None):
+def _group(lanes, expected_key, erasures=None):
     erasures = ((),)*len(lanes) if erasures is None else erasures
     obs = tuple(None if lane is None else m2_codec.CopyObservation(lane,unknown)
                 for lane,unknown in zip(lanes,erasures,strict=True))
@@ -257,10 +257,10 @@ def _group(lanes, expected_section, erasures=None):
     lane_blocks = {block for state,block in zip(group.lane_states,group.lane_blocks,strict=True) if state in (2,3)}
     rep = group.repetition_state == 3
     distinct = lane_blocks | ({group.repetition_block} if rep else set())
-    identities = tuple((v.section_id,v.semantic_copy_id,v.section_type,v.section_version,
+    identities = tuple((v.profile_version,v.section_id,v.semantic_copy_id,v.section_type,v.section_version,
                         v.fragment_index,v.fragment_count,v.section_envelope_length)
                        for v in (b.decode_common_block(raw,8) for raw in distinct))
-    identity = bool(identities) and all(value == (expected_section,0,4,0,0,1,23) for value in identities)
+    identity = bool(identities) and all(value == expected_key for value in identities)
     row = (len(lanes),sum(x is not None for x in lanes),len(lane_blocks),int(rep),
            int(rep and group.repetition_block in lane_blocks),int(identity),
            int(identity and len(distinct) == 1),int(identity and len(distinct)>1))
@@ -286,47 +286,91 @@ def _group_trace(group, row, common):
 
 def _fact10(raw, common, encoded):
     r = _Read(raw,'fact10')
+    r.expect((4,6))
+    roster = []
     last = 0
     for sid,fragment,count,factor in ((1,0,2,5),(1,1,2,5),(400,0,1,5),(401,0,1,2)):
-        r.expect((sid,fragment,count,factor,last+1,last+factor),(4,)*6)
+        row = r.row((2,)*6)
+        _check(row == (sid,fragment,count,factor,last+1,last+factor),'fact10.roster')
+        roster.append(row)
         last += factor
     r.expect((0,4,8,10,12,16,18,22),(1,)*8)
-    a,z = encoded
-    first = (a,)+tuple(_flip(z,(2*i,2*i+1)) for i in range(4))
-    second = tuple(_flip(z,(2*i,2*i+1)) for i in range(5))
-    lane_sets = ((None,)*5,(_flip(z,(0,1)),),(a,),(a,)*5,first,second,(a,None),(a,z),(a,))
-    for index,lanes in enumerate(lane_sets):
-        _,row,_ = _group(lanes,401 if index == 8 else 400)
-        r.expect(row,(1,)*8)
-    for construction,lanes in enumerate((first,second)):
-        for index,lane in enumerate(lanes):
-            clean = construction == 0 and index == 0
-            pair = (0,0) if clean else (2*(index-1 if construction == 0 else index),2*(index-1 if construction == 0 else index)+1)
-            r.expect((1 if clean else 2,0 if clean else 2,*pair),(1,1,2,2))
-            _check(lane == _flip(encoded[0 if clean else 1],() if clean else pair),'fact10.lane')
-        group,_,distinct = _group(lanes,400)
-        mask = sum(1 << i for i,block in enumerate(common) if block in distinct)
-        r.expect((*group.lane_states,group.repetition_state,group.distinct_candidate_count,group.group_state,mask),(1,)*9)
+    r.expect((2,),(1,))
+    keys = []
+    for sid in (400,401):
+        key = r.row((2,4,2,2,2,2,2,4))
+        _check(key == (8,sid,0,4,0,0,1,23),'fact10.expected-key')
+        keys.append(key)
+    r.expect((111,0),(2,1))
+    r.expect((13,4),(1,1))
+    templates = []
+    expected_templates = ((0,0,0,0),(0,0,59,5),(0,0,0,1)) + tuple((1,0,i,2) for i in range(0,10,2)) + tuple((0,1,i,5) for i in range(59,64))
+    for expected in expected_templates:
+        template = r.row((1,)*4)
+        _check(template == expected,'fact10.template')
+        templates.append(template)
+    r.expect((110,),(2,))
+    r.expect((8,24),(1,1))
+    expected_cases = ((11,0,0,0,0,0),(11,4,0,0,0,0),(11,1,0,0,0,0),(11,3,0,0,0,0),
+                      (11,1,4,5,6,7),(11,4,5,6,7,8),(11,9,10,11,12,13),(16,1,1,0,0,0))
+    erased_input = None
+    for number,expected_case in enumerate(expected_cases,1):
+        first,*tokens = r.row((1,)*6)
+        _check((first,*tokens) == expected_case,'fact10.physical-case')
+        allocation = next(row for row in roster if row[4] == first)
+        wanted = next(key for key in keys if (key[1],key[5],key[6]) == allocation[:3])
+        factor = allocation[3]
+        _check(not any(tokens[factor:]),'fact10.outside-factor')
+        lanes,erasures = [],[]
+        for token in tokens[:factor]:
+            if token == 0:
+                lanes.append(None)
+                erasures.append(())
+                continue
+            source,is_unknown,start,count = templates[token-1]
+            wire = bytearray(encoded[source])
+            positions = tuple(range(start,start+count))
+            if is_unknown:
+                for bit in positions:
+                    wire[bit//8] &= ~(1 << (7-bit%8))
+            else:
+                wire = bytearray(_flip(bytes(wire),positions))
+            lanes.append(bytes(wire))
+            erasures.append(positions if is_unknown else ())
+        group,row,_ = _group(tuple(lanes),wanted,tuple(erasures))
+        r.expect((*group.lane_states,*((0,)*(5-factor)),group.repetition_state),(1,)*6)
+        r.expect(_group_trace(group,row,common),(1,)*12)
+        if number == 7:
+            # Derive the raw observation before looking at its decoded specimen.
+            wire = bytearray(216)
+            unknown = []
+            for bit in range(1728):
+                observed = [(lane[bit//8] >> (7-bit%8)) & 1
+                            for lane,missing in zip(lanes,erasures,strict=True)
+                            if lane is not None and bit not in missing]
+                zeros,ones = observed.count(0),observed.count(1)
+                if zeros == ones:
+                    unknown.append(bit)
+                elif ones > zeros:
+                    wire[bit//8] |= 1 << (7-bit%8)
+            _check(unknown == [63] and group.repetition_block == common[0],'fact10.raw-unknown')
+            erased_input = bytes(wire[:9])+bytes((len(unknown),unknown[0]%72+1,0,0))
+    r.expect((3,4),(1,1))
+    for bit in (0,63,72):
+        r.expect((bit,bit//72,bit%72+1),(2,1,1))
+    r.expect((7,0,0,30),(1,1,1,2))
+    _check(r.take(13) == erased_input,'fact10.erasure-input')
+    r.expect((113,4,8),(2,1,1))
+    for factor,symbols in ((2,(0,1,2,2,2)),(5,(0,1,1,1,1)),(5,(1,2,2,2,2)),(5,(2,2,2,2,2))):
+        observed_factor,*observed_symbols = r.row((1,)*6)
+        _check(observed_factor == factor and tuple(observed_symbols) == symbols,'fact10.raw-column')
+        zeros = observed_symbols[:observed_factor].count(0)
+        ones = observed_symbols[:observed_factor].count(1)
+        r.expect((int(zeros != ones),int(ones > zeros)),(1,1))
+    r.expect((5,),(1,))
     for length in (22,157,158,314,315):
         count = (length+156)//157
-        r.expect((length,count,length-157*(count-1),length))
-    for index,lanes in enumerate(lane_sets):
-        group,row,_ = _group(lanes,401 if index == 8 else 400)
-        r.expect(_group_trace(group,row,common),(1,)*12)
-    erased_ranges = tuple((59+i,5) for i in range(5))
-    for erased_range in erased_ranges:
-        r.expect(erased_range,(1,1))
-    erased,lanes = [],[]
-    for first,count in erased_ranges:
-        unknown = tuple(range(first,first+count))
-        lane = bytearray(a)
-        for bit in unknown:
-            lane[bit//8] &= ~(1 << (7-bit%8))
-        lanes.append(bytes(lane))
-        erased.append(unknown)
-    group,row,_ = _group(tuple(lanes),400,tuple(erased))
-    r.expect(_group_trace(group,row,common),(1,)*12)
-    r.expect((*group.lane_states,group.repetition_state),(1,)*6)
+        r.expect((length,count,length-157*(count-1)),(2,1,1))
     r.end()
 
 

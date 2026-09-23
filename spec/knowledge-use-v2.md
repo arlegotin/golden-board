@@ -44,7 +44,7 @@ particular it does not claim raw-square route acquisition from prefix inputs.
 ## Replayed observations and fact graph
 
 For each sector independently, run `decode_observed_route_v2` on its supplied
-prefix and geometry. Require all47 records,12 numeric DEFINE values,32 carried
+prefix and geometry. Require all48 records,12 numeric DEFINE values,33 carried
 WORKED/HELD_OUT examples, admitted profile8 compact program and endpoint1.
 The receiver executes the carried examples, checks mapping/transport program
 refinement, derives the active mapping from table17 and109, and checks the
@@ -99,10 +99,10 @@ replacement stream by chess plausibility.
 Order is sector0..3, then fact1..12, then `remove`, `contradict`.
 
 `remove` deletes only that entire DEFINE frame, changes route record count
-47→46, and recomputes body byte length and total prefix cells; package byte
+48→47, and recomputes body byte length and total prefix cells; package byte
 length and all remaining bytes stay unchanged. The recipient must reject
 with classification `record-structure`. This is **structural presence
-ablation**, not proof of semantic use: the closed skeleton already rejects46.
+ablation**, not proof of semantic use: the closed skeleton already rejects47.
 
 `contradict` XORs1 into the final byte of that DEFINE's numeric value, keeping
 every frame/count/length unchanged. The recipient must reject during local
@@ -158,7 +158,7 @@ The closed top-level object has exactly:
 - `ablation_rows`: the96 rows, each exactly sector_id,fact_id,operator,
   bytes,sha256,classification,success.
 - `summary`: exactly route_count=4, definition_count=48,
-  example_count=128, structural_presence_rejections=48,
+  example_count=132, structural_presence_rejections=48,
   relationship_contradiction_rejections=48, recovered_context_count=4,
   result=`pass`. This result is limited to the named development scope.
 

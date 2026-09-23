@@ -130,8 +130,8 @@ fn actual_recovery_feeds_both_evidence_producers() {
     assert_eq!(e.bodies().len(), 78);
     assert_eq!(e.required_stream().len(), 42432);
     assert_eq!(e.all_stream().len(), 55664);
-    assert!(e.prefixes().iter().all(|p| p.len() == 25809));
-    assert_eq!(e.first_use().len(), 129784);
+    assert!(e.prefixes().iter().all(|p| p.len() == 25791));
+    assert_eq!(e.first_use().len(), 129618);
     obj(&mut v).insert("result".into(), V::String("failure".into()));
     assert!(validate_recovery_provenance_v2(&serialize_manifest(&v).unwrap(), input(d)).is_err());
     // Optional development comparison export; never consumed as a test input.

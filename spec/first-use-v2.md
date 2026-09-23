@@ -136,6 +136,9 @@ recipe closure is derived from these actual calls. Add operational roots
 recipe and table must be reached; unused tables/recipes fail. `use_rows` are
 `[fact,recipe,closure_recipe_ids,closure_table_ids]`, ordered by ascending
 fact then first appearance of distinct recipe in that fact's actual examples.
+After fact10's framed roots, add its observed embedded decision root at
+DEFINE offset158 (recipe110); observed admission executes all eight traces.
+This is an explicit carried use, not a claim of an ordinary framed example.
 Fact8 also consumes108 to encode the actual carried whole-unit examples:
 48 rows, A then B, lane0..23. `adapter_rows` are
 `[8,108,block_index,lane,input_segments,output_segment]`; each segment is

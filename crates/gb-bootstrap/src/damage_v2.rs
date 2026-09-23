@@ -1780,7 +1780,7 @@ fn verify_owners() -> Result<()> {
             ),
             (
                 &include_bytes!("../../../spec/damage-policy-v2.toml")[..],
-                "9b61521721bdee97c43afe3613762d5efe0088806e4e8a109e7754e9c37a4775",
+                "726524cf388c1a7345830260e32af0a3d13b723ab4700a7689ec6c203230a828",
             ),
             (
                 &include_bytes!("../../../spec/profile-limits-v2.toml")[..],

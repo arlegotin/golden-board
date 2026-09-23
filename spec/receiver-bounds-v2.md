@@ -48,9 +48,12 @@ permits fewer units. Let G be the registry length.
 - Inventory/layout call bound Y = J×(Q+1), allowing every discovered
   inventory candidate before unique admission.
 - Body calls M = J×I; assembled tiers at most2J.
-- Route VM calls A×(route_records+3); route2's32 framed examples, three
-  mapping calls and ten embedded group traces total45, within the existing
-  47+3 allowance. No call is free and no bound increases. Lane calls24L, repetition calls
+- Route VM calls A×max(route_records+3,62). Legacy route records contribute
+  at most one call each plus three mapping calls. Exact route2 contributes33
+  framed calls, three mapping calls, thirteen constructions, eight decisions,
+  one erasure witness and four repetition columns:62. The neutral256-record
+  ceiling already yields259; this explicit maximum preserves that conservative
+  bound without omitting any new call. Lane calls24L, repetition calls
   (1728+24)K and body calls M. Multiply their sum by T. Per-program scratch
   is Z; it is not the aggregate observation workspace.
 
@@ -79,7 +82,7 @@ column below gives units per call; multiply by calls for the emitted total.
 | route-frame | A | F | 8×route_records |
 | recipe-parse | A×route_records | recipe_package_bytes | Sp |
 | program-refinement | A+M | recipe_nodes | 32Np+8Ep+8Tp |
-| route-example | A×(route_records+3) | F | F+64×recipe_package_bytes+8×128 |
+| route-example | A×max(route_records+3,62) | F | F+64×recipe_package_bytes+8×128 |
 | definition-validation | A | F | DEFINE workspace |
 | mapping-search | A | 4Q | 64 |
 | unit-extraction | J | Q×255×8 | Q×(8+2×255) |

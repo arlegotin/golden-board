@@ -22,12 +22,12 @@ class RevisedRoute(unittest.TestCase):
         self.assertEqual(len(set(self.prefixes)), 4)
         for sector, raw in enumerate(self.prefixes):
             records = validate_route_prefix_v2(raw, self.compiled, sector)
-            self.assertEqual(len(records), 47)
+            self.assertEqual(len(records), 48)
             self.assertFalse(any(row.kind == 4 for row in records))
             package_record, = (r for r in records if r.kind == 5)
             package = recipe_wire_v1.decode_recipe_package_v1(package_record.payload, 8)
-            self.assertEqual(len(package.logical.tables), 14)
-            self.assertTrue({17, 21}.issubset({t.table_id for t in package.logical.tables}))
+            self.assertEqual(len(package.logical.tables), 15)
+            self.assertTrue({17, 21, 22}.issubset({t.table_id for t in package.logical.tables}))
             cases = [r for r in records if r.kind in (2, 3)]
             statuses = set()
             for row in cases:
@@ -47,6 +47,15 @@ class RevisedRoute(unittest.TestCase):
             self.assertEqual(sector.data[:len(prefix)], prefix)
             self.assertEqual(sum(s.cell_count for s in sector.spans), len(sector.data)*8)
             self.assertGreaterEqual(sector.headroom_cells, 256)
+
+    def test_all_framed_examples_receive_example_space_in_the_ledger(self):
+        images=build_route_images_v2(self.compiled,2048,112)
+        for sector,prefix in zip(images.sectors,self.prefixes,strict=True):
+            records=validate_route_prefix_v2(prefix,self.compiled,sector.sector_id)
+            framed=sum((8+len(row.payload))*8 for row in records if row.kind in (2,3))
+            charged=sum(span.cell_count for span in sector.spans if
+                span.owner.startswith(('worked:','held-out:','vm-discriminator:','body-codec:')))
+            self.assertEqual(charged,framed,'a framed example was charged as instruction space')
 
     def test_prefix_extraction_ignores_tail_but_rejects_carried_mutations(self):
         for sector, raw in enumerate(self.prefixes):

@@ -11,6 +11,29 @@ class TeachingRecipes(unittest.TestCase):
         cls.raw = build_teaching_recipe_package()
         cls.package = recipe_wire_v1.decode_recipe_package_v1(cls.raw, 8)
 
+    def test_constructor_distinguishes_source_flip_erase_and_range(self):
+        a = bytes.fromhex('000140000000000720')
+        b = bytes.fromhex('0123456789abcdef01')
+        for source in (0,1):
+            for unknown in (0,1):
+                for first,count in ((0,0),(72,0),(0,72),(59,5),(63,5),(71,1)):
+                    mask = ((1 << count)-1) << (72-first-count)
+                    original = int.from_bytes((a,b)[source],'big')
+                    word = original & ~mask if unknown else original ^ mask
+                    actual = recipe_wire_v1.evaluate_recipe_v1(self.package,111,
+                        (a,b,*tuple(bytes((v,)) for v in (source,unknown,first,count))))
+                    self.assertEqual(actual,bootstrap.RecipeResult(0,
+                        (word.to_bytes(9,'big'),(mask if unknown else 0).to_bytes(9,'big'))))
+        for first,count in ((73,0),(71,2),(255,1),(1,255)):
+            result = recipe_wire_v1.evaluate_recipe_v1(self.package,111,
+                (a,b,b'\0',b'\1',bytes((first,)),bytes((count,))))
+            self.assertNotEqual(result.status,0)
+            self.assertEqual(result.outputs,())
+        for source,unknown in ((2,0),(0,2)):
+            with self.assertRaises(bootstrap.BootstrapReject):
+                recipe_wire_v1.evaluate_recipe_v1(self.package,111,
+                    (a,b,bytes((source,)),bytes((unknown,)),b'\0',b'\1'))
+
     def test_group_decision_includes_raw_repetition_and_preserves_conflicts(self):
         recipe = next(r for r in self.package.logical.recipes if r.recipe_id == 110)
         self.assertEqual(tuple((d.value_type,d.width) for d in recipe.inputs),
@@ -36,20 +59,20 @@ class TeachingRecipes(unittest.TestCase):
     def test_existing_programs_are_unchanged_and_new_resources_are_derived(self):
         old = recipe_wire_v1.decode_recipe_package_v1(build_revision_recipe_package(), 8).logical
         current = self.package.logical
-        retained=tuple(r for r in old.recipes if r.recipe_id not in (106,110))
+        retained=tuple(r for r in old.recipes if r.recipe_id not in (106,110,111))
         self.assertNotIn(106,tuple(r.recipe_id for r in current.recipes))
         self.assertIn(106,tuple(r.recipe_id for r in old.recipes))
-        self.assertEqual(tuple(r for r in current.recipes if r.recipe_id < 210 and r.recipe_id != 110), retained)
+        self.assertEqual(tuple(r for r in current.recipes if r.recipe_id < 210 and r.recipe_id not in (110,111)), retained)
         self.assertNotEqual(next(r for r in current.recipes if r.recipe_id == 110),
                             next(r for r in old.recipes if r.recipe_id == 110))
-        self.assertEqual(current.tables[:-1], old.tables)
+        self.assertEqual(current.tables[:-2], old.tables)
         self.assertEqual(tuple(r.recipe_id for r in current.recipes if r.recipe_id >= 210),
                          (210, 211, 212, 213, 214))
-        self.assertEqual(current.tables[-1].table_id, 21)
-        self.assertEqual(current.tables[-1].payload, b'\x07\x08\x09')
+        self.assertEqual(current.tables[-2].table_id, 21)
+        self.assertEqual(current.tables[-2].payload, b'\x07\x08\x09')
         self.assertEqual(current.maximum_primitive_steps, old.maximum_primitive_steps)
         self.assertEqual(current.peak_live_scratch_bytes, old.peak_live_scratch_bytes)
-        self.assertEqual(len(self.raw) - len(build_revision_recipe_package()), 2421)
+        self.assertEqual(len(self.raw) - len(build_revision_recipe_package()), 2291)
 
     def test_carried_examples_discriminate_failures_and_output_suppression(self):
         rows = teaching_examples()

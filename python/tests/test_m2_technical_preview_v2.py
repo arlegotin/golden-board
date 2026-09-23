@@ -1,6 +1,8 @@
 """Preview staging must not reveal answers or silently reuse historical kits."""
 from hashlib import sha256
 from pathlib import Path
+import shutil
+import tempfile
 from types import SimpleNamespace
 import unittest
 
@@ -12,6 +14,25 @@ ROOT=Path(__file__).resolve().parents[2]
 
 
 class TechnicalPreview(unittest.TestCase):
+    def test_recipient_instructions_are_read_from_the_shared_templates(self):
+        cases=tuple(SimpleNamespace(channel=channel,observation=bytes((i,)))
+                    for i,channel in enumerate(('OBS_MATRIX','OBS_MATRIX','OBS_UNITS','OBS_UNITS')))
+        replacements={
+            'clean-instructions-v2.txt':('recipient/01-clean/READ-ME.txt',b'clean task update\n'),
+            'storage-v2.txt':('recipient/01-clean/storage.txt',b'storage update\n'),
+            'adapter-instructions-v2.txt':('recipient/02-adapter/READ-ME.txt',b'adapter update\n'),
+            'heldout-instructions-v2.txt':('recipient/03-heldouts/READ-ME.txt',b'heldout update\n'),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            templates=root/'studies/m2/templates/technical'
+            shutil.copytree(ROOT/'studies/m2/templates/technical',templates)
+            for name,(_,raw) in replacements.items():
+                (templates/name).write_bytes(raw)
+            files=participant_files(root,b'actual carrier',cases)
+        for path,raw in replacements.values():
+            with self.subTest(path=path):self.assertEqual(files[path],raw)
+
     def test_initial_share_contains_only_neutral_work_and_bit_storage(self):
         cases=tuple(SimpleNamespace(channel=channel,observation=bytes((i,)))
                     for i,channel in enumerate(('OBS_MATRIX','OBS_MATRIX','OBS_UNITS','OBS_UNITS')))

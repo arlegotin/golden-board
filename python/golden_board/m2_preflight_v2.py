@@ -77,7 +77,7 @@ def build_source_candidate_v2(inputs):
 
 def _known_answer(recovered,profile_raw):
     knowledge=manifest.validate_canonical_manifest(recovered.knowledge_use)
-    require(knowledge['summary']['result']=='pass' and knowledge['summary']['example_count']==128,
+    require(knowledge['summary']['result']=='pass' and knowledge['summary']['example_count']==132,
             'knowledge-premise')
     rows=[];packages=set()
     require(len(knowledge['route_rows'])==4,'route-count')
@@ -85,7 +85,7 @@ def _known_answer(recovered,profile_raw):
         require(type(route['sector_id']) is int and route['sector_id']==sector,'route-order')
         packages.add(route['package_sha256'])
         records={row['record_id']:row for row in route['record_rows']}
-        require(len(route['example_rows'])==32,'example-count')
+        require(len(route['example_rows'])==33,'example-count')
         for example in route['example_rows']:
             require(type(example['success']) is bool and example['success'],'example-outcome')
             rows.append(dict(sector_id=sector,**example,record_sha256=records[example['record_id']]['sha256']))

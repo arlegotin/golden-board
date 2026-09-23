@@ -133,7 +133,7 @@ fn observe(input: FirstUseInputs<'_>) -> Result<Routes> {
         let mut examples = vec![];
         let mut package_at = None;
         while at < raw.len() {
-            need(frames.len() < 47, FirstUseError::Partition)?;
+            need(frames.len() < 48, FirstUseError::Partition)?;
             let stage = num(raw, at, 1)?;
             let kind = num(raw, at + 1, 1)?;
             let id = num(raw, at + 2, 2)?;
@@ -170,7 +170,7 @@ fn observe(input: FirstUseInputs<'_>) -> Result<Routes> {
             at = end;
         }
         need(
-            frames.len() == 47 && definitions.len() == 12 && examples.len() == 32,
+            frames.len() == 48 && definitions.len() == 12 && examples.len() == 33,
             FirstUseError::Partition,
         )?;
         result.rows.push(object([
@@ -635,6 +635,9 @@ fn uses(scan: &Scan, routes: &Routes) -> Result<(V, V)> {
             if !roots.contains(&(fact, e[1])) {
                 roots.push((fact, e[1]));
             }
+        }
+        if fact == 10 {
+            roots.push((fact, num(&routes.definitions[9], 158, 2)?));
         }
         if fact == 8 {
             roots.push((8, 108));

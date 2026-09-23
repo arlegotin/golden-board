@@ -415,7 +415,7 @@ def render_candidate_ready_report_v2(policy, roadmap_raw, source_raw, selection_
     grammar = _json(read('grammar-state-manifest.json'),owner['grammar_state']['schema'],owner['grammar_state']['keys'])
     require(known['profile_id'] == grammar['profile_id'] == owner['candidate_id']
         and manifest.serialize_manifest(known['summary']) == manifest.serialize_manifest(dict(
-            route_count=4,example_count=128,result='pass'))
+            route_count=4,example_count=132,result='pass'))
         and manifest.serialize_manifest(grammar['summary']) == manifest.serialize_manifest(dict(
             boundary_case_count=21,boundary_kat_count=4,result='pass')), 'preflight-gate-results')
     bound_paths = ('spec/profile-policy-v2.toml','spec/profile-limits-v2.toml','spec/damage-policy-v2.toml',

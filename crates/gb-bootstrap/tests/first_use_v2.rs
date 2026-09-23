@@ -53,9 +53,9 @@ fn complete_observed_package_has_exact_finite_coverage() {
     );
     for (key, count) in [
         ("route_rows", 4),
-        ("node_rows", 1184),
+        ("node_rows", 1162),
         ("recipe_rows", 29),
-        ("table_rows", 14),
+        ("table_rows", 15),
         ("opcode_rows", 25),
         ("literal_rows", 37),
     ] {

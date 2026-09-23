@@ -155,7 +155,7 @@ struct Frame<'a> {
 }
 fn frames(raw: &[u8]) -> Result<Vec<Frame<'_>>> {
     let count = u16_at(raw, 46)? as usize;
-    need(count == 47, KnowledgeError::Route)?;
+    need(count == 48, KnowledgeError::Route)?;
     let mut at = 64usize;
     let mut rows = Vec::with_capacity(count);
     for _ in 0..count {
@@ -265,7 +265,7 @@ fn facts_and_examples<'a>(frames: &[Frame<'a>]) -> Result<(V, V, Vec<Frame<'a>>)
             ("held_out_record_ids", ids(&held)),
         ]));
     }
-    let mut examples = Vec::with_capacity(32);
+    let mut examples = Vec::with_capacity(33);
     for f in frames.iter().filter(|f| matches!(f.kind, 2 | 3)) {
         let input = u32_at(f.payload, 4)? as usize;
         let output = u32_at(f.payload, 8)? as usize;
@@ -291,7 +291,7 @@ fn facts_and_examples<'a>(frames: &[Frame<'a>]) -> Result<(V, V, Vec<Frame<'a>>)
             ("success", V::Bool(true)),
         ]));
     }
-    need(examples.len() == 32, KnowledgeError::Route)?;
+    need(examples.len() == 33, KnowledgeError::Route)?;
     Ok((V::Array(facts), V::Array(examples), definitions))
 }
 fn coverage() -> V {
@@ -410,7 +410,7 @@ pub fn build_knowledge_use_v2(input: KnowledgeInputs<'_>) -> Result<Vec<u8>> {
                     mutant.drain(frame.start..frame.end);
                     let body_length = (mutant.len() - 64) as u32;
                     let prefix_cells = (mutant.len() * 8) as u32;
-                    mutant[46..48].copy_from_slice(&46u16.to_be_bytes());
+                    mutant[46..48].copy_from_slice(&(u16_at(raw, 46)? - 1).to_be_bytes());
                     mutant[48..52].copy_from_slice(&body_length.to_be_bytes());
                     mutant[56..60].copy_from_slice(&prefix_cells.to_be_bytes());
                 }
@@ -516,7 +516,7 @@ pub fn build_knowledge_use_v2(input: KnowledgeInputs<'_>) -> Result<Vec<u8>> {
             object([
                 ("route_count", number(4)),
                 ("definition_count", number(48)),
-                ("example_count", number(128)),
+                ("example_count", number(132)),
                 ("structural_presence_rejections", number(48)),
                 ("relationship_contradiction_rejections", number(48)),
                 ("recovered_context_count", number(4)),

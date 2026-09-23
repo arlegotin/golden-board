@@ -7,7 +7,7 @@ from .m2_resources_v2 import (
     ADAPTER_KERNELS, RESOURCE_OWNER_SHA256, checked, add, multiply, content_workspace,
 )
 
-BOUNDS_OWNER_SHA256 = '7b1d9ded63816f502e4d8c2196c1c4fb13beee59d3094d12828a76ae912fa2e9'
+BOUNDS_OWNER_SHA256 = '6e96a646adfa4628ca4b786abe02cb60f50c2c6fc67ff93b077a967c7568b765'
 _PATHS = ('spec/profile-policy-v2.toml', 'spec/profile-limits-v2.toml',
           'spec/damage-policy-v2.toml', 'spec/resource-accounting-v2.md',
           'spec/receiver-bounds-v2.md')
@@ -59,7 +59,7 @@ def derive_receiver_bounds_v2(profile_raw, limits_raw, damage_raw, resource_raw,
     content = content_workspace(b, r, _product(4096,4096))
     result = _sum(_product(_sum(i, _product(g,q)), _sum(48,e)),
                   _product(_sum(u, _product(g,q)), 40+191), _product(48,p), _product(2,b))
-    route_calls = _product(a, _sum(c['route_records'],3))
+    route_calls = _product(a, max(_sum(c['route_records'],3),62))
     raw_rows = (
         ('observation', 1, c['observation_frame_bytes'], 0),
         ('square-view', v, c['raw_bits'], 0),

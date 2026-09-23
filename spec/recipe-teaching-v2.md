@@ -2,7 +2,7 @@
 
 `recipe-teaching-v2.toml` owns the logical programs and exact carried examples
 for profile 8. It is source, not a generated package or a recipient result.
-This adds no VM operation and does not change any historical recipe.
+This adds no VM operation and does not change any historical package.
 
 The active teaching package replaces recipe110's former integer-concatenation
 example with the finite group-candidate decision below. Historical/base
@@ -30,7 +30,25 @@ failed. VM status remains0 for these ordinary rejection/conflict outcomes.
 This finite executable decision composes with the carried unit/EH/common and
 raw-repetition constructions; it is not itself a complete carrier decoder.
 
-There is one three-byte UINT8 table, ID 21, containing 7, 8, 9. Recipes
+Active recipe111 replaces the duplicated CRC program; fact11 uses identical
+CRC recipe107. Historical packages retain111. Its inputs are BITS72 A, BITS72 B,
+BOOL source, BOOL unknown, UINT8 first, UINT8 count; outputs STATUS16, BITS72
+observed word, BITS72 erasure mask. Source0 selects A and1 selects B. Bit indices
+are zero-based/MSB-first. For [first,first+count), unknown0 flips known bits;
+unknown1 clears storage bits and marks those positions in the erasure mask.
+Count0 is a no-op. Checked addition and subtraction reject overflow or a range
+outside0..72 before any output. BOOL admission rejects selectors outside0/1.
+
+Table22 contains one BITS144 value, nine zero bytes followed by nine FF bytes.
+Slice72 bits at72-first and72-(first+count); XOR gives the range mask. SELECT,
+XOR and AND construct the two outcomes using the existing generic VM. No
+host-only operation or BITS shift is introduced. The ordinary fact10 pair
+uses the same first59/count5 with unknown1 and unknown0, respectively, and
+carries both source words and the four separately typed descriptor fields.
+All thirteen observed templates are additionally executed and checked against
+independent word/mask construction before the group traces.
+
+Table21 is three UINT8 values7,8,9. Recipes
 210–212 preserve the logical conformance/recipe-v0.json programs 1–3 with
 their recipe/table references renamed. The source lists the complete logical
 programs so independent builders need not read another builder's package.
@@ -55,7 +73,7 @@ byte-is-zero example was replaced by211, and no retained example, helper call
 or receiver operation consumes106. This removes134 compact bytes and its five
 nodes; it does not assign the dead predicate an invented use. The historical
 profile7 and standalone profile8 revision packages retain106 byte-for-byte.
-Except for the active110 replacement above, every other inherited recipe,
+Except for the active110/111 replacements above, every other inherited recipe,
 table and output remains exact. The active
 recipe ID set is exactly
 `1,2,3,4,30,90,92,99,100,101,102,103,104,105,107,108,109,110,111,112,113,201,202,203,210,211,212,213,214`.

@@ -19,7 +19,7 @@ fn freshly_generated_preflight_binds_all22_files_examples_boundaries_and_resourc
         validate_canonical_manifest(core.document("known-answer-manifest.json").unwrap()).unwrap();
     let known = object(&known);
     let examples = array(&known["example_rows"]);
-    assert_eq!(examples.len(), 128);
+    assert_eq!(examples.len(), 132);
     assert!(
         examples
             .iter()

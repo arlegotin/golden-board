@@ -1,6 +1,6 @@
-Use your saved method on each observation separately. channels.json names
-only the storage channel for each file. Save code, commands, actual outputs
-and a short account for each input in answers/heldout/a/ through d/.
+Use your unchanged saved method and adapter on each observation separately.
+channels.json names only the storage channel for each file. Save code, commands,
+actual outputs and a short account for each input in answers/heldout/a/ through d/.
 Do not fill unavailable data from the clean observation or another result.
 
 Answer content-query.json from the clean output you actually recovered and

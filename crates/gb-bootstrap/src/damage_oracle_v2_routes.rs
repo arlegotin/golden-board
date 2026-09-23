@@ -51,6 +51,92 @@ fn n64(raw: &[u8], offset: usize) -> Result<u64> {
         take(raw, offset, 8)?.try_into().unwrap(),
     ))
 }
+fn constructed_observation(input: &[u8]) -> Result<Vec<u8>> {
+    need(input.len() == 22)?;
+    let (source, unknown, first, count) = (input[18], input[19], input[20], input[21]);
+    need(source <= 1 && unknown <= 1)?;
+    let end = usize::from(first) + usize::from(count);
+    need(end <= 72)?;
+    let start = usize::from(source) * 9;
+    let mut result = vec![0; 20];
+    result[2..11].copy_from_slice(&input[start..start + 9]);
+    for bit in usize::from(first)..end {
+        let byte = bit / 8;
+        let flag = 0x80 >> (bit % 8);
+        if unknown == 0 {
+            result[2 + byte] ^= flag;
+        } else {
+            result[2 + byte] &= !flag;
+            result[11 + byte] |= flag;
+        }
+    }
+    Ok(result)
+}
+
+#[cfg(test)]
+mod constructor_charge_tests {
+    use super::*;
+
+    #[test]
+    fn constructor_range_domain_and_noncanonical_noop_preserve_owned_call_counts() {
+        let slice = gb_slice::compile_slice_v1(
+            include_bytes!("../../../studies/m2/slice-v1.json"),
+            gb_slice::SliceInputs {
+                declaration: include_bytes!("../../../studies/m2/slice-v0.json"),
+                content_fixture: include_bytes!("../../../conformance/content-v0.json"),
+                chess_fixture: include_bytes!("../../../conformance/chess-v0.json"),
+                game_set: include_bytes!("../../../reports/game-set-v0.bin"),
+                content_spec: include_bytes!("../../../spec/content-v0.md"),
+                constants: include_bytes!("../../../spec/constants-v0.toml"),
+                curriculum: include_bytes!("../../../spec/curriculum-v0.toml"),
+            },
+        )
+        .unwrap();
+        let carrier = crate::carrier_v2::build_carrier(&slice).unwrap();
+        let corpus = DamageCorpusV2::new(
+            &slice,
+            &carrier,
+            include_bytes!("../../../spec/route-data-v0.json"),
+        )
+        .unwrap();
+        let scanner = DiscoveryScanner::new(&corpus).unwrap();
+        let sector = &corpus.source_core().routes.sectors[0];
+        let raw = sector.bits[..sector.route_prefix_cells as usize]
+            .chunks_exact(8)
+            .map(|bits| bits.iter().fold(0u8, |value, bit| value * 2 + *bit))
+            .collect::<Vec<_>>();
+        for (first, calls, expected_error) in [
+            (73, 36, ScanError::Unavailable),
+            (1, 62, ScanError::Unsupported),
+            (72, 62, ScanError::Unsupported),
+        ] {
+            let mut rows = records(&raw).unwrap();
+            let definition = rows.iter_mut().find(|row| row.id == 1001).unwrap();
+            definition.payload[14 + 108] = first;
+            let mut ledger = Ledger::new();
+            let result = scanner.validate_records(
+                &raw,
+                rows,
+                2048,
+                112,
+                0,
+                0,
+                0,
+                8,
+                2,
+                &mut ScanContext::default(),
+                &mut ledger,
+            );
+            assert_eq!(result.err(), Some(expected_error), "first {first}");
+            assert_eq!(
+                ledger.row(Kernel::RouteExample).calls,
+                calls,
+                "first {first}"
+            );
+        }
+    }
+}
+
 fn digest(raw: &[u8]) -> String {
     format!("{:x}", Sha256::digest(raw))
 }
@@ -597,6 +683,31 @@ impl<'a> DiscoveryScanner<'a> {
                     let at = 32 + 12 * index;
                     need(group.get(at + 2) == Some(&kind) && n32(group, at + 4)? == width)?;
                 }
+                let constructor = program
+                    .recipe_records
+                    .get(&111)
+                    .ok_or(ScanError::Unavailable)?;
+                need(n16(constructor, 4)? == 6 && n16(constructor, 6)? == 3)?;
+                for (index, (kind, width)) in [
+                    (2, 72),
+                    (2, 72),
+                    (1, 1),
+                    (1, 1),
+                    (0, 8),
+                    (0, 8),
+                    (5, 16),
+                    (2, 72),
+                    (2, 72),
+                ]
+                .into_iter()
+                .enumerate()
+                {
+                    let at = 32 + 12 * index;
+                    need(
+                        constructor.get(at + 2) == Some(&kind)
+                            && n32(constructor, at + 4)? == width,
+                    )?;
+                }
             }
             for row in rows.iter().filter(|r| r.kind == 4) {
                 let id = n16(&row.payload, 0)?;
@@ -635,11 +746,19 @@ impl<'a> DiscoveryScanner<'a> {
                     let expected_output = take(&row.payload, 12 + input_length, output_length)?;
                     if version == 2 && fact == 10 {
                         let definition = definitions.get(9).ok_or(ScanError::Unavailable)?;
-                        let start = 294 + 12 * if row.kind == 2 { 4 } else { 5 };
-                        let trace = take(definition, start, 12)?;
-                        let mut expected = vec![0, 0];
-                        expected.extend(&trace[9..]);
-                        need(input == &trace[..9] && expected_output == expected)?;
+                        let (bound_input, bound_output) = if recipe == 111 {
+                            let start = 106 + 4 * if row.kind == 2 { 8 } else { 1 };
+                            let mut bound_input = take(&definitions[7], 112, 9)?.to_vec();
+                            bound_input.extend(take(&definitions[7], 328, 9)?);
+                            bound_input.extend(take(definition, start, 4)?);
+                            let bound_output = constructed_observation(&bound_input)?;
+                            (bound_input, bound_output)
+                        } else {
+                            let mut bound_output = vec![0, 0];
+                            bound_output.extend(take(&definitions[6], 134, 8)?);
+                            (take(definition, 373, 13)?.to_vec(), bound_output)
+                        };
+                        need(input == bound_input && expected_output == bound_output)?;
                     }
                     let inputs = examples.entry(fact).or_default();
                     need(!inputs.iter().any(|old| old.as_slice() == input))?;
@@ -665,11 +784,46 @@ impl<'a> DiscoveryScanner<'a> {
             }
             if version == 2 {
                 let definition = definitions.get(9).ok_or(ScanError::Unavailable)?;
-                for start in (0..9).map(|index| 294 + index * 12).chain([412]) {
+                need(take(definition, 101, 5)? == [0, 111, 0, 13, 4])?;
+                for descriptor in take(definition, 106, 52)?.chunks_exact(4) {
+                    let mut input = take(&definitions[7], 112, 9)?.to_vec();
+                    input.extend(take(&definitions[7], 328, 9)?);
+                    input.extend(descriptor);
+                    let expected = constructed_observation(&input)?;
+                    let actual = self.call(&program, 111, &input, ledger)?;
+                    need(actual == expected)?;
+                }
+                need(take(definition, 158, 2)? == [0, 110])?;
+                for start in (0..8).map(|index| 174 + index * 24) {
                     let trace = take(definition, start, 12)?;
                     let mut expected = vec![0, 0];
                     expected.extend(&trace[9..]);
                     need(self.call(&program, 110, &trace[..9], ledger)? == expected)?;
+                }
+                need(take(definition, 368, 5)? == [7, 0, 0, 0, 30])?;
+                let mut expected = vec![0, 0];
+                expected.extend(take(&definitions[6], 134, 8)?);
+                need(
+                    self.call(
+                        &program,
+                        n16(definition, 371)?,
+                        take(definition, 373, 13)?,
+                        ledger,
+                    )? == expected,
+                )?;
+                need(take(definition, 386, 4)? == [0, 113, 4, 8])?;
+                let recipe = n16(definition, 386)?;
+                for row in take(definition, 390, 32)?.chunks_exact(8) {
+                    let factor = usize::from(row[0]);
+                    need(matches!(factor, 2 | 5) && row[1..6].iter().all(|s| *s <= 2))?;
+                    need(row[1 + factor..6].iter().all(|s| *s == 2))?;
+                    let symbols = &row[1..1 + factor];
+                    let input = [
+                        row[0],
+                        symbols.iter().filter(|s| **s == 0).count() as u8,
+                        symbols.iter().filter(|s| **s == 1).count() as u8,
+                    ];
+                    need(self.call(&program, recipe, &input, ledger)? == [0, 0, row[6], row[7]])?;
                 }
                 let total = definitions.iter().map(|v| v.len() as u64).sum::<u64>();
                 ledger.adapter(
@@ -788,7 +942,7 @@ fn validate_header(raw: &[u8], sector: u8, length: usize) -> Result<()> {
     need(n16(raw, 60)? == 256 && n16(raw, 62)? == 0 && n32(raw, 56)? as usize == length * 8)?;
     let count = n16(raw, 46)?;
     need(if version == 2 {
-        count == 47
+        count == 48
     } else {
         (37..=256).contains(&count)
     })

@@ -122,6 +122,10 @@ fn malformed_pre_admission_shapes_are_covered_without_using_measured_maxima() {
     };
     // A short carried program can declare a large output before equality fails.
     assert!(number(&row("route-example")["peak_workspace_bytes"]) >= 64 * 1048576 + 8 * 128);
+    // All62 active calls fit within the unchanged256-record policy ceiling.
+    let routes = number(&object(&object(&doc)["derivation"])["A"]);
+    assert_eq!(number(&row("route-example")["calls"]), routes * 259);
+    assert!(number(&row("route-example")["calls"]) >= routes * 62);
     // Generic checked inventory payloads may exceed valid inventory limits.
     assert!(number(&row("inventory")["peak_workspace_bytes"]) >= 16 * 32768);
     // An incomplete common copy can advertise a full neutral envelope.

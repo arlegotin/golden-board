@@ -22,7 +22,7 @@ class PreflightV2(unittest.TestCase):
     def test_actual_preflight_is_closed_and_checks_the_complete_boundary(self):
         self.assertEqual(len(self.files),22)
         known=manifest.validate_canonical_manifest(self.files['known-answer-manifest.json'])
-        self.assertEqual(known['summary'],dict(route_count=4,example_count=128,result='pass'))
+        self.assertEqual(known['summary'],dict(route_count=4,example_count=132,result='pass'))
         self.assertTrue(all(row['success'] for row in known['example_rows']))
         self.assertTrue(any(row['status']!=0 for row in known['example_rows']))
         grammar=manifest.validate_canonical_manifest(self.files['grammar-state-manifest.json'])

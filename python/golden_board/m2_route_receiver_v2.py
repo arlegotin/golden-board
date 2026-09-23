@@ -14,10 +14,10 @@ from .m2_route_semantics_v2 import validate_local_definitions
 from .m2_resources_v2 import recipe_storage, recipe_workspace, definition_workspace
 
 _STAGES = (0,0,1,1,2,2,3,3,4,4,5,5)
-_WIDTHS = (16,64,96,296,226,210,636,544,464,430,314,2421)
-_PRIMARY = (101,102,103,104,105,211,107,113,109,110,111,112)
+_WIDTHS = (16,64,96,296,226,210,636,544,464,443,314,2421)
+_PRIMARY = (101,102,103,104,105,211,107,113,109,111,107,112)
 _RECIPES = (1,2,3,4,30,90,92,99,*range(100,106),*range(107,114),201,202,203,210,211,212,213,214)
-_TABLES = (3,4,5,10,11,12,13,14,15,17,18,19,20,21)
+_TABLES = (3,4,5,10,11,12,13,14,15,17,18,19,20,21,22)
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,10 +54,22 @@ def _skeleton():
         if fact == 6:
             rows.extend((stage,2+i%2,610+i,6,recipe)
                         for i,recipe in enumerate((105,211,211,212,214,214)))
+        if fact == 10:
+            rows.append((4,2,1004,10,30))
         if fact == 12:
             rows.extend(((5,2,1210,12,203),(5,3,1211,12,203)))
     rows.extend(((5,5,6001,0,None),(5,6,7001,0,None),(5,7,7002,0,None)))
     return tuple(rows)
+
+
+def _constructed_word(words, template):
+    source,unknown,first,count = template
+    _require(source in (0,1) and unknown in (0,1) and first+count <= 72,
+             'group-construction-fields')
+    mask = ((1 << count)-1) << (72-first-count)
+    raw = int.from_bytes(words[source],'big')
+    return ((raw & ~mask if unknown else raw ^ mask).to_bytes(9,'big'),
+            (mask if unknown else 0).to_bytes(9,'big'))
 
 
 def _smallest_slot_multiplier(interior, units, adapter):
@@ -104,7 +116,7 @@ def _decode_observed_route_v2(data, side, width, sector, usage, charge, adapter,
     count = int.from_bytes(data[46:48],'big')
     end = 64+int.from_bytes(data[48:52],'big')
     package_bytes = int.from_bytes(data[52:56],'big')
-    _require(count == 47 and 64 <= end <= len(data) and end*8 <= width*(side-width)
+    _require(count == 48 and 64 <= end <= len(data) and end*8 <= width*(side-width)
              and int.from_bytes(data[56:60],'big') == end*8
              and 64 <= package_bytes <= end-64,'length')
     adapter('route-frame',end,8*count)
@@ -138,6 +150,12 @@ def _decode_observed_route_v2(data, side, width, sector, usage, charge, adapter,
              and tuple((d.value_type,d.width) for d in group_program.outputs) ==
              ((bootstrap.STATUS,16),(bootstrap.UINT,2),(bootstrap.UINT,8),(bootstrap.BOOL,1)),
              'group-interface')
+    constructor = recipes[111]
+    _require(tuple((d.value_type,d.width) for d in constructor.inputs) ==
+             ((bootstrap.BITS,72),)*2+((bootstrap.BOOL,1),)*2+((bootstrap.UINT,8),)*2
+             and tuple((d.value_type,d.width) for d in constructor.outputs) ==
+             ((bootstrap.STATUS,16),(bootstrap.BITS,72),(bootstrap.BITS,72)),
+             'group-construction-interface')
     body_program = recipes[202]
     _require(tuple((d.value_type,d.width) for d in body_program.inputs) ==
              ((bootstrap.BYTES,16384),(bootstrap.UINT,16))
@@ -179,9 +197,14 @@ def _decode_observed_route_v2(data, side, width, sector, usage, charge, adapter,
             ilen,olen = int.from_bytes(payload[4:8],'big'),int.from_bytes(payload[8:12],'big')
             _require(olen >= 2 and len(payload) == 12+ilen+olen,'example-length')
             if fact == 10:
-                start = 294+12*(4+(kind == 3))
-                trace = definitions[9][start:start+12]
-                _require(payload[12:] == trace[:9]+b'\0\0'+trace[9:],'group-primary')
+                if want_id == 1004:
+                    _require(payload[12:] == definitions[9][373:386]+bytes(2)+definitions[6][134:142],
+                             'group-erasure-primary')
+                else:
+                    template = definitions[9][110:114] if kind == 3 else definitions[9][138:142]
+                    words = (definitions[7][112:121],definitions[7][328:337])
+                    expected = b''.join(words)+template+bytes(2)+b''.join(_constructed_word(words,template))
+                    _require(payload[12:] == expected,'group-primary')
             widths = tuple(d.width if d.value_type == bootstrap.BYTES else (d.width+7)//8
                            for d in recipes[recipe_id].inputs)
             _require(sum(widths) == ilen,'example-interface')
@@ -228,10 +251,33 @@ def _decode_observed_route_v2(data, side, width, sector, usage, charge, adapter,
     mapping = dict(id='affine-slot-then-interior-v2',interior_side=interior,population=population,
                    unit_population=units,unit_multiplier=slot,unit_inverse_multiplier=pow(slot,-1,units),
                    cell_multiplier=affine,offset=offset,cell_inverse_multiplier=pow(affine,-1,population))
-    for start in (*range(294,402,12),412):
-        trace = definitions[9][start:start+12]
-        result = evaluate(110,tuple(bytes((v,)) for v in trace[:9]))
+    witness = definitions[9]
+    _require(witness[101:106] == bytes((0,111,0,13,4)),'group-construction-reference')
+    words = (definitions[7][112:121],definitions[7][328:337])
+    for start in range(106,158,4):
+        template = witness[start:start+4]
+        expected = _constructed_word(words,template)
+        result = evaluate(int.from_bytes(witness[101:103],'big'),words+tuple(bytes((v,)) for v in template))
+        _require(result.status == 0 and result.outputs == expected,'group-construction-trace')
+    _require(witness[158:160] == bytes((0,110)),'group-decision-reference')
+    for start in range(174,354,24):
+        trace = witness[start:start+12]
+        result = evaluate(int.from_bytes(witness[158:160],'big'),tuple(bytes((v,)) for v in trace[:9]))
         _require(result.status == 0 and b''.join(result.outputs) == trace[9:],'group-decision-trace')
+    _require(witness[368:373] == bytes((7,0,0,0,30)),'group-erasure-reference')
+    incoming = witness[373:386]
+    result = evaluate(int.from_bytes(witness[371:373],'big'),
+                      (incoming[:9],incoming[9:10],incoming[10:]))
+    _require(result.status == 0 and result.outputs == (definitions[6][134:142],),'group-erasure-trace')
+    _require(witness[386:390] == bytes((0,113,4,8)),'group-repetition-reference')
+    for start in range(390,422,8):
+        row = witness[start:start+8]
+        factor,symbols = row[0],row[1:6]
+        _require(factor in (2,5) and all(v in (0,1,2) for v in symbols)
+                 and symbols[factor:] == bytes((2,))*(5-factor),'group-repetition-column')
+        args = (factor,symbols[:factor].count(0),symbols[:factor].count(1))
+        result = evaluate(int.from_bytes(witness[386:388],'big'),tuple(bytes((v,)) for v in args))
+        _require(result.status == 0 and b''.join(result.outputs) == row[6:],'group-repetition-trace')
     adapter('definition-validation',sum(map(len,definitions)),definition_workspace(definitions,raw_package))
     commitments = validate_local_definitions(tuple(definitions),package,side=side,width=width,sector=sector)
     return ObservedRouteV2(sector,end,package,tuple(definitions),commitments,example_count,1,

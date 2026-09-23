@@ -79,9 +79,9 @@ keys = ["schema", "profile_id", "input_sha256", "package_sha256", "example_rows"
 input_keys = ["profile_policy", "knowledge_use", "first_use", "recovery_provenance"]
 example_keys = ["sector_id", "record_id", "fact_id", "recipe_id", "kind", "input_bytes", "output_bytes", "status", "success", "record_sha256"]
 summary_keys = ["route_count", "example_count", "result"]
-generation = "Fresh actual four-prefix knowledge-use replay; join each example to its observed complete record-frame hash. Retain all128 examples in sector0..3 then observed-record order, four identical admitted packages, and all input hashes. No source-owner hash alone is a KAT."
+generation = "Fresh actual four-prefix knowledge-use replay; join each example to its observed complete record-frame hash. Retain all132 examples in sector0..3 then observed-record order, four identical admitted packages, and all input hashes. No source-owner hash alone is a KAT."
 types = "Numeric fields exact u64 within observed recipe/record bounds; kind worked|held-out; status carried u16 including nonzero; success Boolean; hashes raw SHA256."
-result = "route_count=4 and example_count=128; pass iff every actual generic replay equals its carried output. A nonzero expected status can pass; failure suppression is checked. Missing or duplicate examples reject."
+result = "route_count=4 and example_count=132; pass iff every actual generic replay equals its carried output. A nonzero expected status can pass; failure suppression is checked. Missing or duplicate examples reject."
 
 [grammar_state]
 path = "grammar-state-manifest.json"

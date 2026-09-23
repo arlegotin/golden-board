@@ -25,7 +25,7 @@ class RouteDefinitions(unittest.TestCase):
     def test_exact_finite_shape_and_fresh_immutable_records(self):
         self.assertEqual(tuple(r.fact_id for r in self.rows), tuple(range(1, 13)))
         self.assertEqual(tuple(len(r.value) for r in self.rows),
-                         (16,64,96,296,226,210,636,544,464,430,314,2421))
+                         (16,64,96,296,226,210,636,544,464,443,314,2421))
         again = build_route_definitions_v2(self.compiled, self.source)
         self.assertEqual(again, self.rows)
         self.assertIsNot(again[0], self.rows[0])
@@ -76,48 +76,118 @@ class RouteDefinitions(unittest.TestCase):
                     known, bit = m2_codec.repetition_symbol_counts(factor,zeros,ones)
                     self.assertEqual((result.status,result.outputs), (0,(bytes([known]),bytes([bit]))))
 
-    def test_group_conflict_and_rep_only_are_separate_and_unambiguous(self):
-        value = self.rows[9].value
-        self.assertEqual(value[206:215], bytes((2,1,1,1,1,3,2,4,3)))
-        self.assertEqual(value[245:254], bytes((1,1,1,1,1,3,1,3,2)))
-        rows = [value[104+i*8:112+i*8] for i in range(9)]
-        self.assertEqual(rows[4][-2:], b'\0\1')
-        self.assertEqual(rows[5][-2:], b'\1\0')
-        self.assertEqual(rows[8][-3:], b'\0\0\0')
-
-    def test_group_trace_connects_physical_allocation_raw_unknowns_and_decision(self):
+    def test_physical_context_and_lane_states_are_carried_before_decision(self):
         from golden_board.m2_teaching_recipe_v2 import build_teaching_recipe_package
         from golden_board.m2_transport_v2 import aggregate_replica_group
         value = self.rows[9].value
-        self.assertEqual(len(value),430,'Missing runnable recovery traces')
-        self.assertEqual(tuple(int.from_bytes(value[i:i+4],'big') for i in range(48,72,4)),
-                         (400,0,1,5,11,15))
-        a = self.rows[6].value[134:325]
-        encoded = self.rows[7].value[112:328]
-        lanes = []
-        for first,count in zip(value[402:412:2],value[403:412:2],strict=True):
-            unknown = tuple(range(first,first+count))
-            lane = bytearray(encoded)
-            for bit in unknown:
-                lane[bit//8] &= ~(1 << (7-bit%8))
-            lanes.append(m2_codec.CopyObservation(bytes(lane),unknown))
-        recovered = aggregate_replica_group(lanes)
-        self.assertEqual(recovered.lane_states,(1,)*5)
-        self.assertEqual(recovered.repetition_block,a)
-        self.assertEqual(recovered.group_state,3)
-        guessed = aggregate_replica_group(tuple(m2_codec.CopyObservation(lane.encoded,()) for lane in lanes))
-        self.assertEqual(guessed.lane_states,(1,)*5)
-        self.assertEqual((guessed.repetition_state,guessed.group_state),(1,1))
-        self.assertNotEqual(guessed.repetition_block,a)
-        self.assertEqual(value[412:],bytes((0,0,0,0,0,1,1,0,1,1,3,1,1,1,1,1,1,3)))
-        package = recipe_wire_v1.decode_recipe_package_v1(build_teaching_recipe_package(),8)
-        for start in (*range(294,402,12),412):
-            trace = value[start:start+12]
-            result = recipe_wire_v1.evaluate_recipe_v1(package,110,
-                tuple(bytes((v,)) for v in trace[:9]))
-            self.assertEqual((result.status,b''.join(result.outputs)),(0,trace[9:]))
-        self.assertEqual(value[351:354],bytes((3,4,0)))
-        self.assertEqual(value[363:366],bytes((2,3,1)))
+        self.assertEqual(len(value),443)
+        self.assertEqual(value[:4],b'\0\4\0\6','missing finite physical roster')
+        roster = [tuple(int.from_bytes(value[j:j+2],'big') for j in range(i,i+12,2))
+                  for i in range(4,52,12)]
+        self.assertEqual(roster[2:],[(400,0,1,5,11,15),(401,0,1,2,16,17)])
+        offsets = value[52:60]
+        widths = (2,4,2,2,2,2,2,4)
+        self.assertEqual(value[60],2)
+        keys=[]
+        for base in (61,81):
+            cursor=base; key=[]
+            for width in widths:
+                key.append(int.from_bytes(value[cursor:cursor+width],'big'));cursor+=width
+            keys.append(tuple(key))
+        self.assertEqual(keys,[(8,400,0,4,0,0,1,23),(8,401,0,4,0,0,1,23)])
+        self.assertEqual(value[104:106],bytes((13,4)))
+        templates=[value[i:i+4] for i in range(106,158,4)]
+        self.assertEqual(value[160:162],bytes((8,24)))
+        encoded=(self.rows[7].value[112:328],self.rows[7].value[328:544])
+        common=(self.rows[6].value[134:325],self.rows[6].value[325:516])
+        package=recipe_wire_v1.decode_recipe_package_v1(build_teaching_recipe_package(),8)
+        groups=[]
+        for case,at in enumerate(range(162,354,24)):
+            row=value[at:at+24]
+            owner=next(r for r in roster if r[4]==row[0])
+            expected=next(k for k in keys if (k[1],k[5],k[6])==owner[:3])
+            factor=owner[3]; lanes=[]
+            self.assertEqual(row[1+factor:6],bytes(5-factor))
+            for token in row[1:1+factor]:
+                if token==0:lanes.append(None);continue
+                source,unknown,first,count=templates[token-1]
+                raw=bytearray(encoded[source]); erased=[]
+                for bit in range(first,first+count):
+                    if unknown: raw[bit//8]&=~(1<<(7-bit%8));erased.append(bit)
+                    else:raw[bit//8]^=1<<(7-bit%8)
+                lanes.append(m2_codec.CopyObservation(bytes(raw),tuple(erased)))
+            group=aggregate_replica_group(lanes); groups.append(group)
+            self.assertEqual(row[6:11],bytes(group.lane_states)+bytes(5-factor))
+            self.assertEqual(row[11],group.repetition_state)
+            checked={raw for state,raw in zip(group.lane_states,group.lane_blocks,strict=True) if state in (2,3)}
+            if group.repetition_state==3:checked.add(group.repetition_block)
+            def key(raw):return tuple(int.from_bytes(raw[o:o+w],'big') for o,w in zip(offsets,widths,strict=True))
+            identity=bool(checked) and all(key(raw)==expected for raw in checked)
+            self.assertEqual(row[20],int(identity))
+            result=recipe_wire_v1.evaluate_recipe_v1(package,110,tuple(bytes((v,)) for v in row[12:21]))
+            self.assertEqual((result.status,b''.join(result.outputs)),(0,row[21:24]))
+            if case==6:
+                guessed=aggregate_replica_group(tuple(m2_codec.CopyObservation(l.encoded,()) for l in lanes))
+                self.assertEqual(group.repetition_block,common[0])
+                self.assertEqual(group.lane_states,(1,)*5)
+                self.assertEqual((guessed.repetition_state,guessed.group_state),(1,1))
+        self.assertEqual(groups[0].repetition_state,0)
+        self.assertEqual(value[174+2*24+10],2)  # clean A remains verified
+        self.assertEqual(value[174+3*24+10],3)  # corrected A is not verified
+        self.assertEqual(value[174+4*24+9:174+4*24+12],bytes((3,4,0)))
+        self.assertEqual(value[174+5*24+9:174+5*24+12],bytes((2,3,1)))
+        self.assertEqual(value[174+7*24+8:174+7*24+12],bytes((0,1,2,0)))
+
+    def test_erasure_coordinates_and_raw_symbol_counts_feed_existing_recipes(self):
+        from golden_board.m2_teaching_recipe_v2 import build_teaching_recipe_package
+        package=recipe_wire_v1.decode_recipe_package_v1(build_teaching_recipe_package(),8)
+        value=self.rows[9].value
+        self.assertEqual(value[354:356],bytes((3,4)))
+        anchors=[(int.from_bytes(value[i:i+2],'big'),value[i+2],value[i+3]) for i in range(356,368,4)]
+        self.assertEqual(anchors,[(0,0,1),(63,0,64),(72,1,1)])
+        for bit,word,position in anchors:self.assertEqual((word,position),(bit//72,bit%72+1))
+        self.assertEqual(value[368:373],bytes((7,0,0,0,30)))
+        incoming=value[373:386]
+        self.assertEqual(incoming.hex(),'00014000000000062001400000')
+        expected=self.rows[6].value[134:142]
+        for stored in (incoming[:9],incoming[:7]+bytes((incoming[7]|1,))+incoming[8:9]):
+            result=recipe_wire_v1.evaluate_recipe_v1(package,30,(stored,incoming[9:10],incoming[10:]))
+            self.assertEqual((result.status,result.outputs),(0,(expected,)))
+        self.assertEqual(value[386:390],bytes((0,113,4,8)))
+        derived=[]
+        for i in range(390,422,8):
+            row=value[i:i+8];factor=row[0];symbols=row[1:6]
+            self.assertEqual(symbols[factor:],bytes((2,))*(5-factor))
+            args=bytes((factor,symbols[:factor].count(0),symbols[:factor].count(1)));derived.append(args)
+            result=recipe_wire_v1.evaluate_recipe_v1(package,113,tuple(bytes((v,)) for v in args))
+            self.assertEqual((result.status,b''.join(result.outputs)),(0,row[6:]))
+        self.assertEqual(derived,[bytes((2,1,1)),bytes((5,1,4)),bytes((5,0,1)),bytes((5,0,0))])
+        self.assertEqual(value[422],5)
+        for i in range(423,443,4):
+            length=int.from_bytes(value[i:i+2],'big');count,last=value[i+2:i+4]
+            self.assertEqual((count,last),((length+156)//157,length-157*(count-1)))
+
+    def test_typed_constructor_rejects_the_prior_packed_descriptor_reading(self):
+        from golden_board.m2_teaching_recipe_v2 import build_teaching_recipe_package
+        package=recipe_wire_v1.decode_recipe_package_v1(build_teaching_recipe_package(),8)
+        value=self.rows[9].value
+        self.assertEqual(value[101:106],bytes((0,111,0,13,4)))
+        self.assertEqual(value[158:160],bytes((0,110)))
+        words=(self.rows[7].value[112:121],self.rows[7].value[328:337])
+        for i in range(13):
+            descriptor=value[106+4*i:110+4*i]
+            source,unknown,first,count=descriptor
+            result=recipe_wire_v1.evaluate_recipe_v1(package,111,
+                words+tuple(bytes((v,)) for v in descriptor))
+            mask=((1<<count)-1)<<(72-first-count)
+            original=int.from_bytes(words[source],'big')
+            expected=original & ~mask if unknown else original ^ mask
+            self.assertEqual(result.outputs,(expected.to_bytes(9,'big'),
+                (mask if unknown else 0).to_bytes(9,'big')))
+            if unknown:
+                self.assertGreater(int.from_bytes(descriptor[1:3],'big'),72)
+        self.assertEqual(value[110:114],bytes((0,0,59,5)))
+        self.assertEqual(value[138:142],bytes((0,1,59,5)))
 
     def test_mutations_separate_local_crc_from_envelope_identity(self):
         value = self.rows[6].value

@@ -26,9 +26,9 @@ class ObservedRouteV2(unittest.TestCase):
         for sector, prefix in enumerate(self.prefixes):
             result = decode_observed_route_v2(prefix, 2048, 112, sector)
             self.assertEqual(result.sector, sector)
-            self.assertEqual(result.prefix_bytes, 25809)
+            self.assertEqual(result.prefix_bytes, 25791)
             self.assertEqual(result.package.profile_version, 8)
-            self.assertEqual(result.example_count, 32)
+            self.assertEqual(result.example_count, 33)
             self.assertEqual(result.inventory_section_id, 1)
             self.assertEqual(result.mapping['unit_population'], 1925)
             self.assertEqual(result.mapping['offset'], (8*40503+112*257) % 1824**2)
@@ -82,7 +82,7 @@ class ObservedRouteV2(unittest.TestCase):
                         with self.subTest(sector=sector,fact=fact,operator='contradict'),self.assertRaises(DecoderError):
                             decode_observed_route_v2(bytes(corrupted),2048,112,sector)
                         removed=bytearray(prefix[:offset]+prefix[end:])
-                        removed[46:48]=(46).to_bytes(2,'big')
+                        removed[46:48]=(int.from_bytes(prefix[46:48],'big')-1).to_bytes(2,'big')
                         removed[48:52]=(len(removed)-64).to_bytes(4,'big')
                         removed[56:60]=(len(removed)*8).to_bytes(4,'big')
                         with self.subTest(sector=sector,fact=fact,operator='remove'),self.assertRaises(DecoderError):
@@ -100,8 +100,8 @@ class ObservedRouteV2(unittest.TestCase):
         for recipe in package.logical.recipes:
             if recipe.recipe_id == 110:
                 node_start = at+32+12*(len(recipe.inputs)+len(recipe.outputs))
-                # Verified-singleton state2 is unused by the conflict and
-                # REP-only primary pair. Change it to state1, still valid VM.
+                # The framed constructor pair does not exercise decision110.
+                # Change verified state2 to state1, still valid generic VM.
                 expanded[node_start+32*9+31] = 1
                 cost = recipe.primitive_steps
                 break
@@ -117,7 +117,67 @@ class ObservedRouteV2(unittest.TestCase):
             at += 8+size
         with self.assertRaisesRegex(DecoderError,'group-decision-trace') as rejected:
             decode_observed_route_v2(bytes(changed),2048,112,0)
-        self.assertEqual(rejected.exception.primitive_steps+7*cost,clean.primitive_steps)
+        self.assertEqual(rejected.exception.primitive_steps+5*cost
+            +next(r.primitive_steps for r in package.logical.recipes if r.recipe_id==30)
+            +4*next(r.primitive_steps for r in package.logical.recipes if r.recipe_id==113),clean.primitive_steps)
+
+    def test_every_context_witness_executes_and_is_charged(self):
+        prefix=self.prefixes[0];calls=[]
+        route=decode_observed_route_v2(prefix,2048,112,0,charge=lambda steps,scratch:calls.append((steps,scratch)))
+        ids=[];at=64;fact10=None
+        while at<len(prefix):
+            kind=prefix[at+1]
+            rid=int.from_bytes(prefix[at+2:at+4],'big')
+            if kind in (2,3):ids.append(int.from_bytes(prefix[at+10:at+12],'big'))
+            if rid==1001:fact10=at+22
+            at+=8+int.from_bytes(prefix[at+4:at+8],'big')
+        ids.extend((109,109,109,*((111,)*13),*((110,)*8),30,113,113,113,113))
+        recipes={r.recipe_id:r for r in route.package.logical.recipes}
+        self.assertEqual(len(ids),62)
+        self.assertEqual(calls,[(recipes[i].primitive_steps,recipes[i].peak_live_scratch_bytes) for i in ids])
+        self.assertEqual(sum(x[0] for x in calls),route.primitive_steps)
+        for offset,label,charged in ((372,'group-erasure-reference',57),
+                             (387,'group-repetition-reference',58),
+                             (397,'group-repetition-trace',59),(393,'group-repetition-column',58),
+                             (442,'fact10.relationship',62)):
+            changed=bytearray(prefix);changed[fact10+offset]^=1
+            with self.subTest(offset=offset),self.assertRaisesRegex(DecoderError,label) as rejected:
+                decode_observed_route_v2(bytes(changed),2048,112,0)
+            self.assertEqual(rejected.exception.primitive_steps,sum(x[0] for x in calls[:charged]))
+
+    def test_invalid_template_range_rejects_before_call_but_noop_is_semantic(self):
+        original=self.prefixes[0];at=64
+        while int.from_bytes(original[at+2:at+4],'big')!=1001:
+            at+=8+int.from_bytes(original[at+4:at+8],'big')
+        for first,expected_count,label in ((73,36,'group-construction-fields'),
+                                            (1,62,'fact10.template')):
+            changed=bytearray(original);changed[at+22+108]=first
+            calls=[]
+            with self.subTest(first=first),self.assertRaisesRegex(DecoderError,label):
+                decode_observed_route_v2(bytes(changed),2048,112,0,
+                    charge=lambda steps,scratch:calls.append(steps))
+            self.assertEqual(len(calls),expected_count)
+
+    def test_same_decoded_value_does_not_allow_a_different_erasure_input(self):
+        original=self.prefixes[0]; at=64; locations={}
+        while at<len(original):
+            locations[int.from_bytes(original[at+2:at+4],'big')]=at
+            at+=8+int.from_bytes(original[at+4:at+8],'big')
+        fact10=locations[1001]+22
+        primary=locations[1004]+20
+        changed=bytearray(original)
+        # Merely substitute a different valid placeholder for unknown bit63.
+        # The erasure decoder still returns A; the constructed input must be
+        # exact canonical zero storage, not an unrelated successful call.
+        changed[fact10+380]^=1
+        with self.assertRaisesRegex(DecoderError,'group-erasure-primary'):
+            decode_observed_route_v2(bytes(changed),2048,112,0)
+        changed[primary+7]^=1
+        calls=[]
+        with self.assertRaisesRegex(DecoderError,'fact10.erasure-input'):
+            decode_observed_route_v2(bytes(changed),2048,112,0,
+                charge=lambda steps,scratch:calls.append(steps))
+        self.assertEqual(len(calls),62)
 
     def test_unrelated_valid_primary_pair_does_not_replace_group_construction(self):
         original = self.prefixes[0]
@@ -129,9 +189,12 @@ class ObservedRouteV2(unittest.TestCase):
             if rid == 1002:
                 primary = at+8+12
             at += 8+int.from_bytes(original[at+4:at+8],'big')
-        trace = original[fact10+354:fact10+366]
+        # A valid constructor result for template2 cannot replace template9.
+        # Keep the outer lengths and VM equality correct while breaking the
+        # worked example's direct link to its erasure construction.
         changed = bytearray(original)
-        changed[primary:primary+14] = trace[:9]+b'\0\0'+trace[9:]
+        changed[primary+18:primary+22] = bytes((0,0,59,5))
+        changed[primary+24:primary+42] = bytes.fromhex('000140000000001820')+bytes(9)
         with self.assertRaisesRegex(DecoderError,'group-primary'):
             decode_observed_route_v2(bytes(changed),2048,112,0)
 

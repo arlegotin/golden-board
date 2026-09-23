@@ -55,14 +55,27 @@ class NumericRouteSemantics(unittest.TestCase):
                 self.validate(tuple(definitions))
 
     def test_group_traces_bind_raw_candidates_identity_and_unknown_symbols(self):
-        # Keep framing intact while changing a derived mask, identity outcome,
-        # or erased-range construction. No VM call is needed to detect a lie.
-        for offset in (294+12*4+5,294+12*8+8,402,412+5,429):
+        # Keep all outer framing valid; every context/derivation is checked
+        # independently of the generic VM's successful execution.
+        offsets = (330,140,174+4*24+5,174+7*24+8,360,363,368,369,370,
+                   373+7,373+10,391,400,410,442)
+        offsets += tuple(base+offset for base in (61,81) for offset in (0,2,6,8,10,12,14,16))
+        for offset in offsets:
             definitions = list(self.route.definitions)
-            raw = bytearray(definitions[9])
-            raw[offset] ^= 1
+            raw = bytearray(definitions[9]);raw[offset] ^= 1
             definitions[9] = bytes(raw)
             with self.subTest(offset=offset), self.assertRaises(DecoderError):
+                self.validate(tuple(definitions))
+
+    def test_vm_consistent_verified_and_identity_lies_do_not_override_observations(self):
+        for at,flag in ((246,7),(342,8)):
+            definitions=list(self.route.definitions)
+            raw=bytearray(definitions[9])
+            raw[at+flag]=1
+            if flag==7:raw[at+10]=2  # corrected candidate falsely called verified
+            else:raw[at+11]=1  # same A moved into foreign physical ownership
+            definitions[9]=bytes(raw)
+            with self.subTest(flag=flag),self.assertRaises(DecoderError):
                 self.validate(tuple(definitions))
 
     def test_context_claim_is_deferred_then_bound_to_actual_stream(self):

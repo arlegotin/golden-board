@@ -290,7 +290,7 @@ pub fn derive_receiver_bounds_v2(sources: ReceiverBoundSources<'_>) -> Result<Ve
         mul(48, paths)?,
         mul(2, b)?,
     ])?;
-    let route_calls = mul(a, add(route_records, 3)?)?;
+    let route_calls = mul(a, add(route_records, 3)?.max(62))?;
     let primitive = mul(
         sum([route_calls, mul(24, l)?, mul(1728 + 24, k)?, bodies])?,
         steps,

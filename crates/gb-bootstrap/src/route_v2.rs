@@ -175,7 +175,7 @@ fn relation(recipe: u16, input: &[u8]) -> Result<Vec<u8>> {
                 .checked_add(1)
                 .ok_or(CarrierError::Arithmetic)?],
         ),
-        107 | 111 => words32(&mut output, &[crate::crc32c(input)]),
+        107 => words32(&mut output, &[crate::crc32c(input)]),
         109 => {
             let logical = u64::from(u32_at(input, 0)?);
             let side = u64::from(u16_at(input, 4)?);
@@ -212,16 +212,33 @@ fn primary(
     sector: usize,
     held: bool,
     package: &RecipePackageV1,
-    definition: &[u8],
+    definitions: &[Vec<u8>],
 ) -> Result<Vec<u8>> {
     if fact == 10 {
-        let start = 294 + 12 * if held { 5 } else { 4 };
-        let trace = definition
-            .get(start..start + 12)
-            .ok_or(CarrierError::Recipe)?;
+        let definition = &definitions[9];
+        let start = 106 + 4 * if held { 1 } else { 8 };
+        let descriptor = &definition[start..start + 4];
+        let mut input = definitions[7][112..121].to_vec();
+        input.extend(&definitions[7][328..337]);
+        input.extend(descriptor);
+        let mut word =
+            input[usize::from(descriptor[0]) * 9..usize::from(descriptor[0]) * 9 + 9].to_vec();
+        let mut mask = [0u8; 9];
+        for bit in
+            usize::from(descriptor[2])..usize::from(descriptor[2]) + usize::from(descriptor[3])
+        {
+            let flag = 1 << (7 - bit % 8);
+            if descriptor[1] == 0 {
+                word[bit / 8] ^= flag;
+            } else {
+                word[bit / 8] &= !flag;
+                mask[bit / 8] |= flag;
+            }
+        }
         let mut expected = vec![0, 0];
-        expected.extend(&trace[9..]);
-        return example_payload(fact, 110, &trace[..9], &expected, package);
+        expected.extend(word);
+        expected.extend(mask);
+        return example_payload(fact, 111, &input, &expected, package);
     }
     if fact == 6 {
         let examples = teaching_examples().map_err(|_| CarrierError::Recipe)?;
@@ -300,7 +317,11 @@ fn primary(
         offset += bytes;
     }
     ensure(offset == input.len())?;
-    let recipe = number(field(row, "recipe_id")?)? as u16;
+    let recipe = if fact == 11 {
+        107
+    } else {
+        number(field(row, "recipe_id")?)? as u16
+    };
     example_payload(fact, recipe, &input, &relation(recipe, &input)?, package)
 }
 
@@ -345,13 +366,13 @@ fn prefixes_with_spans(
                 stage,
                 2,
                 fact * 100 + 2,
-                &primary(&root, fact, sector, false, &package, definition)?,
+                &primary(&root, fact, sector, false, &package, &definitions)?,
             )?;
             append(
                 stage,
                 3,
                 fact * 100 + 3,
-                &primary(&root, fact, sector, true, &package, definition)?,
+                &primary(&root, fact, sector, true, &package, &definitions)?,
             )?;
             if fact == 6 {
                 for (index, example) in teaching[2..].iter().enumerate() {
@@ -368,6 +389,16 @@ fn prefixes_with_spans(
                         )?,
                     )?;
                 }
+            }
+            if fact == 10 {
+                let mut expected = vec![0, 0];
+                expected.extend(&definitions[6][134..142]);
+                append(
+                    stage,
+                    2,
+                    1004,
+                    &example_payload(fact, 30, &definition[373..386], &expected, &package)?,
+                )?;
             }
             if fact == 12 {
                 for (index, (input, expected)) in [
@@ -389,7 +420,7 @@ fn prefixes_with_spans(
         append(5, 5, 6001, &package_raw)?;
         append(5, 6, 7001, &1u32.to_be_bytes())?;
         append(5, 7, 7002, &[])?;
-        ensure(count == 47)?;
+        ensure(count == 48)?;
         let prefix_cells = (64 + records.len()) * 8;
         let mut prefix = hex(text(&calibrations[sector])?)?;
         ensure(prefix.len() == 32)?;
@@ -891,9 +922,28 @@ fn observation(common: &[u8; 191], flips: &[u16]) -> crate::candidate::EhObserva
     }
 }
 
+fn common_identity(raw: &[u8; 191]) -> [u8; 20] {
+    let mut key = [0; 20];
+    let mut at = 0;
+    for (offset, width) in [
+        (0, 2),
+        (4, 4),
+        (8, 2),
+        (10, 2),
+        (12, 2),
+        (16, 2),
+        (18, 2),
+        (22, 4),
+    ] {
+        key[at..at + width].copy_from_slice(&raw[offset..offset + width]);
+        at += width;
+    }
+    key
+}
+
 fn group_observation(
     lanes: &[Option<crate::candidate::EhObservation>],
-    expected_section: u32,
+    expected_key: &[u8; 20],
     a: &[u8; 191],
     b: &[u8; 191],
     package: &RecipePackageV1,
@@ -983,18 +1033,7 @@ fn group_observation(
             }
         }
     }
-    let identities = !all.is_empty()
-        && all.iter().all(|raw| {
-            crate::decode_common_block(raw, 8).is_ok_and(|common| {
-                common.section_id == expected_section
-                    && common.semantic_copy_id == 0
-                    && common.section_type == 4
-                    && common.section_version == 0
-                    && common.fragment_index == 0
-                    && common.fragment_count == 1
-                    && common.section_envelope_length == 23
-            })
-        });
+    let identities = !all.is_empty() && all.iter().all(|raw| common_identity(raw) == *expected_key);
     let accepted = identities && all.len() == 1;
     let conflict = all.len() > 1;
     let present = lanes.iter().filter(|lane| lane.is_some()).count() as u8;
@@ -1047,119 +1086,198 @@ fn group_observation(
 }
 
 fn tenth(a: &[u8; 191], b: &[u8; 191], package: &RecipePackageV1) -> Result<Vec<u8>> {
-    for first in (0..10).step_by(2) {
-        let damaged = observation(b, &[first, first + 1]);
-        let mut input = damaged.encoded[..9].to_vec();
-        input.extend([0; 4]);
-        ensure(
-            evaluate_serialized_recipe_v1(package, 30, &input).map_err(|_| CarrierError::Recipe)?
-                == [0, 5],
-        )?;
-    }
-    let mut value = Vec::new();
-    for row in [
-        [1, 0, 2, 5, 1, 5],
+    let roster = [
+        [1u16, 0, 2, 5, 1, 5],
         [1, 1, 2, 5, 6, 10],
         [400, 0, 1, 5, 11, 15],
         [401, 0, 1, 2, 16, 17],
-    ] {
-        words32(&mut value, &row);
+    ];
+    let mut value = Vec::new();
+    words16(&mut value, &[4, 6]);
+    for row in roster {
+        words16(&mut value, &row);
     }
-    value.extend([0, 4, 8, 10, 12, 16, 18, 22]);
-    let conflict = std::iter::once(Some(observation(a, &[])))
-        .chain((0..4).map(|index| Some(observation(b, &[index * 2, index * 2 + 1]))))
-        .collect::<Vec<_>>();
-    let rep_only = (0..5)
-        .map(|index| Some(observation(b, &[index * 2, index * 2 + 1])))
-        .collect::<Vec<_>>();
-    let rows = [
-        (vec![None; 5], 400),
-        (vec![Some(observation(b, &[0, 1]))], 400),
-        (vec![Some(observation(a, &[]))], 400),
-        (vec![Some(observation(a, &[])); 5], 400),
-        (conflict.clone(), 400),
-        (rep_only.clone(), 400),
-        (vec![Some(observation(a, &[])), None], 400),
-        (
-            vec![Some(observation(a, &[])), Some(observation(b, &[]))],
-            400,
-        ),
-        (vec![Some(observation(a, &[]))], 401),
+    value.extend([0, 4, 8, 10, 12, 16, 18, 22, 2]);
+    let mut keys = Vec::<[u8; 20]>::new();
+    for section in [400, 401] {
+        let mut key = Vec::new();
+        words16(&mut key, &[8]);
+        words32(&mut key, &[section]);
+        words16(&mut key, &[0, 4, 0, 0, 1]);
+        words32(&mut key, &[23]);
+        keys.push(
+            key.as_slice()
+                .try_into()
+                .map_err(|_| CarrierError::Recipe)?,
+        );
+        value.extend(key);
+    }
+    let templates = [
+        [0u8, 0, 0, 0],
+        [0, 0, 59, 5],
+        [0, 0, 0, 1],
+        [1, 0, 0, 2],
+        [1, 0, 2, 2],
+        [1, 0, 4, 2],
+        [1, 0, 6, 2],
+        [1, 0, 8, 2],
+        [0, 1, 59, 5],
+        [0, 1, 60, 5],
+        [0, 1, 61, 5],
+        [0, 1, 62, 5],
+        [0, 1, 63, 5],
     ];
-    let expected_rows = [
-        [5, 0, 0, 0, 0, 0, 0, 0],
-        [1, 1, 0, 0, 0, 0, 0, 0],
-        [1, 1, 1, 0, 0, 1, 1, 0],
-        [5, 5, 1, 1, 1, 1, 1, 0],
-        [5, 5, 1, 1, 0, 1, 0, 1],
-        [5, 5, 0, 1, 0, 1, 1, 0],
-        [2, 1, 1, 1, 1, 1, 1, 0],
-        [2, 2, 2, 0, 0, 1, 0, 1],
-        [1, 1, 1, 0, 0, 0, 0, 0],
-    ];
-    let mut counts = BTreeSet::new();
-    let mut traces = Vec::new();
-    for ((lanes, section), expected) in rows.into_iter().zip(expected_rows) {
-        let (row, _, trace) = group_observation(&lanes, section, a, b, package, &mut counts)?;
-        ensure(row == expected)?;
+    words16(&mut value, &[111]);
+    value.push(0);
+    value.extend([13, 4]);
+    let mut observations = Vec::new();
+    let words = [
+        observation(a, &[]).encoded[..9].to_vec(),
+        observation(b, &[]).encoded[..9].to_vec(),
+    ]
+    .concat();
+    for row @ [source, unknown, first, count] in templates {
         value.extend(row);
-        traces.extend(trace);
-    }
-    for (construction, expected) in [
-        (0, &[2, 1, 1, 1, 1, 3, 2, 4, 3][..]),
-        (1, &[1, 1, 1, 1, 1, 3, 1, 3, 2][..]),
-    ] {
-        for index in 0..5u16 {
-            if construction == 0 && index == 0 {
-                value.extend([1, 0]);
-                words16(&mut value, &[0, 0]);
+        let mut lane = observation(if source == 0 { a } else { b }, &[]);
+        let mut unknown_mask = [0u8; 9];
+        for bit in u16::from(first)..u16::from(first) + u16::from(count) {
+            let mask = 1 << (7 - bit % 8);
+            if unknown == 0 {
+                lane.encoded[usize::from(bit) / 8] ^= mask;
             } else {
-                let first = if construction == 0 {
-                    2 * (index - 1)
-                } else {
-                    2 * index
-                };
-                value.extend([2, 2]);
-                words16(&mut value, &[first, first + 1]);
+                lane.encoded[usize::from(bit) / 8] &= !mask;
+                unknown_mask[usize::from(bit) / 8] |= mask;
+                lane.erasures.push(crate::candidate::EhErasure {
+                    codeword: (bit / 72) as u8,
+                    position: (bit % 72 + 1) as u8,
+                });
             }
         }
-        let lanes = if construction == 0 {
-            &conflict
-        } else {
-            &rep_only
-        };
-        let (_, summary, _) = group_observation(lanes, 400, a, b, package, &mut counts)?;
-        ensure(summary == expected)?;
-        value.extend(summary);
+        let mut input = words.clone();
+        input.extend(row);
+        let mut expected = vec![0, 0];
+        expected.extend(&lane.encoded[..9]);
+        expected.extend(unknown_mask);
+        ensure(
+            evaluate_serialized_recipe_v1(package, 111, &input)
+                .map_err(|_| CarrierError::Recipe)?
+                == expected,
+        )?;
+        observations.push(lane);
     }
+    words16(&mut value, &[110]);
+    value.extend([8, 24]);
+    let cases = [
+        [11u8, 0, 0, 0, 0, 0],
+        [11, 4, 0, 0, 0, 0],
+        [11, 1, 0, 0, 0, 0],
+        [11, 3, 0, 0, 0, 0],
+        [11, 1, 4, 5, 6, 7],
+        [11, 4, 5, 6, 7, 8],
+        [11, 9, 10, 11, 12, 13],
+        [16, 1, 1, 0, 0, 0],
+    ];
+    let mut counts = BTreeSet::new();
+    let mut raw_groups = Vec::new();
+    for row in cases {
+        let owner = roster
+            .iter()
+            .find(|r| (r[4]..=r[5]).contains(&u16::from(row[0])))
+            .ok_or(CarrierError::OwnerIdentity)?;
+        let factor = usize::from(owner[3]);
+        ensure(row[1 + factor..].iter().all(|id| *id == 0))?;
+        let key = keys
+            .iter()
+            .find(|key| {
+                u32_at(*key, 2).ok() == Some(u32::from(owner[0]))
+                    && u16_at(*key, 12).ok() == Some(owner[1])
+                    && u16_at(*key, 14).ok() == Some(owner[2])
+            })
+            .ok_or(CarrierError::OwnerIdentity)?;
+        let lanes = row[1..1 + factor]
+            .iter()
+            .map(|id| {
+                if *id == 0 {
+                    None
+                } else {
+                    Some(observations[usize::from(*id - 1)].clone())
+                }
+            })
+            .collect::<Vec<_>>();
+        let (_, states, trace) = group_observation(&lanes, key, a, b, package, &mut counts)?;
+        value.extend(row);
+        value.extend(&states[..factor]);
+        value.resize(value.len() + 5 - factor, 0);
+        value.push(states[factor]);
+        value.extend(trace);
+        raw_groups.push(lanes);
+    }
+    ensure(value.len() == 354)?;
+    value.extend([3, 4]);
+    for bit in [0u16, 63, 72] {
+        words16(&mut value, &[bit]);
+        value.extend([(bit / 72) as u8, (bit % 72 + 1) as u8]);
+    }
+    value.extend([7, 0, 0]);
+    words16(&mut value, &[30]);
+    let rep = crate::candidate::aggregate_repetition_observation(&raw_groups[6])
+        .map_err(|_| CarrierError::Recipe)?
+        .ok_or(CarrierError::Recipe)?;
+    let mut input = rep.encoded[..9].to_vec();
+    let positions = rep
+        .erasures
+        .iter()
+        .filter(|e| e.codeword == 0)
+        .map(|e| e.position)
+        .collect::<Vec<_>>();
+    ensure(positions.len() <= 3)?;
+    input.push(positions.len() as u8);
+    input.extend(positions);
+    input.resize(13, 0);
+    let mut expected = vec![0, 0];
+    expected.extend(&a[..8]);
+    ensure(
+        evaluate_serialized_recipe_v1(package, 30, &input).map_err(|_| CarrierError::Recipe)?
+            == expected,
+    )?;
+    value.extend(input);
+    words16(&mut value, &[113]);
+    value.extend([4, 8]);
+    for symbols in [
+        [2u8, 0, 1, 2, 2, 2],
+        [5, 0, 1, 1, 1, 1],
+        [5, 1, 2, 2, 2, 2],
+        [5, 2, 2, 2, 2, 2],
+    ] {
+        let active = &symbols[1..1 + usize::from(symbols[0])];
+        let input = [
+            symbols[0],
+            active.iter().filter(|v| **v == 0).count() as u8,
+            active.iter().filter(|v| **v == 1).count() as u8,
+        ];
+        let expected = relation(113, &input)?;
+        ensure(
+            evaluate_serialized_recipe_v1(package, 113, &input)
+                .map_err(|_| CarrierError::Recipe)?
+                == expected,
+        )?;
+        value.extend(symbols);
+        value.extend(&expected[2..]);
+    }
+    value.push(5);
     for length in [22u16, 157, 158, 314, 315] {
         let fragments = length.div_ceil(157);
-        words16(
-            &mut value,
-            &[length, fragments, length - 157 * (fragments - 1), length],
-        );
+        let last = length - 157 * (fragments - 1);
+        ensure(
+            (0..fragments)
+                .map(|i| if i + 1 == fragments { last } else { 157 })
+                .sum::<u16>()
+                == length,
+        )?;
+        words16(&mut value, &[length]);
+        value.extend([fragments as u8, last as u8]);
     }
-    ensure(value.len() == 294 && traces.len() == 108)?;
-    value.extend(traces);
-    let mut unknown = Vec::new();
-    for first in [59u8, 60, 61, 62, 63] {
-        value.extend([first, 5]);
-        let mut lane = observation(a, &[]);
-        for bit in first..first + 5 {
-            lane.encoded[usize::from(bit) / 8] &= !(1 << (7 - bit % 8));
-        }
-        lane.erasures = (first..first + 5)
-            .map(|bit| crate::candidate::EhErasure {
-                codeword: 0,
-                position: bit + 1,
-            })
-            .collect();
-        unknown.push(Some(lane));
-    }
-    let (_, states, trace) = group_observation(&unknown, 400, a, b, package, &mut counts)?;
-    ensure(states == [1, 1, 1, 1, 1, 3, 1, 3, 1])?;
-    value.extend(trace);
-    value.extend(&states[..6]);
+    ensure(value.len() == 443)?;
     Ok(value)
 }
 
@@ -2595,7 +2713,7 @@ fn definitions(slice: &SliceCompilation, package: &RecipePackageV1) -> Result<Ve
     values.push(twelfth(slice)?);
     ensure(
         values.iter().map(Vec::len).collect::<Vec<_>>()
-            == [16, 64, 96, 296, 226, 210, 636, 544, 464, 430, 314, 2421],
+            == [16, 64, 96, 296, 226, 210, 636, 544, 464, 443, 314, 2421],
     )?;
     Ok(values)
 }
@@ -2603,6 +2721,31 @@ fn definitions(slice: &SliceCompilation, package: &RecipePackageV1) -> Result<Ve
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn full_physical_identity_rejects_each_changed_key_byte_without_losing_candidate() {
+        let a = example_common(0).unwrap();
+        let b = example_common(1).unwrap();
+        let package =
+            decode_recipe_package_v1(&build_teaching_recipe_package().unwrap(), 8).unwrap();
+        let lanes = [Some(observation(&a, &[])), Some(observation(&a, &[]))];
+        let key = common_identity(&a);
+        let mut counts = BTreeSet::new();
+        let (_, _, valid) = group_observation(&lanes, &key, &a, &b, &package, &mut counts).unwrap();
+        assert_eq!(valid, [1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 2, 1]);
+        for byte in 0..20 {
+            let mut wrong_key = key;
+            wrong_key[byte] ^= 1;
+            let (_, states, trace) =
+                group_observation(&lanes, &wrong_key, &a, &b, &package, &mut counts).unwrap();
+            assert_eq!(states, [2, 2, 3, 1, 2, 1]);
+            assert_eq!(
+                trace,
+                [1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 2, 0],
+                "key byte {byte}"
+            );
+        }
+    }
 
     #[test]
     fn unknown_symbol_trace_keeps_failed_lanes_and_combines_only_known_symbols() {
@@ -2642,8 +2785,15 @@ mod tests {
                 .common,
             a
         );
-        let (row, states, trace) =
-            group_observation(&lanes, 400, &a, &b, &package, &mut BTreeSet::new()).unwrap();
+        let (row, states, trace) = group_observation(
+            &lanes,
+            &common_identity(&a),
+            &a,
+            &b,
+            &package,
+            &mut BTreeSet::new(),
+        )
+        .unwrap();
         assert_eq!(row, [5, 5, 0, 1, 0, 1, 1, 0]);
         assert_eq!(states, [1, 1, 1, 1, 1, 3, 1, 3, 1]);
         assert_eq!(trace, [0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 3, 1]);
@@ -2654,8 +2804,15 @@ mod tests {
             .unwrap()
             .unwrap();
         assert!(crate::candidate::decode_eh_unit(&guessed, 8).is_err());
-        let (_, guessed_states, guessed_trace) =
-            group_observation(&lanes, 400, &a, &b, &package, &mut BTreeSet::new()).unwrap();
+        let (_, guessed_states, guessed_trace) = group_observation(
+            &lanes,
+            &common_identity(&a),
+            &a,
+            &b,
+            &package,
+            &mut BTreeSet::new(),
+        )
+        .unwrap();
         assert_eq!(guessed_states, [1, 1, 1, 1, 1, 1, 0, 1, 0]);
         assert_eq!(guessed_trace, [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0]);
     }

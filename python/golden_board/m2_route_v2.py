@@ -11,7 +11,7 @@ from .m2_route_definitions_v2 import build_route_definitions_v2
 from .m2_teaching_recipe_v2 import build_teaching_recipe_package, teaching_examples
 
 PROFILE_ID = 'eh72-hier-r5-r2-r1-lzss-crc32c-v1'
-RECORD_COUNT = 47
+RECORD_COUNT = 48
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,21 +33,27 @@ def _case(package, recipe_id, inputs, expected):
             + len(actual).to_bytes(4, 'big') + incoming + actual)
 
 
-def _primary(package, fact, sector, held, definition):
+def _primary(package, fact, sector, held, definition, definitions):
     if fact.fact_id == 6:
         row = teaching_examples()[int(held)]
         return _case(package, row.recipe_id, row.inputs, row.output)
     if fact.fact_id == 10:
-        start = 294+12*(4+int(held))
-        trace = definition.value[start:start+12]
-        return _case(package,110,tuple(bytes((v,)) for v in trace[:9]),b'\0\0'+trace[9:])
+        template = definition.value[110:114] if held else definition.value[138:142]
+        words = (definitions[7].value[112:121],definitions[7].value[328:337])
+        source,unknown,first,count = template
+        mask = ((1 << count)-1) << (72-first-count)
+        original = int.from_bytes(words[source],'big')
+        word = original & ~mask if unknown else original ^ mask
+        expected = bytes(2)+word.to_bytes(9,'big')+(mask if unknown else 0).to_bytes(9,'big')
+        return _case(package,111,words+tuple(bytes((v,)) for v in template),expected)
     source = fact.held_source if held else fact.worked_source
     per_sector = fact.held_sector_sources if held else fact.worked_sector_sources
     incoming = per_sector[sector] if per_sector else old._mask_input(
         source, fact.source_inputs, fact.mask_input_slots, old.SECTOR_MASKS[sector])
     if fact.encoder_recipe_id is not None:
         raise old.RouteDataError('v2-unowned-encoder-example')
-    recipe = next(r for r in package.logical.recipes if r.recipe_id == fact.recipe_id)
+    recipe_id = 107 if fact.fact_id == 11 else fact.recipe_id
+    recipe = next(r for r in package.logical.recipes if r.recipe_id == recipe_id)
     if (tuple((d.value_type, d.width) for d in recipe.inputs)
             != tuple((d.value_type, d.width) for d in fact.inputs)
             or tuple((d.value_type, d.width) for d in recipe.outputs[1:])
@@ -58,7 +64,7 @@ def _primary(package, fact, sector, held, definition):
         canonical = fact.held_output if held else fact.worked_output
         if expected != canonical:
             raise old.RouteDataError('v2-inherited-example-drift')
-    return _case(package, fact.recipe_id,
+    return _case(package, recipe_id,
                  old._split_values(incoming, fact.inputs, 'v2-example-input'), expected)
 
 
@@ -89,13 +95,18 @@ def _build(compiled):
                        + definition.value)
             append(fact.stage, 1, 100*fid+1, payload, f'define:{fid}')
             for held in (False, True):
-                payload = fid.to_bytes(2, 'big') + _primary(package, fact, sector, held, definition)
+                payload = fid.to_bytes(2, 'big') + _primary(package, fact, sector, held, definition, definitions)
                 append(fact.stage, 3 if held else 2, 100*fid+2+int(held), payload,
                        f'{"held-out" if held else "worked"}:{fid}')
             if fid == 6:
                 for index, row in enumerate(additions):
                     payload = fid.to_bytes(2, 'big') + _case(package, row.recipe_id, row.inputs, row.output)
                     append(fact.stage, 2+index%2, 100*fid+10+index, payload, f'vm-discriminator:{index}')
+            if fid == 10:
+                incoming = definition.value[373:386]
+                payload = fid.to_bytes(2,'big')+_case(package,30,
+                    (incoming[:9],incoming[9:10],incoming[10:]),bytes(2)+definitions[6].value[134:142])
+                append(fact.stage,2,1004,payload,'worked:10-erasure-word')
             if fid == 12:
                 for index, (tokens, length, output) in enumerate((
                     (b'\0' + b'12345678', 9, b'12345678'),

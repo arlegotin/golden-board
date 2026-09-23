@@ -53,6 +53,19 @@ receipt, Candidate-ready report or completed milestone.
 
 ## Participant work and its meaning
 
+Before readiness is declared, the clean opening explains the complete existing
+saved-method task: derive a general recovery method from the artifact, including
+damaged or missing data and explicit uncertainty/failure; preserve it; add only
+a thin storage adapter when later formats are released; then use the unchanged
+method and saved adapter on new observations. Later substantive changes remain
+diagnostic. The recipient may take sustained effort and revisit the artifact's
+own checks and examples before declaring readiness. This advance disclosure
+supplies no artifact-specific solution, later format, mechanics fixture, damage
+case or pre-checkpoint practice input. The staged release and both checkpoints
+remain unchanged. Preview and production copy the shared technical instruction
+templates, whose bytes are included in each source/package freeze. The clearer
+task applies prospectively; past frozen packets and results remain historical.
+
 Two uses are distinct, without different participant paperwork:
 
 - **Formative:** a previous or helped participant can explore a repair and

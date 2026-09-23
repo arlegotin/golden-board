@@ -48,14 +48,14 @@ class CarriedKnowledge(unittest.TestCase):
         self.assertEqual(value['scope'],'carried-finite-use-and-ablation-development')
         self.assertEqual(value['topological_order'],list(range(1,13)))
         self.assertEqual(value['summary'],dict(route_count=4,definition_count=48,
-            example_count=128,structural_presence_rejections=48,
+            example_count=132,structural_presence_rejections=48,
             relationship_contradiction_rejections=48,recovered_context_count=4,result='pass'))
         self.assertEqual(len(value['ablation_rows']),96)
         for sector,row in enumerate(value['route_rows']):
             self.assertEqual(row['sector_id'],sector)
-            self.assertEqual(len(row['record_rows']),47)
+            self.assertEqual(len(row['record_rows']),48)
             self.assertEqual(len(row['fact_rows']),12)
-            self.assertEqual(len(row['example_rows']),32)
+            self.assertEqual(len(row['example_rows']),33)
             self.assertEqual(row['context'],{'required':'checked','all':'checked','section-membership':'checked'})
             self.assertTrue(all(r['success'] for r in row['example_rows']))
             self.assertTrue(any(r['status']!=0 for r in row['example_rows']))

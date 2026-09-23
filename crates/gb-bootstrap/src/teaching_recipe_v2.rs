@@ -25,7 +25,7 @@ pub(crate) struct Example {
 }
 
 struct Source {
-    table: EncodedTable,
+    tables: Vec<EncodedTable>,
     builders: Vec<RecipeBuilder>,
     examples: Vec<Example>,
 }
@@ -124,29 +124,37 @@ fn parse(source: &[u8]) -> Result<Source> {
     if number(&root["version"])? != 1 {
         return Err(invalid());
     }
-    let table = &bounded_array(&root["tables"], 1, 1)?[0];
-    let table = exact_table(table, &["id", "type", "width", "count", "payload"])?;
-    if [
-        number(&table["id"])?,
-        number(&table["type"])?,
-        number(&table["width"])?,
-        number(&table["count"])?,
-    ] != [21, 0, 8, 3]
-    {
-        return Err(invalid());
+    let mut tables = Vec::new();
+    for (row, (expected, expected_payload)) in bounded_array(&root["tables"], 2, 2)?.iter().zip([
+        ([21, 0, 8, 3], vec![7, 8, 9]),
+        ([22, 2, 144, 1], [vec![0; 9], vec![255; 9]].concat()),
+    ]) {
+        let table = exact_table(row, &["id", "type", "width", "count", "payload"])?;
+        let values = [
+            number(&table["id"])?,
+            number(&table["type"])?,
+            number(&table["width"])?,
+            number(&table["count"])?,
+        ];
+        let payload = hex(&table["payload"])?;
+        if values != expected || payload != expected_payload {
+            return Err(invalid());
+        }
+        tables.push((
+            values[0] as u16,
+            values[1] as u8,
+            values[2] as u32,
+            values[3] as u32,
+            payload,
+        ));
     }
-    let payload = hex(&table["payload"])?;
-    if payload != [7, 8, 9] {
-        return Err(invalid());
-    }
-    let table = (21, 0, 8, 3, payload);
     let mut builders = Vec::new();
     let mut steps = BTreeMap::<u16, u64>::new();
     let mut interfaces = BTreeMap::from([(105, vec![Shape::uint(32)])]);
-    for (index, value) in bounded_array(&root["recipes"], 6, 6)?.iter().enumerate() {
+    for (index, value) in bounded_array(&root["recipes"], 7, 7)?.iter().enumerate() {
         let row = exact_table(value, &["id", "inputs", "outputs", "nodes"])?;
         let id = number(&row["id"])?;
-        if id != [110, 210, 211, 212, 213, 214][index] {
+        if id != [110, 111, 210, 211, 212, 213, 214][index] {
             return Err(invalid());
         }
         let id = id as u16;
@@ -245,7 +253,7 @@ fn parse(source: &[u8]) -> Result<Source> {
         });
     }
     Ok(Source {
-        table,
+        tables,
         builders,
         examples,
     })
@@ -262,12 +270,12 @@ pub fn build_teaching_recipe_package_from_source(source: &[u8]) -> Result<Vec<u8
     {
         return Err(invalid());
     }
-    tables.push(source.table);
+    tables.extend(source.tables);
     tables.sort_by_key(|row| row.0);
     let mut recipes = Vec::new();
     let mut builders: Vec<_> = revision_recipe_builders()
         .into_iter()
-        .filter(|builder| ![106, 110].contains(&builder.id))
+        .filter(|builder| ![106, 110, 111].contains(&builder.id))
         .chain(source.builders)
         .collect();
     builders.sort_by_key(|builder| builder.id);

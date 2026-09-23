@@ -158,78 +158,118 @@ The fact stages/dependencies are:
    and index rejection remains the complete adapter's responsibility; modular
    primitive 109 is not that adapter.
 
-10. Carry four rows of six u32:
-    `(1,0,2,5,1,5),(1,1,2,5,6,10),(400,0,1,5,11,15),
-    (401,0,1,2,16,17)` for `(section,fragment,F,R,first,last)`.
-    This explicitly incomplete illustrative roster demonstrates cumulative
-    allocation; it is not an accepted inventory. Append identity-field offsets
-    `0,4,8,10,12,16,18,22` as eight u8, with widths from fact 7.
+10. Carry the complete physical-observation-to-decision example below. The
+    body is443 bytes, including executable construction bindings; production packet/inventory widths do not change.
+    The illustrative roster is incomplete and never substitutes for an accepted
+    inventory. Every byte position below is relative to this DEFINE value.
 
-    Append nine rows of eight u8 `(R,present,distinct_valid_lane_blocks,
-    REP_valid,REP_equals_a_lane,identity_matches,accepted,conflict)`.
-    Construct rows in this order: five absent lanes; one double-error B lane;
-    one clean A lane; five clean A lanes; conflict construction below;
-    REP-only construction below; two lanes `(A,absent)`; two lanes `(A,B)`;
-    one clean A lane but expected section 401. The expected identity otherwise
-    is A/B's common header. Decode every present lane and raw repetition;
-    deduplicate complete checked blocks and never stop at a clean lane.
-    Identity mismatch prevents acceptance. Identity_matches is zero if there
-    is no checked candidate. Repetition is absent for R=1. Exact nine rows:
+    At0, carry `(rows:u16=4,columns:u16=6)` and four rows of six u16
+    `(section,fragment,F,R,first,last)`:
+    `(1,0,2,5,1,5),(1,1,2,5,6,10),(400,0,1,5,11,15),
+    (401,0,1,2,16,17)`. Ranges are inclusive physical unit IDs. At52,
+    carry the eight identity-field offsets `0,4,8,10,12,16,18,22` as u8;
+    their widths remain those in fact7: `2,4,2,2,2,2,2,4`.
+    At60, carry expected-key count2 as u8, followed by the two complete keys
+    `(8,400,0,4,0,0,1,23)` and `(8,401,0,4,0,0,1,23)`, each20 bytes in
+    those field widths. Bind a key to its roster row by section, fragment and
+    fragment count. Thus identical checked A bytes belong to400 at units11..15
+    and fail expected identity at units16..17; a decoded header cannot move a
+    physical observation to another group. Compare every one of the eight
+    fields for every distinct checked candidate. No candidates means false.
+
+    At101, carry `(constructor_recipe:u16=111,word_index:u8=0)`. At104,
+    carry `(template_count:u8=13,template_width:u8=4)`, then rows
+    `(source:u8,unknown:u8,first_bit:u8,count:u8)`. Source0 is encoded A and
+    source1 encoded B from fact8. Unknown0 toggles the indicated contiguous bits;
+    unknown1 makes them unknown and clears only their storage bits. Packet bits
+    are zero-based, MSB first. Count0 leaves the source unchanged and requires
+    first0. Templates are numbered1..13 in this order:
 
     ```text
-    5,0,0,0,0,0,0,0   1,1,0,0,0,0,0,0   1,1,1,0,0,1,1,0
-    5,5,1,1,1,1,1,0   5,5,1,1,0,1,0,1   5,5,0,1,0,1,1,0
-    2,1,1,1,1,1,1,0   2,2,2,0,0,1,0,1   1,1,1,0,0,0,0,0
+    (0,0,0,0), (0,0,59,5), (0,0,0,1),
+    (1,0,0,2), (1,0,2,2), (1,0,4,2), (1,0,6,2), (1,0,8,2),
+    (0,1,59,5), (0,1,60,5), (0,1,61,5), (0,1,62,5), (0,1,63,5)
     ```
 
-    Append two 39-byte constructions. Each begins with five six-byte rows
-    `(source:u8,flip_count:u8,bit1:u16,bit2:u16)`, source 1=A, 2=B, MSB bit
-    numbering. First construction: clean A then four B lanes with disjoint
-    double flips `(0,1),(2,3),(4,5),(6,7)`. Second: five B lanes with those
-    pairs and `(8,9)`. Unused flip fields are zero. Append five lane states,
-    REP state, distinct checked count, group state, distinct-source mask as
-    nine u8. Use inherited states 0 absent, 1 corrupt, 2 verified, 3 recovered,
-    4 conflict; REP success is state 3. Mask bit 0 denotes A, bit 1 B.
-    Expected first summary is `2,1,1,1,1,3,2,4,3`; second is
-    `1,1,1,1,1,3,1,3,2`. Validate with profile-neutral EH/repetition primitives
-    plus explicit profile-8 common checks; the v7-only group admission API
-    must not be used to classify these examples.
+    Execute recipe111 for every template on fact8's two first words and the four
+    fields, compare its observed word/mask with independent range construction,
+    and retain the source's remaining207 bytes unchanged. Template2 is the
+    ordinary HELD_OUT flip counterpart of WORKED template9's erasure. Their
+    outputs distinguish the observed erroneous packed `BHB` interpretation.
+    At158 carry `decision_recipe:u16=110`. At160 carry
+    `(case_count:u8=8,case_width:u8=24)`. Each row contains
+    `first_physical_unit:u8`, five `template_id:u8`, five `lane_state:u8`,
+    `REP_state:u8`, the nine input bytes of recipe110, and its three output
+    bytes without STATUS16. Template0 means an absent observation, not a zero
+    codeword. The physical first ID selects the roster group and its factor;
+    slots at or beyond that factor must be absent. The eight case constructions
+    are `(first,templates)`:
 
-    Append five rows of four u16 `(L,F,last,reassembled)` for envelope lengths
-    `22,157,158,314,315`, where `F=ceil(L/157)`, `last=L-157(F-1)`, and
-    reassembled=L. These are fragment-length examples, not claims that an
-    arbitrary byte concatenation is a valid section or inventory.
+    ```text
+    (11,0,0,0,0,0), (11,4,0,0,0,0), (11,1,0,0,0,0),
+    (11,3,0,0,0,0), (11,1,4,5,6,7), (11,4,5,6,7,8),
+    (11,9,10,11,12,13), (16,1,1,0,0,0)
+    ```
 
-    Append nine twelve-byte execution traces in the same order as the nine
-    group cases. Each contains the nine input bytes of active recipe110,
-    followed by its three successful output bytes (without STATUS16).
-    Derive each equality-class bit from an actual full checked common block
-    matching A or B; an unknown value rejects this finite construction.
-    Pad the lane slots to five, then place raw repetition in slot six. Derive
-    the presence, verified-lane and identity flags from that same observation.
-    Execute the carried generic recipe, and compare its union/state/acceptance
-    to the independent complete group outcome. The conflict and REP-only
-    traces are also the ordinary WORKED/HELD_OUT pair for fact10, so running
-    that pair now requires the group decision rather than concatenation.
+    Derive each lane state and candidate with the existing bounded EH/common
+    checks. States are0 absent,1 corrupt,2 verified,3 recovered,4 conflict;
+    trailing out-of-factor lane states are0. Derive raw repetition from all
+    original observations, including failed lanes, by counting known zeroes and
+    ones at each bit. Unknown storage bits never contribute known zeroes.
+    REP state is0 when no lane is present and no REP observation is constructed,
+    1 when the constructed REP does not yield a checked candidate, and3 on
+    success. Complete checked
+    191-byte block equality determines masks: A=1, B=2. Unknown example values
+    reject this finite construction. Keep all lane and REP candidates, deduplicate
+    equal blocks, and reject conflicting distinct candidates.
 
-    Finally append five `(first_erased_bit:u8,count:u8)` rows
-    `(59,5),(60,5),(61,5),(62,5),(63,5)`, then a twelve-byte execution trace
-    and six u8 states (five lanes, raw repetition). Construct the physical
-    group11..15 from encoded A, keeping each lane's five marked bits unknown.
-    Clear their storage bits to zero as required by the observation ABI; those
-    zeroes remain erasures and never contribute known symbols to repetition.
-    Each individual first EH word exceeds its erasure bound. The overlapping
-    ranges make treating their storage zeroes as known observations fail
-    recovery; the correct unknown-symbol interpretation recovers A. Repetition uses
-    the original known/unknown symbols from all five lanes, including those
-    whose individual decoding failed; it recovers A. Expected lane states are
-    all1, REP state3, union mask1 (encoded01hex), group state3, acceptance1.
-    Unknown symbols never become guessed zeroes, and failed lanes are not
-    removed before repetition. This connects the actual allocation, whole
-    units, raw combination, checked candidates and final decision. Missing
-    physical IDs keep their slots; section identity is checked after collection.
-    Total430 bytes. Inventory/section/stream acceptance still requires fact11;
-    a locally accepted group alone cannot establish any of those outcomes.
+    Derive recipe110's six masks, presence flag, **any locally verified lane**
+    flag, and the expected-key identity flag. A corrected standalone A is a
+    candidate but does not set the verified flag: case3 is verified and case4
+    recovered. Case5 retains clean A and raw-REP B and rejects their conflict;
+    case6 recovers B only by REP. Case7 recovers A only by retaining failed
+    lanes and unknown symbols; interpreting storage zeroes as observations must
+    fail. Case8 contains checked A at physical ownership401 and rejects identity.
+    Execute recipe110 and compare all outputs with the independently derived
+    group decision. The case traces start at174+24*i, i=0..7. The ordinary framed pair
+    constructs the two contrasting observations above; embedded110 retains all
+    eight decisions, including conflict and REP-only recovery.
+
+    At354, carry `(coordinate_rows:u8=3,row_width:u8=4)` and three rows
+    `(packet_bit:u16,word_index:u8,EH_position:u8)`:
+    `(0,0,1),(63,0,64),(72,1,1)`. These explicitly connect zero-based packet and
+    word indices to the one-based EH position, including a word boundary.
+    At368, carry `(case_number:u8=7,source:u8=0,word_index:u8=0,recipe:u16=30)`,
+    followed by the13-byte recipe30 input derived from that case's raw REP:
+    `00014000000000062001400000`. The input's first nine bytes retain canonical
+    zero storage for its remaining unknown; the rest are count1 and positions
+    `64,0,0`. Execute the observed recipe and compare its successful eight-byte
+    result with A's first eight decoded bytes from fact7. Derive this input
+    from the observations; do not fill an unknown from the intact specimen.
+    Changing only the erased storage placeholder does not change the result.
+    The additional ordinary WORKED record1004 repeats this derived input and
+    its result, connecting case7 to the framed executable-example path.
+
+    At386, carry `(recipe:u16=113,column_count:u8=4,row_width:u8=8)`, then rows
+    `(R:u8,five_symbols:u8[5],known:u8,value:u8)`:
+    `(2,0,1,2,2,2,0,0)`, `(5,0,1,1,1,1,1,1)`,
+    `(5,1,2,2,2,2,1,1)`, `(5,2,2,2,2,2,0,0)`. Symbols0/1 are observed bits and2 is unknown;
+    out-of-factor slots must be2 and do not enter counts. These demonstrate a
+    tie, a known disagreement resolved by repetition, one known1 surviving
+    four unknowns, and the all-unknown column at case7 bit63. Derive `(R,known_zero_count,known_one_count)` as
+    `(2,1,1),(5,1,4),(5,0,1),(5,0,0)`, execute recipe113 and compare its known/value
+    outputs. Use the same count-derived operation on the actual case columns;
+    do not replace it with “all known bits must agree” or with voting on candidate
+    identities. Failed lane decoding does not remove its original symbols.
+
+    At422, carry row count5 as u8, then five rows
+    `(L:u16,F:u8,last:u8)` for L=`22,157,158,314,315`, with
+    `F=ceil(L/157)` and `last=L-157(F-1)`. Independently construct all fragment
+    lengths and verify reassembly sums to the already carried L; its duplicate
+    column is removed. These are fragment-length examples, not claims of valid
+    section/inventory acceptance. Fact11 remains required for those outcomes.
+    The last byte belongs to this non-VM metadata; contradictory-definition
+    rejection therefore retains the complete route's charged VM schedule.
 
 ## Facts 11–12
 
@@ -326,7 +366,7 @@ The fact stages/dependencies are:
 ## Admission and remaining limits
 
 The current expected value sizes are
-`16,64,96,296,226,210,636,544,464,430,314,2421`, total 5717 bytes. This is
+`16,64,96,296,226,210,636,544,464,443,314,2421`, total 5730 bytes. This is
 an audited construction target, not a cap or a passing fit. Compared with the
 3779-byte design estimate, 26 bytes explicitly frame package TABLEs, 16 bytes
 ground selected-profile rejection, 8 bytes carry ordinal admission outcomes,

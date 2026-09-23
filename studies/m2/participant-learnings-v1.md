@@ -9,6 +9,14 @@ profound, benign material can reasonably require sustained effort, wrong starts
 and revisiting examples. No names, dates, consent flow or reconstructed timing
 are needed here.
 
+The [trajectory review through trial 13](technical-trajectory-review.md) audits
+recurrence across these rounds. It supersedes any implication in the sequential
+next-work notes that another local example plus focused checks is sufficient
+reason to recruit again. The ownership/composition problem was already known
+before trials 11–13. Review the complete teaching path and the communicated
+readiness boundary before choosing the next repair; historical outcomes and
+qualification rules remain unchanged.
+
 Historical evidence remains under `artifacts/quiz/` (`Q` below): `ANALYSIS.md`,
 the original `01-start`–`04-wrap-up` answers, every `05-continue` and `06-fresh`
 stage's answers/analysis and saved replay, and `07-learner`'s answer, verification
@@ -42,8 +50,9 @@ while original known/unknown symbols still recover A through repetition.
 Unknown stored zeroes never become known observations. The physical allocation
 example now names the same section400 as its actual A/B blocks.
 
-All ten carried decision traces are independently reconstructed and executed
-by the observed VM in both implementations; every execution is charged. The
+For trial11, all ten carried decision traces were independently reconstructed
+and executed by the observed VM in both implementations; every execution was
+charged. The
 finite two-class example is not a complete carrier decoder or a widened error
 correction promise. Clean/content/lesson teaching and all previous obligations
 remain. Extra effort, trials, backtracking and multiple sessions remain welcome;
@@ -58,6 +67,427 @@ carrier identities and full-run measurements below are historical checkpoints
 of the preceding revision; they do not validate this edited source. Current
 focused results and exact handoff identities belong in the next frozen trial's
 ordinary owner notes. M2 remains In progress; no new human pass is claimed.
+
+## Trial 11: executable examples still need a physical recovery bridge
+
+The repaired frozen trial at `artifacts/quiz/11-recovery-technical-v2` preserves
+strong clean results: all136 exact section envelopes, both exact lesson streams,
+all64 game records/4915 plies, all12 matching technical predictions, and the
+exact generic-record/move/67-byte-position query. The55 opaque bodies are
+capacity/reserve/load material, not missing chess lessons; opaque bindings and
+unresolved UI controls do not invalidate the correctly answered selector.
+
+The unchanged participant VM freshly reproduces all128 framed examples, including
+eight110 calls. The evaluator can also run all ten embedded fact10 traces through
+that same VM successfully. The submitted test loop did not select those DEFINE
+traces, and its real transport never derives110 inputs from physical lanes/raw
+repetition. Decoded-header grouping recovers clean objects without completing
+the unit-slot ownership map; inventory replica fields remain unnamed. This
+narrows C05 further: executing symbolic decisions is insufficient evidence that
+the physical-observation-to-candidate construction was acquired.
+
+The unchanged assembler reproduces132 complete objects for a and127 for b from
+their saved packet outputs. It preserves redundancy for c and rejects d's
+conflicting inventory header. A new partial-result continuation salvages the
+expected132-object inventory for a, but b still misses eight recoverable sections.
+Later double-error search and erasure linear solving recover136 correct objects
+in a/b under extra assumptions; these are useful post-checkpoint diagnostics,
+not the specified group procedure or a restored saved-method pass. All published
+complete object bytes were checked against the frozen clean result. The entire
+participant pipeline was not freshly rerun; targeted assembly/VM execution and
+direct byte comparisons are distinguished from submitted logs in the review.
+
+Keep this first repaired-candidate result visible as provisional technical
+transfer not established. One cued continuation asked the same person to trace
+an existing erased-copy construction through1001/110 and identify the first
+unclear link to actual transport. The completed diagnosis below now determines
+the next repair. The frozen packet and original8068 answer files remain
+unchanged; local review, evidence and the short follow-up live beside them.
+
+### Trial 11 continuation: carry the context that determines the decision
+
+The509-file continuation correctly reconstructs the five raw erased copies,
+keeps their unknowns, obtains the REP-only candidate and runs procedures30/110.
+Independent frozen-owner reconstruction reproduces the exact vectors, packet
+and object; seven narrow calls through the unchanged participant VM confirm
+the erasure, coordinate and flag contrasts. No complete NumPy participant
+pipeline was freshly rerun. The person distinguishes new reconstruction from
+uncertain prior recollection and stops before claiming general acceptance.
+This is useful formative progress; it does not revise the saved-method result.
+
+The remaining ninth-input uncertainty exposes a carried-example omission.
+The owner generates case9 using expected section401, while positive case3
+expects400. The serialized traces differ only in the supplied identity Boolean
+and acceptance; they carry no physical-unit or expected-key reference explaining
+that change. The401 value exists in the toy roster but is not bound to case9.
+The expected eight-field identity comparison is in owner prose/code. Correct
+symbolic execution therefore does not demonstrate that this predicate was
+independently derived. Repair the relationship in carried bytes, not merely
+in another owner explanation or by asking the person to make more guesses.
+
+Their partial-header matching is exact for the example, but does not consume
+physical unit ranges. Identical A bytes at unit11 belong to expected400; at
+unit16 they belong to expected401 and must fail identity comparison. A valid
+header must not move an observation into another physical group. Carry that
+discriminator and the full expected-key comparison explicitly.
+
+The erasure tail also returns the same recovered bytes under zero- and one-based
+start interpretations, leaving EH position64 or63 respectively. Earlier zero
+offsets favor the intended convention; this is a local nondiscriminating result,
+not two equally valid whole-route interpretations. Existing selector/mask
+context does distinguish A from B. Bind the tail's specimen/group and packet-bit
+to EH-position conversion directly, preserving the successful raw-unknown
+construction. The trace's agreeing-bit merge does not establish general
+repetition conflicts/ties. Its wording for operand8 also leaves corrected
+standalone candidates versus locally verified lanes unresolved; those states
+need a discriminating construction.
+
+Next: resolve these links in `spec/route-definitions-v2.md`, implement the carried
+representation and its independent Python/Rust observed checks, then use focused
+readiness before a new provisional packet. No additional diagnostic question,
+unchanged fresh trial or exhaustive run is needed now. All existing gates,
+lesson/content successes and the default human-first iteration order remain.
+The complete audit is in
+`artifacts/quiz/11-recovery-technical-v2/review/continuation/ANALYSIS.md`.
+The repair is pending; this review changes no carrier, production code or owner.
+
+## Physical-context repair following trial 11
+
+The next source revision replaces the redundant fact10 summaries with eight
+complete physical scenarios. Each identifies its physical first unit and raw
+lane templates, shows lane/REP states, and derives the inputs to110. Two complete
+expected keys bind400/401 to the roster. The same checked A cannot move from
+physical ownership401 to400 merely because its decoded header says400.
+A clean-A case and single-bit-corrected-A case explicitly distinguish the
+verified-lane flag. All-absent REP remains state0, not a failed attempt.
+
+The erasure case names case7, specimen1, word0 and recipe30; three coordinate
+anchors bind packet bit0/63/72 to one-based EH positions1/64/1. Its recipe input
+is independently rebuilt from the raw known/unknown observations. Three carried
+symbol columns feed recipe113 through derived counts and demonstrate a tie,
+majority despite disagreement, and one known1 with four unknowns. Storage-zero
+substitution, dropping failed lanes, header reassignment and VM-consistent
+invented flags remain rejected. The whole procedure is still finite teaching,
+not a complete decoder or proof of fresh acquisition.
+
+The body stays430 bytes by narrowing finite roster/fragment example integers
+and removing duplicate statistics; actual transport field widths and the full
+20-byte expected keys remain unchanged. All64 games and both lesson streams are
+preserved. The owner permits fewer games if clarity needs more space; this
+repair does not require that trade-off. The package and shell prefix lengths
+remain unchanged, and the observed schedule has47 charged VM calls within its
+existing50-call bound. No correction capability or final acceptance gate changes.
+
+Verification and the exact next provisional handoff are recorded under
+`artifacts/quiz/12-physical-recovery-technical-v2/owner/` once readiness completes.
+Until that folder is frozen, the edited source is development work. This material
+revision requires fresh independent technical use; the trial11 continuation
+remains formative. Preserve the focused-check/trial/feedback order, then complete
+exhaustive verification after stable required human success. No additional
+participant paperwork or extension of the quiz is introduced.
+
+## Trial 12: correct clean recovery, unused physical recovery connection
+
+The 4,119-file submission at
+`artifacts/quiz/12-physical-recovery-technical-v2/answers` preserves strong clean
+acquisition. Independent reconstruction confirms all 136 object envelopes,
+46,200 clean codewords and 1,925 frame checks. The evaluator assembled both exact
+content streams from the submitted objects/imports/root records and validated
+them; the participant did not separately export those canonical stream files.
+All 64 games/4,915 plies, 53 worked choices, twelve exercise choices, seven complete
+states and the requested record/move/67-byte-position query match independent
+frozen-owner checks. The unexplained 55 bodies remain exact capacity/reserve/load
+material, not missing chess teaching or an additional quiz requirement.
+
+The submitted VM reproduces 128 direct examples; its storage adapter freshly
+passes 348 checks. The clean runner deliberately requires uncorrected words,
+and the adapter correctly refuses unknown-to-bit or invented unit-to-cell
+conversion. The held-out implementation adds conservative partial extraction,
+direct unit entry, CRC-guided double-error search and an ECC/CRC erasure solver
+after the checkpoint. All published complete object bytes were checked: the
+later conservative sets are 132/127/136/135 for a/b/c/d and the extended sets
+136/136/136/135. For b, the conservative result misses eight profile-recoverable
+objects. Extra correct a/b bytes are conditional diagnostics beyond the original
+profile, not revised expected outcomes or a saved-method pass. The foreign-field
+rejection in d correctly leaves the inventory incomplete. The participant
+discloses these limits; the complete NumPy transport pipeline was not rerun by
+this review.
+
+The new 430-byte fact10 is present in record1001 but is not consumed as a set of
+physical constructions. The example loop selects only framed WORKED/HELD_OUT
+records. Both clean and extended grouping use decoded header fields; neither
+derives the expected full key from physical ownership or builds raw repetition
+from original lanes with unknowns. Evaluator-selected execution confirms that
+the saved VM can run the omitted eight110, one30 and three113 examples, but does
+not establish their independent derivation. Existing real-payload VM checks
+already use30 on six known words; the missing link is not interpreter support.
+
+This establishes an unused teaching connection, while its human cause remains
+uncertain: overlooked material, unclear encoding/meaning, or a consciously
+clean-only implementation. The next step is one short cued continuation with
+the same participant, on unchanged definition1001, before choosing another
+material repair or fresh trial. The prepared prompt and full audit are in the
+trial's `follow-up/` and `review/` folders. It adds no form or extra quiz and
+cannot retroactively pass the original checkpoint. No long verification run or
+learner round is needed for this diagnosis. All 64 games remain; fewer games
+are an available scope choice if a demonstrated teaching repair requires space.
+M2 stays In progress, and all original submissions and frozen files are intact.
+
+### Trial 12 continuation: final outcomes can conceal a misread construction
+
+The 377-file continuation explicitly resolves the earlier cause: the participant
+had checked110 and its framed examples but left definition1001 as a430-byte hex
+dump. Their new construction harness now derives candidate masks and flags from
+observations, retains intact-A/raw-REP-B conflict, recovers B from five failed
+lanes, excludes unknowns from votes, and compares all eight expected-key fields
+in the toy ownership case. Cases1–6 and8 match the intended constructions.
+The actual clean bridge recovers exact object2, imports16/17/18, ROOT588 and
+control12. Those discoveries remain valid.
+
+Fresh unchanged execution reproduced all140 construction files and stdout
+exactly, using the saved VM and previously decoded bytes. All seven copied source
+modules and194 referenced binaries match the original clean submission. The
+full NumPy transport pipeline and later observations were not rerun.
+
+Case7 nevertheless has an exact input mismatch. Four-u8 descriptors
+`(source,unknown,first,count)` were read as `>BHB`, folding unknown1 into a
+two-byte start. The five spans begin315..319 instead of59..63; raw voting leaves
+bit319, word4/position32, instead of bit63, word0/position64. Both recover A and
+the same110 decision, so all eight aggregate comparisons pass despite the
+different observations. The carried recipe30 input is
+`00014000000000062001400000`; the submitted derived input is
+`9001000c400010000101200000`. A fresh saved-VM probe confirms both succeed but
+only the former equals the carried witness. The intended erased bit recovers1;
+the submitted one recovers0.
+
+The participant executes the carried input separately and reads its preceding
+`(case7,source1,word0)` as bit-handling constants. They never require the
+constructed input to equal that literal. Their negative five-flip test rejects
+one operation interpretation within the wrong field layout, not the layout
+itself. This is a demonstrated framing/linkage problem, not absent EH support.
+The full teaching chain is internally consistent; its parts have not yet been
+connected in the participant's reading. Final-output agreement cannot replace
+checking those carried intermediate relationships.
+
+The next step is one small cued reconciliation of those two existing calls on
+the unchanged packet, using `follow-up/RECONCILE.md` and `answers-reconcile/` in
+the trial directory. It supplies no correct field layout or address. Preserve
+either the corrected derivation and required cue, or the first unresolved
+connection; use that result to choose integration or a carried-framing repair.
+Do not expand this into more unrelated participant tasks. This remains assisted
+diagnosis, not a retroactive saved-method or fresh technical pass.
+
+The toy expected keys are complete comparisons but hardcoded associations; the
+actual clean bridge selects frames by decoded header and reports a key from the
+same frame. General physical ownership and damaged-carrier transfer therefore
+remain unestablished. The requested single-construction scope does not require
+a general decoder rewrite, application-record8/extension40000 interpretation,
+or meanings for55 opaque load bodies. Earlier correct content answers stand.
+
+Any later repair must test the observed alternative field layout and make
+construction/intermediate-input links discoverable. Unknown1 currently occurs
+only with count5 in the template set, allowing the meanings to be conflated
+when the explicit word witness is treated independently. More owner assertions
+or repeated checks of the same final decision do not establish recipient
+acquisition. No production bytes or acceptance rules changed in this review;
+all64 games and the frozen packet remain intact. Long verification waits for
+stable human feedback under the existing development flow. Full analysis and
+fresh evidence are in the trial's `review/continuation/` directory.
+
+### Trial 12 reconciliation: the existing witness resolves the wrong parse
+
+The63-file `answers-reconcile` submission closes the requested case7 question.
+Its four-u8 parsing produces erased spans59..63 through63..67; raw known-bit
+voting leaves bit63, word0/one-based position64. The independently constructed
+input `00014000000000062001400000` equals the original carried input. Separate
+saved-VM calls yield `00000008000000000190`; placeholder inversion preserves
+the result and re-encoding restores the original erased1. All24 decoded words
+equal padded A, with the original frame/object CRCs and110 result`0000010301`.
+The old319/word4 construction is preserved as a reproduced negative control.
+The participant explicitly retracts the earlier completed-link claim.
+
+All37 output files and stdout reproduced in a fresh evaluator replay, using the
+submitted construction and saved VM with an independent standard-library border
+extractor in place of the unavailable NumPy extraction. The replay derives the
+five original records from all four rotated guidebooks of the frozen carrier;
+it does not substitute saved records for extraction. This is an adapted focused
+replay, not an unchanged NumPy/full-transport execution. All61 supplied manifest
+entries, the saved VM/parser/CRC modules and previous source copy match.
+
+The remaining singleton witness byte01 is normatively source1. The participant
+can also describe it as a count of one without changing this derivation; they
+correctly leave that field-name inference uncertain. Do not demand another
+answer to repeat an owner-only label. The scoped reconciliation is complete.
+Earlier correct cases1–6/8 and clean content results remain useful. General
+actual-group physical ownership and saved-method damaged recovery are not
+established by this example, and the two directed prompts remain substantive
+assistance. No historical or assisted result becomes a fresh technical pass.
+
+The product lesson is discovery and joint checking: direct-example coverage
+left embedded constructions unread, then equal final results hid different
+observations while the linked input was tested separately. The existing bytes
+do resolve the wrong interpretation once connected. A future repair should make
+that connection discoverable in the ordinary example path, distinguish the
+descriptor fields with independent contrasts, and retain the nonzero-erasure,
+conflict, failed-lane and physical-ownership lessons. Do not add unrelated
+application/opaque-object questions or send this participant another case7 task.
+
+No new unchanged trial was declared ready. The existing retry exception requires
+a factual difference in the next unit/conditions as well as a prediction and
+stop rule; no such next setup has been supplied. The recommended next work is a
+carried-teaching repair, with requirements and capacity limits recorded in
+`artifacts/quiz/12-physical-recovery-technical-v2/review/reconciliation/NEXT.md`.
+This does not assert missing recovery bytes or inherent undecodability. All64
+games remain; any space tradeoff must follow a concrete measured design.
+Original submissions and frozen files are intact, M2 remains In progress, and
+the focused-checks-first trial flow is unchanged. No production code, acceptance
+rule or carrier was changed by this review.
+
+### Trial 13 construction repair: make the ordinary examples expose the link
+
+The approved repair brings observation construction into the framed example
+path the previous participant actually discovered. Active duplicate CRC111 is
+replaced by a generic whole-word construction; unchanged CRC107 serves both
+CRC lessons. Typed A/B words and four independent source/unknown/first/count
+inputs produce both observed storage and its erasure mask. The ordinary pair
+uses first59/count5 with unknown1 and unknown0. Folding unknown into a16-bit
+address cannot fit this72-bit input, and interpreting count5 as the erasure
+operation cannot satisfy both outputs. The case7 erasure input is also an
+ordinary framed worked example, explicitly linked to the construction table.
+The source selector is now0/1, consistent with its BOOL ABI; case7's source0
+cannot be mistaken for its erasure count1. An all-unknown repetition column
+makes the remaining bit63 explicit alongside the prior tie/disagreement cases.
+
+All thirteen constructors, eight decisions, the case7 erasure witness and four
+raw-symbol examples are still connected by independently checked observations.
+All earlier successful contrasts and all64 games remain. Reusing the562-byte
+CRC copy pays for the398-byte constructor,34-byte table and added examples;
+the complete prefix is18 bytes smaller. No geometry/protection/content change
+is needed. Exact route calls increase from47 to62; the source bound is explicitly
+max(route_records+3,62), remaining259 at the neutral256-record ceiling. The
+previous prose's50-call description confused the actual47 records with that
+ceiling; it was not the bound calculated by either implementation.
+
+Focused source/receiver checks and a frozen provisional handoff belong under
+`artifacts/quiz/13-construction-technical-v2/owner/` after readiness. This new
+carrier had no human result at that freeze. Its prediction is that a fresh recipient's
+ordinary executable-example discovery now exposes and jointly checks physical
+construction before the damaged observations. If the same linkage remains
+unacquired, diagnose that saved method under the existing retry/repair rule;
+do not recruit repeatedly or redefine success as final-output coincidence.
+No extra participant questions or paperwork are introduced. The complete
+trial12 reconciliation remains assisted evidence, and final exhaustive
+qualification follows stable successful required trials.
+
+### Trial 13: examples execute, but physical recovery remains disconnected
+
+The48,964-file submission preserves exact clean recovery: all136 envelopes,
+both42,432/55,664-byte streams and all64 games/4915 plies. Fresh evaluator
+execution reproduces132 framed VM examples,26 adapter check groups and the
+submitted chess-check outputs. The selected record12, move and complete67-byte
+Position match frozen expectations; the nominal e3 target is correct.
+
+The repair's exposure prediction succeeded: constructor111 and the linked
+erasure30 input are executed in the ordinary example loop. Its transfer
+prediction remains unestablished. The443-byte definition1001 is still a hex
+dump; no110 group decision or equivalent actual physical recovery is derived.
+The saved core globally rejects uncorrectable words, accepts only known bits
+and groups packets by decoded headers rather than inventory-owned physical
+units. It does not retain failed lanes for raw repetition. Trial12's specific
+`BHB` misparse is not repeated here; the new descriptor is not interpreted by
+the transport at all. More successful primitive examples alone would not
+establish that their relationships became usable.
+
+The later environment lost the generated original programs. The participant
+discloses reconstructing them from conversation, then adding two-error search
+and joint parity/CRC/padding erasure solving. Its first-pass object counts are
+132/127/136/135 for a/b/c/d; later counts136/136/136/135. Frozen profile counts
+are132/135/136/135, with d an artifact failure despite135 local checked bodies.
+Correct conditional extra recovery remains useful, but neither reconstruction
+nor later changes restore the saved-method result. Missing work must be restored
+as actual files between stages; conversation memory is not source continuity.
+This review does not infer an owner environment defect from that report alone.
+
+A concrete reconstruction regression affects all20 later graph exports:
+`graph_extract.py` writes the record count into the version field. Record
+bodies are exact, but both headers reject under content-v0. The original clean
+streams still validate. Reproducibility against one's own output is therefore
+distinct from comparison to the carried format. No malformed export is silently
+repaired or supplied to a learner. The query's exact bytes remain successful;
+partial/mistaken generic field labels, opaque namespace40000 and55 load bodies
+do not justify another unrelated quiz or full application task.
+
+One bounded owner witness demonstrates the useful next discriminator using
+b's own observed inventory and cells: section17/fragment26 has five individually
+unresolved copies with disjoint erasures. Known-symbol repetition recovers the
+whole checked block without clean bytes or CRC equation solving. This is an
+owner diagnostic with explicit source-owned geometry/domain assumptions, not
+participant acquisition. A short same-person continuation asks for that single
+carried-example-to-actual-group trace and the first unclear link, with original
+clean/adapter files restored. Its pointer is assistance; any new implementation
+remains diagnostic. No further case7 task, new participant or long test run is
+needed now. Motivation for omitting the connection remains uncertain until that
+account; do not infer unwillingness or penalize sustained effort.
+
+Full review, exact comparisons and handoff are under
+`artifacts/quiz/13-construction-technical-v2/review/` and `follow-up/`.
+All697 frozen pre-exposure files and original answers remain unchanged. All64
+games remain. M2 is In progress; no carrier, gate, historical result or required
+fresh-trial rule changes. Exhaustive qualification still follows stable
+successful required trials, not every diagnostic exchange.
+
+### Trial 13 continuation: composition works; membership precedes decoded headers
+
+The eight-file continuation completes the requested one-fragment diagnosis.
+Fresh unchanged execution with locally available Python3.13/NumPy reproduces
+all three submitted JSON results and stdout byte for byte. Four original
+modules and b are its only successful original-input reads. All1,033 restored
+files remain exact. The evaluator checks all8,640 emitted coordinates against
+b, and the complete216-byte coded/192-byte decoded frame against the prior
+independent owner witness. The157-byte payload is exact. Other output/attempt
+files mentioned in the prose were not supplied;42 outputs were freshly
+regenerated, rather than falsely reported as compared to missing originals.
+
+The typed111 constructions now feed actual113 votes, preserving unknowns and
+deriving exactly `00014000000000062001400000` before30 produces the carried
+answer. The live pair has complementary erasures and recovers the requested
+fragment without clean bytes, two-error search or CRC solving. Its24 actual
+decoder calls, framing, pad and subsequent CRC checks succeed. These are
+substantial demonstrated connections, not merely a repeated final-output match.
+
+The participant stops at the remaining physical-ownership link. They group
+four copies by fully decoded header keys, leave slot1684 unassigned because its
+section ID is erased, and select two copies for primitive113. Those factor2
+calls are legal and yield correct local bytes. They do not derive section17's
+physical factor5 roster, include every original lane, or establish the complete
+lane/REP candidate union. The live110 presence/verified/identity flags are
+explicitly unbound. The actual procedure assigns ownership from the admitted
+inventory and unit map before trusting headers; erased or foreign headers must
+not determine group membership. The scoped `accepted:true` is local fragment
+acceptance, not profile, section or artifact qualification.
+
+A secondary `>HHB` parse at definition offset101 merges zero word-index and
+template count. Fixed correct offsets leave all13 constructions and their
+intermediate equality intact. This is not trial12's control-field mistake and
+needs no further participant field-label question. Preserve it as a regression
+for the connected carried representation.
+
+The cause is now narrow enough for project work: isolated executable examples
+enabled primitive composition but did not teach the full ownership-to-decision
+dependency in actual transport. The participant's claim about why they stopped
+is explicitly an inference, not certain memory. Their requested diagnostic work
+is complete; do not ask another quiz or relabel the assisted result as a fresh
+pass. The next material repair should make an ordinary worked composition derive
+inventory/physical roster and factor, all original observations, lane/REP
+candidates and classifier inputs together, retaining conflict and wrong-owner
+contrasts. Measure its cost before choosing a representation or reducing games.
+
+Review, unchanged replay, evidence limits and concrete next requirements are in
+`artifacts/quiz/13-construction-technical-v2/review/continuation/`. All earlier
+clean/content successes and all64 games remain. No production code, carrier,
+acceptance rule or milestone status changed; M2 remains In progress. The next
+work is a carried-teaching repair with focused checks, not another unchanged
+recruitment or exhaustive run.
 
 ## What the successful trials establish
 

@@ -35,8 +35,8 @@ class FirstUse(unittest.TestCase):
         v=self.value
         self.assertEqual(v['summary']['result'],'pass')
         self.assertEqual((len(v['route_rows']),len(v['node_rows']),len(v['recipe_rows']),
-                          len(v['table_rows']),len(v['opcode_rows'])),(4,1184,29,14,25))
-        self.assertEqual(v['inputs']['package']['bytes'],18661)
+                          len(v['table_rows']),len(v['opcode_rows'])),(4,1162,29,15,25))
+        self.assertEqual(v['inputs']['package']['bytes'],18531)
         t=next(t for t in v['table_rows'] if t[0]==17)
         self.assertEqual(v['mapping_use'][:4],[9,17,228,t[3]+228])
         self.assertEqual(len(v['literal_rows']),37)

@@ -274,7 +274,7 @@ fn known_answer(profile: &[u8], recovery: &RecoveryProvenanceV2) -> Result<Vec<u
             need(records.insert(id, row).is_none())?;
         }
         let examples = array(&route["example_rows"])?;
-        need(examples.len() == 32)?;
+        need(examples.len() == 33)?;
         let mut previous = 0;
         for example in examples {
             let ex = closed(
@@ -301,7 +301,7 @@ fn known_answer(profile: &[u8], recovery: &RecoveryProvenanceV2) -> Result<Vec<u
             rows.push(V::Object(row));
         }
     }
-    need(rows.len() == 128)?;
+    need(rows.len() == 132)?;
     encode(&o([
         ("schema", s("golden-board.m2-known-answer/v2")),
         ("profile_id", s(PROFILE)),
@@ -320,7 +320,7 @@ fn known_answer(profile: &[u8], recovery: &RecoveryProvenanceV2) -> Result<Vec<u
             "summary",
             o([
                 ("route_count", V::U64(4)),
-                ("example_count", V::U64(128)),
+                ("example_count", V::U64(132)),
                 ("result", s("pass")),
             ]),
         ),

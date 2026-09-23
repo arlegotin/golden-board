@@ -4,11 +4,13 @@ the exact files, expected results and conditions before exposure; a successful
 blind result stays provisional until matching final automated checks pass.
 An already released matching kit can also be used. Packaging alone is not a pass.
 
-1. Give the person recipient/01-clean/. Ask them to work out what the data
-   conveys, using its own evidence. Time, wrong starts and backtracking are
-   welcome. Save their working code, run command, notes and real outputs in
-   answers/clean/ outside the input folder.
-2. When they are ready, keep a copy of that submitted method. Give them
+1. Give the person recipient/01-clean/. Ask them to read the complete opening,
+   including the saved-method stages, and derive their recovery method from the
+   data's own evidence. Sustained effort, revisiting examples, wrong starts and
+   backtracking are welcome. Save their working code, run command, notes and
+   real outputs in answers/clean/ outside the input folder. Keep later formats,
+   mechanics fixtures and observations withheld until their existing stages.
+2. When they declare that method ready, keep a copy of it. Give them
    recipient/02-adapter/. They can add a storage adapter; save it and its
    command in answers/adapter/, preserving the earlier method.
 3. Give recipient/03-heldouts/. Ask them to run the saved method separately

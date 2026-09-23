@@ -56,7 +56,7 @@ def _route_rows(prefixes,side,width):
         definitions.append(admitted.definitions)
         at=64;frames=[];defs=[];examples=[];package_at=None
         while at<len(raw):
-            _need(len(frames)<47,'frame-count')
+            _need(len(frames)<48,'frame-count')
             stage,kind=raw[at:at+2]
             rid=_number(raw,at+2,2);size=_number(raw,at+4,4)
             end=at+8+size
@@ -71,7 +71,7 @@ def _route_rows(prefixes,side,width):
             elif kind==5:
                 package_at=p
             at=end
-        _need(len(frames)==47 and len(defs)==12 and len(examples)==32 and package_at is not None,'route-coverage')
+        _need(len(frames)==48 and len(defs)==12 and len(examples)==33 and package_at is not None,'route-coverage')
         rows.append(dict(sector_id=sector,**_identity(raw),package_offset=package_at,
                          definition_spans=defs,frame_spans=frames,example_spans=examples))
     _need(all(p==packages[0] for p in packages) and all(d==definitions[0] for d in definitions),'route-agreement')
@@ -219,6 +219,7 @@ def _uses(value,routes,definitions):
         for e in examples:
             if (fact,e[1]) not in roots:roots.append((fact,e[1]))
         if fact==8:roots.append((8,108))
+        if fact==10:roots.append((10,_number(definitions[9],158,2)))
     roots.extend((0,rid) for rid in (30,109,113,202))
     uses=[[fact,rid,*closure(rid)] for fact,rid in roots]
     reached=set(r for row in uses for r in row[2]);tables=set(t for row in uses for t in row[3])|{17}

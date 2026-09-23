@@ -53,19 +53,22 @@ fn complete_routes_have_exact_v2_framing_order_and_one_complete_package() {
         assert_eq!(u16_at(prefix, 40), 2);
         assert_eq!(&prefix[42..44], &[sector as u8; 2]);
         assert_eq!(u16_at(prefix, 44), 8);
-        assert_eq!(u16_at(prefix, 46), 47);
+        assert_eq!(u16_at(prefix, 46), 48);
         assert_eq!(u32_at(prefix, 48), prefix.len() - 64);
         assert_eq!(u32_at(prefix, 52), package.len());
         assert_eq!(u32_at(prefix, 56), prefix.len() * 8);
         assert_eq!(&prefix[60..64], &[1, 0, 0, 0]);
         let rows = records(prefix);
-        assert_eq!(rows.len(), 47);
+        assert_eq!(rows.len(), 48);
         assert!(!rows.iter().any(|row| row.1 == 4));
         let mut expected_ids = Vec::new();
         for fact in 1..=12 {
             expected_ids.extend([fact * 100 + 1, fact * 100 + 2, fact * 100 + 3]);
             if fact == 6 {
                 expected_ids.extend(610..=615);
+            }
+            if fact == 10 {
+                expected_ids.push(1004);
             }
             if fact == 12 {
                 expected_ids.extend([1210, 1211]);
@@ -80,11 +83,11 @@ fn complete_routes_have_exact_v2_framing_order_and_one_complete_package() {
                 .collect::<Vec<_>>()
         );
         assert_eq!(
-            rows[44],
+            rows[45],
             (5, 5, sector as u16 * 10000 + 6001, package.as_slice())
         );
-        assert_eq!(rows[45].3, [0, 0, 0, 1]);
-        assert!(rows[46].3.is_empty());
+        assert_eq!(rows[46].3, [0, 0, 0, 1]);
+        assert!(rows[47].3.is_empty());
     }
     assert_eq!(build_route_prefixes(&compiled).unwrap(), prefixes);
 }
@@ -92,7 +95,7 @@ fn complete_routes_have_exact_v2_framing_order_and_one_complete_package() {
 #[test]
 fn definition_descriptors_and_all_example_lengths_bind_their_actual_bytes() {
     let prefixes = build_route_prefixes(&slice()).unwrap();
-    let expected_lengths = [16, 64, 96, 296, 226, 210, 636, 544, 464, 430, 314];
+    let expected_lengths = [16, 64, 96, 296, 226, 210, 636, 544, 464, 443, 314];
     for prefix in &prefixes {
         for (_, kind, _, payload) in records(prefix) {
             if kind == 1 {
@@ -127,40 +130,72 @@ fn definition_descriptors_and_all_example_lengths_bind_their_actual_bytes() {
 }
 
 #[test]
-fn group_decision_examples_execute_carrier_derived_conflict_and_repetition_traces() {
+fn executable_construction_and_erasure_examples_bind_physical_decision_traces() {
     use gb_bootstrap::recipe_wire_v1::{decode_recipe_package_v1, evaluate_serialized_recipe_v1};
     let package = decode_recipe_package_v1(&build_teaching_recipe_package().unwrap(), 8).unwrap();
     for prefix in build_route_prefixes(&slice()).unwrap() {
         let rows = records(&prefix);
         let definition = &rows.iter().find(|r| r.2 % 10000 == 1001).unwrap().3[14..];
-        assert_eq!(definition.len(), 430);
+        assert_eq!(definition.len(), 443);
+        assert_eq!(&definition[..4], &[0, 4, 0, 6]);
+        assert_eq!(&definition[52..61], &[0, 4, 8, 10, 12, 16, 18, 22, 2]);
+        assert_eq!(&definition[101..106], &[0, 111, 0, 13, 4]);
+        assert_eq!(&definition[158..162], &[0, 110, 8, 24]);
         let expected = [
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0],
-            [1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1],
+            [1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 1],
+            [1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 3, 1],
             [1, 0, 0, 0, 0, 2, 1, 1, 1, 3, 4, 0],
             [0, 0, 0, 0, 0, 2, 1, 0, 1, 2, 3, 1],
-            [1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 1],
-            [1, 2, 0, 0, 0, 0, 1, 1, 1, 3, 4, 0],
-            [1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 2, 0],
+            [0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 3, 1],
+            [1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 2, 0],
         ];
-        for (trace, want) in definition[294..402].chunks_exact(12).zip(expected) {
+        for (case, want) in definition[162..354].chunks_exact(24).zip(expected) {
+            let trace = &case[12..];
             assert_eq!(trace, want);
             let output = evaluate_serialized_recipe_v1(&package, 110, &trace[..9]).unwrap();
             assert_eq!(output[..2], [0, 0]);
             assert_eq!(output[2..], trace[9..]);
         }
-        for (id, index) in [(1002, 4), (1003, 5)] {
+        let encoded = &rows.iter().find(|r| r.2 % 10000 == 801).unwrap().3[14..];
+        for (id, index) in [(1002, 8), (1003, 1)] {
             let example = rows.iter().find(|r| r.2 % 10000 == id).unwrap().3;
-            assert_eq!(u16_at(example, 2), 110);
-            assert_eq!(&example[12..21], &expected[index][..9]);
-            assert_eq!(&example[21..23], &[0, 0]);
-            assert_eq!(&example[23..], &expected[index][9..]);
+            assert_eq!(u16_at(example, 2), 111);
+            assert_eq!(&example[12..21], &encoded[112..121]);
+            assert_eq!(&example[21..30], &encoded[328..337]);
+            assert_eq!(
+                &example[30..34],
+                &definition[106 + index * 4..110 + index * 4]
+            );
+            assert_eq!(
+                &example[34..],
+                evaluate_serialized_recipe_v1(&package, 111, &example[12..34]).unwrap()
+            );
         }
-        assert_eq!(&definition[402..412], &[59, 5, 60, 5, 61, 5, 62, 5, 63, 5]);
-        assert_eq!(&definition[412..424], &[0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 3, 1]);
-        assert_eq!(&definition[424..], &[1, 1, 1, 1, 1, 3]);
+        assert_eq!(
+            &definition[354..368],
+            &[3, 4, 0, 0, 0, 1, 0, 63, 0, 64, 0, 72, 1, 1]
+        );
+        assert_eq!(&definition[368..373], &[7, 0, 0, 0, 30]);
+        assert_eq!(
+            &definition[373..386],
+            &[0, 1, 64, 0, 0, 0, 0, 6, 32, 1, 64, 0, 0]
+        );
+        let witness = rows.iter().find(|r| r.2 % 10000 == 1004).unwrap().3;
+        assert_eq!(u16_at(witness, 2), 30);
+        assert_eq!(&witness[12..25], &definition[373..386]);
+        let common = &rows.iter().find(|r| r.2 % 10000 == 701).unwrap().3[14..];
+        assert_eq!(&witness[27..35], &common[134..142]);
+        assert_eq!(&definition[386..390], &[0, 113, 4, 8]);
+        assert_eq!(
+            &definition[390..422],
+            &[
+                2, 0, 1, 2, 2, 2, 0, 0, 5, 0, 1, 1, 1, 1, 1, 1, 5, 1, 2, 2, 2, 2, 1, 1, 5, 2, 2, 2,
+                2, 2, 0, 0
+            ]
+        );
+        assert_eq!(definition[422], 5);
     }
 }
 
@@ -169,7 +204,7 @@ fn complete_images_charge_every_cell_and_reject_geometry_and_insufficient_fit() 
     let compiled = slice();
     let prefixes = build_route_prefixes(&compiled).unwrap();
     let images = build_route_images(&compiled, 2048, 112).unwrap();
-    assert_eq!(prefixes[0].len(), 25809);
+    assert_eq!(prefixes[0].len(), 25791);
     assert_eq!(
         build_route_images(&compiled, 2040, 112).unwrap_err(),
         CarrierError::RouteFit

@@ -1,4 +1,7 @@
 These files describe storage for the later observations only.
 Keep your clean-method files unchanged. If needed, add a thin input adapter
-and save it with its command in answers/adapter/. Tell the owner when ready.
-Do not change the interpretation to match a later input without saying so.
+for those storage forms, preserving your interpretation and recovery logic.
+Save it with its command in answers/adapter/. Tell the owner when the adapter
+is ready to be preserved with your method before the new observations arrive.
+Keep any substantive method revision separately and explain it in your notes;
+it is useful diagnostic work and cannot replace the saved-method result.
