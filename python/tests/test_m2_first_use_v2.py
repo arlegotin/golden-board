@@ -11,8 +11,69 @@ from golden_board.m2_first_use_v2 import (
 from golden_board import m2_first_use_v2 as first_use
 from golden_board.m2_route_v2 import build_route_prefixes_v2
 from golden_board.m2_slice_v1 import compile_slice_v1
+from golden_board.m2_teaching_recipe_v2 import build_teaching_recipe_package
+from golden_board.m2_route_definitions_v2 import _first_six
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+class CompactFields(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.package=build_teaching_recipe_package()
+        cls.value,*_=first_use._scan(cls.package,_first_six())
+
+    def test_node_fields_partition_actual_carried_bytes(self):
+        raw=self.package;seen_lengths=set()
+        for node in self.value['node_rows']:
+            fields=[f for f in self.value['node_field_rows'] if f[:2]==node[:2]]
+            cursor=node[3]
+            for recipe,index,kind,ordinal,start,length in fields:
+                self.assertEqual(start,cursor);cursor+=length
+                if kind==0:
+                    self.assertEqual(length,1)
+                    self.assertEqual((raw[start]&31,raw[start]>>5),(node[5],node[6]))
+                else:
+                    bits=32 if kind==1 else 64 if kind==4 else 16
+                    value,end,encoded_length=first_use._uleb(raw,start,cursor,bits)
+                    self.assertEqual((end,encoded_length),(cursor,length))
+                    expected=node[7] if kind==1 else node[8][ordinal-1][0] if kind==2 else node[9][0] if kind==3 else node[10][1]
+                    self.assertEqual(value,expected);seen_lengths.add(length)
+            self.assertEqual(cursor,node[3]+node[4])
+        self.assertTrue({1,2,3}<=seen_lengths)
+
+    def test_compact_descriptors_have_only_two_actual_fields(self):
+        value=self.value;raw=self.package
+        self.assertEqual(value['layout_rows'][6][2],[[0,1],[1,0]])
+        self.assertFalse(any(f[0]==5 for f in value['field_rows']))
+        descriptors={}
+        for d in value['descriptor_rows']:
+            rid,io,index,implicit_id,start,kind,width,count=d
+            self.assertEqual((implicit_id,count),(index,1))
+            fields=[f for f in value['field_rows'] if f[:3]==[6,rid,index+65536*io]]
+            self.assertEqual([f[3] for f in fields],[0,1])
+            self.assertEqual(fields[0][4:6],[start,1]);self.assertEqual(raw[start],kind)
+            end=fields[1][4]+fields[1][5]
+            self.assertEqual(first_use._uleb(raw,start+1,end,32),(width,end,end-start-1))
+            self.assertTrue(2<=end-start<=6);descriptors[rid,io,index]=(start,end-start)
+        for node in value['node_rows']:
+            ni=next(r[3] for r in value['recipe_rows'] if r[0]==node[0])
+            for argument in node[8]:
+                if argument[0]<=ni:
+                    self.assertEqual(tuple(argument[2:]),descriptors[node[0],0,argument[0]])
+            if node[5]==5:
+                self.assertEqual(tuple(node[9][2:]),descriptors[node[0],1,node[9][0]])
+
+    def test_canonical_integer_limits_and_actual_boundaries(self):
+        for raw,bits,value in ((b'\0',16,0),(b'\x80\x01',16,128),
+                              (b'\xff\xff\x03',16,65535),
+                              (b'\xff'*9+b'\x01',64,2**64-1)):
+            self.assertEqual(first_use._uleb(raw,0,len(raw),bits),(value,len(raw),len(raw)))
+        for raw,bits,end in ((b'\x80\0',16,2),(b'\x80',16,1),
+                             (b'\xff\xff\x04',16,3),(b'\xff'*9+b'\x02',64,10),
+                             (b'\x80\x01',16,1)):
+            with self.subTest(raw=raw),self.assertRaises(FirstUseError):
+                first_use._uleb(raw,0,end,bits)
 
 
 class FirstUse(unittest.TestCase):
@@ -35,8 +96,10 @@ class FirstUse(unittest.TestCase):
         v=self.value
         self.assertEqual(v['summary']['result'],'pass')
         self.assertEqual((len(v['route_rows']),len(v['node_rows']),len(v['recipe_rows']),
-                          len(v['table_rows']),len(v['opcode_rows'])),(4,1162,29,15,25))
-        self.assertEqual(v['inputs']['package']['bytes'],18531)
+                          len(v['table_rows']),len(v['opcode_rows'])),(4,2991,41,19,25))
+        self.assertEqual(v['inputs']['package']['bytes'],17719)
+        self.assertEqual([r[1] for r in v['use_rows'] if r[0]==0],
+                         [30,109,113,120,123,127,202])
         t=next(t for t in v['table_rows'] if t[0]==17)
         self.assertEqual(v['mapping_use'][:4],[9,17,228,t[3]+228])
         self.assertEqual(len(v['literal_rows']),37)
@@ -79,7 +142,7 @@ class FirstUse(unittest.TestCase):
             first_use._literal_constraints(bytes(prefix),value)
 
     def test_omitted_or_remapped_use_is_not_valid_coverage(self):
-        for key in ('node_rows','field_rows','literal_rows','use_rows','table_rows'):
+        for key in ('node_rows','node_field_rows','field_rows','literal_rows','use_rows','table_rows'):
             value=deepcopy(self.value);value[key].pop()
             with self.subTest(key=key),self.assertRaises(FirstUseError):
                 validate_first_use_v2(canonical_manifest.serialize_manifest(value),self.prefixes,side=2048,width=112)

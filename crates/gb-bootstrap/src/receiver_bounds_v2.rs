@@ -290,9 +290,9 @@ pub fn derive_receiver_bounds_v2(sources: ReceiverBoundSources<'_>) -> Result<Ve
         mul(48, paths)?,
         mul(2, b)?,
     ])?;
-    let route_calls = mul(a, add(route_records, 3)?.max(62))?;
+    let route_calls = mul(a, add(route_records, 3)?.max(44))?;
     let primitive = mul(
-        sum([route_calls, mul(24, l)?, mul(1728 + 24, k)?, bodies])?,
+        sum([route_calls, mul(24, l)?, mul(1728 + 24 + 2, k)?, bodies])?,
         steps,
     )?;
     let inventory_payload = sub(e, 22)?;
@@ -303,7 +303,7 @@ pub fn derive_receiver_bounds_v2(sources: ReceiverBoundSources<'_>) -> Result<Ve
         (mul(2, a)?, mul(8, f)?, f),
         (a, f, mul(8, route_records)?),
         (mul(a, route_records)?, package, parsing),
-        (add(a, bodies)?, nodes, refine),
+        (sum([a, paths, bodies])?, nodes, refine),
         (route_calls, f, sum([f, mul(64, package)?, 8 * 128])?),
         (a, f, definition),
         (a, mul(4, q)?, 64),

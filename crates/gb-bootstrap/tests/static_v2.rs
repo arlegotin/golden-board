@@ -180,7 +180,24 @@ fn search_and_declared_resources_keep_their_bounded_static_scope() {
     let repeated = number(&groups[1]) + number(&groups[2]);
     assert_eq!(
         number(&declared["eh_decoder_calls"]),
-        24 * (carrier.unit_count() + repeated)
+        24 * carrier.unit_count()
+    );
+    let all_groups = groups.iter().map(number).sum::<u64>();
+    assert_eq!(number(&declared["complete_group_calls"]), all_groups);
+    assert_eq!(number(&declared["roster_calls"]), all_groups);
+    let package = gb_bootstrap::recipe_wire_v2::decode_recipe_package_v2(
+        &gb_bootstrap::teaching_recipe_v2::build_teaching_recipe_package().unwrap(),
+        8,
+    )
+    .unwrap();
+    assert_eq!(
+        number(&declared["primitive_steps"]),
+        24 * carrier.unit_count() * package.logical.recipe_primitive_steps(30).unwrap()
+            + all_groups
+                * (package.logical.recipe_primitive_steps(120).unwrap()
+                    + package.logical.recipe_primitive_steps(123).unwrap())
+            + number(&declared["body_decoder_calls"])
+                * package.logical.recipe_primitive_steps(202).unwrap()
     );
     assert_eq!(
         number(&declared["repetition_symbol_calls"]),

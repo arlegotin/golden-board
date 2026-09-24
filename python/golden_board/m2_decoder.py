@@ -1251,6 +1251,10 @@ class ObservationDecoder:
         self,
         profile: m2_codec.CandidateProfile,
         observations: Sequence[_ObservedUnit | None],
+        *,
+        physical_first: int | None = None,
+        expected_key: bytes | None = None,
+        bootstrap_first: bool = False,
     ) -> m2_codec.ReplicaGroupResult:
         """Aggregate one checked v7 group using the fast lane decoder."""
 
@@ -1634,7 +1638,8 @@ class ObservationDecoder:
     ) -> tuple[bootstrap.Inventory, bytes] | None:
         observed_by_id = {item.unit_id: item for item in observations}
         first = self._aggregate_v7_group(
-            profile, tuple(observed_by_id.get(unit_id) for unit_id in range(1, 6))
+            profile, tuple(observed_by_id.get(unit_id) for unit_id in range(1, 6)),
+            physical_first=1, bootstrap_first=True,
         )
         if first.group_state not in (2, 3):
             return None
@@ -1666,6 +1671,10 @@ class ObservationDecoder:
                         observed_by_id.get(group_first + replica_index)
                         for replica_index in range(5)
                     ),
+                    physical_first=group_first,
+                    expected_key=self._physical_group_key(profile.profile_version,
+                        1, 0, 1, self._inventory_version(profile), fragment_index,
+                        first_block.fragment_count, first_block.section_envelope_length),
                 )
             )
             if group.group_state not in (2, 3):
@@ -1839,7 +1848,8 @@ class ObservationDecoder:
         v7 = self._inventory_bootstrap_profile(profiles)
         observed_by_id = {item.unit_id: item for item in observations}
         initial = self._aggregate_v7_group(
-            v7, tuple(observed_by_id.get(unit_id) for unit_id in range(1, 6))
+            v7, tuple(observed_by_id.get(unit_id) for unit_id in range(1, 6)),
+            physical_first=1, bootstrap_first=True,
         )
         inventory_group_results: dict[int, m2_codec.ReplicaGroupResult] = {0: initial}
         inventory_group_identity: dict[int, bool] = {0: False}
@@ -1880,6 +1890,10 @@ class ObservationDecoder:
                                     )
                                     for replica_index in range(5)
                                 ),
+                                physical_first=group_first,
+                                expected_key=self._physical_group_key(v7.profile_version,
+                                    1, 0, 1, self._inventory_version(v7), fragment_index,
+                                    first_block.fragment_count, first_block.section_envelope_length),
                             )
                         )
 
@@ -2145,6 +2159,15 @@ class ObservationDecoder:
             resource=ResourceUsage(len(attempted_envelopes)),
         )
 
+    @staticmethod
+    def _physical_group_key(profile_version, section_id, semantic_copy_id,
+                            section_type, section_version, fragment_index,
+                            fragment_count, envelope_length):
+        return b''.join(value.to_bytes(width, 'big') for value, width in zip(
+            (profile_version, section_id, semantic_copy_id, section_type,
+             section_version, fragment_index, fragment_count, envelope_length),
+            (2, 4, 2, 2, 2, 2, 2, 4), strict=True))
+
     def _expected_units(
         self,
         profile: m2_codec.CandidateProfile,
@@ -2291,8 +2314,13 @@ class ObservationDecoder:
             )
             if factor > 1 and any(item is not None for item in observed_lanes):
                 repetition_group_count += 1
-            group = self._aggregate_v7_group(profile, observed_lanes)
             first = wanted_lanes[0]
+            group = self._aggregate_v7_group(profile, observed_lanes,
+                physical_first=group_first,
+                expected_key=self._physical_group_key(profile.profile_version,
+                    first.section_id, first.semantic_copy_id, first.section_type,
+                    first.section_version, first.fragment_index, first.fragment_count,
+                    first.envelope_length))
             identity_valid = False
             if group.group_state in (2, 3):
                 try:

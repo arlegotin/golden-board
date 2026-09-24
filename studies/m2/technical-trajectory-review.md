@@ -1,15 +1,21 @@
-# M2 technical trajectory through trial 13
+# M2 technical trajectory through trial 15
 
-The recent technical rounds have entered a real loop. Earlier improvements in
+Through trial 13, the technical rounds entered a real loop. Earlier improvements in
 clean discovery and content recovery are substantial, but damaged-recovery
 composition has repeatedly remained unresolved after material teaching repairs.
-The latest continuation localizes it more precisely; it does not discover a
+The trial-13 continuation localizes it more precisely; it does not discover a
 new class of failure. Another isolated example followed immediately by another
 fresh participant is not yet a justified prescription.
 
-This retrospective changes no acceptance rule, historical result, frozen packet
-or participant submission. M2 remains In progress. It does not authorize a new
-participant handoff or imply that another repair will finish the milestone.
+Trial 14 now provides a different result: the unchanged saved method connects
+physical ownership and complete recovery on both new observations, recovering
+the possible object and refusing the conflict. Its prior exposure still makes
+this formative. The checked next step is a fresh technical trial on the same
+carrier, not another local teaching patch. Trial 15 has now returned a substantial
+but explicitly unfinished method. Its own readiness declaration is negative;
+continue that work before inferring another teaching failure. This retrospective changes no
+acceptance rule, historical result, frozen packet or participant submission.
+M2 remains In progress; the fuller assessment is below.
 
 ## Progress and recurrence
 
@@ -28,6 +34,8 @@ wrong starts and revisiting examples are compatible with the intended receiver.
 | 11 | Clean/content success persisted; executable group-decision examples replaced an inadequate earlier example. | Actual transport still grouped by decoded headers and discarded raw evidence needed for repetition. |
 | 12 | More explicit physical context and correct primitive examples. Continuation exposed and resolved a concrete control-field interpretation error. | Physical inventory, actual observations and the complete candidate decision remained disconnected in saved transport. |
 | 13 | Construction and erasure examples entered the ordinary executable path. Continuation correctly composed primitives and recovered a real fragment. | Clean transport still omitted physical ownership. Continuation left an erased-key copy unassigned, selected two copies and did not derive the complete five-copy decision. |
+| 14 | The same saved method uses physical inventory, every raw member and complete candidate conflict/admission on both new full matrices; independent replays reproduce all exact outputs. | Prior experience was permitted. Successful formative transfer does not establish fresh acquisition, full-corpus recovery or M2 completion. |
+| 15 | All clean envelopes/streams, all expected a envelopes/required stream, 132 examples and exact query bytes independently reproduce. The participant explicitly identifies unfinished work. | Ten recoverable b objects are missing; unit-stream recovery is unsupported; live ownership/candidate integration remains unimplemented. No complete-method readiness declaration is present. |
 
 Evidence: [original review](../../artifacts/quiz/ANALYSIS.md),
 [05 spatial review](../../artifacts/quiz/05-continue/SPATIAL-ANALYSIS.md),
@@ -36,7 +44,9 @@ Evidence: [original review](../../artifacts/quiz/ANALYSIS.md),
 [10 review](../../artifacts/quiz/10-fresh-technical-v2/analysis/README.md),
 [11 review](../../artifacts/quiz/11-recovery-technical-v2/review/ANALYSIS.md),
 [12 review](../../artifacts/quiz/12-physical-recovery-technical-v2/review/ANALYSIS.md),
-[13 continuation](../../artifacts/quiz/13-construction-technical-v2/review/continuation/ANALYSIS.md).
+[13 continuation](../../artifacts/quiz/13-construction-technical-v2/review/continuation/ANALYSIS.md),
+[14 answer review](../../artifacts/quiz/14-complete-recovery-formative/review/ANALYSIS.md),
+[15 answer review](../../artifacts/quiz/15-fresh-technical-complete-recovery/review/ANALYSIS.md).
 
 ## Why this is a loop
 
@@ -144,5 +154,116 @@ human/tool authorship from answer folders. No new administrative data is needed.
    turnaround cost but does not by itself fix this reasoning loop. All final
    damage, native/Linux and release requirements remain.
 
-The immediate next work is a design and task-alignment review using the existing
-evidence, not another fresh participant handoff or exhaustive test run.
+The owner authorized the complete design and task-alignment repair in the
+[implementation plan](../../docs/superpowers/plans/2026-09-23-m2-complete-recovery.md).
+That work replaces the opaque classifier inputs with the carried complete
+procedure and makes the saved-method task explicit from the opening. Focused
+actual-carrier checks preceded a small formative transfer with an already
+exposed collaborator. Its completed result now supports the next decision.
+
+## Trial 14 changes the observed trajectory
+
+Fresh owner replays of the byte-identical saved method recover 136 exact
+envelopes and both exact lesson streams from clean and a. Case a specifically
+recovers the optional object whose two local headers fail; matching lesson
+hashes alone would have missed an omission there. Case b keeps all five physical
+members, detects the foreign-lane versus raw-repetition conflict, and withholds
+the missing fragment and dependent lessons while preserving 135 exact envelopes.
+The two full inputs/erasure masks and procedure results were reconstructed
+independently from the frozen matrices. No post-transfer algorithm repair or
+clean-object donor is needed to reproduce these results.
+
+This is operational transfer of the complete dependency, beyond the earlier
+primitive-example and clean-output successes. The recurring omission did not
+recur on these cases. It would still overstate the evidence to declare the loop
+universally solved: prior implementation work, experience, task clarity and
+the revised carrier all contribute, and this continuation cannot isolate them.
+No extra opaque-content interpretation, general chess engine or diagnostic
+question is warranted. Wrong starts and the participant's own practice tests
+are compatible with the intended persistent receiver.
+
+That result justified the checked ordinary provisional trial at
+[`15-fresh-technical-complete-recovery`](../../artifacts/quiz/15-fresh-technical-complete-recovery/README.md),
+using a fresh person and the same carrier. It retains the normal four stages;
+clean and every actual standard handout pass source-semantic, Python/Rust byte
+and owned recovery-promise checks. The original submissions and packets remain
+unchanged. If the same composition omission returns in that fresh trial,
+reconsider representation or scope rather than adding another isolated example.
+Required successful human results still precede exhaustive qualification, and
+all earlier technical/content/learner findings remain in scope.
+
+## Trial 15: a saved partial result is not readiness
+
+The clean answer, report and machine result consistently decline readiness.
+The adapter explicitly preserves an unchanged partial method; its readiness
+claim is about storage adaptation only. The supplied record contains no later
+complete-method declaration. It cannot establish the external conversation or
+assign responsibility for progression. It does establish that treating this as
+a completed fresh method's failure would misdescribe the evidence.
+
+Fresh owner runs reproduce all clean bytes, a's complete expected recovery,
+b's ten-object shortfall, unsupported c/d handling and the exact requested
+record/move/position. The live implementation still decodes individual frames
+before grouping by recovered headers and never integrates raw repetition and
+inventory-derived ownership. The participant already names this unfinished
+connection. The examples' success therefore does not establish live recovery,
+but neither does the unfinished state prove an unresolved teaching relationship.
+
+The useful process correction is to honor the existing readiness boundary.
+When an export says unfinished, continue the investigation. Extra effort and
+multiple sessions are intended, not exceptional accommodation. A new readiness
+form, another primitive quiz or a fresh recruit does not address that situation.
+The exposed later cases now support diagnostic development; they cannot be
+reclassified as unseen tests after a method revision.
+
+Scope also matters. The participant proposes decoding every opaque class and
+implementing the full graph evaluator before declaring completion. These are
+not additional frozen technical requirements. Exact preservation, correct
+recovery decisions and the existing record/transition explanation remain the
+task. Clarifying that boundary may reduce unnecessary work; it is not evidence
+that perceived workload caused the stop.
+
+Use the [same-person continuation](../../artifacts/quiz/15-fresh-technical-complete-recovery/continue/README.md)
+to finish the stated work and expose any concrete relationship the artifact
+does not support. No carrier change or new recruitment is warranted yet.
+Preserve original results and retry limits. M2 remains In progress, with
+required human success and final automated qualification still outstanding.
+
+## Trial 15 continuation: separate completed transport from a content rival
+
+The [continuation audit](../../artifacts/quiz/15-fresh-technical-complete-recovery/review-continue/ANALYSIS.md)
+freshly reproduces the completed live ownership/consensus/assembly connection
+and unit-stream recovery. Recipe-only behavior agrees with the frozen standard
+cases; explicit optional mathematical extensions recover additional exact
+objects. This is useful progress through sustained work, not recurrence of the
+unchanged missing connection in trials11–13. Revisions after exposure remain
+diagnostic. No further chronology question or participant assignment is needed.
+
+The new content rival is specific and independently falsifiable. The receiver
+interprets SINGLE as replacing the previous choice; the runtime retains the
+first choice when full. Both interpretations fit every old action row and all
+actual traces. The existing exhausted example also fails to distinguish its
+duplicate result from exhaustion itself. Append two ordinary runtime-derived
+consequences—distinct over-capacity selection and reset of a nonempty buffer—to
+the owning content miniature. Preserve every old witness; charge64 added bytes
+per sector and verify exact row inputs plus recomputed outputs in both languages.
+
+This correction supplies a missing discriminant within the already carried
+content teaching. It does not reopen the recovery representation or add a new
+human task. Opaque assertion computation, a full lesson engine and all fixture
+semantics remain outside the requested query. Partial role/control explanation
+stays visible, while the existing role table already carries the unscored
+outcome relationship. Do not turn participant-proposed extra work into a gate.
+
+Before exposing revised material, record the prediction: full capacity preserves
+the earlier selection, reset clears it, and exhaustion preserves the last
+action's specific result; complete live recovery remains connected. Then use
+the ordinary fresh staged task and existing retry/stop rules. A repeated
+structural failure requires representation/scope review rather than unexplained
+recruitment. Focused verification and human feedback precede exhaustive checks.
+
+The [checked packet16 handoff](../../artifacts/quiz/16-fresh-technical-content-control/README.md)
+is now ready under that prediction. Its independent finite preflights and actual
+clean/four-handout comparisons pass, as do the fast checks and recovery promises.
+All previous teaching,64games and lesson streams are preserved. No participant
+has yet supplied a result for this revised material; M2 remains In progress.

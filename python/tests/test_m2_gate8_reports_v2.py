@@ -108,7 +108,7 @@ class Gate8ReportProjectionsV2Tests(unittest.TestCase):
         metrics = derive_candidate_metrics_v2(self.policy,files.__getitem__)
         self.assertEqual(set(metrics),set(self.policy.document['metrics']['keys']))
         self.assertEqual((metrics['carrier_cells'],metrics['carrier_bytes'],metrics['shell_width']),
-                         (2048**2,2048**2//8,112))
+                         (2040**2,2040**2//8,112))
         self.assertEqual((metrics['required_stream_bytes'],metrics['all_stream_bytes']),(42432,55664))
         self.assertEqual((metrics['measured_primitive_steps'],metrics['measured_peak_scratch_bytes'],
                           metrics['measured_section_attempts']),(123,456,7))

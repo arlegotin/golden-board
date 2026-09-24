@@ -9,7 +9,7 @@ from hashlib import sha256
 from . import canonical_manifest
 from .m2_decoder import DecoderError
 from .m2_route_receiver_v2 import decode_observed_route_v2
-from .m2_route_semantics_v2 import validate_recovered_context
+from .m2_route_semantics_v2 import validate_local_definitions, validate_recovered_context
 
 _PROFILE = 'eh72-hier-r5-r2-r1-lzss-crc32c-v1'
 _LIMIT = 1_048_576
@@ -138,6 +138,33 @@ def _ablate(prefix,record,operator):
     return bytes(changed)
 
 
+def _fact10_binding_cost(prefix, records, package):
+    """The case7 binding precedes its own VM call, after earlier framed calls."""
+    recipes={r.recipe_id:r for r in package.logical.recipes}
+    steps=scratch=0
+    for record in records:
+        if record['kind'] not in (2,3):
+            continue
+        at=record['byte_offset']+8
+        rid=int.from_bytes(prefix[at+2:at+4],'big')
+        if record['record_id']%10000==1004:
+            _require(record['kind']==2 and rid==126,'ablation-primary-frame')
+            return steps,scratch
+        recipe=recipes[rid]
+        steps+=recipe.primitive_steps
+        scratch=max(scratch,recipe.peak_live_scratch_bytes)
+    raise KnowledgeUseError('ablation-primary-frame')
+
+
+def _ablation_rejection_matches(fact, operator, error, full_cost, binding_cost):
+    cost=(getattr(error,'primitive_steps',None),getattr(error,'peak_scratch_bytes',None))
+    if operator=='remove':
+        return error.reason=='route-v2.length' and cost==(0,0)
+    if fact==10:
+        return error.reason=='route-v2.group-primary' and cost==binding_cost
+    return error.reason.startswith('route-v2.semantic.') and cost==full_cost
+
+
 def build_knowledge_use_v2(prefixes, *, side, width, required_stream, all_stream, body_payloads):
     """Replay all four observed routes, contexts and96 bounded rejection probes.
 
@@ -174,17 +201,30 @@ def build_knowledge_use_v2(prefixes, *, side, width, required_stream, all_stream
     # can be credited. Every probe is evaluated afresh, without a known hash KAT.
     for sector,(prefix,row) in enumerate(zip(prefixes,routes,strict=True)):
         records={record['record_id']:record for record in row['record_rows']}
+        route=admitted[sector]
+        full_cost=(route.primitive_steps,route.peak_scratch_bytes)
+        binding_cost=_fact10_binding_cost(prefix,row['record_rows'],route.package)
         for fact in row['fact_rows']:
             record=records[fact['definition_record_id']]
             for operator in ('remove','contradict'):
                 changed=_ablate(prefix,record,operator)
                 classification=('record-structure' if operator=='remove' else 'definition-relationship')
+                if operator=='contradict' and fact['fact_id']==10:
+                    values=list(route.definitions)
+                    values[9]=values[9][:-1]+bytes((values[9][-1]^1,))
+                    try:
+                        validate_local_definitions(tuple(values),route.package,
+                            side=side,width=width,sector=sector)
+                    except DecoderError as error:
+                        _require(error.reason.startswith('route-v2.semantic.'),
+                                 'ablation-unrelated-rejection')
+                    else:
+                        raise KnowledgeUseError('ablation-accepted')
                 try:
                     decode_observed_route_v2(changed,side,width,sector)
                 except DecoderError as error:
-                    expected=(error.reason=='route-v2.length' if operator=='remove'
-                              else error.reason.startswith('route-v2.semantic.'))
-                    _require(expected,'ablation-unrelated-rejection')
+                    _require(_ablation_rejection_matches(fact['fact_id'],operator,error,
+                             full_cost,binding_cost),'ablation-unrelated-rejection')
                 else:
                     raise KnowledgeUseError('ablation-accepted')
                 ablations.append(dict(sector_id=sector,fact_id=fact['fact_id'],operator=operator,

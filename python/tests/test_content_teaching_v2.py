@@ -13,17 +13,40 @@ SOURCE = Path(__file__).resolve().parents[2] / "conformance/content-v0.json"
 
 
 class ContentTeachingTests(unittest.TestCase):
+    def test_carried_witnesses_distinguish_replacement_reset_and_exhaustion(self):
+        result = build_content_teaching_v2(SOURCE.read_bytes())
+        cursor = 583 + 2 + 48 * 14 + 2 + 6 * 12 + 2 + 4 * 12
+        count = int.from_bytes(result.value[cursor:cursor + 2], "big")
+        rows = {}
+        for index in range(count):
+            start = cursor + 2 + index * 32
+            row = struct.unpack(">HB12sBBBBHHBHHHH", result.value[start:start + 32])
+            node, n, actions, *outcome = row
+            rows[node, actions[:4 * n]] = tuple(outcome)
+        # Identical exhausted phase and budgets, three distinct last-action
+        # results. A last-choice-wins rival must disagree with a carried row.
+        expected = {
+            "0100000101000001": (3, 6, 1, 1, 1, 0, 0, 0, 0, 6, 0),
+            "0100000101000002": (3, 7, 1, 1, 1, 0, 0, 0, 0, 6, 0),
+            "0100000102000000": (3, 2, 1, 0, 0, 0, 0, 0, 0, 6, 0),
+        }
+        for actions, consequence in expected.items():
+            with self.subTest(actions=actions):
+                key = (26, bytes.fromhex(actions))
+                self.assertIn(key, rows, "missing discriminating carried witness")
+                self.assertEqual(rows[key], consequence)
+
     def test_independent_semantic_construction_and_exact_framed_charge(self):
         source = SOURCE.read_bytes()
         result = build_content_teaching_v2(source)
         fixture = json.loads(source)
         self.assertEqual(result.base_stream.hex(), fixture["bases"][0]["stream_hex"])
         self.assertEqual(len(result.base_stream), 575)
-        self.assertEqual(len(result.value), 1639)
+        self.assertEqual(len(result.value), 1703)
         self.assertEqual(result.value[:4], (575).to_bytes(4, "big"))
-        self.assertEqual(result.value[579:583], (1056).to_bytes(4, "big"))
+        self.assertEqual(result.value[579:583], (1120).to_bytes(4, "big"))
         cursor = 583
-        for count, width in ((48, 14), (6, 12), (4, 12), (8, 32)):
+        for count, width in ((48, 14), (6, 12), (4, 12), (10, 32)):
             self.assertEqual(int.from_bytes(result.value[cursor:cursor + 2], "big"), count)
             cursor += 2 + count * width
         self.assertEqual(cursor, len(result.value))

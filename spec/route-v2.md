@@ -29,15 +29,16 @@ bootstrap-v1 fact graph, except:
 
 - Fact 6 uses the worked/held recipe-211 rows of recipe-teaching-v2.toml in
   all sectors. Its interface and literal outputs replace recipe106's pair.
-- Fact 9 retains its exact sector input values but derives profile-8 outputs
-  with the new offset. No profile-7 output is relabeled.
-- Fact10's pair executes active recipe111 on fact8's first A/B words and
-  templates9/2, respectively: source0, first59, count5, with unknown1/0.
-  Outputs contain the observed word and erasure mask. Append WORKED1004 using
-  recipe30 on the exact case7 witness input and fact7 A's first decoded word.
-  The eight embedded decision110 traces remain mandatory, bound to those
-  constructed observations. Fact11's unchanged CRC pair uses recipe107;
-  its former111 was an identical duplicate and now owns construction.
+- Fact9 retains its exact sector input values and executes124, the complete
+  profile8 physical forward map, returning all six mapping intermediates.
+- Fact10's pair executes126 on construction cases4 and6; append WORKED1004
+  for case7. Each invocation derives group membership from table25 inventory
+  through122, constructs every raw lane/mask through125, and invokes the same
+  general119 kernel used by120. The eight embedded rows execute126 in case
+  order0..7. Queries are6 for cases0..6 and11 for case7. All primary and embedded
+  input/output bytes bind to those exact DEFINE rows. Local state, full expected
+  key, physical first/factor, acceptance and the unique local envelope are
+  outputs, never supplied classifier flags. Fact11 uses unchanged CRC107.
 - Append the six `additional` rows of recipe-teaching-v2.toml immediately
   after fact6's primary pair, in source order. Their IDs end in 10..15 and
   their kinds are WORKED, HELD_OUT, WORKED, HELD_OUT, WORKED, HELD_OUT.
@@ -54,31 +55,29 @@ and additional failures must match the frozen source. Encoder-backed examples
 must decode exactly to their original source after prescribed corruption.
 
 Exactly one PACKAGE record follows the facts, stage5/id sector*10000+6001.
-It contains the complete compact profile-8 package: all inherited programs
-except the now-unused106 (109 uses profile8 and110/111 are the active group decision/construction), body recipes201–203, teaching recipes210–214, and all
-their tables including21/22, each in increasing ID order. Version2 has **no
-standalone TABLE records**: every table is already fully framed and carried
-once inside that complete package. This is an explicit removal of redundant
-copies, not table omission or a reference to host data. Fact5 teaches those
-package/table boundaries. Then emit the unchanged stage5 endpoint record
-id7001 (u32 section1) and end record id7002 (empty), relative to sector base.
-There are exactly48 records before any separately owned further extension.
+It contains the complete canonical wire2 profile8 package owned by
+recipe-wire-v2.md and recipe-teaching-v2.md: all live inherited programs,
+complete recovery114..127, body201..203 and teaching210..214, with their exact
+closed tables. Historical106/110/111 are absent from this active package only.
+Version2 has **no standalone TABLE records**: every table is fully framed
+inside the complete package. Fact5 teaches those boundaries and the compact
+interface descriptors. Then emit the unchanged stage5 endpoint record id7001
+(u32 section1) and end record id7002 (empty), relative to sector base.
+There are exactly48 records and33 framed WORKED/HELD_OUT calls.
 
-Observed admission executes33 framed examples and three mapping109 calls,
-then thirteen fact10 template constructions111, eight decision110 traces, one
-recipe30 erasure witness, and four count-derived recipe113 columns before
-local definition validation: exactly62 charged route VM calls. Read and check
-observed constructor/word and decision bindings before those calls. Constructor
-word/mask outputs must equal independent range construction from observed
-fact8 words and descriptor fields; every group trace must derive from the same
-physical observations and complete common blocks. A VM-consistent invented
-trace is insufficient. Use the observed case/source/word/recipe30 binding and
-raw column symbols; compare recipe30 with fact7's existing specimen bytes.
-A failed call retains its full charge and stops the schedule. All framed fact10
-inputs/outputs must match their connected DEFINE construction/witness.
+Observed admission checks complete observed120/123/124/126/127 closures,
+executes33 framed examples and three mapping109 calls, then the eight fact10
+construction126 calls before independent local definition validation:44 charged
+route VM calls. A failed call retains its full charge and stops the schedule.
+All framed fact10 inputs/outputs must match their connected DEFINE rows.
+Independent validation derives membership, actual raw observations and full
+candidate union from the observed tables; VM-consistent invented traces reject.
+Production recovery additionally invokes127/123/120 on actual observed inventory
+and raw lanes, under resource-accounting-v2. That operational use is distinct
+from demonstrating the eight ordinary teaching examples.
 
-The exact29-recipe set is owned by recipe-teaching-v2. Omission of106 does
-not alter its historical/base packages or permit omission of any live recipe.
+The exact41-recipe and19-table sets are owned by recipe-teaching-v2. No live
+closure may be omitted; historical/base packages keep their exact bytes.
 
 All four prefixes must fit their actual shell sectors with the unchanged
 total headroom `max(ceil(total_instruction_cells/20),4*256)`, evenly distributed

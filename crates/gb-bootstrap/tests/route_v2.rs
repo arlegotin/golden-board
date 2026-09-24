@@ -95,7 +95,7 @@ fn complete_routes_have_exact_v2_framing_order_and_one_complete_package() {
 #[test]
 fn definition_descriptors_and_all_example_lengths_bind_their_actual_bytes() {
     let prefixes = build_route_prefixes(&slice()).unwrap();
-    let expected_lengths = [16, 64, 96, 296, 226, 210, 636, 544, 464, 443, 314];
+    let expected_lengths = [16, 64, 306, 296, 236, 228, 636, 544, 464, 478, 314];
     for prefix in &prefixes {
         for (_, kind, _, payload) in records(prefix) {
             if kind == 1 {
@@ -130,72 +130,36 @@ fn definition_descriptors_and_all_example_lengths_bind_their_actual_bytes() {
 }
 
 #[test]
-fn executable_construction_and_erasure_examples_bind_physical_decision_traces() {
-    use gb_bootstrap::recipe_wire_v1::{decode_recipe_package_v1, evaluate_serialized_recipe_v1};
-    let package = decode_recipe_package_v1(&build_teaching_recipe_package().unwrap(), 8).unwrap();
+fn complete_construction_examples_invoke_the_same_kernel_and_physical_identity() {
+    use gb_bootstrap::recipe_wire_v2::decode_recipe_package_v2;
+    use gb_bootstrap::recovery_recipe_v2::evaluate_serialized_recovery_native;
+    let package = decode_recipe_package_v2(&build_teaching_recipe_package().unwrap(), 8).unwrap();
     for prefix in build_route_prefixes(&slice()).unwrap() {
         let rows = records(&prefix);
         let definition = &rows.iter().find(|r| r.2 % 10000 == 1001).unwrap().3[14..];
-        assert_eq!(definition.len(), 443);
-        assert_eq!(&definition[..4], &[0, 4, 0, 6]);
-        assert_eq!(&definition[52..61], &[0, 4, 8, 10, 12, 16, 18, 22, 2]);
-        assert_eq!(&definition[101..106], &[0, 111, 0, 13, 4]);
-        assert_eq!(&definition[158..162], &[0, 110, 8, 24]);
-        let expected = [
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0],
-            [1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 1],
-            [1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 3, 1],
-            [1, 0, 0, 0, 0, 2, 1, 1, 1, 3, 4, 0],
-            [0, 0, 0, 0, 0, 2, 1, 0, 1, 2, 3, 1],
-            [0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 3, 1],
-            [1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 2, 0],
-        ];
-        for (case, want) in definition[162..354].chunks_exact(24).zip(expected) {
-            let trace = &case[12..];
-            assert_eq!(trace, want);
-            let output = evaluate_serialized_recipe_v1(&package, 110, &trace[..9]).unwrap();
-            assert_eq!(output[..2], [0, 0]);
-            assert_eq!(output[2..], trace[9..]);
-        }
-        let encoded = &rows.iter().find(|r| r.2 % 10000 == 801).unwrap().3[14..];
-        for (id, index) in [(1002, 8), (1003, 1)] {
-            let example = rows.iter().find(|r| r.2 % 10000 == id).unwrap().3;
-            assert_eq!(u16_at(example, 2), 111);
-            assert_eq!(&example[12..21], &encoded[112..121]);
-            assert_eq!(&example[21..30], &encoded[328..337]);
-            assert_eq!(
-                &example[30..34],
-                &definition[106 + index * 4..110 + index * 4]
-            );
-            assert_eq!(
-                &example[34..],
-                evaluate_serialized_recipe_v1(&package, 111, &example[12..34]).unwrap()
-            );
-        }
+        assert_eq!(definition.len(), 478);
         assert_eq!(
-            &definition[354..368],
-            &[3, 4, 0, 0, 0, 1, 0, 63, 0, 64, 0, 72, 1, 1]
-        );
-        assert_eq!(&definition[368..373], &[7, 0, 0, 0, 30]);
-        assert_eq!(
-            &definition[373..386],
-            &[0, 1, 64, 0, 0, 0, 0, 6, 32, 1, 64, 0, 0]
-        );
-        let witness = rows.iter().find(|r| r.2 % 10000 == 1004).unwrap().3;
-        assert_eq!(u16_at(witness, 2), 30);
-        assert_eq!(&witness[12..25], &definition[373..386]);
-        let common = &rows.iter().find(|r| r.2 % 10000 == 701).unwrap().3[14..];
-        assert_eq!(&witness[27..35], &common[134..142]);
-        assert_eq!(&definition[386..390], &[0, 113, 4, 8]);
-        assert_eq!(
-            &definition[390..422],
+            &definition[..22],
             &[
-                2, 0, 1, 2, 2, 2, 0, 0, 5, 0, 1, 1, 1, 1, 1, 1, 5, 1, 2, 2, 2, 2, 1, 1, 5, 2, 2, 2,
-                2, 2, 0, 0
+                0, 123, 0, 124, 0, 120, 0, 125, 0, 126, 0, 127, 0, 24, 0, 25, 0, 26, 0, 27, 8, 57
             ]
         );
-        assert_eq!(definition[422], 5);
+        for (case, row) in definition[22..].chunks_exact(57).enumerate() {
+            assert_eq!(row[4] as usize, case);
+            assert_eq!(u32_at(row, 0), if case == 7 { 11 } else { 6 });
+            assert_eq!(
+                evaluate_serialized_recovery_native(&package, 126, &row[..5]).unwrap(),
+                row[5..]
+            );
+        }
+        for (id, case) in [(1002, 4), (1003, 6), (1004, 7)] {
+            let example = rows.iter().find(|r| r.2 % 10000 == id).unwrap().3;
+            assert_eq!(u16_at(example, 2), 126);
+            assert_eq!(
+                &example[12..],
+                &definition[22 + 57 * case..22 + 57 * (case + 1)]
+            );
+        }
     }
 }
 
@@ -204,9 +168,9 @@ fn complete_images_charge_every_cell_and_reject_geometry_and_insufficient_fit() 
     let compiled = slice();
     let prefixes = build_route_prefixes(&compiled).unwrap();
     let images = build_route_images(&compiled, 2048, 112).unwrap();
-    assert_eq!(prefixes[0].len(), 25791);
+    assert_eq!(prefixes[0].len(), 25424);
     assert_eq!(
-        build_route_images(&compiled, 2040, 112).unwrap_err(),
+        build_route_images(&compiled, 2008, 112).unwrap_err(),
         CarrierError::RouteFit
     );
     let total: usize = prefixes.iter().map(|prefix| prefix.len() * 8).sum();

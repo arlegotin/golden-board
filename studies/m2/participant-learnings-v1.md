@@ -9,7 +9,7 @@ profound, benign material can reasonably require sustained effort, wrong starts
 and revisiting examples. No names, dates, consent flow or reconstructed timing
 are needed here.
 
-The [trajectory review through trial 13](technical-trajectory-review.md) audits
+The [trajectory review through trial 15](technical-trajectory-review.md) audits
 recurrence across these rounds. It supersedes any implication in the sequential
 next-work notes that another local example plus focused checks is sufficient
 reason to recruit again. The ownership/composition problem was already known
@@ -17,12 +17,200 @@ before trials 11–13. Review the complete teaching path and the communicated
 readiness boundary before choosing the next repair; historical outcomes and
 qualification rules remain unchanged.
 
+The approved [complete recovery repair](../../docs/superpowers/plans/2026-09-23-m2-complete-recovery.md)
+now replaces the active110/111 demonstrations with a general carried procedure:
+inventory establishes physical ownership; all original observations produce
+local and repetition candidates; complete bytes establish conflict; expected
+identity then establishes acceptance. The production receiver invokes the same
+admitted procedures. Ordinary examples derive their inputs instead of accepting
+unexplained classifier flags. Canonical wire2 fits this complete connection
+while preserving all64 games and the future-authoring/reserve promises.
+The descriptions of110/111 below remain the history of what those participants
+actually saw, not the current active program set.
+
+The opening now discloses the complete saved-method task before readiness,
+while retaining sustained effort, experiments and backtracking. The
+[two-observation formative transfer](../../spec/m2-formative-transfer-v2.md)
+has succeeded with an already exposed collaborator. Case a must recover its actual transport
+object: matching content streams alone can miss an optional object's failure.
+No further interpretation of an opaque object's meaning is required. Prior
+exposure remains formative, and a local example or owner replay still cannot
+establish fresh acquisition. All earlier technical and learner findings below
+remain in scope; none is erased by this transport repair.
+
+The completed local continuation is preserved at
+[`14-complete-recovery-formative`](../../artifacts/quiz/14-complete-recovery-formative/README.md):
+full clean artifact first, then two unseen full matrices, using the participant
+from round 13. Its owner evidence freezes the actual observations, source,
+independent preflight and three complete receiver comparisons. The
+[answer review](../../artifacts/quiz/14-complete-recovery-formative/review/ANALYSIS.md)
+now independently reproduces the unchanged saved method and its actual outputs.
+The subsequent ordinary fresh technical trial on the same carrier is preserved at
+[`15-fresh-technical-complete-recovery`](../../artifacts/quiz/15-fresh-technical-complete-recovery/README.md).
+Its original submitted method is explicitly unfinished; the
+[trial-15 review](../../artifacts/quiz/15-fresh-technical-complete-recovery/review/ANALYSIS.md)
+and [same-participant continuation](../../artifacts/quiz/15-fresh-technical-complete-recovery/continue/README.md)
+preserve that checkpoint. The completed diagnostic continuation now reproduces
+complete live recovery and exposes a different, concrete content-teaching rival;
+see the continuation finding below. Trial 14 remains successful formative
+transfer. Neither result establishes fresh complete acquisition.
+
 Historical evidence remains under `artifacts/quiz/` (`Q` below): `ANALYSIS.md`,
 the original `01-start`–`04-wrap-up` answers, every `05-continue` and `06-fresh`
 stage's answers/analysis and saved replay, and `07-learner`'s answer, verification
 and assessment audit. The detailed local audit is
 `artifacts/work/participant-revision/all-participant-findings.md`. Original
 submissions and exposed packets are not rewritten to match this revision.
+
+## Trial 14: the complete connection transfers to new observations
+
+The same 17 locked method/profile files reproduce clean and both new matrices
+in fresh owner runs, with locally compiled code and no submitted shared library
+or recovered-object donor. All deterministic output files and every summary
+field except elapsed time match: 5,747 files for clean/a and 5,736 for b. The
+46,346-file original submission is unchanged. This establishes equality of the
+saved checkpoints and reproducible behavior, not an unrecorded work chronology.
+
+Clean and a contain all 136 exact section envelopes and both exact lesson
+streams. In a, physical ownership places both unreadable headers in the same
+two-copy group; original known/unknown bits recover section 211 fragment 2.
+The complete optional object matters even though its omission could leave
+both lesson streams intact. No opaque-payload meaning quiz is required.
+
+In b, all five physically owned observations enter recovery. A valid foreign
+lane conflicts with the valid original packet obtained through repetition.
+The saved method withholds section 16 fragment 2, keeps the other 31 fragments
+exactly, exports the other 135 complete envelopes, and makes neither dependent
+lesson stream available. It does not filter away the foreign lane or fill the
+missing fragment from clean output. Independently extracted full-matrix inputs
+and complete carried-procedure results match in both critical groups.
+
+The operational chain is now present: placement → checked inventory → physical
+intervals and expected keys → every raw observation → complete candidate union
+and conflict → identity admission → object and lesson availability. Functions
+127, 123 and 120 are invoked in actual recovery, not only in example tests.
+This is the specific composition advance missing from rounds 11–13 on their
+reviewed inputs. It does not establish every damage case or fresh acquisition.
+
+Wrong starts remained productive: the participant reconstructed compact wire2,
+replaced a too-small host execution limit with a bounded equivalent executor,
+distinguished anchor-only acceptance from ordinary inventory recovery, and
+corrected their own edge-count check. Their self-generated practice observations
+preceded readiness and are distinct from the supplied unseen transfers. Prior
+work and experience were permitted. New carried teaching, clearer task wording
+and accumulated experience cannot be separated causally by this continuation.
+Preserve the observed scope limits: intact bootstrap required, no polarity
+normalization, and envelope completeness distinct from content availability.
+
+Packet 15 retains the existing four stages and production builder. Fresh Python
+finite preflight matches both frozen own-language 22-file trees. Clean and all
+four actual standard observations pass independent source-semantic checks and
+exact Python/Rust result/resource comparisons; all four owned recovery promises
+also pass, including required refusal of D7/11. Prior focused coverage is reused
+with an explicit prose-only source diff and retained logs, including the original
+failed aggregate and successful corrected/unreached targets. The carrier and all
+result-bearing source remain unchanged. No exhaustive corpus, Linux or release
+run was launched to enable recruitment. M2 remains In progress.
+
+## Trial 15: continue an explicitly unfinished method
+
+The submitted clean answer, report and machine summary all say the method is
+not ready. The adapter preserves that partial method and declares only adapter
+readiness. No subsequent complete-method readiness declaration was found in
+the supplied records. This does not establish the external handoff chronology
+or who decided to advance. Preserve it as an incomplete fresh submission with
+known-input diagnostic follow-up, not a declared-ready failure or qualifying
+success. A saved export does not imply readiness, and no new form is needed.
+
+Independent owner replays reproduce all 136 clean envelopes and both exact
+lesson streams. Case a matches all 121 source-expected envelopes and the
+required stream. Case b exports 114 exact envelopes against 124 recoverable;
+the missing ten are 2, 3, 16, 18, 217, 218, 241, 245, 249 and 264. The required
+stream is consequently unavailable despite its recovery promise. Cases c/d
+parse storage losslessly but both return unsupported, so d cannot count as an
+artifact-aware negative decision. No wrong published section was found on the
+tested observations. All 132 embedded examples freshly pass; they remain
+separate from the live decoder. The original 3,220 answer files are unchanged.
+
+The participant derived physical placement, individual word correction,
+domain-separated checks and clean assembly. Their live path still discards
+failed frames, groups survivors by decoded headers and parses inventory later.
+It does not derive physical ownership first or retain all original observations
+for the complete candidate decision. They already identify the missing
+example-to-live-recovery integration in their own report. This is an unfinished
+implementation, not evidence that the artifact was exhausted or that another
+local teaching patch is the remedy. Their unit-stream recovery path is also
+expressly unimplemented; the storage adapter itself is not the demonstrated
+problem. Partial output and downstream graph-inspection exceptions are honestly
+reported; adapter exit 0 is not complete semantic recovery.
+
+The unchanged query program reproduces 14 files from fresh clean recovery.
+The requested 30-byte record, two-byte move and 67-byte resulting position are
+exact. Fields left unresolved in the explanation include control modes,
+selection cap and event budget. This remains partial field interpretation,
+not wrong extracted bytes. The owner computes project-specific identities.
+The participant's working chess replay and recorded-region checks are useful
+evidence without being a full lesson interpreter.
+
+Do not adopt the participant's proposed full graph engine, all 48/eight semantic
+fixtures, opaque-body meanings or player histories as additional technical
+requirements. Keep the existing recovery contract and pre-frozen semantic query.
+The continuation lets the same participant revise their own method, connect
+the behavior already found in the artifact to complete inputs, finish the
+existing field/reference explanation and identify any concrete relationship
+they cannot derive. Previously exposed cases are diagnostics; original results
+and retry rules remain unchanged. Give only the short continuation, save new
+work separately, and defer fresh recruitment and exhaustive verification.
+M2 remains In progress.
+
+## Trial 15 continuation: live recovery closes, a content rival is isolated
+
+The [continuation review](../../artifacts/quiz/15-fresh-technical-complete-recovery/review-continue/ANALYSIS.md)
+independently reproduces the revised method on every supplied observation.
+Recipe-only clean/A/B/C recover136/121/124/136 exact envelopes; D correctly
+refuses its foreign-profile bootstrap. The default method's explicit parity/CRC
+extensions recover136 exact envelopes and both streams from each of clean/A/B/C.
+The manifest-derived physical schedule, raw consensus and complete candidate
+union now operate in the live pipeline. This closes the original B/C omission
+on known inputs. It does not retroactively pass a fresh saved-method checkpoint.
+The 2,808 local recovery checks,495 query checks and exact requested bytes are
+freshly reproduced. All3,220 original and6,492 continuation files are unchanged.
+
+The query explanation identifies SINGLE as replace-last. Every previous
+miniature action and actual trace fits that rival as well as the intended
+retain-first-at-capacity behavior. Exhaustion is also conflated with the sole
+previous exhausted row's duplicate result. This time a concrete relationship
+is missing from the carried evidence: continued effort alone cannot select
+between those rivals using those rows. The smallest owner is
+`spec/content-teaching-v2.md`, not transport or the participant instructions.
+
+Append SELECT1/SELECT2 and SELECT1/RESET at miniature node26, preserving all
+eight prior witnesses. Results7/2 and buffers[1]/empty distinguish capacity,
+clearing and the specific action result under identical exhausted budgets.
+The source repair adds64 bytes per sector; both language builders/admissions
+must recompute consequences and bind the exact inputs. A valid redundant row
+cannot substitute. Content-v0, the lesson/game stream, tasks and thresholds
+remain unchanged. Frozen prior packets retain their original bytes/results.
+
+Do not adopt the optional extensions as a new production promise, nor demand
+a complete engine/opaque predicate computation from this participant. Record8
+is an assertion, and the carried role/mode table already supplies the unscored
+outcome relationship. The remaining partial role/control explanation remains
+visible without requiring our English names or adding new human deliverables.
+
+Next: focused checks and a frozen fresh technical trial of the material
+correction, with prediction recorded before exposure. No additional assignment
+for this participant and no exhaustive qualification merely to enable a trial.
+The existing retry/stop rules and all earlier learner/technical findings remain.
+
+Focused source repair and actual-handout verification are complete. The
+[revised fresh packet](../../artifacts/quiz/16-fresh-technical-content-control/README.md)
+retains the same staged task and query. Independent finite preflights agree on
+all22files; clean and every handout pass separate source semantics, Python/Rust
+result/resource equality and the owned recovery promises. Fast checks pass.
+The520204-byte artifact keeps all64games and both exact lesson streams; its
+four route prefixes change only the intended content definition. This supports
+exposure of the revised packet, not fresh human success or final qualification.
 
 ## Recovery-teaching repair after revised technical trials 08 and 10
 

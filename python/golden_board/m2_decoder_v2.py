@@ -8,7 +8,7 @@ from dataclasses import replace
 from hashlib import sha256
 
 from . import bootstrap, bootstrap_v2, body_codec_v1, canonical_manifest, content
-from . import m2_codec, m2_decoder as old, recipe_wire_v1
+from . import m2_codec, m2_decoder as old, recipe_wire_v2
 from .m2_route_receiver_v2 import decode_observed_route_v2
 from .m2_program_refinement_v2 import body_program_refined
 from .m2_resources_v2 import (ResourceMeterV2, add, multiply, content_shape, content_workspace,
@@ -38,6 +38,9 @@ class ObservationDecoderV2(old.ObservationDecoder):
         self._rejected_route_steps = 0
         self._rejected_route_scratch = 0
         self._current_package = None
+        self._recovery_package = None
+        self._recovery_handle = None
+        self._inventory_raw = None
         self._meter = ResourceMeterV2()
         self._path_groups = set()
         self.last_rejection = ''
@@ -61,7 +64,10 @@ class ObservationDecoderV2(old.ObservationDecoder):
     def _decode_inventory_payload(self, profile, raw):
         self._meter.adapter('inventory',len(raw),16*len(raw))
         self._meter.retain('path-inventory',16*len(raw))
-        return bootstrap_v2.decode_inventory(raw) if profile.profile_version == 8 else bootstrap.decode_inventory(raw)
+        inventory = bootstrap_v2.decode_inventory(raw) if profile.profile_version == 8 else bootstrap.decode_inventory(raw)
+        if profile.profile_version == 8 and self._current_package is not None:
+            self._inventory_raw = raw
+        return inventory
 
     @staticmethod
     def _route_version(profile):
@@ -196,7 +202,34 @@ class ObservationDecoderV2(old.ObservationDecoder):
         self._meter.adapter('group-layout',count,128*count+64*len(inventory.entries))
         self._meter.retain('path-layout',128*count+64*len(inventory.entries)+8*edges)
         self._meter.adapter('dependency-closure',edges,24*len(inventory.entries)+8*edges)
-        return super()._expected_units(profile,inventory)
+        expected = super()._expected_units(profile,inventory)
+        if profile.profile_version != 8 or self._current_package is None:
+            return expected
+        raw = self._inventory_raw
+        if raw is None or not 8 <= len(raw) <= 16384:
+            old._fail('recovery-inventory')
+        result, target = [], 1
+        while target <= count:
+            recovered = self._invoke_recovery(123, (raw.ljust(16384,b'\0'),
+                len(raw).to_bytes(2,'big'),target.to_bytes(4,'big')))
+            if recovered.status or len(recovered.outputs) != 5:
+                old._fail('recovery-roster')
+            factor_raw, first_raw, last_raw, key, total_raw = recovered.outputs
+            factor,first,last,total = factor_raw[0],int.from_bytes(first_raw,'big'),int.from_bytes(last_raw,'big'),int.from_bytes(total_raw,'big')
+            if (first != target or factor not in (1,2,5) or last != first+factor-1
+                    or last > count or total != count or len(key) != 20
+                    or key[:2] != b'\0\10'):
+                old._fail('recovery-roster')
+            for replica in range(factor):
+                result.append(old._ExpectedUnit(first+replica,
+                    int.from_bytes(key[2:6],'big'),int.from_bytes(key[6:8],'big'),
+                    int.from_bytes(key[12:14],'big'),int.from_bytes(key[14:16],'big'),
+                    int.from_bytes(key[8:10],'big'),int.from_bytes(key[10:12],'big'),
+                    int.from_bytes(key[16:20],'big'),replica,factor,first))
+            target = last+1
+        if tuple(result) != expected:
+            old._fail('recovery-roster')
+        return tuple(result)
 
     @staticmethod
     def _route_group_key(route):
@@ -207,11 +240,14 @@ class ObservationDecoderV2(old.ObservationDecoder):
         # Bind decoding to this observed route. Multiple hypotheses cannot use
         # the program of whichever route happened to be parsed last.
         previous = self._current_package
+        prior_recovery = (self._recovery_package,self._recovery_handle,self._inventory_raw)
         self._current_package = self._observed_packages[route.packages[0]] if route.route_version == 2 else None
+        self._recovery_package = self._recovery_handle = self._inventory_raw = None
         try:
             return super()._recover_route_sections(route,observations)
         finally:
             self._current_package = previous
+            self._recovery_package,self._recovery_handle,self._inventory_raw = prior_recovery
 
     def _recover_inventory_v7(self, profile, observations):
         recovered = super()._recover_inventory_v7(profile,observations)
@@ -245,7 +281,7 @@ class ObservationDecoderV2(old.ObservationDecoder):
         key = (package.encoded,raw)
         result = self._body_cache.get(key)
         if result is None:
-            result = recipe_wire_v1.evaluate_recipe_v1(package,202,
+            result = recipe_wire_v2.evaluate_recipe_v2(package,202,
                         (raw+bytes(16384-len(raw)),len(raw).to_bytes(2,'big')))
             self._cache_store(self._body_cache,key,result,4096)
         if result.status or len(result.outputs) != 2 or len(result.outputs[0]) != 2 or len(result.outputs[1]) != 16384:
@@ -361,8 +397,85 @@ class ObservationDecoderV2(old.ObservationDecoder):
         self._meter.section(candidate)
         return bootstrap.assemble_semantic_copy(blocks,profile_version)
 
-    def _aggregate_v7_group(self, profile, observations):
+    def _bind_recovery(self):
+        from .m2_recovery_recipe_v2 import admit_recovery_programs
+        package = self._current_package
+        if package is None:
+            old._fail('recovery-package')
+        if self._recovery_package is not package:
+            logical = package.logical
+            self._meter.adapter('program-refinement',logical.total_node_count,
+                32*logical.total_node_count+8*logical.total_edge_count+8*len(logical.tables))
+            try:
+                self._recovery_handle = admit_recovery_programs(package,(120,123,127))
+            except (ValueError,bootstrap.BootstrapReject):
+                old._fail('recovery-program')
+            self._recovery_package = package
+        return self._recovery_handle
+
+    def _invoke_recovery(self, recipe_id, inputs, *, charge=True):
+        handle = self._bind_recovery()
+        recipe = next(row for row in self._current_package.logical.recipes if row.recipe_id == recipe_id)
+        if charge:
+            self._meter.invoke(recipe.primitive_steps,recipe.peak_live_scratch_bytes)
+        result = handle.evaluate(recipe_id,inputs)
+        if result.status == 11:
+            old._fail('resource-limit')
+        return result
+
+    def _aggregate_v7_group(self, profile, observations, *, physical_first=None,
+                            expected_key=None, bootstrap_first=False):
         lanes = tuple(observations)
+        if profile.profile_version == 8 and self._current_package is not None:
+            if (type(physical_first) is not int or physical_first < 1
+                    or len(lanes) not in (1,2,5)
+                    or bootstrap_first and (physical_first != 1 or len(lanes) != 5)
+                    or not bootstrap_first and (type(expected_key) is not bytes or len(expected_key) != 20)):
+                old._fail('physical-group')
+            pairs,presence = [],0
+            for replica,row in enumerate(lanes):
+                if row is None:
+                    pairs.append(bytes(432))
+                    continue
+                if row.unit_id != physical_first+replica or len(row.encoded) != 216:
+                    old._fail('physical-group')
+                mask = bytearray(216)
+                if len(set(row.erasures)) != len(row.erasures):
+                    old._fail('physical-group')
+                for bit in row.erasures:
+                    if type(bit) is not int or not 0 <= bit < 1728:
+                        old._fail('physical-group')
+                    mask[bit//8] |= 128 >> (bit%8)
+                if any(a & b for a,b in zip(row.encoded,mask,strict=True)):
+                    old._fail('physical-group')
+                pairs.append(row.encoded+bytes(mask))
+                presence |= 1 << replica
+            pairs.extend((bytes(432),)*(5-len(lanes)))
+            recipe_id = 127 if bootstrap_first else 120
+            inputs = ((profile.protected_units.to_bytes(4,'big'),bytes((presence,)),*pairs)
+                      if bootstrap_first else (bytes((len(lanes),)),bytes((presence,)),expected_key,*pairs))
+            key = (recipe_id,physical_first,len(lanes),expected_key,
+                   profile.protected_units if bootstrap_first else 0,
+                   tuple(None if row is None else row.unit_id for row in lanes))
+            self._bind_recovery()
+            if key not in self._path_groups:
+                program = next(row for row in self._current_package.logical.recipes if row.recipe_id == recipe_id)
+                self._meter.invoke(program.primitive_steps,program.peak_live_scratch_bytes)
+                if len(lanes) > 1 and presence:
+                    self._meter.adapter('repetition-adapter',1728*len(lanes),216+2*1728)
+                    self._meter.adapter('common-frame',191,191)
+                self._path_groups.add(key)
+            recovered = self._invoke_recovery(recipe_id,inputs,charge=False)
+            if recovered.status or len(recovered.outputs) != 3:
+                old._fail('recovery-group')
+            local,accepted,chosen = recovered.outputs
+            diagnostic = super()._aggregate_v7_group(profile,lanes)
+            if (local != bytes((diagnostic.group_state,))
+                    or (not bootstrap_first or accepted == b'\1') and chosen != diagnostic.chosen_block):
+                old._fail('recovery-convergence')
+            state = local[0] if local[0] not in (2,3) or accepted == b'\1' else 1
+            return replace(diagnostic,group_state=state,
+                           chosen_block=chosen if accepted == b'\1' else diagnostic.chosen_block)
         key = (profile.profile_version,tuple(None if row is None else row.unit_id for row in lanes))
         if len(lanes) > 1 and any(row is not None for row in lanes) and key not in self._path_groups:
             steps,scratch = self.repetition_resource
@@ -504,6 +617,7 @@ class ObservationDecoderV2(old.ObservationDecoder):
         self.observed_context_commitments.clear()
         self._route_failure_resources.clear()
         self._current_package = None
+        self._recovery_package = self._recovery_handle = self._inventory_raw = None
         self._path_groups = set()
         self._meter = ResourceMeterV2()
         self._rejected_route_steps = self._rejected_route_scratch = 0

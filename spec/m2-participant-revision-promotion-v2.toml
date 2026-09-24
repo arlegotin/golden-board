@@ -13,6 +13,8 @@ provisional_geometry = "independently-derived-first-fit; final-dimensions-await-
 
 [owners]
 profile = "spec/profile-policy-v2.toml"
+recipe_wire = "spec/recipe-wire-v2.md"
+recovery_program = "spec/recovery-program-v2.md"
 policy_ceilings = "spec/profile-limits-v2.toml"
 damage = "spec/damage-policy-v2.toml"
 static = "spec/static-projection-v2.md"

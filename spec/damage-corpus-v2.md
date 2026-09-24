@@ -27,7 +27,7 @@ route at that donor geometry before extracting the complete declared prefix.
 D7 first preserves the 408 v1 operator positions and their exact order.
 Replace v7 by v8 for the active carrier, inventory, grouping and physical
 placement. The foreign route remains the source-built profile3 route. Its
-27714-byte prefix cannot fit a W112 sector (26992 bytes); ordinal10 therefore
+27714-byte prefix cannot fit the selected W112 sector; ordinal10 therefore
 uses the explicit donor width128 above, with its own observed sector scan.
 Only those prefix cells change. Some are revised interior cells, so this case
 does not promise an unchanged interior. The complete valid foreign route
@@ -46,6 +46,15 @@ Append these explicit versioned cases, in the order below:
 |---|---|---|
 | 408..413 | compact-wire-mutants | package wire version0, package reserved byte48=1, declared byte length minus1, first node opcode0, first node type0, first recipe declared steps plus1. Apply the same mutation independently in all four route packages; all other prefix and physical bytes remain unchanged. |
 | 414 | foreign-profile7-bootstrap | replace IDs1..5 with the first clean common block reauthored under profile7 and re-encoded with EH. The inventory remains version2 and cannot establish profile7 or8. |
+
+For compact wire2, locate the first recipe after the exact carried table frames,
+then traverse its input and output descriptors as type U8 plus canonical
+width ULEB32 (at most five width bytes each). The first node begins immediately
+after those descriptors. Its tag is `(type<<5)|opcode`: ordinal411 clears only
+the low five opcode bits, and ordinal412 clears only the high three type bits.
+The current source first node is TABLE/typeSET; type0 contradicts its referenced
+SET table. Both selected fields must originally be nonzero. Neither mutation
+changes the other tag field, any ULEB width, descriptor, length or payload byte.
 
 These additional boundary KATs deliberately reauthor checked envelopes. They
 are separate from accidental damage: successful transport verification of

@@ -5,9 +5,10 @@ from functools import lru_cache
 from pathlib import Path
 import tomllib
 
-from . import bootstrap, m2_recipe, recipe_wire_v1
+from . import bootstrap, m2_recipe, recipe_wire_v1, recipe_wire_v2
 from .m2_body_recipe_v1 import BodyRecipeProgramV1
 from .m2_revision_recipe import build_revision_recipe_package, _encode_profile8_package
+from .m2_recovery_recipe_v2 import recovery_programs, recovery_tables
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,8 +45,8 @@ def _source():
     source = tomllib.loads(raw.decode('utf-8'))
     if (set(source) != {'version', 'tables', 'recipes', 'examples'}
             or type(source['version']) is not int or source['version'] != 1
-            or type(source['tables']) is not list or len(source['tables']) != 2
-            or type(source['recipes']) is not list or len(source['recipes']) != 7
+            or type(source['tables']) is not list or len(source['tables']) != 1
+            or type(source['recipes']) is not list or len(source['recipes']) != 5
             or type(source['examples']) is not list or len(source['examples']) != 8):
         raise ValueError('teaching-source-shape')
     return source
@@ -53,7 +54,7 @@ def _source():
 
 def _programs(source):
     result = []
-    for expected_id, row in zip((110,111,210,211,212,213,214), source['recipes'], strict=True):
+    for expected_id, row in zip((210,211,212,213,214), source['recipes'], strict=True):
         if (set(row) != {'id', 'inputs', 'outputs', 'nodes'}
                 or _uint(row['id'], 65535) != expected_id
                 or type(row['nodes']) is not list or not 1 <= len(row['nodes']) <= 100):
@@ -96,8 +97,8 @@ def teaching_examples() -> tuple[TeachingExample, ...]:
 @lru_cache(maxsize=1)
 def build_teaching_recipe_package() -> bytes:
     source = _source()
-    for table, shape, payload in zip(source['tables'], ((21,0,8,3),(22,2,144,1)),
-                                     ('070809','000000000000000000ffffffffffffffffff'), strict=True):
+    for table, shape, payload in zip(source['tables'], ((21,0,8,3),),
+                                     ('070809',), strict=True):
         if (set(table) != {'id', 'type', 'width', 'count', 'payload'}
                 or tuple(_uint(table[k]) for k in ('id', 'type', 'width', 'count')) != shape
                 or table['payload'] != payload):
@@ -112,11 +113,13 @@ def build_teaching_recipe_package() -> bytes:
                                          t.element_count, t.payload) for t in old.tables)
     tables += tuple(m2_recipe._table_record(t['id'],t['type'],t['width'],t['count'],
                                           bytes.fromhex(t['payload'])) for t in source['tables'])
-    programs = tuple(sorted(inherited + _programs(source), key=lambda row: row.recipe_id))
-    raw = _encode_profile8_package(programs, tables)
-    package = recipe_wire_v1.decode_recipe_package_v1(raw, 8)
+    programs = tuple(sorted(inherited + recovery_programs() + _programs(source), key=lambda row: row.recipe_id))
+    logical = recipe_wire_v1.expand_recipe_package_v1(
+        _encode_profile8_package(programs, tables + recovery_tables()), 8)
+    raw = recipe_wire_v2.encode_recipe_package_v2(logical, 8)
+    package = recipe_wire_v2.decode_recipe_package_v2(raw, 8)
     for row in _examples(source):
-        actual = recipe_wire_v1.evaluate_recipe_v1(package, row.recipe_id, row.inputs)
+        actual = recipe_wire_v2.evaluate_recipe_v2(package, row.recipe_id, row.inputs)
         if actual.status.to_bytes(2, 'big') + b''.join(actual.outputs) != row.output:
             raise ValueError('teaching-source-example-result')
     return raw

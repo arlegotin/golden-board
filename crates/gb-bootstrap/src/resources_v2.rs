@@ -180,10 +180,10 @@ pub fn program_workspace(raw: &[u8]) -> Result<ProgramWorkspace> {
         raw[28..32].try_into().map_err(|_| ResourceError::Bounds)?,
     ))
     .min(1048576);
-    let x = if u16::from_be_bytes([raw[8], raw[9]]) == 1 {
-        add(v, mul(26, n)?)?.min(1048576)
-    } else {
-        v
+    let x = match u16::from_be_bytes([raw[8], raw[9]]) {
+        1 => add(v, mul(26, n)?)?.min(1048576),
+        2 => add(add(v, mul(30, n)?)?, mul(1280, p)?)?.min(1048576),
+        _ => v,
     };
     let immutable = sum([
         v,

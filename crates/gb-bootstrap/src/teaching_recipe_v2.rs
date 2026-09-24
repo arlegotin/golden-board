@@ -10,9 +10,8 @@ use crate::body_recipe_v1::revision_recipe_builders;
 use crate::candidate_recipe::{
     EncodedTable, RecipeBuilder, Shape, encode_package_with_tables, finalize, r3_eh_tables,
 };
-use crate::recipe_wire_v1::{
-    decode_recipe_package_v1, encode_recipe_package_v1, evaluate_serialized_recipe_v1,
-};
+use crate::recipe_wire_v2::{encode_recipe_package_v2, evaluate_serialized_recipe_v2};
+use crate::recovery_recipe_v2::recovery_builders_and_tables;
 use crate::{BootstrapError, RejectCode, Result};
 
 const SOURCE: &[u8] = include_bytes!("../../../spec/recipe-teaching-v2.toml");
@@ -37,7 +36,7 @@ fn invalid() -> BootstrapError {
     }
 }
 
-fn exact_table<'a>(value: &'a Value, keys: &[&str]) -> Result<&'a toml::Table> {
+pub(crate) fn exact_table<'a>(value: &'a Value, keys: &[&str]) -> Result<&'a toml::Table> {
     let table = value.as_table().ok_or_else(invalid)?;
     if table.len() != keys.len() || keys.iter().any(|key| !table.contains_key(*key)) {
         return Err(invalid());
@@ -45,14 +44,14 @@ fn exact_table<'a>(value: &'a Value, keys: &[&str]) -> Result<&'a toml::Table> {
     Ok(table)
 }
 
-fn number(value: &Value) -> Result<u64> {
+pub(crate) fn number(value: &Value) -> Result<u64> {
     value
         .as_integer()
         .and_then(|value| u64::try_from(value).ok())
         .ok_or_else(invalid)
 }
 
-fn bounded_array(value: &Value, minimum: usize, maximum: usize) -> Result<&[Value]> {
+pub(crate) fn bounded_array(value: &Value, minimum: usize, maximum: usize) -> Result<&[Value]> {
     let values = value.as_array().ok_or_else(invalid)?;
     if !(minimum..=maximum).contains(&values.len()) {
         return Err(invalid());
@@ -60,7 +59,7 @@ fn bounded_array(value: &Value, minimum: usize, maximum: usize) -> Result<&[Valu
     Ok(values)
 }
 
-fn shape(kind: u64, width: u64, allow_table: bool) -> Result<Shape> {
+pub(crate) fn shape(kind: u64, width: u64, allow_table: bool) -> Result<Shape> {
     let valid = match kind {
         0 => (1..=64).contains(&width),
         1 => width == 1,
@@ -78,7 +77,7 @@ fn shape(kind: u64, width: u64, allow_table: bool) -> Result<Shape> {
     })
 }
 
-fn descriptors(value: &Value, minimum: usize) -> Result<Vec<Shape>> {
+pub(crate) fn descriptors(value: &Value, minimum: usize) -> Result<Vec<Shape>> {
     bounded_array(value, minimum, 64)?
         .iter()
         .map(|value| {
@@ -88,7 +87,7 @@ fn descriptors(value: &Value, minimum: usize) -> Result<Vec<Shape>> {
         .collect()
 }
 
-fn hex(value: &Value) -> Result<Vec<u8>> {
+pub(crate) fn hex(value: &Value) -> Result<Vec<u8>> {
     let text = value.as_str().ok_or_else(invalid)?;
     if text.len() % 2 != 0 || text.len() > SOURCE_MAX {
         return Err(invalid());
@@ -104,7 +103,7 @@ fn hex(value: &Value) -> Result<Vec<u8>> {
         .collect()
 }
 
-fn arity(opcode: u64) -> Result<usize> {
+pub(crate) fn arity(opcode: u64) -> Result<usize> {
     match opcode {
         1 | 2 | 24 | 25 => Ok(0),
         5 | 14 | 22 => Ok(1),
@@ -125,10 +124,10 @@ fn parse(source: &[u8]) -> Result<Source> {
         return Err(invalid());
     }
     let mut tables = Vec::new();
-    for (row, (expected, expected_payload)) in bounded_array(&root["tables"], 2, 2)?.iter().zip([
-        ([21, 0, 8, 3], vec![7, 8, 9]),
-        ([22, 2, 144, 1], [vec![0; 9], vec![255; 9]].concat()),
-    ]) {
+    for (row, (expected, expected_payload)) in bounded_array(&root["tables"], 1, 1)?
+        .iter()
+        .zip([([21, 0, 8, 3], vec![7, 8, 9])])
+    {
         let table = exact_table(row, &["id", "type", "width", "count", "payload"])?;
         let values = [
             number(&table["id"])?,
@@ -151,10 +150,10 @@ fn parse(source: &[u8]) -> Result<Source> {
     let mut builders = Vec::new();
     let mut steps = BTreeMap::<u16, u64>::new();
     let mut interfaces = BTreeMap::from([(105, vec![Shape::uint(32)])]);
-    for (index, value) in bounded_array(&root["recipes"], 7, 7)?.iter().enumerate() {
+    for (index, value) in bounded_array(&root["recipes"], 5, 5)?.iter().enumerate() {
         let row = exact_table(value, &["id", "inputs", "outputs", "nodes"])?;
         let id = number(&row["id"])?;
-        if id != [110, 111, 210, 211, 212, 213, 214][index] {
+        if id != [210, 211, 212, 213, 214][index] {
             return Err(invalid());
         }
         let id = id as u16;
@@ -271,11 +270,14 @@ pub fn build_teaching_recipe_package_from_source(source: &[u8]) -> Result<Vec<u8
         return Err(invalid());
     }
     tables.extend(source.tables);
+    let (recovery_builders, recovery_tables) = recovery_builders_and_tables()?;
+    tables.extend(recovery_tables);
     tables.sort_by_key(|row| row.0);
     let mut recipes = Vec::new();
     let mut builders: Vec<_> = revision_recipe_builders()
         .into_iter()
         .filter(|builder| ![106, 110, 111].contains(&builder.id))
+        .chain(recovery_builders)
         .chain(source.builders)
         .collect();
     builders.sort_by_key(|builder| builder.id);
@@ -283,10 +285,9 @@ pub fn build_teaching_recipe_package_from_source(source: &[u8]) -> Result<Vec<u8
         recipes.push(finalize(builder, &recipes));
     }
     let expanded = encode_package_with_tables(8, &recipes, tables);
-    let compact = encode_recipe_package_v1(&expanded, 8)?;
-    let package = decode_recipe_package_v1(&compact, 8)?;
+    let compact = encode_recipe_package_v2(&expanded, 8)?;
     for example in source.examples {
-        if evaluate_serialized_recipe_v1(&package, example.recipe, &example.input)?
+        if evaluate_serialized_recipe_v2(&compact, 8, example.recipe, &example.input)?
             != example.output
         {
             return Err(invalid());

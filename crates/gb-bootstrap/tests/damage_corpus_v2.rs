@@ -33,7 +33,10 @@ fn accidental_inventory_is_separate_from_checked_boundary_reauthoring() {
     let corpus = fixture();
     assert_eq!(corpus.case_count("D7").unwrap(), 415);
     assert_eq!(corpus.case_count("B0").unwrap(), 21);
-    assert_eq!(corpus.accidental_case_count(), 10465);
+    assert_eq!(
+        corpus.accidental_case_count(),
+        840 + 5 * corpus.case_count("D4").unwrap()
+    );
     for family in ["D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7", "B0"] {
         assert!(
             corpus
@@ -236,7 +239,8 @@ fn package(raw: &[u8]) -> usize {
 fn compact_mutants_change_exact_fields_in_all_four_complete_prefixes() {
     let corpus = fixture();
     let clean = unpack(corpus.case("D0", 0).unwrap().bytes());
-    let side = 2048;
+    let side = clean.len().isqrt();
+    assert_eq!(side * side, clean.len());
     for n in 0..6 {
         let actual = unpack(corpus.case("D7", 408 + n).unwrap().bytes());
         let mut expected = clean.clone();
@@ -262,7 +266,32 @@ fn compact_mutants_change_exact_fields_in_all_four_complete_prefixes() {
                     )) + usize::from(u16::from_be_bytes(
                         prefix[recipe + 6..recipe + 8].try_into().unwrap(),
                     ));
-                    prefix[recipe + 32 + 12 * descriptors + usize::from(n == 4)] = 0;
+                    let mut node = recipe + 32;
+                    for _ in 0..descriptors {
+                        node += 1; // type byte, followed by canonical ULEB32 width
+                        let mut terminated = false;
+                        for _ in 0..5 {
+                            let byte = prefix[node];
+                            node += 1;
+                            if byte < 128 {
+                                terminated = true;
+                                break;
+                            }
+                        }
+                        assert!(terminated);
+                    }
+                    assert_eq!((prefix[node] & 31, prefix[node] >> 5), (2, 4));
+                    let original = prefix.clone();
+                    prefix[node] &= if n == 3 { 0xe0 } else { 0x1f };
+                    assert_eq!(
+                        prefix
+                            .iter()
+                            .zip(&original)
+                            .enumerate()
+                            .filter_map(|(i, (a, b))| (a != b).then_some(i))
+                            .collect::<Vec<_>>(),
+                        vec![node]
+                    );
                 }
                 5 => {
                     let old =
@@ -278,7 +307,7 @@ fn compact_mutants_change_exact_fields_in_all_four_complete_prefixes() {
             assert_eq!(extract_prefix(&actual, side, 112, sector), prefix);
             let length = u32::from_be_bytes(prefix[p - 4..p].try_into().unwrap()) as usize;
             assert!(
-                gb_bootstrap::recipe_wire_v1::decode_recipe_package_v1(&prefix[p..p + length], 8)
+                gb_bootstrap::recipe_wire_v2::decode_recipe_package_v2(&prefix[p..p + length], 8)
                     .is_err()
             );
         }
@@ -292,7 +321,8 @@ fn donor_conflict_uses_complete_source_built_prefix_at_width128() {
     let corpus = fixture();
     let clean = unpack(corpus.case("D0", 0).unwrap().bytes());
     let actual = unpack(corpus.case("D7", 10).unwrap().bytes());
-    let side = 2048;
+    let side = u16::try_from(clean.len().isqrt()).unwrap();
+    assert_eq!(usize::from(side).pow(2), clean.len());
     let package = gb_bootstrap::candidate_recipe::build_eh_recipe_package(3).unwrap();
     let donor = gb_bootstrap::carrier::build_route_images(
         include_bytes!("../../../spec/route-data-v0.json"),
@@ -335,7 +365,13 @@ fn inherited_positions_and_all_coordinate_strata_remain_present() {
         let case = corpus.case("D3", ordinal).unwrap();
         assert_eq!(case.channel(), "OBS_MATRIX");
     }
-    assert_eq!(corpus.case("D6", 7699).unwrap().channel(), "OBS_MATRIX");
+    assert_eq!(
+        corpus
+            .case("D6", corpus.case_count("D6").unwrap() - 1)
+            .unwrap()
+            .channel(),
+        "OBS_MATRIX"
+    );
 }
 
 #[test]
@@ -345,7 +381,10 @@ fn undercoverage_reauthors_only_inventory_and_preserves_observed_unit_count() {
     let clean_bits = unpack(corpus.case("D0", 0).unwrap().bytes());
     let actual = unpack(corpus.case("B0", 20).unwrap().bytes());
     let clean = ObsUnits::parse(corpus.case("D5", 0).unwrap().bytes()).unwrap();
-    let mapping = gb_bootstrap::mapping_v2::derive(2048, 112).unwrap();
+    let side = clean_bits.len().isqrt();
+    let width = 112;
+    let interior = side - 2 * width;
+    let mapping = gb_bootstrap::mapping_v2::derive(side as u16, width as u16).unwrap();
     let mut inventory = BTreeMap::new();
     let mut before = BTreeMap::new();
     let mut expected = clean_bits.clone();
@@ -359,9 +398,9 @@ fn undercoverage_reauthors_only_inventory_and_preserves_observed_unit_count() {
             let physical = mapping
                 .forward(u64::from(entry.physical_unit_id), bit)
                 .unwrap();
-            let row = physical as usize / 1824 + 112;
-            let col = physical as usize % 1824 + 112;
-            let flat = row * 2048 + col;
+            let row = physical as usize / interior + width;
+            let col = physical as usize % interior + width;
+            let flat = row * side + col;
             encoded[usize::from(bit) / 8] |= actual[flat] << (7 - bit % 8);
             expected[flat] = actual[flat];
         }
@@ -410,7 +449,7 @@ fn undercoverage_reauthors_only_inventory_and_preserves_observed_unit_count() {
         .unwrap();
     target.logical_payload_length -= 157;
     assert_eq!(new, expected);
-    assert_eq!(clean.entries.len(), 1925);
+    assert_eq!(clean.entries.len(), (interior * interior) / 1728);
 }
 
 #[test]

@@ -333,11 +333,13 @@ def _static_limits(sources, carrier_sha, hashes, semantic, plan, mapping, packag
         records_per_sector=[int.from_bytes(raw[46:48],'big') for raw in prefixes],
         prefix_sha256=[_digest(raw) for raw in prefixes])
     repeated = ledger['factor_2_group_count']+ledger['factor_5_group_count']
-    calls = ((30,24*(plan.units+repeated)),(113,1728*repeated),
+    groups = ledger['logical_group_count']
+    calls = ((30,24*plan.units),(120,groups),(123,groups),
              (202,sum(s.section_type == 3 and s.version == 1 for s in plan.sections)))
     declared = dict(scope='one-pass-complete-inventory-groups',eh_codewords_per_unit=24,
-        eh_decoder_calls=calls[0][1],repetition_groups=repeated,repetition_symbol_calls=calls[1][1],
-        body_decoder_calls=calls[2][1],primitive_steps=_sum(count*recipes[rid].primitive_steps for rid,count in calls),
+        eh_decoder_calls=calls[0][1],repetition_groups=repeated,repetition_symbol_calls=1728*repeated,
+        complete_group_calls=groups,roster_calls=groups,
+        body_decoder_calls=calls[3][1],primitive_steps=_sum(count*recipes[rid].primitive_steps for rid,count in calls),
         peak_recipe_scratch_bytes=max(recipes[rid].peak_live_scratch_bytes for rid,count in calls if count))
     realism = evaluate_realism(density_raw,policy_raw)
     return dict(schema='golden-board.m2-static-limits/v2',profile_id=PROFILE_ID,

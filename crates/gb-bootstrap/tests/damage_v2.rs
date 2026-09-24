@@ -486,6 +486,8 @@ fn malformed_compact_tag_reaches_parser_and_foreign7_does_not_follow_inventory2(
         }
         total += u32::from_be_bytes(prefix[at + 4..at + 8].try_into().unwrap()) as u64;
         let changed_byte = at + 8 + 9;
+        assert_eq!(prefix[changed_byte], 2);
+        let unsupported_wire_version = 3u8;
         for bit in 0..8 {
             let (r, c) = gb_bootstrap::sector_cell_at(
                 carrier.side() as usize,
@@ -496,8 +498,8 @@ fn malformed_compact_tag_reaches_parser_and_foreign7_does_not_follow_inventory2(
             .unwrap();
             let flat = r * carrier.side() as usize + c;
             let mask = 1 << (7 - flat % 8);
-            wire[4 + flat / 8] =
-                (wire[4 + flat / 8] & !mask) | (((2 >> (7 - bit)) & 1) << (7 - flat % 8));
+            wire[4 + flat / 8] = (wire[4 + flat / 8] & !mask)
+                | (((unsupported_wire_version >> (7 - bit)) & 1) << (7 - flat % 8));
         }
     }
     let result = decode_observation_v2("OBS_BITS", &wire);

@@ -171,7 +171,11 @@ def build_files(root,carrier,recovery_files):
     bind_recovery(carrier,recovery_files)
     source_paths=(*SOURCES,*OWNERS,'studies/m2/slice-v1.json','spec/profile-policy-v0.toml',
         'spec/damage-corpus-v2.md','spec/damage-oracle-v2.md','spec/resource-accounting-v2.md',
+        'spec/recipe-wire-v2.md','spec/recovery-program-v2.md','spec/recovery-program-v2.toml',
+        'spec/recipe-teaching-v2.md','spec/recipe-teaching-v2.toml',
+        'spec/route-v2.md','spec/route-definitions-v2.md','spec/receiver-bounds-v2.md',
         'spec/knowledge-use-v2.md','tools/m2/package_technical_preview_v2.py',
+        *(str(p.relative_to(root)) for p in sorted((root/'python/golden_board').glob('*.py'))),
         *(f'studies/m2/templates/technical/{name}' for name in ('neutral-opening-prompt.md','allowed-tools.md',
           'clean-instructions-v2.txt','storage-v2.txt','adapter-instructions-v2.txt','heldout-instructions-v2.txt',
           'channel-formats.md','channel-mechanics-fixtures.json','export-format.md','final-account-question.md')))

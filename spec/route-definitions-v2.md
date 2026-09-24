@@ -15,7 +15,8 @@ independent source reproduction; omission reads at most1MiB+1 from the tracked
 generated definition or route blob. Independent implementations may include
 the same tracked source at build time.
 
-Every integer is unsigned big-endian. `u8/u16/u32` state byte width. `L(rows)`
+Every integer is unsigned big-endian, except the explicitly illustrated
+canonical base-128 wire2 scalar bytes. `u8/u16/u32` state byte width. `L(rows)`
 is `row_count:u16` followed by `(offset:u16,width:u16)` pairs in the listed
 order. Other fixed-count rows have no extra count unless stated. Concatenate
 each fact's components in their listed order. The fact's enclosing BYTES
@@ -66,7 +67,11 @@ The fact stages/dependencies are:
 
 3. For n in `0,1,2,3,4,5,7,8,15,16,24,31`, carry the four-byte 32-cell picture
    whose low n bits are set, then `n:u8`, `255 XOR n:u8`, and `n:u16`.
-   The picture is counted cells, not a presupposed numeric parser. Total 96.
+   The picture is counted cells, not a presupposed numeric parser. Append count11
+   as u8, then rows `(value:u64,encoded_length:u8,encoded_bytes:10 bytes)` for
+   `0,1,127,128,255,256,16383,16384,65535,4294967295,18446744073709551615`.
+   Encode by recipe-wire-v2's canonical unsigned base-128 groups and pad the
+   ten-byte storage with zeroes beyond the exact length. Total306 bytes.
 
 4. Carry `(32,8,24,6)` as u16, then 24 rows of six u16 `(q,u,v,r,c,k)`.
    Visit q=0..3 and local points `(0,0),(0,23),(7,0),(7,23),(0,1),(1,0)`
@@ -75,8 +80,9 @@ The fact stages/dependencies are:
    mapping primitive. This is a small geometry example, not a fitting carrier.
    Total 296.
 
-5. Carry these six layout tables in order, followed by the nine u16 values
-   `(109,32,3,2,12,60,42,484,576)`. They identify recipe 109, header length,
+5. Carry these seven layout tables in order, followed by the nine u16 values
+   `(109,32,3,2,2,10,42,N,42+N)` with N derived from its actual
+   canonical wire2 nodes. They identify recipe 109, header length,
    input/output counts, descriptor width/total, node count, compact node bytes
    and complete compact recipe bytes. Verify them against the generated
    profile-8 recipe; they are not a fixed-32 node-size formula.
@@ -88,21 +94,27 @@ The fact stages/dependencies are:
    | Recipe package | 0/8,8/2,10/2,12/2,14/2,16/2,18/2,20/4,24/4,28/4,32/4,36/8,44/4,48/16 |
    | Package TABLE | 0/2,2/1,3/1,4/4,8/4,12/4 |
    | Recipe | 0/2,2/2,4/2,6/2,8/4,12/4,16/8,24/4,28/4 |
-   | Value descriptor | 0/2,2/1,3/1,4/4,8/4 |
+   | Route value descriptor | 0/2,2/1,3/1,4/4,8/4 |
+   | Compact recipe interface | 0/1,1/0 |
 
    TABLE framing is explicit even when the new route carries tables only
-   inside its complete package. Total 226 bytes.
+   inside its complete package. Width0 in the compact interface layout marks
+   the canonical variable-width scalar established by fact3. These particular
+   recipe109 descriptors are two bytes each. Total236 bytes.
 
-6. Carry 25 rows of six u8 `(opcode,arity,total_argument_bytes,aux_bytes,
-   immediate_bytes,node_bytes)`, opcode order 1..25. Arity is zero for
+6. Carry 25 rows of six u8 `(opcode,arity,maximum_argument_bytes,maximum_aux_bytes,
+   maximum_immediate_bytes,maximum_node_bytes)`, opcode order 1..25. Arity is zero for
    1/2/24/25, one for 5/14/22, three for 3/20/23, two otherwise. Argument
-   bytes=2*arity; auxiliary bytes=2 only for 2/5/22; immediate bytes=8 only
-   for 1/5/14/22/25; node bytes=6+the three lengths. Then six rows
+   bytes=3*arity; auxiliary bytes=3 only for2/5/22; immediate bytes=10 only
+   for1/5/14/22/25; node bytes=6+the three lengths (one tag and up to five
+   width bytes). These are grammar maxima, not fixed record sizes. Then six rows
    `(type:u8,width_unit:u8,minimum:u32,maximum:u32)`:
    `(0,0,1,64),(1,0,1,1),(2,0,1,1048576),(3,1,0,1048576),
    (4,2,0,1048576),(5,0,16,16)`. Unit 0 is bits, 1 bytes, 2 the table's
    element descriptor. The TABLE row is only an outer bound, not scalar
-   validation; its actual element descriptor governs. Total 210 bytes.
+   validation; its actual element descriptor governs. Append six u8 triples
+   `(opcode,type,tag)` for `(1,0,1),(1,1,33),(3,2,67),(3,3,99),(2,4,130),
+   (24,5,184)`, demonstrating `(type<<5)|opcode`. Total228 bytes.
 
 ## Facts 7–10
 
@@ -158,118 +170,49 @@ The fact stages/dependencies are:
    and index rejection remains the complete adapter's responsibility; modular
    primitive 109 is not that adapter.
 
-10. Carry the complete physical-observation-to-decision example below. The
-    body is443 bytes, including executable construction bindings; production packet/inventory widths do not change.
-    The illustrative roster is incomplete and never substitutes for an accepted
-    inventory. Every byte position below is relative to this DEFINE value.
+10. Carry ten u16 references `(123,124,120,125,126,127,24,25,26,27)`, then
+    `(case_count:u8=8,row_bytes:u8=57)`. Programs and tables are owned by
+    recovery-program-v2. Table24's two216-byte sources must exactly equal fact8.
+    Table25 contains the structurally illustrated68-byte inventory with three
+    entries1/400/401. Its first envelope has one fragment and factor5, so400
+    starts at physical6 with factor5 and401 starts at11 with factor2. It is a
+    roster example, not a complete semantically admitted production inventory.
 
-    At0, carry `(rows:u16=4,columns:u16=6)` and four rows of six u16
-    `(section,fragment,F,R,first,last)`:
-    `(1,0,2,5,1,5),(1,1,2,5,6,10),(400,0,1,5,11,15),
-    (401,0,1,2,16,17)`. Ranges are inclusive physical unit IDs. At52,
-    carry the eight identity-field offsets `0,4,8,10,12,16,18,22` as u8;
-    their widths remain those in fact7: `2,4,2,2,2,2,2,4`.
-    At60, carry expected-key count2 as u8, followed by the two complete keys
-    `(8,400,0,4,0,0,1,23)` and `(8,401,0,4,0,0,1,23)`, each20 bytes in
-    those field widths. Bind a key to its roster row by section, fragment and
-    fragment count. Thus identical checked A bytes belong to400 at units11..15
-    and fail expected identity at units16..17; a decoded header cannot move a
-    physical observation to another group. Compare every one of the eight
-    fields for every distinct checked candidate. No candidates means false.
-
-    At101, carry `(constructor_recipe:u16=111,word_index:u8=0)`. At104,
-    carry `(template_count:u8=13,template_width:u8=4)`, then rows
-    `(source:u8,unknown:u8,first_bit:u8,count:u8)`. Source0 is encoded A and
-    source1 encoded B from fact8. Unknown0 toggles the indicated contiguous bits;
-    unknown1 makes them unknown and clears only their storage bits. Packet bits
-    are zero-based, MSB first. Count0 leaves the source unchanged and requires
-    first0. Templates are numbered1..13 in this order:
+    Each row is `(query_unit:u32,case:u8,STATUS16,first:u32,factor:u8,key:20bytes,
+    state:u8,accepted:BOOL byte,local_envelope:23bytes)`. Cases0..6 query unit6;
+    case7 queries11. Case IDs are zero-based table26 indexes. Execute126 on the
+    query and case only. It derives the roster/key through122, constructs all
+    raw lanes through125 and calls119; the row's output is never an input.
+    Table26's five template IDs per case are:
 
     ```text
-    (0,0,0,0), (0,0,59,5), (0,0,0,1),
-    (1,0,0,2), (1,0,2,2), (1,0,4,2), (1,0,6,2), (1,0,8,2),
-    (0,1,59,5), (0,1,60,5), (0,1,61,5), (0,1,62,5), (0,1,63,5)
+    (0,0,0,0,0), (4,0,0,0,0), (1,0,0,0,0), (3,0,0,0,0),
+    (1,4,5,6,7), (4,5,6,7,8), (9,10,11,12,13), (1,1,0,0,0)
     ```
 
-    Execute recipe111 for every template on fact8's two first words and the four
-    fields, compare its observed word/mask with independent range construction,
-    and retain the source's remaining207 bytes unchanged. Template2 is the
-    ordinary HELD_OUT flip counterpart of WORKED template9's erasure. Their
-    outputs distinguish the observed erroneous packed `BHB` interpretation.
-    At158 carry `decision_recipe:u16=110`. At160 carry
-    `(case_count:u8=8,case_width:u8=24)`. Each row contains
-    `first_physical_unit:u8`, five `template_id:u8`, five `lane_state:u8`,
-    `REP_state:u8`, the nine input bytes of recipe110, and its three output
-    bytes without STATUS16. Template0 means an absent observation, not a zero
-    codeword. The physical first ID selects the roster group and its factor;
-    slots at or beyond that factor must be absent. The eight case constructions
-    are `(first,templates)`:
+    Table27's template0 is absent. Templates1..13 are `(source,unknown,first,count)`:
+    `(0,0,0,0),(0,0,59,5),(0,0,0,1)`, five `(1,0,2i,2)` for i0..4,
+    then five `(0,1,59+i,5)` for i0..4. Source selects A/B; unknown0 flips the
+    raw bits, unknown1 clears storage and sets the mask. Remaining raw bytes
+    stay intact. Presence is distinct from an all-zero present observation.
+    Out-of-factor nonabsent templates reject. No validity masks or supplied
+    identity/conflict flags cross the constructor's input interface.
 
-    ```text
-    (11,0,0,0,0,0), (11,4,0,0,0,0), (11,1,0,0,0,0),
-    (11,3,0,0,0,0), (11,1,4,5,6,7), (11,4,5,6,7,8),
-    (11,9,10,11,12,13), (16,1,1,0,0,0)
-    ```
+    Outcomes respectively are missing, corrupt, verified A, recovered A,
+    conflict between A and raw-REP B, REP-only B, unknown-aware REP-only A,
+    and unique verified A rejected for physical identity401. The final case
+    retains the local A envelope as a diagnostic; acceptance remains false.
+    Missing/corrupt/conflict envelopes are zero. All191 candidate bytes govern
+    equality even though this finite result displays only the23-byte envelope.
+    Public120 accepts arbitrary pairs and returns the complete191-byte block.
 
-    Derive each lane state and candidate with the existing bounded EH/common
-    checks. States are0 absent,1 corrupt,2 verified,3 recovered,4 conflict;
-    trailing out-of-factor lane states are0. Derive raw repetition from all
-    original observations, including failed lanes, by counting known zeroes and
-    ones at each bit. Unknown storage bits never contribute known zeroes.
-    REP state is0 when no lane is present and no REP observation is constructed,
-    1 when the constructed REP does not yield a checked candidate, and3 on
-    success. Complete checked
-    191-byte block equality determines masks: A=1, B=2. Unknown example values
-    reject this finite construction. Keep all lane and REP candidates, deduplicate
-    equal blocks, and reject conflicting distinct candidates.
-
-    Derive recipe110's six masks, presence flag, **any locally verified lane**
-    flag, and the expected-key identity flag. A corrected standalone A is a
-    candidate but does not set the verified flag: case3 is verified and case4
-    recovered. Case5 retains clean A and raw-REP B and rejects their conflict;
-    case6 recovers B only by REP. Case7 recovers A only by retaining failed
-    lanes and unknown symbols; interpreting storage zeroes as observations must
-    fail. Case8 contains checked A at physical ownership401 and rejects identity.
-    Execute recipe110 and compare all outputs with the independently derived
-    group decision. The case traces start at174+24*i, i=0..7. The ordinary framed pair
-    constructs the two contrasting observations above; embedded110 retains all
-    eight decisions, including conflict and REP-only recovery.
-
-    At354, carry `(coordinate_rows:u8=3,row_width:u8=4)` and three rows
-    `(packet_bit:u16,word_index:u8,EH_position:u8)`:
-    `(0,0,1),(63,0,64),(72,1,1)`. These explicitly connect zero-based packet and
-    word indices to the one-based EH position, including a word boundary.
-    At368, carry `(case_number:u8=7,source:u8=0,word_index:u8=0,recipe:u16=30)`,
-    followed by the13-byte recipe30 input derived from that case's raw REP:
-    `00014000000000062001400000`. The input's first nine bytes retain canonical
-    zero storage for its remaining unknown; the rest are count1 and positions
-    `64,0,0`. Execute the observed recipe and compare its successful eight-byte
-    result with A's first eight decoded bytes from fact7. Derive this input
-    from the observations; do not fill an unknown from the intact specimen.
-    Changing only the erased storage placeholder does not change the result.
-    The additional ordinary WORKED record1004 repeats this derived input and
-    its result, connecting case7 to the framed executable-example path.
-
-    At386, carry `(recipe:u16=113,column_count:u8=4,row_width:u8=8)`, then rows
-    `(R:u8,five_symbols:u8[5],known:u8,value:u8)`:
-    `(2,0,1,2,2,2,0,0)`, `(5,0,1,1,1,1,1,1)`,
-    `(5,1,2,2,2,2,1,1)`, `(5,2,2,2,2,2,0,0)`. Symbols0/1 are observed bits and2 is unknown;
-    out-of-factor slots must be2 and do not enter counts. These demonstrate a
-    tie, a known disagreement resolved by repetition, one known1 surviving
-    four unknowns, and the all-unknown column at case7 bit63. Derive `(R,known_zero_count,known_one_count)` as
-    `(2,1,1),(5,1,4),(5,0,1),(5,0,0)`, execute recipe113 and compare its known/value
-    outputs. Use the same count-derived operation on the actual case columns;
-    do not replace it with “all known bits must agree” or with voting on candidate
-    identities. Failed lane decoding does not remove its original symbols.
-
-    At422, carry row count5 as u8, then five rows
-    `(L:u16,F:u8,last:u8)` for L=`22,157,158,314,315`, with
-    `F=ceil(L/157)` and `last=L-157(F-1)`. Independently construct all fragment
-    lengths and verify reassembly sums to the already carried L; its duplicate
-    column is removed. These are fragment-length examples, not claims of valid
-    section/inventory acceptance. Fact11 remains required for those outcomes.
-    The last byte belongs to this non-VM metadata; contradictory-definition
-    rejection therefore retains the complete route's charged VM schedule.
+    Framed WORKED1002 and HELD_OUT1003 invoke126 for cases4 and6; additional
+    WORKED1004 invokes case7. The eight embedded calls all invoke126 again in
+    case order. Primitive/recursive resources are charged exactly as owned by
+    resource-accounting-v2. Ordinary values and independent numeric relationship
+    validation must agree. There is no host-supplied candidate classification.
+    Total478 bytes. Full inventory and typed-content admission remain fact11's
+    subsequent boundary, not an implication of this miniature.
 
 ## Facts 11–12
 
@@ -332,7 +275,7 @@ The fact stages/dependencies are:
 
     Append the complete `ContentTeachingV2.value` owned by
     `spec/content-teaching-v2.md`: miniature length:u32, complete575-byte
-    miniature, supplement length:u32, complete1056-byte supplement; total1639.
+    miniature, supplement length:u32, complete1120-byte supplement; total1703.
     Generate from the canonical content-v0 conformance fixture's semantic
     source and validate every carried consequence. Never substitute a generated
     opaque blob as production input. This is generic content/control teaching,
@@ -360,18 +303,18 @@ The fact stages/dependencies are:
     fixture variant1 is distinct from Position and generic STATUS16. Move wire
     admission is distinct from legal move admission. The 65 learner pages and
     final consequence questions are unchanged.
-    Current total is 2421 bytes; changing actual source frames changes measured
+    Current total is 2485 bytes; changing actual source frames changes measured
     cost and requires review rather than truncation.
 
 ## Admission and remaining limits
 
 The current expected value sizes are
-`16,64,96,296,226,210,636,544,464,443,314,2421`, total 5730 bytes. This is
+`16,64,306,296,236,228,636,544,464,478,314,2485`, total6067 bytes. This is
 an audited construction target, not a cap or a passing fit. Compared with the
 3779-byte design estimate, 26 bytes explicitly frame package TABLEs, 16 bytes
 ground selected-profile rejection, 8 bytes carry ordinal admission outcomes,
 and 12 bytes disambiguate the two content-stream ID spaces. The miniature
-replacement and its third context add1332 bytes to that3841-byte intermediate.
+replacement and its third context add1396 bytes to that3841-byte intermediate.
 The explicit Position/Move16 suffix adds another408 bytes.
 
 Implementations must verify positive/negative observations with production

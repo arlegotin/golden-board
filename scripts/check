@@ -167,6 +167,9 @@ transport() {
         python.tests.test_bootstrap python.tests.test_m2_slice \
         python.tests.test_bootstrap_v2 python.tests.test_body_codec_v1 \
         python.tests.test_recipe_wire_v1 \
+        python.tests.test_recipe_wire_v2 python.tests.test_m2_recovery_recipe_v2 \
+        python.tests.test_m2_recovery_transfer_v2 python.tests.test_m2_operational_recovery_v2 \
+        python.tests.test_m2_formative_transfer_v2 \
         python.tests.test_m2_body_recipe_v1 python.tests.test_m2_revision_recipe \
         python.tests.test_m2_mapping_v2 python.tests.test_m2_teaching_recipe_v2 \
         python.tests.test_content_teaching_v2 python.tests.test_position_teaching_v2 \
@@ -220,6 +223,9 @@ transport_fast() {
         python.tests.test_m2_transport_fast \
         python.tests.test_bootstrap_v2 python.tests.test_body_codec_v1 \
         python.tests.test_recipe_wire_v1 \
+        python.tests.test_recipe_wire_v2 python.tests.test_m2_recovery_recipe_v2 \
+        python.tests.test_m2_recovery_transfer_v2 python.tests.test_m2_operational_recovery_v2 \
+        python.tests.test_m2_formative_transfer_v2 \
         python.tests.test_m2_body_recipe_v1 python.tests.test_m2_revision_recipe \
         python.tests.test_m2_mapping_v2 python.tests.test_m2_teaching_recipe_v2 \
         python.tests.test_content_teaching_v2 python.tests.test_position_teaching_v2 \
@@ -255,7 +261,8 @@ transport_fast() {
         -p gb-bootstrap --test candidate --locked --offline \
         four_literal_eh72_encodings_are_exact || return 1
     run_check transport-fast-rust-revision rustup run 1.97.1 cargo test \
-        -p gb-bootstrap --test body_codec_v1 --test recipe_wire_v1 \
+        -p gb-bootstrap --test body_codec_v1 --test recipe_wire_v1 --test recipe_wire_v2 \
+        --test recovery_recipe_v2 \
         --test bootstrap_v2 --test mapping_v2 --test body_recipe_v1 \
         --test teaching_recipe_v2 --test route_v2 --test carrier_v2 \
         --test route_receiver_v2 --test route_semantics_v2 --test knowledge_v2 \

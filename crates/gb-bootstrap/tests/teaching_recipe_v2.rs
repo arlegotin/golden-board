@@ -3,73 +3,26 @@ use std::collections::BTreeMap;
 use gb_bootstrap::body_recipe_v1::build_revision_recipe_package;
 use gb_bootstrap::recipe::{RecipeValue, decode_recipe_package};
 use gb_bootstrap::recipe_wire_v1::{
-    decode_recipe_package_v1, evaluate_recipe_v1, evaluate_serialized_recipe_v1,
-    expand_recipe_package_v1,
+    RecipePackageV1, decode_recipe_package_v1, expand_recipe_package_v1,
 };
 use gb_bootstrap::teaching_recipe_v2::{
     build_teaching_recipe_package, build_teaching_recipe_package_from_source,
 };
 
-const SOURCE: &[u8] = include_bytes!("../../../spec/recipe-teaching-v2.toml");
+use gb_bootstrap::recipe_wire_v2::{
+    decode_recipe_package_v2, evaluate_recipe_v2, evaluate_serialized_recipe_v2,
+    expand_recipe_package_v2,
+};
 
-#[test]
-fn construction_executes_four_fields_and_preserves_unknown_nonzero_bits() {
-    let package = decode_recipe_package_v1(&build_teaching_recipe_package().unwrap(), 8).unwrap();
-    let words = hex("000140000000000720000140000000000720");
-    for (fields, observed, mask) in [
-        ([0, 1, 59, 5], "000140000000000020", "000000000000001f00"),
-        ([0, 0, 59, 5], "000140000000001820", "000000000000000000"),
-        ([0, 1, 63, 1], "000140000000000620", "000000000000000100"),
-        ([0, 0, 63, 1], "000140000000000620", "000000000000000000"),
-    ] {
-        let mut input = words.clone();
-        input.extend(fields);
-        let mut expected = vec![0, 0];
-        expected.extend(hex(observed));
-        expected.extend(hex(mask));
-        assert_eq!(
-            evaluate_serialized_recipe_v1(&package, 111, &input).unwrap(),
-            expected
-        );
-    }
-    for fields in [[0, 1, 70, 4], [0, 1, 255, 2]] {
-        let mut input = words.clone();
-        input.extend(fields);
-        assert_eq!(
-            evaluate_serialized_recipe_v1(&package, 111, &input).unwrap(),
-            [0, 11]
-        );
-    }
-    for fields in [[2, 0, 0, 0], [0, 2, 0, 0]] {
-        let mut input = words.clone();
-        input.extend(fields);
-        assert!(evaluate_serialized_recipe_v1(&package, 111, &input).is_err());
-    }
-    for source in [0u8, 1] {
-        for unknown in [0u8, 1] {
-            for (first, count) in [(0, 72), (63, 2), (64, 8), (71, 1), (72, 0)] {
-                let mut input = [vec![0x55; 9], vec![0xaa; 9]].concat();
-                input.extend([source, unknown, first, count]);
-                let mut observed = vec![if source == 0 { 0x55 } else { 0xaa }; 9];
-                let mut mask = vec![0; 9];
-                for bit in usize::from(first)..usize::from(first + count) {
-                    let flag = 1 << (7 - bit % 8);
-                    if unknown == 0 {
-                        observed[bit / 8] ^= flag;
-                    } else {
-                        observed[bit / 8] &= !flag;
-                        mask[bit / 8] |= flag;
-                    }
-                }
-                let expected = [vec![0, 0], observed, mask].concat();
-                assert_eq!(
-                    evaluate_serialized_recipe_v1(&package, 111, &input).unwrap(),
-                    expected
-                );
-            }
-        }
-    }
+fn evaluate_serialized(
+    package: &RecipePackageV1,
+    id: u16,
+    input: &[u8],
+) -> gb_bootstrap::Result<Vec<u8>> {
+    evaluate_serialized_recipe_v2(&package.encoded, 8, id, input)
 }
+
+const SOURCE: &[u8] = include_bytes!("../../../spec/recipe-teaching-v2.toml");
 
 fn hex(value: &str) -> Vec<u8> {
     value
@@ -112,7 +65,7 @@ fn all_owner_examples_evaluate_with_exact_serialized_status_and_data() {
         raw,
         build_teaching_recipe_package_from_source(SOURCE).unwrap()
     );
-    let package = decode_recipe_package_v1(&raw, 8).unwrap();
+    let package = decode_recipe_package_v2(&raw, 8).unwrap();
     let source: toml::Value = toml::from_str(std::str::from_utf8(SOURCE).unwrap()).unwrap();
     let examples = source["examples"].as_array().unwrap();
     assert_eq!(examples.len(), 8);
@@ -123,18 +76,15 @@ fn all_owner_examples_evaluate_with_exact_serialized_status_and_data() {
             .iter()
             .flat_map(|value| hex(value.as_str().unwrap()))
             .collect();
-        let actual = evaluate_serialized_recipe_v1(
-            &package,
-            row["recipe"].as_integer().unwrap() as u16,
-            &input,
-        )
-        .unwrap();
+        let actual =
+            evaluate_serialized(&package, row["recipe"].as_integer().unwrap() as u16, &input)
+                .unwrap();
         assert_eq!(actual, hex(row["output"].as_str().unwrap()));
     }
 }
 
 #[test]
-fn additions_preserve_inherited_programs_except_removed106_and_replaced110_111() {
+fn complete_recovery_replaces_isolated_helpers_and_preserves_every_other_inherited_program() {
     let previous = expand_recipe_package_v1(&build_revision_recipe_package().unwrap(), 8).unwrap();
     let compact = build_teaching_recipe_package().unwrap();
     use sha2::{Digest, Sha256};
@@ -145,23 +95,19 @@ fn additions_preserve_inherited_programs_except_removed106_and_replaced110_111()
     );
     assert!(decode_recipe_package(&compact, 8).is_err());
     assert!(decode_recipe_package_v1(&compact, 7).is_err());
-    let expanded = expand_recipe_package_v1(&compact, 8).unwrap();
+    let expanded = expand_recipe_package_v2(&compact, 8).unwrap();
     let (old_tables, old_recipes) = records(&previous);
     let (new_tables, new_recipes) = records(&expanded);
-    assert_eq!(new_tables.len(), old_tables.len() + 2);
-    // Active recipe-teaching-v2 now owns an exact29-recipe set. The
-    // historical/base package retains its original106 and110 bytes.
-    assert_eq!(
-        new_recipes.keys().copied().collect::<Vec<_>>(),
-        vec![
-            1, 2, 3, 4, 30, 90, 92, 99, 100, 101, 102, 103, 104, 105, 107, 108, 109, 110, 111, 112,
-            113, 201, 202, 203, 210, 211, 212, 213, 214,
-        ]
-    );
+    assert_eq!(new_tables.len(), old_tables.len() + 6);
+    assert_eq!(new_recipes.len(), 41);
+    for id in 114..=127 {
+        assert!(new_recipes.contains_key(&id));
+    }
+    for id in [106, 110, 111] {
+        assert!(!new_recipes.contains_key(&id));
+    }
+    assert!(!new_tables.contains_key(&22));
     assert_eq!(old_recipes[&106].len(), 228);
-    assert_ne!(new_recipes[&110], old_recipes[&110]);
-    assert_ne!(new_recipes[&111], old_recipes[&111]);
-    assert_eq!(&new_tables[&22][16..], &[vec![0; 9], vec![255; 9]].concat());
     for (id, record) in old_tables {
         assert_eq!(new_tables[&id], record);
     }
@@ -171,13 +117,13 @@ fn additions_preserve_inherited_programs_except_removed106_and_replaced110_111()
         .collect();
     let actual_retained: BTreeMap<_, _> = new_recipes
         .iter()
-        .filter(|(id, _)| **id < 210 && ![110, 111].contains(id))
+        .filter(|(id, _)| expected_retained.contains_key(id))
         .map(|(id, raw)| (*id, *raw))
         .collect();
     assert_eq!(actual_retained, expected_retained);
     assert_eq!(&new_tables[&21][16..], &[7, 8, 9]);
     assert_eq!(&new_tables[&5][16..], &(0..=255u8).collect::<Vec<_>>());
-    let logical = decode_recipe_package_v1(&compact, 8).unwrap().logical;
+    let logical = decode_recipe_package_v2(&compact, 8).unwrap().logical;
     assert_eq!(logical.recipe_primitive_steps(213), Some(6));
     assert_eq!(logical.recipe_primitive_steps(214), Some(22));
     let mut altered = compact.clone();
@@ -188,8 +134,8 @@ fn additions_preserve_inherited_programs_except_removed106_and_replaced110_111()
 #[test]
 fn failures_suppress_prior_output_and_iteration_uses_each_index() {
     let raw = build_teaching_recipe_package().unwrap();
-    let package = decode_recipe_package_v1(&raw, 8).unwrap();
-    let failed = evaluate_recipe_v1(&package, 212, &[]).unwrap();
+    let package = decode_recipe_package_v2(&raw, 8).unwrap();
+    let failed = evaluate_recipe_v2(&package, 212, &[]).unwrap();
     assert_eq!(failed.status, 4);
     assert!(failed.outputs.is_empty());
     for (input, expected) in [
@@ -198,11 +144,11 @@ fn failures_suppress_prior_output_and_iteration_uses_each_index() {
         (254, &[0, 11][..]),
     ] {
         assert_eq!(
-            evaluate_serialized_recipe_v1(&package, 214, &[input]).unwrap(),
+            evaluate_serialized(&package, 214, &[input]).unwrap(),
             expected
         );
     }
-    let out = evaluate_recipe_v1(
+    let out = evaluate_recipe_v2(
         &package,
         213,
         &[
@@ -215,7 +161,7 @@ fn failures_suppress_prior_output_and_iteration_uses_each_index() {
     )
     .unwrap();
     assert_eq!(out.outputs, vec![RecipeValue::Uint { width: 8, value: 9 }]);
-    let bad_index = evaluate_recipe_v1(
+    let bad_index = evaluate_recipe_v2(
         &package,
         213,
         &[
@@ -234,10 +180,7 @@ fn failures_suppress_prior_output_and_iteration_uses_each_index() {
         vec![128, 1, 0xb6, b'a', b'b', b'c', 1],
         vec![255, 1, 0xb6, b'a', b'b', b'c', 1],
     ] {
-        assert_eq!(
-            evaluate_serialized_recipe_v1(&package, 211, &input).unwrap(),
-            [0, 11]
-        );
+        assert_eq!(evaluate_serialized(&package, 211, &input).unwrap(), [0, 11]);
     }
 }
 
@@ -270,8 +213,8 @@ fn bounded_source_rejects_shape_reference_type_and_example_mutations_atomically(
             8 => value["recipes"][1]["nodes"][0][3] = 1.into(),
             9 => value["recipes"][1]["nodes"][0][4] = 1.into(),
             10 => value["recipes"][1]["nodes"][1][4] = 65535.into(),
-            11 => value["recipes"][6]["nodes"][0][7] = 214.into(),
-            12 => value["recipes"][6]["nodes"][0][8] = i64::MAX.into(),
+            11 => value["recipes"][4]["nodes"][0][7] = 214.into(),
+            12 => value["recipes"][4]["nodes"][0][8] = i64::MAX.into(),
             13 => value["recipes"][0]["inputs"][0][1] = 0.into(),
             14 => value["examples"][0]["output"] = "0001".into(),
             15 => value["examples"][0]["inputs"][0] = "0600".into(),
@@ -284,40 +227,5 @@ fn bounded_source_rejects_shape_reference_type_and_example_mutations_atomically(
             build_teaching_recipe_package_from_source(changed.as_bytes()).is_err(),
             "mutation {mutation}"
         );
-    }
-}
-
-#[test]
-fn group_decision_keeps_all_six_sources_and_separates_identity_from_local_state() {
-    let package = decode_recipe_package_v1(&build_teaching_recipe_package().unwrap(), 8).unwrap();
-    for (input, output) in [
-        ([0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0]),
-        ([0, 0, 0, 0, 0, 0, 1, 0, 0], [0, 0, 0, 1, 0]),
-        ([1, 0, 0, 0, 0, 2, 1, 1, 1], [0, 0, 3, 4, 0]),
-        ([0, 0, 0, 0, 0, 2, 1, 0, 1], [0, 0, 2, 3, 1]),
-        ([1, 1, 1, 1, 1, 1, 1, 1, 1], [0, 0, 1, 2, 1]),
-        ([1, 0, 0, 0, 0, 0, 1, 1, 0], [0, 0, 1, 2, 0]),
-    ] {
-        assert_eq!(
-            evaluate_serialized_recipe_v1(&package, 110, &input).unwrap(),
-            output
-        );
-    }
-    for slot in 0..6 {
-        for mask in 1..=3 {
-            let mut input = [0; 9];
-            input[slot] = mask;
-            input[6] = 1;
-            input[8] = 1;
-            let output = if mask == 3 {
-                [0, 0, 3, 4, 0]
-            } else {
-                [0, 0, mask, 3, 1]
-            };
-            assert_eq!(
-                evaluate_serialized_recipe_v1(&package, 110, &input).unwrap(),
-                output
-            );
-        }
     }
 }

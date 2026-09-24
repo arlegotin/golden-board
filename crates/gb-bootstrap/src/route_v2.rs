@@ -9,9 +9,9 @@ use gb_slice::SliceCompilation;
 use sha2::{Digest, Sha256};
 
 use crate::carrier::{CarrierError, RouteImages, SectorImage, ShellOwner, ShellSpan};
-use crate::recipe_wire_v1::{
-    RecipePackageV1, decode_recipe_package_v1, evaluate_serialized_recipe_v1,
-};
+use crate::recipe_wire_v1::RecipePackageV1;
+use crate::recipe_wire_v2::{decode_recipe_package_v2, evaluate_serialized_recipe_v2};
+use crate::recovery_recipe_v2::evaluate_serialized_recovery_native;
 use crate::teaching_recipe_v2::{build_teaching_recipe_package, teaching_examples};
 
 type Result<T> = std::result::Result<T, CarrierError>;
@@ -125,8 +125,7 @@ fn example_payload(
     expected: &[u8],
     package: &RecipePackageV1,
 ) -> Result<Vec<u8>> {
-    let actual =
-        evaluate_serialized_recipe_v1(package, recipe, input).map_err(|_| CarrierError::Recipe)?;
+    let actual = evaluate_route_recipe(package, recipe, input).map_err(|_| CarrierError::Recipe)?;
     ensure(
         actual == expected && actual.len() >= 2 && (actual[..2] == [0, 0] || actual.len() == 2),
     )?;
@@ -136,6 +135,29 @@ fn example_payload(
     raw.extend(input);
     raw.extend(expected);
     Ok(raw)
+}
+
+fn evaluate_route_recipe(
+    package: &RecipePackageV1,
+    id: u16,
+    input: &[u8],
+) -> crate::Result<Vec<u8>> {
+    if matches!(id, 124 | 126) {
+        evaluate_serialized_recovery_native(package, id, input)
+    } else {
+        evaluate_serialized_recipe_v2(&package.encoded, 8, id, input)
+    }
+}
+fn uleb(mut value: u64) -> Vec<u8> {
+    let mut result = vec![];
+    loop {
+        let low = (value & 127) as u8;
+        value >>= 7;
+        result.push(low | if value != 0 { 128 } else { 0 });
+        if value == 0 {
+            return result;
+        }
+    }
 }
 
 fn relation(recipe: u16, input: &[u8]) -> Result<Vec<u8>> {
@@ -215,30 +237,23 @@ fn primary(
     definitions: &[Vec<u8>],
 ) -> Result<Vec<u8>> {
     if fact == 10 {
-        let definition = &definitions[9];
-        let start = 106 + 4 * if held { 1 } else { 8 };
-        let descriptor = &definition[start..start + 4];
-        let mut input = definitions[7][112..121].to_vec();
-        input.extend(&definitions[7][328..337]);
-        input.extend(descriptor);
-        let mut word =
-            input[usize::from(descriptor[0]) * 9..usize::from(descriptor[0]) * 9 + 9].to_vec();
-        let mut mask = [0u8; 9];
-        for bit in
-            usize::from(descriptor[2])..usize::from(descriptor[2]) + usize::from(descriptor[3])
-        {
-            let flag = 1 << (7 - bit % 8);
-            if descriptor[1] == 0 {
-                word[bit / 8] ^= flag;
-            } else {
-                word[bit / 8] &= !flag;
-                mask[bit / 8] |= flag;
-            }
-        }
-        let mut expected = vec![0, 0];
-        expected.extend(word);
-        expected.extend(mask);
-        return example_payload(fact, 111, &input, &expected, package);
+        let case = if held { 6 } else { 4 };
+        let row = &definitions[9][22 + 57 * case..22 + 57 * (case + 1)];
+        return example_payload(fact, 126, &row[..5], &row[5..], package);
+    }
+    if fact == 9 {
+        let (side, width, unit, bit) = if held {
+            (1952u16, 128u16, 2u32, 1727u16)
+        } else {
+            (2040, 128, 1, 0)
+        };
+        let mut input = vec![];
+        words16(&mut input, &[side, width]);
+        words32(&mut input, &[unit]);
+        words16(&mut input, &[bit]);
+        let expected = evaluate_serialized_recovery_native(package, 124, &input)
+            .map_err(|_| CarrierError::Recipe)?;
+        return example_payload(fact, 124, &input, &expected, package);
     }
     if fact == 6 {
         let examples = teaching_examples().map_err(|_| CarrierError::Recipe)?;
@@ -330,7 +345,7 @@ fn prefixes_with_spans(
 ) -> Result<[(Vec<u8>, Vec<(ShellOwner, usize)>); 4]> {
     let root = base_source()?;
     let package_raw = build_teaching_recipe_package().map_err(|_| CarrierError::Recipe)?;
-    let package = decode_recipe_package_v1(&package_raw, 8).map_err(|_| CarrierError::Recipe)?;
+    let package = decode_recipe_package_v2(&package_raw, 8).map_err(|_| CarrierError::Recipe)?;
     let definitions = definitions(slice, &package)?;
     let teaching = teaching_examples().map_err(|_| CarrierError::Recipe)?;
     let calibrations = array(field(&root, "calibration_hex")?)?;
@@ -391,13 +406,12 @@ fn prefixes_with_spans(
                 }
             }
             if fact == 10 {
-                let mut expected = vec![0, 0];
-                expected.extend(&definitions[6][134..142]);
+                let row = &definition[22 + 57 * 7..22 + 57 * 8];
                 append(
                     stage,
                     2,
                     1004,
-                    &example_payload(fact, 30, &definition[373..386], &expected, &package)?,
+                    &example_payload(fact, 126, &row[..5], &row[5..], &package)?,
                 )?;
             }
             if fact == 12 {
@@ -536,6 +550,26 @@ fn first_six(package: &RecipePackageV1) -> Result<Vec<Vec<u8>>> {
         value.extend([n, n ^ 255]);
         words16(&mut value, &[u16::from(n)]);
     }
+    value.push(11);
+    for scalar in [
+        0u64,
+        1,
+        127,
+        128,
+        255,
+        256,
+        16383,
+        16384,
+        65535,
+        u32::MAX as u64,
+        u64::MAX,
+    ] {
+        let encoded = uleb(scalar);
+        value.extend(scalar.to_be_bytes());
+        value.push(encoded.len() as u8);
+        value.extend(&encoded);
+        value.resize(value.len() + 10 - encoded.len(), 0);
+    }
     result.push(value);
     let mut value = Vec::new();
     words16(&mut value, &[32, 8, 24, 6]);
@@ -609,6 +643,7 @@ fn first_six(package: &RecipePackageV1) -> Result<Vec<Vec<u8>>> {
             (28, 4),
         ],
         &[(0, 2), (2, 1), (3, 1), (4, 4), (8, 4)],
+        &[(0, 1), (1, 0)],
     ] {
         layout(&mut value, rows);
     }
@@ -618,16 +653,15 @@ fn first_six(package: &RecipePackageV1) -> Result<Vec<Vec<u8>>> {
         32,
         u16_at(recipe, 4)?,
         u16_at(recipe, 6)?,
-        12,
-        (u16_at(recipe, 4)? + u16_at(recipe, 6)?) * 12,
+        2,
+        (u16_at(recipe, 4)? + u16_at(recipe, 6)?) * 2,
         u32_at(recipe, 8)? as u16,
         (recipe.len()
             - 32
-            - (usize::from(u16_at(recipe, 4)?) + usize::from(u16_at(recipe, 6)?)) * 12)
+            - (usize::from(u16_at(recipe, 4)?) + usize::from(u16_at(recipe, 6)?)) * 2)
             as u16,
         recipe.len() as u16,
     ];
-    ensure(measured == [109, 32, 3, 2, 12, 60, 42, 484, 576])?;
     words16(&mut value, &measured);
     result.push(value);
     let mut value = Vec::new();
@@ -638,19 +672,19 @@ fn first_six(package: &RecipePackageV1) -> Result<Vec<Vec<u8>>> {
             3 | 20 | 23 => 3,
             _ => 2,
         };
-        let aux = if matches!(opcode, 2 | 5 | 22) { 2 } else { 0 };
+        let aux = if matches!(opcode, 2 | 5 | 22) { 3 } else { 0 };
         let imm = if matches!(opcode, 1 | 5 | 14 | 22 | 25) {
-            8
+            10
         } else {
             0
         };
         value.extend([
             opcode,
             arity,
-            2 * arity,
+            3 * arity,
             aux,
             imm,
-            6 + 2 * arity + aux + imm,
+            6 + 3 * arity + aux + imm,
         ]);
     }
     for (kind, unit, min, max) in [
@@ -663,6 +697,9 @@ fn first_six(package: &RecipePackageV1) -> Result<Vec<Vec<u8>>> {
     ] {
         value.extend([kind, unit]);
         words32(&mut value, &[min, max]);
+    }
+    for (op, kind) in [(1, 0), (1, 1), (3, 2), (3, 3), (2, 4), (24, 5)] {
+        value.extend([op, kind, (kind << 5) | op]);
     }
     result.push(value);
     Ok(result)
@@ -820,14 +857,13 @@ fn eighth(a: &[u8; 191], b: &[u8; 191], package: &RecipePackageV1) -> Result<Vec
             let mut input = word.to_vec();
             input.extend([0; 4]);
             ensure(
-                evaluate_serialized_recipe_v1(package, 30, &input)
-                    .map_err(|_| CarrierError::Recipe)?
+                evaluate_route_recipe(package, 30, &input).map_err(|_| CarrierError::Recipe)?
                     == expected,
             )?;
             let mut expected_code = vec![0, 0];
             expected_code.extend(word);
             ensure(
-                evaluate_serialized_recipe_v1(package, 108, &decoded.data)
+                evaluate_route_recipe(package, 108, &decoded.data)
                     .map_err(|_| CarrierError::Recipe)?
                     == expected_code,
             )?;
@@ -911,6 +947,7 @@ fn ninth() -> Result<Vec<u8>> {
     Ok(value)
 }
 
+#[cfg(test)]
 fn observation(common: &[u8; 191], flips: &[u16]) -> crate::candidate::EhObservation {
     let mut encoded = crate::candidate::encode_eh_unit(common);
     for bit in flips {
@@ -922,6 +959,7 @@ fn observation(common: &[u8; 191], flips: &[u16]) -> crate::candidate::EhObserva
     }
 }
 
+#[cfg(test)]
 fn common_identity(raw: &[u8; 191]) -> [u8; 20] {
     let mut key = [0; 20];
     let mut at = 0;
@@ -941,6 +979,7 @@ fn common_identity(raw: &[u8; 191]) -> [u8; 20] {
     key
 }
 
+#[cfg(test)]
 fn group_observation(
     lanes: &[Option<crate::candidate::EhObservation>],
     expected_key: &[u8; 20],
@@ -1007,7 +1046,7 @@ fn group_observation(
                 let counts = [lanes.len() as u8, zeros, ones];
                 if verified_counts.insert(counts) {
                     ensure(
-                        evaluate_serialized_recipe_v1(package, 113, &counts)
+                        evaluate_route_recipe(package, 113, &counts)
                             .map_err(|_| CarrierError::Recipe)?
                             == relation(113, &counts)?,
                     )?;
@@ -1075,209 +1114,58 @@ fn group_observation(
         group,
         u8::from(accepted),
     ]);
-    let mut expected = vec![0, 0];
-    expected.extend(&trace[9..]);
-    ensure(
-        evaluate_serialized_recipe_v1(package, 110, &trace[..9])
-            .map_err(|_| CarrierError::Recipe)?
-            == expected,
-    )?;
+    let mut input = vec![lanes.len() as u8, 0];
+    input.extend(expected_key);
+    for index in 0..5 {
+        let mut pair = vec![0; 432];
+        if let Some(Some(lane)) = lanes.get(index) {
+            input[1] |= 1 << index;
+            pair[..216].copy_from_slice(&lane.encoded);
+            for erased in &lane.erasures {
+                let bit = usize::from(erased.codeword) * 72 + usize::from(erased.position) - 1;
+                pair[216 + bit / 8] |= 128 >> (bit % 8);
+            }
+        }
+        input.extend(pair);
+    }
+    let actual = evaluate_serialized_recovery_native(package, 120, &input)
+        .map_err(|_| CarrierError::Recipe)?;
+    ensure(actual[..4] == [0, 0, group, u8::from(accepted)])?;
     Ok((row, states, trace))
 }
 
 fn tenth(a: &[u8; 191], b: &[u8; 191], package: &RecipePackageV1) -> Result<Vec<u8>> {
-    let roster = [
-        [1u16, 0, 2, 5, 1, 5],
-        [1, 1, 2, 5, 6, 10],
-        [400, 0, 1, 5, 11, 15],
-        [401, 0, 1, 2, 16, 17],
-    ];
-    let mut value = Vec::new();
-    words16(&mut value, &[4, 6]);
-    for row in roster {
-        words16(&mut value, &row);
+    let tables = crate::recipe_wire_v2::expand_recipe_package_v2(&package.encoded, 8)
+        .map_err(|_| CarrierError::Recipe)?;
+    let mut at = 64;
+    let mut encoded = None;
+    for _ in 0..u16_at(&tables, 18)? {
+        let end = at + 16 + u32_at(&tables, at + 12)? as usize;
+        if u16_at(&tables, at)? == 24 {
+            encoded = Some(&tables[at + 16..end]);
+        }
+        at = end;
     }
-    value.extend([0, 4, 8, 10, 12, 16, 18, 22, 2]);
-    let mut keys = Vec::<[u8; 20]>::new();
-    for section in [400, 401] {
-        let mut key = Vec::new();
-        words16(&mut key, &[8]);
-        words32(&mut key, &[section]);
-        words16(&mut key, &[0, 4, 0, 0, 1]);
-        words32(&mut key, &[23]);
-        keys.push(
-            key.as_slice()
-                .try_into()
-                .map_err(|_| CarrierError::Recipe)?,
-        );
-        value.extend(key);
-    }
-    let templates = [
-        [0u8, 0, 0, 0],
-        [0, 0, 59, 5],
-        [0, 0, 0, 1],
-        [1, 0, 0, 2],
-        [1, 0, 2, 2],
-        [1, 0, 4, 2],
-        [1, 0, 6, 2],
-        [1, 0, 8, 2],
-        [0, 1, 59, 5],
-        [0, 1, 60, 5],
-        [0, 1, 61, 5],
-        [0, 1, 62, 5],
-        [0, 1, 63, 5],
-    ];
-    words16(&mut value, &[111]);
-    value.push(0);
-    value.extend([13, 4]);
-    let mut observations = Vec::new();
-    let words = [
-        observation(a, &[]).encoded[..9].to_vec(),
-        observation(b, &[]).encoded[..9].to_vec(),
+    let expected = [
+        crate::candidate::encode_eh_unit(a).as_slice(),
+        crate::candidate::encode_eh_unit(b).as_slice(),
     ]
     .concat();
-    for row @ [source, unknown, first, count] in templates {
-        value.extend(row);
-        let mut lane = observation(if source == 0 { a } else { b }, &[]);
-        let mut unknown_mask = [0u8; 9];
-        for bit in u16::from(first)..u16::from(first) + u16::from(count) {
-            let mask = 1 << (7 - bit % 8);
-            if unknown == 0 {
-                lane.encoded[usize::from(bit) / 8] ^= mask;
-            } else {
-                lane.encoded[usize::from(bit) / 8] &= !mask;
-                unknown_mask[usize::from(bit) / 8] |= mask;
-                lane.erasures.push(crate::candidate::EhErasure {
-                    codeword: (bit / 72) as u8,
-                    position: (bit % 72 + 1) as u8,
-                });
-            }
-        }
-        let mut input = words.clone();
-        input.extend(row);
-        let mut expected = vec![0, 0];
-        expected.extend(&lane.encoded[..9]);
-        expected.extend(unknown_mask);
-        ensure(
-            evaluate_serialized_recipe_v1(package, 111, &input)
-                .map_err(|_| CarrierError::Recipe)?
-                == expected,
-        )?;
-        observations.push(lane);
+    ensure(encoded == Some(expected.as_slice()))?;
+    let mut value = vec![];
+    words16(&mut value, &[123, 124, 120, 125, 126, 127, 24, 25, 26, 27]);
+    value.extend([8, 57]);
+    for case in 0u8..8 {
+        let mut input = vec![];
+        words32(&mut input, &[if case == 7 { 11 } else { 6 }]);
+        input.push(case);
+        let output = evaluate_serialized_recovery_native(package, 126, &input)
+            .map_err(|_| CarrierError::Recipe)?;
+        ensure(output.len() == 52 && output[..2] == [0, 0])?;
+        value.extend(input);
+        value.extend(output);
     }
-    words16(&mut value, &[110]);
-    value.extend([8, 24]);
-    let cases = [
-        [11u8, 0, 0, 0, 0, 0],
-        [11, 4, 0, 0, 0, 0],
-        [11, 1, 0, 0, 0, 0],
-        [11, 3, 0, 0, 0, 0],
-        [11, 1, 4, 5, 6, 7],
-        [11, 4, 5, 6, 7, 8],
-        [11, 9, 10, 11, 12, 13],
-        [16, 1, 1, 0, 0, 0],
-    ];
-    let mut counts = BTreeSet::new();
-    let mut raw_groups = Vec::new();
-    for row in cases {
-        let owner = roster
-            .iter()
-            .find(|r| (r[4]..=r[5]).contains(&u16::from(row[0])))
-            .ok_or(CarrierError::OwnerIdentity)?;
-        let factor = usize::from(owner[3]);
-        ensure(row[1 + factor..].iter().all(|id| *id == 0))?;
-        let key = keys
-            .iter()
-            .find(|key| {
-                u32_at(*key, 2).ok() == Some(u32::from(owner[0]))
-                    && u16_at(*key, 12).ok() == Some(owner[1])
-                    && u16_at(*key, 14).ok() == Some(owner[2])
-            })
-            .ok_or(CarrierError::OwnerIdentity)?;
-        let lanes = row[1..1 + factor]
-            .iter()
-            .map(|id| {
-                if *id == 0 {
-                    None
-                } else {
-                    Some(observations[usize::from(*id - 1)].clone())
-                }
-            })
-            .collect::<Vec<_>>();
-        let (_, states, trace) = group_observation(&lanes, key, a, b, package, &mut counts)?;
-        value.extend(row);
-        value.extend(&states[..factor]);
-        value.resize(value.len() + 5 - factor, 0);
-        value.push(states[factor]);
-        value.extend(trace);
-        raw_groups.push(lanes);
-    }
-    ensure(value.len() == 354)?;
-    value.extend([3, 4]);
-    for bit in [0u16, 63, 72] {
-        words16(&mut value, &[bit]);
-        value.extend([(bit / 72) as u8, (bit % 72 + 1) as u8]);
-    }
-    value.extend([7, 0, 0]);
-    words16(&mut value, &[30]);
-    let rep = crate::candidate::aggregate_repetition_observation(&raw_groups[6])
-        .map_err(|_| CarrierError::Recipe)?
-        .ok_or(CarrierError::Recipe)?;
-    let mut input = rep.encoded[..9].to_vec();
-    let positions = rep
-        .erasures
-        .iter()
-        .filter(|e| e.codeword == 0)
-        .map(|e| e.position)
-        .collect::<Vec<_>>();
-    ensure(positions.len() <= 3)?;
-    input.push(positions.len() as u8);
-    input.extend(positions);
-    input.resize(13, 0);
-    let mut expected = vec![0, 0];
-    expected.extend(&a[..8]);
-    ensure(
-        evaluate_serialized_recipe_v1(package, 30, &input).map_err(|_| CarrierError::Recipe)?
-            == expected,
-    )?;
-    value.extend(input);
-    words16(&mut value, &[113]);
-    value.extend([4, 8]);
-    for symbols in [
-        [2u8, 0, 1, 2, 2, 2],
-        [5, 0, 1, 1, 1, 1],
-        [5, 1, 2, 2, 2, 2],
-        [5, 2, 2, 2, 2, 2],
-    ] {
-        let active = &symbols[1..1 + usize::from(symbols[0])];
-        let input = [
-            symbols[0],
-            active.iter().filter(|v| **v == 0).count() as u8,
-            active.iter().filter(|v| **v == 1).count() as u8,
-        ];
-        let expected = relation(113, &input)?;
-        ensure(
-            evaluate_serialized_recipe_v1(package, 113, &input)
-                .map_err(|_| CarrierError::Recipe)?
-                == expected,
-        )?;
-        value.extend(symbols);
-        value.extend(&expected[2..]);
-    }
-    value.push(5);
-    for length in [22u16, 157, 158, 314, 315] {
-        let fragments = length.div_ceil(157);
-        let last = length - 157 * (fragments - 1);
-        ensure(
-            (0..fragments)
-                .map(|i| if i + 1 == fragments { last } else { 157 })
-                .sum::<u16>()
-                == length,
-        )?;
-        words16(&mut value, &[length]);
-        value.extend([fragments as u8, last as u8]);
-    }
-    ensure(value.len() == 443)?;
+    ensure(value.len() == 478)?;
     Ok(value)
 }
 
@@ -2131,7 +2019,7 @@ fn content_teaching() -> Result<Vec<u8>> {
         ensure(accepted == (row[5] == 1))?;
         words16(&mut supplement, &row);
     }
-    let action_rows: [(u16, &[[u8; 4]], u8, u8, u8, &[u16], u8, u16, u16, u16, u16); 8] = [
+    let action_rows: [(u16, &[[u8; 4]], u8, u8, u8, &[u16], u8, u16, u16, u16, u16); 10] = [
         (26, &[[3, 0, 0, 0]], 2, 3, 1, &[], 1, 21, 27, 7, 1),
         (
             26,
@@ -2224,8 +2112,34 @@ fn content_teaching() -> Result<Vec<u8>> {
             6,
             0,
         ),
+        (
+            26,
+            &[[1, 0, 0, 1], [1, 0, 0, 2]],
+            3,
+            7,
+            1,
+            &[1],
+            0,
+            0,
+            0,
+            6,
+            0,
+        ),
+        (
+            26,
+            &[[1, 0, 0, 1], [2, 0, 0, 0]],
+            3,
+            2,
+            1,
+            &[],
+            0,
+            0,
+            0,
+            6,
+            0,
+        ),
     ];
-    words16(&mut supplement, &[8]);
+    words16(&mut supplement, &[10]);
     let projection = gb_content::stream_validation(&mini).map_err(|_| CarrierError::Section)?;
     for (node, actions, phase, result, shape, ids, outcome, feedback, next, global, local) in
         action_rows
@@ -2276,13 +2190,13 @@ fn content_teaching() -> Result<Vec<u8>> {
         supplement.push(outcome);
         words16(&mut supplement, &[feedback, next, global, local]);
     }
-    ensure(supplement.len() == 1056)?;
+    ensure(supplement.len() == 1120)?;
     let mut value = Vec::new();
     words32(&mut value, &[mini.len() as u32]);
     value.extend(mini);
     words32(&mut value, &[supplement.len() as u32]);
     value.extend(supplement);
-    ensure(value.len() == 1639)?;
+    ensure(value.len() == 1703)?;
     Ok(value)
 }
 
@@ -2696,7 +2610,7 @@ fn twelfth(slice: &SliceCompilation) -> Result<Vec<u8>> {
             &[u16_at(binding, 0)?, u16_at(opaque, 0)?, namespace, 1],
         );
     }
-    ensure(value.len() == 2013)?;
+    ensure(value.len() == 2077)?;
     value.extend(build_position_teaching_v2(slice)?.value());
     Ok(value)
 }
@@ -2713,7 +2627,7 @@ fn definitions(slice: &SliceCompilation, package: &RecipePackageV1) -> Result<Ve
     values.push(twelfth(slice)?);
     ensure(
         values.iter().map(Vec::len).collect::<Vec<_>>()
-            == [16, 64, 96, 296, 226, 210, 636, 544, 464, 443, 314, 2421],
+            == [16, 64, 306, 296, 236, 228, 636, 544, 464, 478, 314, 2485],
     )?;
     Ok(values)
 }
@@ -2727,7 +2641,7 @@ mod tests {
         let a = example_common(0).unwrap();
         let b = example_common(1).unwrap();
         let package =
-            decode_recipe_package_v1(&build_teaching_recipe_package().unwrap(), 8).unwrap();
+            decode_recipe_package_v2(&build_teaching_recipe_package().unwrap(), 8).unwrap();
         let lanes = [Some(observation(&a, &[])), Some(observation(&a, &[]))];
         let key = common_identity(&a);
         let mut counts = BTreeSet::new();
@@ -2752,7 +2666,7 @@ mod tests {
         let a = example_common(0).unwrap();
         let b = example_common(1).unwrap();
         let package =
-            decode_recipe_package_v1(&build_teaching_recipe_package().unwrap(), 8).unwrap();
+            decode_recipe_package_v2(&build_teaching_recipe_package().unwrap(), 8).unwrap();
         let mut lanes = Vec::new();
         for first in [59u8, 60, 61, 62, 63] {
             let mut lane = observation(&a, &[]);
@@ -2818,6 +2732,30 @@ mod tests {
     }
 
     #[test]
+    fn carried_selection_witnesses_reject_replacement_and_separate_exhaustion() {
+        let raw = content_teaching().expect("content teaching");
+        let count_at = 583 + 2 + 48 * 14 + 2 + 6 * 12 + 2 + 4 * 12;
+        let rows = raw[count_at + 2..].chunks_exact(32).collect::<Vec<_>>();
+        for (second, last, selected, first) in [(1, 6, 1, 1), (2, 7, 1, 1), (0, 2, 0, 0)] {
+            let actions = if second == 0 {
+                [1, 0, 0, 1, 2, 0, 0, 0]
+            } else {
+                [1, 0, 0, 1, 1, 0, 0, second]
+            };
+            let row = rows
+                .iter()
+                .find(|r| r[0..3] == [0, 26, 2] && r[3..11] == actions)
+                .expect("missing discriminating carried witness");
+            assert_eq!(
+                &row[15..],
+                &[
+                    3, last, 1, selected, 0, first, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0
+                ]
+            );
+        }
+    }
+
+    #[test]
     fn semantic_miniature_and_every_typed_role_witness_are_admitted() {
         let (raw, records) = miniature().expect("semantic miniature source");
         assert_eq!(raw.len(), 575);
@@ -2827,7 +2765,7 @@ mod tests {
         }
         assert_eq!(
             content_teaching().expect("all content consequences").len(),
-            1639
+            1703
         );
     }
 }

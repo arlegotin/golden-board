@@ -78,12 +78,15 @@ out-of-domain primitive call does not admit a physical cell or unit.
 
 ## Recipes and remaining promotion work
 
-The new package uses the sole grammar of `recipe-wire-v1.md`, unchanged
+The active teaching package uses the sole grammar of `recipe-wire-v2.md`, unchanged
 generic operations and full resource accounting. The inherited CRC32C/EH
 recipes keep their meanings. Recipe 109 uses this new profile's affine
 offset; old profile 7's package remains unchanged. The codec's complete
 bounded decoder and small construction examples must be carried, not called
-through a host decompression shortcut.
+through an unadmitted host decompression shortcut. Exact structural refinements
+remain owned by `program-refinement-v2.md`; complete physical recovery, including
+its first-inventory anchor, is carried under `recovery-program-v2.md`.
+Standalone historical revision packages keep their explicitly versioned wire1 API.
 
 Carried definitions/examples must close C01–C11 in
 `studies/m2/participant-learnings-v1.md`, including field widths, unit and

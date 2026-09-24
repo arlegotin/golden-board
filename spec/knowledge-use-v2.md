@@ -45,8 +45,8 @@ particular it does not claim raw-square route acquisition from prefix inputs.
 
 For each sector independently, run `decode_observed_route_v2` on its supplied
 prefix and geometry. Require all48 records,12 numeric DEFINE values,33 carried
-WORKED/HELD_OUT examples, admitted profile8 compact program and endpoint1.
-The receiver executes the carried examples, checks mapping/transport program
+WORKED/HELD_OUT examples, admitted profile8 canonical wire2 program and endpoint1.
+The receiver executes the carried examples, checks mapping/transport and complete recovery program
 refinement, derives the active mapping from table17 and109, and checks the
 actual finite numeric definitions. Full numeric meaning remains owned by
 route-definitions-v2, content-teaching-v2 and position-teaching-v2, not by
@@ -105,8 +105,16 @@ with classification `record-structure`. This is **structural presence
 ablation**, not proof of semantic use: the closed skeleton already rejects47.
 
 `contradict` XORs1 into the final byte of that DEFINE's numeric value, keeping
-every frame/count/length unchanged. The recipient must reject during local
-numeric relationship validation, classification `definition-relationship`.
+every frame/count/length unchanged. The classification is
+`definition-relationship`. Facts other than10 must reach the complete observed
+VM schedule and reject during local numeric relationship validation. Fact10's
+last byte is the last byte of case7's expected fragment prefix. Its unchanged
+framed WORKED1004 binds that complete case7 row, so this contradiction must
+reject at that fact's primary-example binding, before invoking1004. Require the
+exact cumulative steps and peak VM scratch of the preceding framed examples;
+neither an earlier rejection nor later execution earns credit for this probe.
+The separately checked fact10 numeric relationship must also reject the changed
+value. A primary-binding failure for any other fact is unrelated and fails.
 These are48 finite relationship contradictions, distinct from the48 presence
 ablations. They accompany the positive arithmetic, layout, codec, miniature
 control and recovered-context checks; they do not prove every possible

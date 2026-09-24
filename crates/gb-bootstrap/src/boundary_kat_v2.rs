@@ -70,6 +70,7 @@ fn repetition(factor: u8) -> Result<bool> {
         factor,
         identity,
         &mut budget,
+        None,
     )?;
     let mut left = encoded;
     let mut right = encoded;
@@ -84,6 +85,7 @@ fn repetition(factor: u8) -> Result<bool> {
         factor,
         identity,
         &mut budget,
+        None,
     )?;
     Ok(matches!(
         good.state,

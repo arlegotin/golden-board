@@ -31,22 +31,24 @@ Caches replay the same logical charge; they never discount it.
   examples, mapping109 executes exactly0,1,P−1 in that order, including foreign
   route0/1 under this v2 receiver; charge all three. Samples do not prove a
   changed mapping program's universal refinement.
-  Route2's exact admission order is package parse, mapping/transport closure
-  refinement, carried record examples, table17/smallest-multiplier search,
-  the three mapping109 calls, the thirteen fact10 construction111 calls,
-  the eight embedded110 traces in their carried order, the case7 recipe30
-  witness, then the four count-derived
-  recipe113 columns, then local DEFINE validation. The constructor/word and decision bindings precede their calls; word/mask
-  results must match independent observed range construction. The fixed case/source/word/
-  recipe30 reference is checked before its call. The recipe113 header and each
-  column's factor, symbol domain and out-of-factor padding are checked before
-  that column's call. Each embedded call charges
-  its full observed program and route-example adapter cost before execution;
-  a failure retains that charge and stops the remaining schedule. The33
-  framed WORKED/HELD_OUT records plus29 embedded/mapping calls total62;
-  embedded traces are additional
-  observed calls, not invented framed records. Legacy routes0/1
-  have no program-refinement kernel event.
+  Route2's exact admission order is package parse, mapping/transport and complete
+  recovery closure refinement, carried record examples, table17/smallest-multiplier
+  search, the three mapping109 calls, the eight complete fact10 construction126
+  calls in carried order, then independent local DEFINE relationship validation.
+  Each construction derives physical ownership through122, constructs all raw
+  lane inputs through125, and invokes119. Its full recursively derived declaration
+  is charged once; no second charge is invented for those internal calls. The
+  three framed fact10 examples invoke the same126 with their bound inputs and
+  outputs. Source fixtures are not runtime generation inputs: observed tables,
+  programs and examples must satisfy the exact structural refinement.
+  Each call charges its full observed program and route-example adapter cost
+  before execution, including native execution and failure. A failure retains
+  that charge and stops the remaining schedule. The33 framed WORKED/HELD_OUT
+  records plus11 embedded/mapping calls total44. Independent finite DEFINE
+  relationships remain definition-validation adapter work; they do not masquerade
+  as additional generic VM execution. Legacy routes0/1 have no program-refinement
+  kernel event. Active square transport invokes the complete programs below;
+  their example calls and operational calls are distinct logical work.
 * At most64 complete valid route paths proceed to transport. The attempted65th
   path is global resource-limit, after retaining prior discovery costs. Every
   complete path runs its transport recovery logically, including byte-identical
@@ -63,12 +65,37 @@ Caches replay the same logical charge; they never discount it.
   RS5..6's2056 unit ceilings never bind legal S≤2048,W≥8 interior geometry:
   extraction is floor(P/(8*unit_bytes)). Profile7 retains its exact old mapping
   admission; profile8 uses geometry Q and checked inventory must cover Q.
-* Within one logical path/profile, a present factor2/5 group charges1728 calls
+* Within one legacy logical path/profile or OBS_UNITS, a present factor2/5 group charges1728 calls
   to113 and24 calls to30. Its key is profile version plus the ordered tuple of
   physical input IDs/absences, so bootstrap re-use and subsequent checked
   inventory traversal do not charge the same group twice. Distinct groups do.
   Charge a group actually reached before a failed bootstrap, not an invented
   complete inventory. OBS_UNITS has one shared path, with separate profile keys.
+* Active profile8 square recovery binds one immutable admitted package per path.
+  Charge one program-refinement event for its complete120/123/127 closures,
+  using the full package node/edge/table reservation, before recovery. First
+  physical group1..5 invokes127 with actual geometry Q. Subsequent inventory
+  fragments invoke120 with full identity anchored to the first accepted block.
+  Complete envelope checks and inventory admission remain mandatory. For each
+  admitted physical group in ascending first-ID order, invoke123 on the complete
+  padded inventory and that first ID; its factor/range/key must agree with the
+  independently derived layout and its total must equal Q. Those derived
+  outputs define the group passed to120. Each wrapper charges its complete
+  recursively derived declaration, including missing groups and rejections;
+  do not additionally charge its nested113/30 calls. Preliminary individual
+  lane30 calls remain for local diagnostics. A unique foreign block is corrupt
+  for assembly while its lane diagnostics remain available.
+  Within the fixed observations of this path, deduplicate by recipe ID,
+  physical first ID, factor, complete expected key (or Q for127), and ordered
+  physical IDs/absences. The first127 and catalog120 are different predicates
+  and both charge; a subsequent bootstrap120 and identical catalog120 share one
+  charge. All-missing physical groups cannot alias. Each new present factor2/5
+  invocation charges the full VM wrapper first, then repetition-adapter and
+  common-frame with their existing reservations, then executes. Missing/factor1
+  wrappers still charge VM work without these two adapter events. Recipe123
+  charges once per catalog group; group-layout/dependency events remain once
+  per admitted inventory. Native refinement never substitutes classifier flags
+  for the observed raw lanes or permits a rejected group into assembly.
 * Compressed bodies invoke202 once per body section ID per path, shared by
   required/all assembly. Charge before decoding, even on rejection and even
   when a native refinement or cached output is used. Raw bodies have no202
@@ -221,10 +248,15 @@ For a complete recipe header define V=wire bytes, P=min(declared recipes,256),
 T=min(tables,4096), N=min(nodes,65535), E=min(edges,262140),
 D=min(table payload,1048576). These clamps only bound accounting on malformed
 headers; they do not validate or repair the declaration. For compact encoding1,
-X=min(1048576,V+26N); for every other tag X=V. The strict wire parser still
+X=min(1048576,V+26N). For encoding2, X=min(1048576,V+30N+1280P);
+for every other tag X=V. The strict wire parser still
 rejects an unknown tag; this reservation rule does not admit a fallback format.
 X reserves the maximum
-expanded wire, because a compact node has at least6 bytes and expands to32.
+expanded wire. Encoding1 nodes have at least6 bytes and expand to32.
+Encoding2 nodes have at least2 bytes and expand to32; each of at most128
+interface descriptors per recipe has at least2 bytes and expands to12.
+The header-only reservation bounds both expansions before variable records are
+parsed, without treating an unvalidated count as admission.
 A short header reserves only V. Full semantic parsing still rejects every
 out-of-domain header before its dependent parser allocation.
 

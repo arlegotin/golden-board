@@ -72,6 +72,16 @@ class StaticProjection(unittest.TestCase):
         limits = self.doc('static_limits')
         self.assertEqual(limits['scope'],'static-construction-only')
         self.assertEqual(limits['declared_transport']['scope'],'one-pass-complete-inventory-groups')
+        declared = limits['declared_transport']
+        groups = limits['selected_manifestation']['logical_groups']
+        programs = {row[0]:row for row in limits['route_package']['recipe_rows']}
+        self.assertEqual(declared['complete_group_calls'],groups)
+        self.assertEqual(declared['roster_calls'],groups)
+        self.assertEqual(declared['eh_decoder_calls'],24*self.image.capacity_plan.units)
+        self.assertEqual(declared['primitive_steps'],
+            24*self.image.capacity_plan.units*programs[30][3]
+            +groups*(programs[120][3]+programs[123][3])
+            +declared['body_decoder_calls']*programs[202][3])
         self.assertNotIn('damage',limits)
         self.assertEqual(limits['selected_manifestation']['carrier_file_bytes'],4+limits['selected_manifestation']['carrier_bytes'])
 

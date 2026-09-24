@@ -24,13 +24,10 @@ fn observed_complete_route_admits_only_after_every_example_and_mapping() {
             .unwrap()
             .unwrap();
         assert_eq!(route.mapping().unit_slot_count(), 1925);
-        assert_eq!(route.package().encoded.len(), 18531);
+        assert_eq!(route.package().encoded.len(), 17719);
         let logical = &route.package().logical;
         let mut expected_steps = 3 * logical.recipe_primitive_steps(109).unwrap()
-            + 13 * logical.recipe_primitive_steps(111).unwrap()
-            + 8 * logical.recipe_primitive_steps(110).unwrap()
-            + logical.recipe_primitive_steps(30).unwrap()
-            + 4 * logical.recipe_primitive_steps(113).unwrap();
+            + 8 * logical.recipe_primitive_steps(126).unwrap();
         let mut at = 64;
         while at < prefix.len() {
             let length = u32::from_be_bytes(prefix[at + 4..at + 8].try_into().unwrap()) as usize;
@@ -41,6 +38,8 @@ fn observed_complete_route_admits_only_after_every_example_and_mapping() {
             at += 8 + length;
         }
         assert_eq!(cost.primitive_steps, expected_steps);
+        assert_eq!(cost.primitive_steps, 152936421);
+        assert_eq!(cost.peak_scratch_bytes, 98398);
         assert_eq!(cost.section_attempts, 0);
     }
 }
@@ -142,309 +141,115 @@ fn contradictory_numeric_definition_rejects_after_owned_example_schedule() {
     assert_eq!(cost, full);
 }
 
-#[test]
-fn malformed_group_traces_and_valid_but_unrelated_primary_examples_reject() {
-    let original = gb_bootstrap::route_v2::build_route_prefixes(&slice()).unwrap()[0].clone();
-    let package = gb_bootstrap::recipe_wire_v1::decode_recipe_package_v1(
-        &gb_bootstrap::teaching_recipe_v2::build_teaching_recipe_package().unwrap(),
-        8,
-    )
-    .unwrap();
-    let mut preceding_cost = ResourceProjection::default();
+fn frames(prefix: &[u8]) -> std::collections::BTreeMap<u16, (usize, usize)> {
+    let mut rows = std::collections::BTreeMap::new();
     let mut at = 64;
-    let mut fact10 = 0;
-    let mut primary = 0;
-    let mut held_out = 0;
-    let mut framed_erasure = 0;
-    while at < original.len() {
-        let id = u16::from_be_bytes(original[at + 2..at + 4].try_into().unwrap());
-        if id == 1001 {
-            fact10 = at + 8 + 14;
-        }
-        if id == 1002 {
-            primary = at + 8 + 12;
-        }
-        if id == 1003 {
-            held_out = at + 8 + 12;
-        }
-        if id == 1004 {
-            framed_erasure = at + 8 + 12;
-        }
-        if primary == 0 && [2, 3].contains(&original[at + 1]) {
-            let recipe = u16::from_be_bytes(original[at + 10..at + 12].try_into().unwrap());
-            preceding_cost.primitive_steps +=
-                package.logical.recipe_primitive_steps(recipe).unwrap();
-            preceding_cost.peak_scratch_bytes = preceding_cost
-                .peak_scratch_bytes
-                .max(package.logical.recipe_peak_scratch_bytes(recipe).unwrap());
-        }
-        at += 8 + u32::from_be_bytes(original[at + 4..at + 8].try_into().unwrap()) as usize;
+    while at < prefix.len() {
+        let n = u32::from_be_bytes(prefix[at + 4..at + 8].try_into().unwrap()) as usize;
+        let id = u16::from_be_bytes(prefix[at + 2..at + 4].try_into().unwrap());
+        rows.insert(id, (at + 8, n));
+        at += 8 + n;
     }
-    for offset in [
-        162 + 7 * 24,
-        61,
-        63,
-        67,
-        69,
-        71,
-        73,
-        75,
-        77,
-        106,
-        354 + 9,
-        368,
-        369,
-        370,
-        373 + 10,
-        390 + 2,
-        174 + 3 * 24 + 7,
-    ] {
-        let mut changed = original.clone();
-        changed[fact10 + offset] ^= 1;
-        assert!(
-            admit_route_prefix(&changed, 2048, 112, 0, &mut ResourceProjection::default())
-                .unwrap()
-                .is_none()
-        );
-    }
+    rows
+}
+#[test]
+fn valid_but_unrelated_primary_case_cannot_replace_its_bound_case() {
+    let original = gb_bootstrap::route_v2::build_route_prefixes(&slice()).unwrap()[0].clone();
+    let rows = frames(&original);
+    let definition = rows[&1001].0 + 14;
+    let primary = rows[&1002].0;
     let mut changed = original.clone();
-    changed[primary..primary + 42].copy_from_slice(&original[held_out..held_out + 42]);
-    let mut rejected_cost = ResourceProjection::default();
+    changed[primary + 12..primary + 12 + 57]
+        .copy_from_slice(&original[definition + 22 + 57 * 5..definition + 22 + 57 * 6]);
     assert!(
-        admit_route_prefix(&changed, 2048, 112, 0, &mut rejected_cost)
+        admit_route_prefix(&changed, 2048, 112, 0, &mut ResourceProjection::default())
             .unwrap()
             .is_none()
     );
-    assert_eq!(rejected_cost, preceding_cost);
-
+}
+#[test]
+fn embedded_complete_group_failure_retains_exact_invoked_cost() {
+    let original = gb_bootstrap::route_v2::build_route_prefixes(&slice()).unwrap()[0].clone();
+    let rows = frames(&original);
+    let p = rows[&6001];
+    let package =
+        gb_bootstrap::recipe_wire_v2::decode_recipe_package_v2(&original[p.0..p.0 + p.1], 8)
+            .unwrap();
     let mut complete = ResourceProjection::default();
     assert!(
         admit_route_prefix(&original, 2048, 112, 0, &mut complete)
             .unwrap()
             .is_some()
     );
-    let erasure_steps = package.logical.recipe_primitive_steps(30).unwrap();
-    let repetition_steps = package.logical.recipe_primitive_steps(113).unwrap();
-    let constructor_steps = package.logical.recipe_primitive_steps(111).unwrap();
-    let decision_steps = package.logical.recipe_primitive_steps(110).unwrap();
-    let after_constructors = 8 * decision_steps + erasure_steps + 4 * repetition_steps;
-    for (offset, replacement, unexecuted) in [
-        (102, 110, 13 * constructor_steps + after_constructors),
-        (103, 1, 13 * constructor_steps + after_constructors),
-        // Template3's invalid range rejects before its constructor call.
-        (116, 72, 11 * constructor_steps + after_constructors),
-        (159, 111, after_constructors),
-        (369, 2, erasure_steps + 4 * repetition_steps),
-        (387, 112, 4 * repetition_steps),
-        (391, 3, 4 * repetition_steps),
-        (399, 3, 3 * repetition_steps),
-        (407, 3, 2 * repetition_steps),
-        (415, 3, repetition_steps),
-        // Two observed zeroes produce known=1, contradicting the carried tie.
-        // This rejects at the first113 call only if counts come from symbols.
-        (392, 0, 3 * repetition_steps),
-        // Position65 still decodes A, but differs from the observed erasure64.
-        // Independent semantics rejects it after the entire VM schedule.
-        (383, 65, 0),
-        // The final byte is metadata and must retain the complete VM cost.
-        (442, 0, 0),
-    ] {
+    let step = package.logical.recipe_primitive_steps(126).unwrap();
+    let definition = rows[&1001].0 + 14;
+    for case in [0usize, 1, 2, 3, 5] {
         let mut changed = original.clone();
-        changed[fact10 + offset] = replacement;
-        if offset == 383 {
-            changed[framed_erasure + 10] = replacement;
-        }
-        let mut retained = ResourceProjection::default();
+        changed[definition + 22 + 57 * case + 5 + 28] ^= 1;
+        let mut charged = ResourceProjection::default();
         assert!(
-            admit_route_prefix(&changed, 2048, 112, 0, &mut retained)
-                .unwrap()
-                .is_none(),
-            "offset {offset}"
-        );
-        assert_eq!(
-            retained.primitive_steps + unexecuted,
-            complete.primitive_steps,
-            "offset {offset}"
-        );
-    }
-}
-
-#[test]
-fn constructor_range_validation_preserves_pre_call_and_final_semantic_charges() {
-    let original = gb_bootstrap::route_v2::build_route_prefixes(&slice()).unwrap()[0].clone();
-    let package = gb_bootstrap::recipe_wire_v1::decode_recipe_package_v1(
-        &gb_bootstrap::teaching_recipe_v2::build_teaching_recipe_package().unwrap(),
-        8,
-    )
-    .unwrap();
-    let mut base_steps = 3 * package.logical.recipe_primitive_steps(109).unwrap();
-    let mut at = 64;
-    let mut fact10 = 0;
-    let mut framed_calls = 0;
-    while at < original.len() {
-        let length = u32::from_be_bytes(original[at + 4..at + 8].try_into().unwrap()) as usize;
-        let id = u16::from_be_bytes(original[at + 2..at + 4].try_into().unwrap());
-        if id == 1001 {
-            fact10 = at + 8 + 14;
-        }
-        if [2, 3].contains(&original[at + 1]) {
-            let recipe = u16::from_be_bytes(original[at + 10..at + 12].try_into().unwrap());
-            base_steps += package.logical.recipe_primitive_steps(recipe).unwrap();
-            framed_calls += 1;
-        }
-        at += 8 + length;
-    }
-    assert_eq!(framed_calls, 33);
-    let full_steps = base_steps
-        + 13 * package.logical.recipe_primitive_steps(111).unwrap()
-        + 8 * package.logical.recipe_primitive_steps(110).unwrap()
-        + package.logical.recipe_primitive_steps(30).unwrap()
-        + 4 * package.logical.recipe_primitive_steps(113).unwrap();
-    // Template1 has count0. First73 is outside the constructor's domain;
-    // first1/72 are valid no-ops but violate the later canonical descriptor rule.
-    for (first, expected_steps) in [(73, base_steps), (1, full_steps), (72, full_steps)] {
-        let mut changed = original.clone();
-        changed[fact10 + 108] = first;
-        let mut cost = ResourceProjection::default();
-        assert!(
-            admit_route_prefix(&changed, 2048, 112, 0, &mut cost)
+            admit_route_prefix(&changed, 2048, 112, 0, &mut charged)
                 .unwrap()
                 .is_none()
         );
-        assert_eq!(cost.primitive_steps, expected_steps, "first {first}");
+        assert_eq!(
+            charged.primitive_steps + (7 - case as u64) * step,
+            complete.primitive_steps,
+            "case {case}"
+        );
+    }
+    for at in [0usize, 8, 10, 20, 21] {
+        let mut changed = original.clone();
+        changed[definition + at] ^= 1;
+        let mut charged = ResourceProjection::default();
+        assert!(
+            admit_route_prefix(&changed, 2048, 112, 0, &mut charged)
+                .unwrap()
+                .is_none()
+        );
+        assert_eq!(
+            charged.primitive_steps + 8 * step,
+            complete.primitive_steps,
+            "header {at}"
+        );
     }
 }
-
 #[test]
-fn embedded_traces_execute_observed110_even_when_all_framed_examples_pass() {
-    use gb_bootstrap::recipe_wire_v1::{decode_recipe_package_v1, evaluate_serialized_recipe_v1};
-    use gb_bootstrap::teaching_recipe_v2::build_teaching_recipe_package_from_source;
+fn changed_bootstrap_closure_rejects_before_any_example_execution() {
     let original = gb_bootstrap::route_v2::build_route_prefixes(&slice()).unwrap()[0].clone();
-    let mut source: toml::Value =
-        toml::from_str(include_str!("../../../spec/recipe-teaching-v2.toml")).unwrap();
-    // No framed example invokes110, but its verified state still must execute.
-    source["recipes"][0]["nodes"][9][8] = 1.into();
-    let changed_package =
-        build_teaching_recipe_package_from_source(toml::to_string(&source).unwrap().as_bytes())
-            .unwrap();
-    let package = decode_recipe_package_v1(&changed_package, 8).unwrap();
-    let mut changed = original.clone();
-    let mut at = 64;
-    while at < changed.len() {
-        let length = u32::from_be_bytes(changed[at + 4..at + 8].try_into().unwrap()) as usize;
-        let kind = changed[at + 1];
-        if [2, 3].contains(&kind) {
-            let recipe = u16::from_be_bytes(changed[at + 10..at + 12].try_into().unwrap());
-            let input = u32::from_be_bytes(changed[at + 12..at + 16].try_into().unwrap()) as usize;
-            assert_eq!(
-                evaluate_serialized_recipe_v1(&package, recipe, &changed[at + 20..at + 20 + input])
-                    .unwrap(),
-                changed[at + 20 + input..at + 8 + length]
-            );
-        }
-        if kind == 5 {
-            assert_eq!(length, changed_package.len());
-            changed[at + 8..at + 8 + length].copy_from_slice(&changed_package);
-        }
-        at += 8 + length;
-    }
-    let mut clean_cost = ResourceProjection::default();
-    assert!(
-        admit_route_prefix(&original, 2048, 112, 0, &mut clean_cost)
-            .unwrap()
-            .is_some()
-    );
-    let mut rejected_cost = ResourceProjection::default();
-    assert!(
-        admit_route_prefix(&changed, 2048, 112, 0, &mut rejected_cost)
-            .unwrap()
-            .is_none()
-    );
-    // The third embedded trace rejects and retains its VM charge.
-    assert_eq!(
-        rejected_cost.primitive_steps
-            + 5 * package.logical.recipe_primitive_steps(110).unwrap()
-            + package.logical.recipe_primitive_steps(30).unwrap()
-            + 4 * package.logical.recipe_primitive_steps(113).unwrap(),
-        clean_cost.primitive_steps
-    );
-}
-
-#[test]
-fn embedded_constructors_reject_changed_range_table_after_framed_examples_pass() {
-    use gb_bootstrap::recipe_wire_v1::{decode_recipe_package_v1, evaluate_serialized_recipe_v1};
-    let original = gb_bootstrap::route_v2::build_route_prefixes(&slice()).unwrap()[0].clone();
-    let mut changed_package =
-        gb_bootstrap::teaching_recipe_v2::build_teaching_recipe_package().unwrap();
+    let rows = frames(&original);
+    let (at, len) = rows[&6001];
+    let mut logical =
+        gb_bootstrap::recipe_wire_v2::expand_recipe_package_v2(&original[at..at + len], 8).unwrap();
     let mut cursor = 64;
-    let table_count = u16::from_be_bytes(changed_package[18..20].try_into().unwrap());
-    let mut changed_table = false;
-    for _ in 0..table_count {
-        let id = u16::from_be_bytes(changed_package[cursor..cursor + 2].try_into().unwrap());
-        let length = u32::from_be_bytes(
-            changed_package[cursor + 12..cursor + 16]
-                .try_into()
-                .unwrap(),
-        ) as usize;
-        if id == 22 {
-            // Bit100 is outside both ordinary range slices. Its all-ones
-            // mask position contains a source zero, so ordinary erasure still
-            // passes; template3's bit0 flip reveals the damaged range mask.
-            changed_package[cursor + 16 + 12] ^= 8;
-            changed_table = true;
-        }
-        cursor += 16 + length;
+    let nt = u16::from_be_bytes(logical[18..20].try_into().unwrap());
+    for _ in 0..nt {
+        cursor +=
+            16 + u32::from_be_bytes(logical[cursor + 12..cursor + 16].try_into().unwrap()) as usize;
     }
-    assert!(changed_table);
-    let package = decode_recipe_package_v1(&changed_package, 8).unwrap();
-    let mut changed = original.clone();
-    let mut at = 64;
-    let mut framed = 0;
-    while at < changed.len() {
-        let length = u32::from_be_bytes(changed[at + 4..at + 8].try_into().unwrap()) as usize;
-        match changed[at + 1] {
-            2 | 3 => {
-                let recipe = u16::from_be_bytes(changed[at + 10..at + 12].try_into().unwrap());
-                let input =
-                    u32::from_be_bytes(changed[at + 12..at + 16].try_into().unwrap()) as usize;
-                assert_eq!(
-                    evaluate_serialized_recipe_v1(
-                        &package,
-                        recipe,
-                        &changed[at + 20..at + 20 + input]
-                    )
-                    .unwrap(),
-                    changed[at + 20 + input..at + 8 + length],
-                );
-                framed += 1;
-            }
-            5 => {
-                assert_eq!(length, changed_package.len());
-                changed[at + 8..at + 8 + length].copy_from_slice(&changed_package);
-            }
-            _ => {}
-        }
-        at += 8 + length;
+    while u16::from_be_bytes(logical[cursor..cursor + 2].try_into().unwrap()) != 127 {
+        cursor +=
+            u32::from_be_bytes(logical[cursor + 28..cursor + 32].try_into().unwrap()) as usize;
     }
-    assert_eq!(framed, 33);
-    let mut clean_cost = ResourceProjection::default();
+    let end =
+        cursor + u32::from_be_bytes(logical[cursor + 28..cursor + 32].try_into().unwrap()) as usize;
+    let n = u16::from_be_bytes(logical[cursor + 4..cursor + 6].try_into().unwrap())
+        + u16::from_be_bytes(logical[cursor + 6..cursor + 8].try_into().unwrap());
+    let start = cursor + 32 + 12 * usize::from(n);
+    let node = (start..end)
+        .step_by(32)
+        .find(|p| logical[*p + 2] == 1 && logical[*p + 24..*p + 32] == 16406u64.to_be_bytes())
+        .unwrap();
+    logical[node + 24..node + 32].copy_from_slice(&16407u64.to_be_bytes());
+    let package = gb_bootstrap::recipe_wire_v2::encode_recipe_package_v2(&logical, 8).unwrap();
+    assert_eq!(package.len(), len);
+    let mut changed = original;
+    changed[at..at + len].copy_from_slice(&package);
+    let mut charged = ResourceProjection::default();
     assert!(
-        admit_route_prefix(&original, 2048, 112, 0, &mut clean_cost)
-            .unwrap()
-            .is_some()
-    );
-    let mut rejected_cost = ResourceProjection::default();
-    assert!(
-        admit_route_prefix(&changed, 2048, 112, 0, &mut rejected_cost)
+        admit_route_prefix(&changed, 2048, 112, 0, &mut charged)
             .unwrap()
             .is_none()
     );
-    assert_eq!(
-        rejected_cost.primitive_steps
-            + 10 * package.logical.recipe_primitive_steps(111).unwrap()
-            + 8 * package.logical.recipe_primitive_steps(110).unwrap()
-            + package.logical.recipe_primitive_steps(30).unwrap()
-            + 4 * package.logical.recipe_primitive_steps(113).unwrap(),
-        clean_cost.primitive_steps,
-    );
+    assert_eq!(charged.primitive_steps, 0);
 }

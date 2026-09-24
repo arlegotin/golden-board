@@ -61,6 +61,8 @@ _ACTIONS = (
     (28, ("01000002", "01000001", "03000000"), 2, 3, 3, (2, 1), 3, 24, 0, 3, 0),
     (26, ("01000001", "01000001"), 3, 6, 1, (1,), 0, 0, 0, 6, 0),
     (26, ("02000000", "03000000"), 2, 3, 1, (), 1, 21, 27, 6, 0),
+    (26, ("01000001", "01000002"), 3, 7, 1, (1,), 0, 0, 0, 6, 0),
+    (26, ("01000001", "02000000"), 3, 2, 1, (), 0, 0, 0, 6, 0),
 )
 
 
@@ -353,12 +355,12 @@ def build_content_teaching_v2(fixture_source: bytes) -> ContentTeachingV2:
             (48, bytes(mutations)),
             (6, b"".join(struct.pack(">BBBBHHBBBB", *row) for row in _ROLES)),
             (4, b"".join(struct.pack(">6H", *row) for row in _PRESENTATIONS)),
-            (8, _action_rows(base)),
+            (10, _action_rows(base)),
         )
         supplement = b"".join(count.to_bytes(2, "big") + raw for count, raw in blocks)
-        _require(len(supplement) == 1056)
+        _require(len(supplement) == 1120)
         value = len(base).to_bytes(4, "big") + base + len(supplement).to_bytes(4, "big") + supplement
-        _require(len(value) == 1639)
+        _require(len(value) == 1703)
         return ContentTeachingV2(base, value)
     except ContentTeachingError:
         raise

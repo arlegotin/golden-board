@@ -106,9 +106,16 @@ fn rebound_stale_content_context_cannot_replace_actual_stream() {
 fn rebound_carrier_with_all_route_calibrations_corrupt_has_no_source_fallback() {
     let mut d = fixture().clone();
     let mut candidate = validate_canonical_manifest(&d[1]).unwrap();
+    let V::Object(ownership) = validate_canonical_manifest(&d[3]).unwrap() else {
+        panic!("expected ownership object")
+    };
+    let (V::U64(side), V::U64(width)) = (&ownership["side"], &ownership["shell_width"]) else {
+        panic!("expected owned geometry")
+    };
+    let (side, width) = (*side as usize, *width as usize);
     for sector in 0..4 {
-        let (r, c) = gb_bootstrap::sector_cell_at(2048, 112, sector, 0).unwrap();
-        let flat = r * 2048 + c;
+        let (r, c) = gb_bootstrap::sector_cell_at(side, width, sector, 0).unwrap();
+        let flat = r * side + c;
         d[0][4 + flat / 8] ^= 1 << (7 - flat % 8);
     }
     rebind(&mut d, &mut candidate);
@@ -130,8 +137,8 @@ fn actual_recovery_feeds_both_evidence_producers() {
     assert_eq!(e.bodies().len(), 78);
     assert_eq!(e.required_stream().len(), 42432);
     assert_eq!(e.all_stream().len(), 55664);
-    assert!(e.prefixes().iter().all(|p| p.len() == 25791));
-    assert_eq!(e.first_use().len(), 129618);
+    assert!(e.prefixes().iter().all(|p| p.len() == 25424));
+    assert_eq!(e.first_use().len(), 492857);
     obj(&mut v).insert("result".into(), V::String("failure".into()));
     assert!(validate_recovery_provenance_v2(&serialize_manifest(&v).unwrap(), input(d)).is_err());
     // Optional development comparison export; never consumed as a test input.

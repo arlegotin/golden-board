@@ -227,12 +227,16 @@ VM logical resources, not adapter measurements or full damaged-path maxima.
 
 `declared_transport` keys: scope=`one-pass-complete-inventory-groups`,
 eh_codewords_per_unit=24, eh_decoder_calls, repetition_groups,
-repetition_symbol_calls, body_decoder_calls, primitive_steps,
-peak_recipe_scratch_bytes. Let H=G2+G5: EH calls=24*(Q+H), repetition groups=H,
-symbol calls=1728H, body calls=count of compressed version1/type3 sections.
-Steps=sum calls*observed package recipes30/113/202 declared steps; scratch is
-max of those called recipe scratch. This explicitly excludes bootstrap retries,
-route/adapter/native host work, conflicting candidates and unavailable paths;
+repetition_symbol_calls, complete_group_calls, roster_calls, body_decoder_calls,
+primitive_steps, peak_recipe_scratch_bytes. This is one complete catalog pass
+after inventory admission. Let G=G1+G2+G5 and H=G2+G5: diagnostic EH calls=24Q,
+repetition groups=H, nested symbol count=1728H, complete group120 calls=G,
+roster123 calls=G, body202 calls=count of compressed version1/type3 sections.
+Steps=sum these direct calls*observed recipes30/120/123/202 declared steps;
+nested symbols are already included in120 and receive no additional113 charge.
+Scratch is max of those called recipe scratch. This explicitly excludes first
+bootstrap127 and subsequent discovery/retries, route/adapter/native host work,
+multiple paths and failed discovery;
 it must not be renamed a full receiver limit or Gate4 pass.
 
 `realism` keys: result (`pass`/`fail`), failures (ordered strings). Derived from

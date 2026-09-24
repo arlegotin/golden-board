@@ -556,7 +556,7 @@ fn group(
     ids: &[u32],
     expected: Option<&Expected>,
 ) -> Group {
-    let allowed = |l: &Lane| {
+    let identity_agrees = |l: &Lane| {
         expected.map_or(
             l.block.profile_version == 8
                 && l.block.section_id == 1
@@ -568,7 +568,9 @@ fn group(
     let mut candidates = BTreeMap::<[u8; 191], Lane>::new();
     let present = ids.iter().any(|id| inputs.contains_key(id));
     for id in ids {
-        if let Some(lane) = lanes.get(id).filter(|l| allowed(l)) {
+        // Physical ownership cannot remove a locally valid profile8 packet
+        // from the union: it may conflict with another original or raw REP.
+        if let Some(lane) = lanes.get(id).filter(|l| l.block.profile_version == 8) {
             candidates
                 .entry(lane.raw)
                 .and_modify(|old| old.verified |= lane.verified)
@@ -619,7 +621,7 @@ fn group(
                 }),
             }
         }
-        if let Some(mut lane) = decode_lane(&repetition).filter(|l| allowed(l)) {
+        if let Some(mut lane) = decode_lane(&repetition).filter(|l| l.block.profile_version == 8) {
             lane.verified = false;
             candidates.entry(lane.raw).or_insert(lane);
         }
@@ -635,6 +637,12 @@ fn group(
         },
         1 => {
             let lane = candidates.into_values().next().unwrap();
+            if !identity_agrees(&lane) {
+                return Group {
+                    state: FragmentState::Corrupt,
+                    lane: None,
+                };
+            }
             Group {
                 state: if lane.verified {
                     FragmentState::Verified
@@ -758,13 +766,18 @@ fn diagnostic(
         }
     }
     if let Some(lane) = lane {
-        if expected.is_some_and(|e| !e.agrees(&lane.block)) {
+        if expected.is_some() && lane.block.profile_version != 8 {
             return row;
         }
-        row.profile_version = Some(lane.block.profile_version);
-        row.section_id = lane.block.section_id;
-        row.semantic_copy_id = lane.block.semantic_copy_id;
-        row.fragment_index = lane.block.fragment_index;
+        // An admitted catalog names the physical row, while its local check
+        // supplies the state/hash even if that packet names another owner.
+        // Without a catalog only the observed local identity is available.
+        if expected.is_none() {
+            row.profile_version = Some(lane.block.profile_version);
+            row.section_id = lane.block.section_id;
+            row.semantic_copy_id = lane.block.semantic_copy_id;
+            row.fragment_index = lane.block.fragment_index;
+        }
         row.state = if lane.verified {
             FragmentState::Verified
         } else {
@@ -872,4 +885,142 @@ fn diagnostic_sections<'a>(
             )
         })
         .collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn packet(section: u32, copy: u16, profile: u16) -> Input {
+        let raw = crate::encode_common_block(&CommonBlock {
+            profile_version: profile,
+            section_id: section,
+            semantic_copy_id: copy,
+            section_type: 1,
+            section_version: 2,
+            fragment_index: 0,
+            fragment_count: 1,
+            section_envelope_length: 24,
+            payload: vec![0x5a; 24],
+        })
+        .unwrap();
+        Input {
+            bytes: candidate::encode_eh_unit(&raw).to_vec(),
+            erased: vec![],
+        }
+    }
+
+    fn expected() -> Expected {
+        Expected {
+            id: 400,
+            kind: 1,
+            version: 2,
+            index: 0,
+            count: 1,
+            length: 24,
+            replica: 0,
+            factor: 5,
+        }
+    }
+
+    fn local_lanes(inputs: &BTreeMap<u32, Input>) -> BTreeMap<u32, Lane> {
+        inputs
+            .iter()
+            .filter_map(|(id, input)| decode_lane(input).map(|lane| (*id, lane)))
+            .collect()
+    }
+
+    #[test]
+    fn oracle_group_conflict_precedes_expected_identity() {
+        for (section, copy) in [(401, 0), (400, 1)] {
+            let inputs = BTreeMap::from([(6, packet(400, 0, 8)), (7, packet(section, copy, 8))]);
+            let lanes = local_lanes(&inputs);
+            assert_eq!(lanes.len(), 2);
+            let result = group(&inputs, &lanes, &[6, 7, 8, 9, 10], Some(&expected()));
+            assert_eq!(result.state, FragmentState::Ambiguous);
+            assert!(result.lane.is_none());
+        }
+    }
+
+    #[test]
+    fn oracle_group_original_and_raw_repetition_conflict_in_both_identity_directions() {
+        for (original, repeated) in [(400, 401), (401, 400)] {
+            let mut inputs = BTreeMap::from([(6, packet(original, 0, 8))]);
+            for index in 0..4 {
+                let mut damaged = packet(repeated, 0, 8);
+                // Each lane has an uncorrectable double error in word zero;
+                // disjoint error positions leave a three-vote raw majority.
+                for bit in [index * 2, index * 2 + 1] {
+                    damaged.bytes[bit / 8] ^= 128 >> (bit % 8);
+                }
+                assert!(decode_lane(&damaged).is_none());
+                inputs.insert(7 + index as u32, damaged);
+            }
+            let lanes = local_lanes(&inputs);
+            assert_eq!(lanes.len(), 1);
+            let result = group(&inputs, &lanes, &[6, 7, 8, 9, 10], Some(&expected()));
+            assert_eq!(result.state, FragmentState::Ambiguous);
+            assert!(result.lane.is_none());
+        }
+    }
+
+    #[test]
+    fn oracle_bootstrap_conflict_keeps_all_local_candidates() {
+        let inputs = BTreeMap::from([(1, packet(1, 0, 8)), (2, packet(401, 0, 8))]);
+        let result = group(&inputs, &local_lanes(&inputs), &[1, 2, 3, 4, 5], None);
+        assert_eq!(result.state, FragmentState::Ambiguous);
+        assert!(result.lane.is_none());
+    }
+
+    #[test]
+    fn oracle_wrong_owner_rejects_group_but_preserves_local_diagnostic() {
+        let inputs = BTreeMap::from([(6, packet(401, 1, 8))]);
+        let lanes = local_lanes(&inputs);
+        let wanted = expected();
+        let result = group(&inputs, &lanes, &[6, 7, 8, 9, 10], Some(&wanted));
+        assert_eq!(result.state, FragmentState::Corrupt);
+        assert!(result.lane.is_none());
+        let lane = &lanes[&6];
+        let row = diagnostic(6, true, Some(lane), Some(&wanted), false);
+        assert_eq!(row.state, FragmentState::Verified);
+        assert_eq!(
+            (
+                row.profile_version,
+                row.section_id,
+                row.semantic_copy_id,
+                row.fragment_index
+            ),
+            (Some(8), 400, 0, 0)
+        );
+        assert_eq!((row.replica_index, row.physical_replica_count), (0, 5));
+        assert_eq!(
+            row.common_block_sha256,
+            format!("{:x}", Sha256::digest(lane.raw))
+        );
+        let fallback = diagnostic(6, true, Some(lane), None, false);
+        assert_eq!((fallback.section_id, fallback.semantic_copy_id), (401, 1));
+        assert_eq!(fallback.common_block_sha256, row.common_block_sha256);
+    }
+
+    #[test]
+    fn oracle_foreign_profiles_are_only_diagnostics() {
+        let inputs = BTreeMap::from([(6, packet(400, 0, 8)), (7, packet(400, 0, 7))]);
+        let lanes = local_lanes(&inputs);
+        assert_eq!(lanes.len(), 2);
+        let result = group(&inputs, &lanes, &[6, 7, 8, 9, 10], Some(&expected()));
+        assert_eq!(result.state, FragmentState::Verified);
+        assert_eq!(result.lane.unwrap().raw, lanes[&6].raw);
+        let row = diagnostic(7, true, Some(&lanes[&7]), Some(&expected()), false);
+        assert_eq!(row.state, FragmentState::Corrupt);
+        assert_eq!(row.common_block_sha256, ZERO);
+        let fallback = diagnostic(2, true, Some(&lanes[&7]), None, true);
+        assert_eq!(
+            (fallback.profile_version, fallback.state),
+            (Some(7), FragmentState::Verified)
+        );
+        assert_eq!(
+            (fallback.replica_index, fallback.physical_replica_count),
+            (1, 5)
+        );
+    }
 }

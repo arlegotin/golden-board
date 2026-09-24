@@ -5,7 +5,8 @@ from pathlib import Path
 from unittest.mock import patch
 import unittest
 
-from golden_board import canonical_manifest, content
+from golden_board import canonical_manifest, content, m2_knowledge_v2 as knowledge
+from golden_board.m2_route_receiver_v2 import decode_observed_route_v2, RouteRejectionV2
 from golden_board.m2_knowledge_v2 import (
     KnowledgeUseError, build_knowledge_use_v2, validate_knowledge_use_v2,
 )
@@ -71,6 +72,33 @@ class CarriedKnowledge(unittest.TestCase):
         self.assertTrue(all(r['success'] is False for r in value['ablation_rows']))
         self.assertEqual([r['repair_id'] for r in value['repair_coverage']],
                          [f'C{i:02}' for i in range(1,12)])
+
+    def test_fact10_contradiction_requires_its_exact_binding_boundary(self):
+        prefix=self.prefixes[0]
+        route=decode_observed_route_v2(prefix,2048,112,0)
+        records=knowledge._records(prefix)
+        definition=next(r for r in records if r['record_id']==1001)
+        changed=knowledge._ablate(prefix,definition,'contradict')
+        binding=knowledge._fact10_binding_cost(prefix,records,route.package)
+        full=(route.primitive_steps,route.peak_scratch_bytes)
+        with self.assertRaises(RouteRejectionV2) as caught:
+            decode_observed_route_v2(changed,2048,112,0)
+        error=caught.exception
+        self.assertEqual(error.reason,'route-v2.group-primary')
+        self.assertLess(binding[0],full[0])
+        self.assertTrue(knowledge._ablation_rejection_matches(10,'contradict',error,full,binding))
+        for fact,operator,reason,cost in (
+            (9,'contradict',error.reason,binding),
+            (10,'remove',error.reason,binding),
+            (10,'contradict','route-v2.semantic.group',binding),
+            (10,'contradict','route-v2.example-result',binding),
+            (10,'contradict',error.reason,(binding[0]-1,binding[1])),
+            (10,'contradict',error.reason,full),
+        ):
+            with self.subTest(fact=fact,operator=operator,reason=reason,cost=cost):
+                wrong=RouteRejectionV2(reason,*cost)
+                self.assertFalse(knowledge._ablation_rejection_matches(
+                    fact,operator,wrong,full,binding))
 
     def test_missing_or_typed_but_false_context_is_not_complete_evidence(self):
         for updates in ({'required_stream':None},{'all_stream':None},

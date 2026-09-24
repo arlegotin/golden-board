@@ -1,4 +1,4 @@
-use gb_bootstrap::recipe_wire_v1::decode_recipe_package_v1;
+use gb_bootstrap::recipe_wire_v2::decode_recipe_package_v2;
 use gb_bootstrap::route_semantics_v2::{ContextState, validate_definitions};
 use std::collections::BTreeMap;
 use std::sync::OnceLock;
@@ -37,7 +37,7 @@ fn input() -> &'static (
                 values.push(p[14..].to_vec());
             }
             if prefix[at + 1] == 5 {
-                package = Some(decode_recipe_package_v1(p, 8).unwrap());
+                package = Some(decode_recipe_package_v2(p, 8).unwrap());
             }
             at += 8 + n;
         }
@@ -58,20 +58,11 @@ fn validates_observed_relationships_and_retains_unresolved_contexts() {
 }
 
 #[test]
-fn same_decoded_result_cannot_disconnect_the_case7_constructed_input() {
-    use gb_bootstrap::recipe_wire_v1::evaluate_serialized_recipe_v1;
+fn case_identity_cannot_be_replaced_by_another_valid_constructed_case() {
     let (_, values, package) = input();
-    let correct = &values[9][373..386];
-    let mut misplaced = values[7][112..121].to_vec();
-    misplaced.extend([0, 0, 0, 0]);
-    assert_ne!(correct, &misplaced);
-    assert_eq!(
-        evaluate_serialized_recipe_v1(package, 30, correct).unwrap(),
-        evaluate_serialized_recipe_v1(package, 30, &misplaced).unwrap(),
-    );
     let mut changed = values.clone();
-    changed[9][373..386].copy_from_slice(&misplaced);
-    assert_eq!(&changed[9][162..354], &values[9][162..354]);
+    let other = values[9][22 + 57 * 7..22 + 57 * 8].to_vec();
+    changed[9][22 + 57 * 4..22 + 57 * 5].copy_from_slice(&other);
     assert!(
         validate_definitions(
             &changed.iter().map(Vec::as_slice).collect::<Vec<_>>(),
@@ -80,6 +71,32 @@ fn same_decoded_result_cannot_disconnect_the_case7_constructed_input() {
         .is_err()
     );
 }
+#[test]
+fn selection_discriminants_cannot_be_forged_or_replaced_by_valid_rows() {
+    let (_, values, package) = input();
+    let start = 206 + 583 + 2 + 48 * 14 + 2 + 6 * 12 + 2 + 4 * 12 + 2;
+    for index in [8, 9] {
+        for mutation in 0..3 {
+            let mut changed = values.clone();
+            let at = start + 32 * index;
+            match mutation {
+                0 => changed[11][at..at + 32]
+                    .copy_from_slice(&values[11][start + 32 * 6..start + 32 * 7]),
+                1 => changed[11][at + 16] = 6,
+                _ => changed[11][at + 20] = 2,
+            }
+            assert!(
+                validate_definitions(
+                    &changed.iter().map(Vec::as_slice).collect::<Vec<_>>(),
+                    package
+                )
+                .is_err(),
+                "row {index} mutation {mutation}"
+            );
+        }
+    }
+}
+
 #[test]
 fn contradictions_in_each_fact_and_miniature_consequence_reject() {
     let (_, values, package) = input();
@@ -115,9 +132,9 @@ fn contradictions_in_each_fact_and_miniature_consequence_reject() {
         (9, 174 + 3 * 24 + 7),
         (10, 73),
         (11, 210),
-        (11, 206 + 1639 - 1),
-        (11, 2013 + 146),
-        (11, 2013 + 321),
+        (11, 206 + 1703 - 1),
+        (11, 2077 + 146),
+        (11, 2077 + 321),
     ] {
         let mut changed = values.clone();
         changed[fact][at] ^= 1;

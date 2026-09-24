@@ -36,6 +36,16 @@ in the historical sections below, without changing final thresholds, freshness,
 assistance, saved-method checkpoints or retry limits. No names, dates, timers,
 agreements or new participant forms are introduced.
 
+The active complete recovery composition is owned by
+[`spec/recovery-program-v2.md`](../spec/recovery-program-v2.md), with its neutral
+program source in `spec/recovery-program-v2.toml` and canonical compact encoding
+in [`spec/recipe-wire-v2.md`](../spec/recipe-wire-v2.md). Physical inventory
+ownership precedes interpretation of damaged member headers. Full local
+candidate bytes determine conflicts before expected identity determines
+acceptance; a foreign candidate cannot be relocated or discarded to obtain a
+pass. Route examples and actual observed recovery use the same general carried
+procedures. These source repairs do not establish a human or production gate.
+
 ## 1. Purpose, authority, and completion meaning
 
 This document turns roadmap M2 into an executable development contract. It is

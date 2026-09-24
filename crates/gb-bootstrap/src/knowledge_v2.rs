@@ -331,6 +331,36 @@ fn coverage() -> V {
     )
 }
 
+// Case7 is bound before its VM invocation; compute the exact earlier framed
+// schedule from the observed descriptors rather than a fixed step constant.
+fn fact10_binding_cost(
+    frames: &[Frame<'_>],
+    package: &crate::recipe::RecipePackage,
+) -> Result<ResourceProjection> {
+    let mut cost = ResourceProjection::default();
+    for frame in frames.iter().filter(|f| matches!(f.kind, 2 | 3)) {
+        let id = u16_at(frame.payload, 2)?;
+        if frame.id % 10000 == 1004 {
+            need(frame.kind == 2 && id == 126, KnowledgeError::Probe)?;
+            return Ok(cost);
+        }
+        cost.primitive_steps = cost
+            .primitive_steps
+            .checked_add(
+                package
+                    .recipe_primitive_steps(id)
+                    .ok_or(KnowledgeError::Probe)?,
+            )
+            .ok_or(KnowledgeError::ResourceLimit)?;
+        cost.peak_scratch_bytes = cost.peak_scratch_bytes.max(
+            package
+                .recipe_peak_scratch_bytes(id)
+                .ok_or(KnowledgeError::Probe)?,
+        );
+    }
+    Err(KnowledgeError::Probe)
+}
+
 /// Revalidate each route, its recovered context and every owned rejection probe.
 /// Builders and host expected outputs are never substituted for supplied bytes.
 pub fn build_knowledge_use_v2(input: KnowledgeInputs<'_>) -> Result<Vec<u8>> {
@@ -369,6 +399,7 @@ pub fn build_knowledge_use_v2(input: KnowledgeInputs<'_>) -> Result<Vec<u8>> {
         )?;
         let frames = frames(raw)?;
         let (facts, examples, definitions) = facts_and_examples(&frames)?;
+        let binding_cost = fact10_binding_cost(&frames, &route.package().logical)?;
         route_rows.push(object([
             ("sector_id", number(sector)),
             ("package_sha256", digest(&route.package().encoded)),
@@ -424,12 +455,14 @@ pub fn build_knowledge_use_v2(input: KnowledgeInputs<'_>) -> Result<Vec<u8>> {
                 )
                 .map_err(route_error)?;
                 need(rejected.is_none(), KnowledgeError::Probe)?;
-                // Contradictions reach the same complete VM schedule and fail
-                // the separately checked numeric relation. Removal fails the
-                // closed header/skeleton before any carried VM execution.
+                // Fact10's final-byte contradiction reaches the exact case7
+                // binding boundary. Other numeric contradictions reach the full
+                // schedule; removal fails before any carried VM execution.
                 need(
                     mutant_cost
-                        == if contradict {
+                        == if contradict && fact == 10 {
+                            binding_cost
+                        } else if contradict {
                             cost
                         } else {
                             ResourceProjection::default()

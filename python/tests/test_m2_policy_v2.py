@@ -5,7 +5,7 @@ import unittest
 from golden_board import bootstrap, m2_codec, m2_policy
 from golden_board import m2_policy_v2 as v2
 from golden_board.m2_teaching_recipe_v2 import build_teaching_recipe_package
-from golden_board.recipe_wire_v1 import decode_recipe_package_v1
+from golden_board.recipe_wire_v2 import decode_recipe_package_v2
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -20,6 +20,11 @@ class DevelopmentOwners(unittest.TestCase):
         policy = v2.load_decoder_policy_v2(*self.raws)
         self.assertEqual(policy.result_schema_version, 2)
         self.assertEqual(policy.establishing_profile_versions, frozenset((8,)))
+        profile_owner = v2.load_profile_policy_v2(self.raws[0]).document
+        self.assertEqual(profile_owner['candidate']['recipe_wire_version'], 2)
+        self.assertEqual(profile_owner['owners']['recipe_wire'], 'spec/recipe-wire-v2.md')
+        self.assertEqual(profile_owner['owners']['recovery_program'], 'spec/recovery-program-v2.md')
+        self.assertEqual(profile_owner['owners']['recovery_program_source'], 'spec/recovery-program-v2.toml')
         self.assertEqual(tuple(p.profile_version for p in policy.registry_profiles), (8,2,3,4,5,6,7))
         self.assertEqual(policy.maximum_units, 2389)
         self.assertEqual(policy.policy_ceilings['dependency_count_per_section'], bootstrap.DEPENDENCY_MAX)
@@ -40,7 +45,7 @@ class DevelopmentOwners(unittest.TestCase):
     def test_declared_resources_are_actual_program_resources_not_damage_results(self):
         policy = v2.load_decoder_policy_v2(*self.raws)
         raw = build_teaching_recipe_package()
-        package = decode_recipe_package_v1(raw, 8).logical
+        package = decode_recipe_package_v2(raw, 8).logical
         self.assertEqual(policy.obs_units_resource_profiles[0][2], sha256(raw).hexdigest())
         by_id = {r.recipe_id:r for r in package.recipes}
         self.assertEqual(policy.obs_units_resource_profiles[0][3:],

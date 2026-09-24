@@ -2,7 +2,7 @@ from dataclasses import replace
 import os
 import unittest
 
-from golden_board import body_codec_v1, recipe_wire_v1
+from golden_board import body_codec_v1, recipe_wire_v2
 from golden_board.m2_teaching_recipe_v2 import build_teaching_recipe_package
 from golden_board.m2_program_refinement_v2 import mapping_program_refined,body_program_refined,transport_programs_refined
 
@@ -10,7 +10,7 @@ from golden_board.m2_program_refinement_v2 import mapping_program_refined,body_p
 class ProgramRefinement(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.package = recipe_wire_v1.decode_recipe_package_v1(build_teaching_recipe_package(),8)
+        cls.package = recipe_wire_v2.decode_recipe_package_v2(build_teaching_recipe_package(),8)
 
     def test_closure_checks_every_instruction_and_referenced_table(self):
         self.assertTrue(mapping_program_refined(self.package))
@@ -43,7 +43,7 @@ class ProgramRefinement(unittest.TestCase):
                     expected = (0,(len(decoded).to_bytes(2,'big'),decoded+bytes(16384-len(decoded))))
                 except ValueError:
                     expected = (3,())
-                result = recipe_wire_v1.evaluate_recipe_v1(self.package,202,
+                result = recipe_wire_v2.evaluate_recipe_v2(self.package,202,
                     (raw+b'\xff'*(16384-len(raw)),len(raw).to_bytes(2,'big')))
                 self.assertEqual((result.status,result.outputs),expected)
 

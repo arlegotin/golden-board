@@ -7,7 +7,7 @@ from .m2_resources_v2 import (
     ADAPTER_KERNELS, RESOURCE_OWNER_SHA256, checked, add, multiply, content_workspace,
 )
 
-BOUNDS_OWNER_SHA256 = '6e96a646adfa4628ca4b786abe02cb60f50c2c6fc67ff93b077a967c7568b765'
+BOUNDS_OWNER_SHA256 = '0c936198333c1d15839dbe5595c28c590997ce5b8c4439d668c09c9f1873e617'
 _PATHS = ('spec/profile-policy-v2.toml', 'spec/profile-limits-v2.toml',
           'spec/damage-policy-v2.toml', 'spec/resource-accounting-v2.md',
           'spec/receiver-bounds-v2.md')
@@ -59,14 +59,14 @@ def derive_receiver_bounds_v2(profile_raw, limits_raw, damage_raw, resource_raw,
     content = content_workspace(b, r, _product(4096,4096))
     result = _sum(_product(_sum(i, _product(g,q)), _sum(48,e)),
                   _product(_sum(u, _product(g,q)), 40+191), _product(48,p), _product(2,b))
-    route_calls = _product(a, max(_sum(c['route_records'],3),62))
+    route_calls = _product(a, max(_sum(c['route_records'],3),44))
     raw_rows = (
         ('observation', 1, c['observation_frame_bytes'], 0),
         ('square-view', v, c['raw_bits'], 0),
         ('shell-read', _product(2,a), _product(8,f), f),
         ('route-frame', a, f, _product(8,c['route_records'])),
         ('recipe-parse', _product(a,c['route_records']), c['recipe_package_bytes'], parsing),
-        ('program-refinement', _sum(a,m), nodes, _sum(_product(32,nodes),_product(8,edges),_product(8,tables))),
+        ('program-refinement', _sum(a,p,m), nodes, _sum(_product(32,nodes),_product(8,edges),_product(8,tables))),
         ('route-example', route_calls, f, _sum(f,_product(64,c['recipe_package_bytes']),8*128)),
         ('definition-validation', a, f, definitions),
         ('mapping-search', a, _product(4,q), 64),
@@ -88,7 +88,7 @@ def derive_receiver_bounds_v2(profile_raw, limits_raw, damage_raw, resource_raw,
         raise ValueError('receiver-bounds-kernels')
     adapters = [dict(kernel=key,calls=checked(calls),reference_input_units=_product(calls,units),
                      peak_workspace_bytes=checked(workspace)) for key,calls,units,workspace in raw_rows]
-    steps = _product(c['recipe_primitive_steps'], _sum(route_calls,_product(24,l),_product(1728+24,k),m))
+    steps = _product(c['recipe_primitive_steps'], _sum(route_calls,_product(24,l),_product(1728+24+2,k),m))
     peak = _sum(c['raw_bits'], _product(q,_sum(8,2*255,_product(g,199))),
                 _product(a,c['route_records'],storage), _product(a,_sum(f,_product(16,c['route_records']))),
                 _product(c['section_attempts'],_sum(e,8)),

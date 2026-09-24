@@ -35,7 +35,7 @@ class PhysicalEvidence(unittest.TestCase):
         self.assertEqual(value['scope'], 'physical-predicates-only')
         self.assertNotIn('summary', value)
         self.assertEqual([r['witness_count'] for r in value['predicate_rows']],
-                         [3326976,4194304,867328,3326400,4194304,2688768,59286,1115])
+                         [3297856,4161600,863744,3297024,4161600,2688768,58776,1098])
         self.assertTrue(all(r['result']=='pass' and r['violation_count']==0
                             for r in value['predicate_rows']),value['predicate_rows'])
 
@@ -82,7 +82,7 @@ class PhysicalEvidence(unittest.TestCase):
 
         def first_anchor(actual, side):
             self.assertIs(actual,candidate)
-            self.assertEqual(side,57)  # owned I=1824 damage square
+            self.assertEqual(side,56)  # owned I=1816 damage square
             return ((112,112),)
 
         def record_inverse(actual, physical):
@@ -93,7 +93,7 @@ class PhysicalEvidence(unittest.TestCase):
                 patch.object(type(candidate),'inverse',new=record_inverse):
             proof.closure_evidence(candidate)
         self.assertEqual(physical_cells,
-                         {row*1824+column for row in range(57) for column in range(57)})
+                         {row*1816+column for row in range(56) for column in range(56)})
 
     def test_shell_span_class_cannot_be_relabelled_as_headroom(self):
         ownership=canonical_manifest.validate_canonical_manifest(self.inputs[2])
@@ -105,7 +105,7 @@ class PhysicalEvidence(unittest.TestCase):
         rows={row['predicate_id']:row for row in result['predicate_rows']}
         self.assertGreater(rows['shell-sector-total-partition']['violation_count'],0)
         self.assertGreater(rows['owner-factor-ledger-reconciliation']['violation_count'],0)
-        self.assertEqual(rows['shell-sector-total-partition']['witness_count'],867328)
+        self.assertEqual(rows['shell-sector-total-partition']['witness_count'],863744)
 
     def test_route_prefix_length_is_cross_bound_to_shell_extent(self):
         with self.assertRaises(proof.PhysicalEvidenceError):
@@ -116,13 +116,13 @@ class PhysicalEvidence(unittest.TestCase):
         candidate=proof.admit_physical_inputs(*self.inputs)
         groups=(False,)*len(candidate.group_specs())
         counts={'all-cells':candidate.side**2}
-        self.assertEqual(proof.inventory_evidence(candidate,groups,counts),(1115,0))
+        self.assertEqual(proof.inventory_evidence(candidate,groups,counts),(1098,0))
         for deps,violations in (([100,101,102],4),([17,18],2)):
             sections=tuple(dict(row,dependency_ids=deps) if row['section_id']==2 else row
                            for row in candidate.sections)
             with self.subTest(dependencies=deps):
                 self.assertEqual(proof.inventory_evidence(
-                    replace(candidate,sections=sections),groups,counts),(1115,violations))
+                    replace(candidate,sections=sections),groups,counts),(1098,violations))
 
 
 if __name__=='__main__':

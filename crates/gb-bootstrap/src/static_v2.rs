@@ -11,7 +11,7 @@ use sha2::{Digest, Sha256};
 use crate::carrier::{CarrierError, CellOwner, ShellOwner};
 use crate::carrier_v2::{Carrier, SearchFailure, build_carrier, derive_capacity};
 use crate::mapping_v2::{Mapping, derive};
-use crate::recipe_wire_v1::{decode_recipe_package_v1, expand_recipe_package_v1};
+use crate::recipe_wire_v2::{decode_recipe_package_v2, expand_recipe_package_v2};
 
 type Result<T> = std::result::Result<T, CarrierError>;
 type Object = BTreeMap<String, V>;
@@ -1246,8 +1246,8 @@ fn package(prefixes: &[Vec<u8>; 4], q: u64, groups: [u64; 3], compressed: u64) -
     }
     require(packages.windows(2).all(|p| p[0] == p[1]))?;
     let raw = &packages[0];
-    let parsed = decode_recipe_package_v1(raw, 8).map_err(|_| CarrierError::Recipe)?;
-    let expanded = expand_recipe_package_v1(raw, 8).map_err(|_| CarrierError::Recipe)?;
+    let parsed = decode_recipe_package_v2(raw, 8).map_err(|_| CarrierError::Recipe)?;
+    let expanded = expand_recipe_package_v2(raw, 8).map_err(|_| CarrierError::Recipe)?;
     let mut cursor = 64usize;
     for _ in 0..u16_at(&expanded, 18)? {
         cursor = cursor
@@ -1309,11 +1309,19 @@ fn package(prefixes: &[Vec<u8>; 4], q: u64, groups: [u64; 3], compressed: u64) -
         ("prefix_sha256", a(prefixes.iter().map(|p| s(digest(p))))),
     ]);
     let repeated = add(groups[1], groups[2])?;
-    let eh_calls = mul(24, add(q, repeated)?)?;
+    let eh_calls = mul(24, q)?;
     let symbol_calls = mul(1728, repeated)?;
+    let group_calls = add(groups[0], repeated)?;
     let mut steps = 0;
     let mut scratch = 0;
-    for (id, calls) in [(30, eh_calls), (113, symbol_calls), (202, compressed)] {
+    // One catalog pass after inventory admission. Repetition-symbol work is
+    // included in complete120; acquisition/bootstrap127 belong to full sidecars.
+    for (id, calls) in [
+        (30, eh_calls),
+        (120, group_calls),
+        (123, group_calls),
+        (202, compressed),
+    ] {
         steps = add(
             steps,
             mul(
@@ -1339,6 +1347,8 @@ fn package(prefixes: &[Vec<u8>; 4], q: u64, groups: [u64; 3], compressed: u64) -
         ("eh_decoder_calls", n(eh_calls)),
         ("repetition_groups", n(repeated)),
         ("repetition_symbol_calls", n(symbol_calls)),
+        ("complete_group_calls", n(group_calls)),
+        ("roster_calls", n(group_calls)),
         ("body_decoder_calls", n(compressed)),
         ("primitive_steps", n(steps)),
         ("peak_recipe_scratch_bytes", n(scratch)),

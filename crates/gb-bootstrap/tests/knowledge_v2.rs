@@ -149,6 +149,59 @@ fn complete_proof_has_observed_spans_and_distinct_rejection_classes() {
 }
 
 #[test]
+fn fact10_contradiction_fails_at_its_exact_case7_binding_boundary() {
+    use gb_bootstrap::damage::ResourceProjection;
+    use gb_bootstrap::route_receiver_v2::admit_route_prefix;
+    let raw = &fixture().prefixes[0];
+    let mut full = ResourceProjection::default();
+    let route = admit_route_prefix(raw, 2048, 112, 0, &mut full)
+        .unwrap()
+        .unwrap();
+    let mut binding = ResourceProjection::default();
+    let mut cursor = 64;
+    let mut changed = raw.clone();
+    let mut reached = false;
+    while cursor < raw.len() {
+        let kind = raw[cursor + 1];
+        let id = u16::from_be_bytes(raw[cursor + 2..cursor + 4].try_into().unwrap());
+        let end = cursor
+            + 8
+            + u32::from_be_bytes(raw[cursor + 4..cursor + 8].try_into().unwrap()) as usize;
+        if id == 1001 {
+            changed[end - 1] ^= 1;
+        }
+        if id == 1004 {
+            reached = true;
+            break;
+        }
+        if matches!(kind, 2 | 3) {
+            let recipe = u16::from_be_bytes(raw[cursor + 10..cursor + 12].try_into().unwrap());
+            binding.primitive_steps += route
+                .package()
+                .logical
+                .recipe_primitive_steps(recipe)
+                .unwrap();
+            binding.peak_scratch_bytes = binding.peak_scratch_bytes.max(
+                route
+                    .package()
+                    .logical
+                    .recipe_peak_scratch_bytes(recipe)
+                    .unwrap(),
+            );
+        }
+        cursor = end;
+    }
+    assert!(reached && binding.primitive_steps < full.primitive_steps);
+    let mut actual = ResourceProjection::default();
+    assert!(
+        admit_route_prefix(&changed, 2048, 112, 0, &mut actual)
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(actual, binding);
+}
+
+#[test]
 fn missing_context_bad_geometry_and_unbounded_inputs_reject() {
     let f = fixture();
     for side in [0, 63, 2041, 2056] {

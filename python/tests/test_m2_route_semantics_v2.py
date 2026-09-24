@@ -25,13 +25,13 @@ class NumericRouteSemantics(unittest.TestCase):
             'reports/game-set-v0.bin', 'spec/content-v0.md',
             'spec/constants-v0.toml', 'spec/curriculum-v0.toml')))
         cls.route = decode_observed_route_v2(
-            build_route_prefixes_v2(cls.compiled)[0], 2048, 112, 0)
+            build_route_prefixes_v2(cls.compiled)[0], 2040, 112, 0)
 
     def validate(self, definitions=None, package=None):
         return validate_local_definitions(
             self.route.definitions if definitions is None else definitions,
             self.route.package if package is None else package,
-            side=2048, width=112, sector=0)
+            side=2040, width=112, sector=0)
 
     def test_observed_facts_then_recovered_context_without_source_access(self):
         with patch('builtins.open', side_effect=AssertionError('source access')):
@@ -54,28 +54,26 @@ class NumericRouteSemantics(unittest.TestCase):
             with self.subTest(fact=index+1), self.assertRaises(DecoderError):
                 self.validate(tuple(definitions))
 
-    def test_group_traces_bind_raw_candidates_identity_and_unknown_symbols(self):
-        # Keep all outer framing valid; every context/derivation is checked
-        # independently of the generic VM's successful execution.
-        offsets = (330,140,174+4*24+5,174+7*24+8,360,363,368,369,370,
-                   373+7,373+10,391,400,410,442)
-        offsets += tuple(base+offset for base in (61,81) for offset in (0,2,6,8,10,12,14,16))
+    def test_complete_group_traces_bind_queries_identity_and_all_result_fields(self):
+        offsets = list(range(0,22,2)) + [21]
+        for case in (0,3,4,6,7):
+            offsets.extend(22+57*case+field for field in (0,4,5,7,11,32,33,56))
+        offsets.extend(22+57*7+field for field in (12,14,18,20,22,24,26,28))
         for offset in offsets:
             definitions = list(self.route.definitions)
-            raw = bytearray(definitions[9]);raw[offset] ^= 1
+            raw = bytearray(definitions[9])
+            raw[offset] ^= 1
             definitions[9] = bytes(raw)
             with self.subTest(offset=offset), self.assertRaises(DecoderError):
                 self.validate(tuple(definitions))
 
-    def test_vm_consistent_verified_and_identity_lies_do_not_override_observations(self):
-        for at,flag in ((246,7),(342,8)):
-            definitions=list(self.route.definitions)
-            raw=bytearray(definitions[9])
-            raw[at+flag]=1
-            if flag==7:raw[at+10]=2  # corrected candidate falsely called verified
-            else:raw[at+11]=1  # same A moved into foreign physical ownership
-            definitions[9]=bytes(raw)
-            with self.subTest(flag=flag),self.assertRaises(DecoderError):
+    def test_verified_and_identity_claims_cannot_override_constructed_observations(self):
+        for case, field, claimed in ((3,32,2),(7,33,1)):
+            definitions = list(self.route.definitions)
+            raw = bytearray(definitions[9])
+            raw[22+57*case+field] = claimed
+            definitions[9] = bytes(raw)
+            with self.subTest(case=case), self.assertRaisesRegex(DecoderError,'fact10.complete-result'):
                 self.validate(tuple(definitions))
 
     def test_context_claim_is_deferred_then_bound_to_actual_stream(self):
@@ -93,13 +91,30 @@ class NumericRouteSemantics(unittest.TestCase):
         # Fact12: three contexts18 + layouts/kinds188 + length4 + miniature575
         # + supplement length4. The first scalar row's acceptance is at +14.
         start = 18+188+4+575+4
-        for offset in (start+2+13, start+1056-1):
+        for offset in (start+2+13, start+1120-1):
             definitions = list(self.route.definitions)
             raw = bytearray(definitions[11])
             raw[offset] ^= 1
             definitions[11] = bytes(raw)
             with self.subTest(offset=offset), self.assertRaises(DecoderError):
                 self.validate(tuple(definitions))
+
+    def test_selection_discriminants_cannot_be_forged_or_replaced_by_valid_rows(self):
+        start = 206 + 583 + 2 + 48 * 14 + 2 + 6 * 12 + 2 + 4 * 12 + 2
+        for index in (8, 9):
+            for mutation in ('replace-valid', 'last-result', 'buffer'):
+                definitions = list(self.route.definitions)
+                raw = bytearray(definitions[11])
+                at = start + 32 * index
+                if mutation == 'replace-valid':
+                    raw[at:at + 32] = raw[start + 32 * 6:start + 32 * 7]
+                elif mutation == 'last-result':
+                    raw[at + 16] = 6
+                else:
+                    raw[at + 20] = 2
+                definitions[11] = bytes(raw)
+                with self.subTest(index=index, mutation=mutation), self.assertRaises(DecoderError):
+                    self.validate(tuple(definitions))
 
     def test_forged_logical_package_cannot_bypass_wire_validation(self):
         # The public package wrapper is constructible; semantic validation must

@@ -43,6 +43,7 @@ pub fn content_workspace(bytes: u64, records: u64, aliases: u64) -> Result<u64> 
 pub enum WireEncoding {
     Expanded,
     Compact,
+    Compact2,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -86,10 +87,10 @@ pub fn program_workspace_from_header(raw: &[u8]) -> Result<ProgramWorkspace> {
     };
     program_workspace(
         length,
-        if u16_at(8) == 1 {
-            WireEncoding::Compact
-        } else {
-            WireEncoding::Expanded
+        match u16_at(8) {
+            1 => WireEncoding::Compact,
+            2 => WireEncoding::Compact2,
+            _ => WireEncoding::Expanded,
         },
         u16_at(16),
         u16_at(18),
@@ -117,6 +118,7 @@ pub fn program_workspace(
     let expanded = match encoding {
         WireEncoding::Expanded => wire_bytes,
         WireEncoding::Compact => add(wire_bytes, mul(26, n)?)?.min(1_048_576),
+        WireEncoding::Compact2 => add(add(wire_bytes, mul(30, n)?)?, mul(1280, p)?)?.min(1_048_576),
     };
     Ok(ProgramWorkspace {
         immutable_bytes: sum(&[

@@ -6,9 +6,10 @@ claim independent acquisition or replace the recipient's use of the artifact.
 
 from dataclasses import dataclass
 
-from . import bootstrap, m2_route_data as old, recipe_wire_v1
+from . import bootstrap, m2_route_data as old, recipe_wire_v2
 from .m2_route_definitions_v2 import build_route_definitions_v2
 from .m2_teaching_recipe_v2 import build_teaching_recipe_package, teaching_examples
+from .m2_recovery_recipe_v2 import evaluate_recovery_native
 
 PROFILE_ID = 'eh72-hier-r5-r2-r1-lzss-crc32c-v1'
 RECORD_COUNT = 48
@@ -24,7 +25,8 @@ class RouteRecord:
 
 
 def _case(package, recipe_id, inputs, expected):
-    result = recipe_wire_v1.evaluate_recipe_v1(package, recipe_id, inputs)
+    result = (evaluate_recovery_native(package,recipe_id,inputs) if recipe_id in (124,126)
+              else recipe_wire_v2.evaluate_recipe_v2(package, recipe_id, inputs))
     actual = result.status.to_bytes(2, 'big') + b''.join(result.outputs)
     if actual != expected or result.status and result.outputs:
         raise old.RouteDataError('v2-example-result')
@@ -38,14 +40,15 @@ def _primary(package, fact, sector, held, definition, definitions):
         row = teaching_examples()[int(held)]
         return _case(package, row.recipe_id, row.inputs, row.output)
     if fact.fact_id == 10:
-        template = definition.value[110:114] if held else definition.value[138:142]
-        words = (definitions[7].value[112:121],definitions[7].value[328:337])
-        source,unknown,first,count = template
-        mask = ((1 << count)-1) << (72-first-count)
-        original = int.from_bytes(words[source],'big')
-        word = original & ~mask if unknown else original ^ mask
-        expected = bytes(2)+word.to_bytes(9,'big')+(mask if unknown else 0).to_bytes(9,'big')
-        return _case(package,111,words+tuple(bytes((v,)) for v in template),expected)
+        case = 6 if held else 4
+        row = definition.value[22+57*case:22+57*(case+1)]
+        return _case(package,126,(row[:4],row[4:5]),row[5:])
+    if fact.fact_id == 9:
+        side,width = (1952,128) if held else (2040,128)
+        unit,bit = (2,1727) if held else (1,0)
+        inputs = (side.to_bytes(2,'big'),width.to_bytes(2,'big'),unit.to_bytes(4,'big'),bit.to_bytes(2,'big'))
+        expected = evaluate_recovery_native(package,124,inputs)
+        return _case(package,124,inputs,expected.status.to_bytes(2,'big')+b''.join(expected.outputs))
     source = fact.held_source if held else fact.worked_source
     per_sector = fact.held_sector_sources if held else fact.worked_sector_sources
     incoming = per_sector[sector] if per_sector else old._mask_input(
@@ -73,7 +76,7 @@ def _build(compiled):
     if tuple(d.fact_id for d in definitions) != tuple(range(1, 13)):
         raise old.RouteDataError('v2-definition-order')
     raw_package = build_teaching_recipe_package()
-    package = recipe_wire_v1.decode_recipe_package_v1(raw_package, 8)
+    package = recipe_wire_v2.decode_recipe_package_v2(raw_package, 8)
     facts = old.r3_route_facts()
     additions = tuple(row for row in teaching_examples() if row.label == 'additional')
     prefixes, all_owners = [], []
@@ -103,10 +106,9 @@ def _build(compiled):
                     payload = fid.to_bytes(2, 'big') + _case(package, row.recipe_id, row.inputs, row.output)
                     append(fact.stage, 2+index%2, 100*fid+10+index, payload, f'vm-discriminator:{index}')
             if fid == 10:
-                incoming = definition.value[373:386]
-                payload = fid.to_bytes(2,'big')+_case(package,30,
-                    (incoming[:9],incoming[9:10],incoming[10:]),bytes(2)+definitions[6].value[134:142])
-                append(fact.stage,2,1004,payload,'worked:10-erasure-word')
+                row = definition.value[22+57*7:22+57*8]
+                payload = fid.to_bytes(2,'big')+_case(package,126,(row[:4],row[4:5]),row[5:])
+                append(fact.stage,2,1004,payload,'worked:10-physical-identity')
             if fid == 12:
                 for index, (tokens, length, output) in enumerate((
                     (b'\0' + b'12345678', 9, b'12345678'),

@@ -246,6 +246,20 @@ class ProgramWorkspaceTests(unittest.TestCase):
         self.assertEqual(recipe_storage(b'x'*63),63)
         self.assertEqual(recipe_workspace(b'x'*63),63)
 
+    def test_wire2_reserves_node_and_interface_expansion_before_admission(self):
+        from golden_board.m2_resources_v2 import recipe_storage,recipe_workspace
+        raw = bytearray(64)
+        raw[8:10] = b'\0\2'
+        for at,width,value in ((16,2,2),(18,2,3),(20,4,5),(24,4,7)):
+            raw[at:at+width] = value.to_bytes(width,'big')
+        expanded = 64+30*5+1280*2
+        retained = 64+3*expanded+64*5+64*3+128*2
+        self.assertEqual(recipe_storage(bytes(raw)),retained)
+        self.assertEqual(recipe_workspace(bytes(raw)),retained+48*5+8*7+16*3+32*2)
+        raw[16:18] = b'\xff\xff'
+        raw[20:24] = b'\xff'*4
+        self.assertLess(recipe_workspace(bytes(raw)),16*1048576)
+
 
 if __name__ == '__main__':
     unittest.main()

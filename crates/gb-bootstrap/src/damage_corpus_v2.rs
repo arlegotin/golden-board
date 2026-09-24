@@ -827,11 +827,10 @@ impl DamageCorpusV2 {
                     raw[package + 32..package + 36].copy_from_slice(&len.to_be_bytes());
                 }
                 3 | 4 => {
-                    let descriptors = usize::from(u16_at(&raw, first + 4)?)
-                        + usize::from(u16_at(&raw, first + 6)?);
-                    let node = first + 32 + 12 * descriptors;
-                    *raw.get_mut(node + usize::from(n == 4))
-                        .ok_or(CorpusError::Bounds)? = 0;
+                    let node = first_compact_node(&raw, first)?;
+                    let tag = raw.get_mut(node).ok_or(CorpusError::Bounds)?;
+                    need(*tag & 31 != 0 && *tag >> 5 != 0)?;
+                    *tag &= if n == 3 { 0xe0 } else { 0x1f };
                 }
                 5 => {
                     let at = first + 16;
@@ -914,6 +913,35 @@ fn first_recipe(raw: &[u8]) -> Result<usize> {
     }
     need(at + 32 <= raw.len())?;
     Ok(at)
+}
+
+fn first_compact_node(raw: &[u8], recipe: usize) -> Result<usize> {
+    let descriptors = usize::from(u16_at(raw, recipe + 4)?) + usize::from(u16_at(raw, recipe + 6)?);
+    need(descriptors <= 128)?;
+    let end = recipe
+        .checked_add(u32_at(raw, recipe + 28)? as usize)
+        .ok_or(CorpusError::Bounds)?;
+    need(end <= raw.len())?;
+    let mut cursor = recipe + 32;
+    for _ in 0..descriptors {
+        need(cursor < end && raw[cursor] <= 5)?;
+        cursor += 1;
+        let mut terminated = false;
+        for index in 0..5 {
+            need(cursor < end)?;
+            let byte = raw[cursor];
+            cursor += 1;
+            need(index != 4 || byte & 127 <= 15)?;
+            if byte & 128 == 0 {
+                need(index == 0 || byte != 0)?;
+                terminated = true;
+                break;
+            }
+        }
+        need(terminated)?;
+    }
+    need(cursor < end)?;
+    Ok(cursor)
 }
 
 // The inherited owner samples the population with anchor flats removed,

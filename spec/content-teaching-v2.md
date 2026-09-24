@@ -32,10 +32,10 @@ real content, local traces, rejection loops and forward accepted edges.
 The fact-12 replacement value is `u32 miniature_bytes || miniature || u32
 supplement_bytes || supplement`, all big-endian. The supplement contains the
 four blocks below in order, each preceded by its u16 row count. It is exactly
-1056 bytes: `4*2 + 48*14 + 6*12 + 4*12 + 8*32`.
-The complete framed value is **1639 bytes**. Replacing the former 301-byte
-excerpt and 12-byte ROOT costs 1326 bytes; adding `(2,29,29)` as a six-byte
-context row makes the net route delta **1332 bytes per sector**. Existing
+1120 bytes: `4*2 + 48*14 + 6*12 + 4*12 + 10*32`.
+The complete framed value is **1703 bytes**. Replacing the former 301-byte
+excerpt and 12-byte ROOT costs 1390 bytes; adding `(2,29,29)` as a six-byte
+context row makes the net route delta **1396 bytes per sector**. Existing
 actual-stream context, framing, reference and namespace bridges remain.
 
 These are finite numeric relationships, not a second bytecode or a production
@@ -157,7 +157,7 @@ The complete content validator, including presentation/region linkage,
 determines the carried acceptance. No invalid variant is installed in the
 active content stream.
 
-## Action and budget consequences: eight rows, 32 bytes each
+## Action and budget consequences: ten rows, 32 bytes each
 
 The fields are, in order: `node_id:u16, action_count:u8, actions:12 bytes,
 phase:u8, last_result:u8, response_shape:u8, selection_count:u8,
@@ -182,10 +182,26 @@ The following table lists only active action/selection entries.
 | 28 | 01000002 01000001 03000000 | 2 | 3 | 3 | 2,1 | 3 | 24 | 0 | 3 | 0 |
 | 26 | 01000001 01000001 | 3 | 6 | 1 | 1 | 0 | 0 | 0 | 6 | 0 |
 | 26 | 02000000 03000000 | 2 | 3 | 1 | empty | 1 | 21 | 27 | 6 | 0 |
+| 26 | 01000001 01000002 | 3 | 7 | 1 | 1 | 0 | 0 | 0 | 6 | 0 |
+| 26 | 01000001 02000000 | 3 | 2 | 1 | empty | 0 | 0 | 0 | 6 | 0 |
 
 These distinguish case/default outcomes, set sorting, sequence ordering and
 repetition, duplicate-before-over-limit, exhausted versus committed, reset
 without budget replenishment, and successful commit on the final local event.
+The distinct second selection preserves the first when capacity is full;
+SINGLE does not mean replacement. Reset clears a nonempty buffer. Together
+with the duplicate row, these show the same exhausted phase with three
+different last-action results (7, 2, 6). Exhaustion never replaces the result
+of the action that consumed the final event. Retain the exact ordered inputs
+as well as recomputing their consequences: a duplicate ordinary row cannot
+substitute for either discriminating witness.
+
+The two final rows address the rival interpretation observed in trial 15's
+diagnostic continuation. The previous eight rows and all actual traces fit
+both retain-first and replace-last interpretations of SINGLE. This is a
+material teaching correction, adding 64 bytes per sector; it changes neither
+content-v0 behavior nor the participant's deliverables. Frozen earlier trials
+retain their original bytes and results.
 
 ## Claim and remaining check
 

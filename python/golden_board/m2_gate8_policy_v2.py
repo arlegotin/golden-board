@@ -11,7 +11,7 @@ from types import MappingProxyType
 from typing import Mapping
 import tomllib
 
-GATE8_POLICY_V2_SHA256 = '9ea0b0ed6649f0c420892c649a6c554c99916577428523eb2d1037ca3211f216'
+GATE8_POLICY_V2_SHA256 = '70c843a5c67eeaf458be53b4b6508b431c81a973c5731d84cf185ef9b22b5117'
 _PROFILE = 'eh72-hier-r5-r2-r1-lzss-crc32c-v1'
 _SECTIONS = ('authority', 'bounds', 'candidate_files', 'gates', 'known_answer',
     'grammar_state', 'preflight_resources', 'source_projection', 'producer_receipt',

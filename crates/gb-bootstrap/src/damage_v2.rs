@@ -12,6 +12,8 @@ use crate::damage::{
     SectionResult, SectionState, observation_sha256,
 };
 use crate::recipe_wire_v1::{RecipePackageV1, evaluate_serialized_recipe_v1};
+use crate::recipe_wire_v2::evaluate_serialized_recipe_v2;
+use crate::recovery_recipe_v2::{RecoveryExecution, admit_recovery_programs};
 use crate::resources_v2::{Kernel, ReferenceLedger};
 use crate::route_receiver_v2::{ObservedRoute, RouteError};
 use crate::{
@@ -370,6 +372,113 @@ struct LaneInput {
     observation: Option<EhObservation>,
 }
 
+struct ActiveRecovery<'a> {
+    package: &'a RecipePackageV1,
+    execution: RecoveryExecution<'a>,
+    entries: &'a BTreeMap<u32, LaneInput>,
+    units: u32,
+    completed: BTreeSet<(u32, u8, [u8; 20])>,
+}
+
+impl ActiveRecovery<'_> {
+    fn pairs(&self, first: u32, factor: u8) -> Result<(u8, Vec<u8>)> {
+        if first == 0 || !matches!(factor, 1 | 2 | 5) {
+            return Err(DamageV2Error::Reconstruction);
+        }
+        let mut presence = 0u8;
+        let mut pairs = vec![0u8; 5 * 432];
+        for lane in 0..usize::from(factor) {
+            let id = first
+                .checked_add(lane as u32)
+                .ok_or(DamageV2Error::ResourceLimit)?;
+            let Some(row) = self.entries.get(&id).filter(|row| row.present) else {
+                continue;
+            };
+            let observation = row
+                .observation
+                .as_ref()
+                .ok_or(DamageV2Error::Reconstruction)?;
+            presence |= 1 << lane;
+            let pair = &mut pairs[lane * 432..(lane + 1) * 432];
+            pair[..216].copy_from_slice(&observation.encoded);
+            for erased in &observation.erasures {
+                if erased.codeword >= 24 || !(1..=72).contains(&erased.position) {
+                    return Err(DamageV2Error::Reconstruction);
+                }
+                let bit = usize::from(erased.codeword) * 72 + usize::from(erased.position) - 1;
+                pair[216 + bit / 8] |= 128 >> (bit % 8);
+            }
+        }
+        Ok((presence, pairs))
+    }
+
+    fn group(
+        &mut self,
+        first: u32,
+        factor: u8,
+        expected: Option<GroupIdentity>,
+        resource: &mut Budget,
+    ) -> Result<Vec<u8>> {
+        let (presence, pairs) = self.pairs(first, factor)?;
+        let (id, input, key) = if let Some(expected) = expected {
+            let key = expected.key();
+            let mut input = vec![factor, presence];
+            input.extend(key);
+            input.extend(pairs);
+            (120, input, Some((first, factor, key)))
+        } else {
+            let mut input = self.units.to_be_bytes().to_vec();
+            input.push(presence);
+            input.extend(pairs);
+            (127, input, None)
+        };
+        let already = key.is_some_and(|key| self.completed.contains(&key));
+        if !already {
+            charge_observed(resource, &self.package.logical, id, 1)?;
+            if factor > 1 && presence != 0 {
+                resource.event(
+                    Kernel::RepetitionAdapter,
+                    u64::from(factor) * 1728,
+                    216 + 2 * 1728,
+                )?;
+                resource.event(Kernel::CommonFrame, 191, 191)?;
+            }
+        }
+        // Repeated catalog use denotes the same already-charged logical call:
+        // this handle immutably binds all raw observations for the whole path.
+        let result = self
+            .execution
+            .evaluate_serialized(id, &input)
+            .map_err(|_| DamageV2Error::Reconstruction)?;
+        if result.len() != 195 || result[..2] != [0, 0] || result[2] > 4 || result[3] > 1 {
+            return Err(DamageV2Error::Reconstruction);
+        }
+        if let Some(key) = key {
+            self.completed.insert(key);
+        }
+        Ok(result)
+    }
+
+    fn roster(&self, inventory: &[u8], target: u32, resource: &mut Budget) -> Result<Vec<u8>> {
+        if inventory.len() > 16384 {
+            return Err(DamageV2Error::Reconstruction);
+        }
+        let mut input = inventory.to_vec();
+        input.resize(16384, 0);
+        input.extend((inventory.len() as u16).to_be_bytes());
+        input.extend(target.to_be_bytes());
+        charge_observed(resource, &self.package.logical, 123, 1)?;
+        let result = self
+            .execution
+            .evaluate_serialized(123, &input)
+            .map_err(|_| DamageV2Error::Reconstruction)?;
+        if result.len() != 35 || result[..2] != [0, 0] {
+            return Err(DamageV2Error::Reconstruction);
+        }
+        Ok(result)
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct GroupIdentity {
     section_id: u32,
@@ -381,6 +490,31 @@ struct GroupIdentity {
 }
 
 impl GroupIdentity {
+    fn key(self) -> [u8; 20] {
+        let mut key = [0u8; 20];
+        key[..2].copy_from_slice(&8u16.to_be_bytes());
+        key[2..6].copy_from_slice(&self.section_id.to_be_bytes());
+        key[8..10].copy_from_slice(&self.section_type.to_be_bytes());
+        key[10..12].copy_from_slice(&self.section_version.to_be_bytes());
+        key[12..14].copy_from_slice(&self.fragment_index.to_be_bytes());
+        key[14..16].copy_from_slice(&self.fragment_count.to_be_bytes());
+        key[16..20].copy_from_slice(&self.section_envelope_length.to_be_bytes());
+        key
+    }
+
+    fn from_key(key: &[u8]) -> Result<Self> {
+        if key.len() != 20 || key[..2] != [0, 8] || key[6..8] != [0, 0] {
+            return Err(DamageV2Error::Reconstruction);
+        }
+        Ok(Self {
+            section_id: u32::from_be_bytes(key[2..6].try_into().unwrap()),
+            section_type: u16::from_be_bytes(key[8..10].try_into().unwrap()),
+            section_version: u16::from_be_bytes(key[10..12].try_into().unwrap()),
+            fragment_index: u16::from_be_bytes(key[12..14].try_into().unwrap()),
+            fragment_count: u16::from_be_bytes(key[14..16].try_into().unwrap()),
+            section_envelope_length: u32::from_be_bytes(key[16..20].try_into().unwrap()),
+        })
+    }
     fn from_common(common: &[u8; 191]) -> Result<Self> {
         let block =
             decode_common_block(common, PROFILE_V8).map_err(|_| DamageV2Error::Reconstruction)?;
@@ -536,6 +670,7 @@ fn recover_group(
     factor: u8,
     expected: GroupIdentity,
     resource: &mut Budget,
+    active: Option<&mut ActiveRecovery<'_>>,
 ) -> Result<GroupRecovery> {
     if !matches!(factor, 1 | 2 | 5) {
         return Err(DamageV2Error::Reconstruction);
@@ -550,7 +685,13 @@ fn recover_group(
         observations.push(row.and_then(|row| row.observation.clone()));
         present_without_eh.push(row.is_some_and(|row| row.present && row.observation.is_none()));
     }
-    if factor > 1
+    let authoritative = if let Some(active) = active {
+        Some(active.group(first_id, factor, Some(expected), resource)?)
+    } else {
+        None
+    };
+    if authoritative.is_none()
+        && factor > 1
         && (0..u32::from(factor)).any(|lane| {
             entries
                 .get(&(first_id + lane))
@@ -573,22 +714,16 @@ fn recover_group(
     let diagnostic =
         diagnose_hierarchical(profile, &observations).map_err(|_| DamageV2Error::Reconstruction)?;
     let mut lane_states = Vec::with_capacity(diagnostic.lanes.len());
+    // Catalog identity controls group assembly; each lane keeps its local check.
     for (lane_index, lane) in diagnostic.lanes.into_iter().enumerate() {
-        let agrees = lane
-            .common
-            .and_then(|common| GroupIdentity::from_common(&common).ok())
-            == Some(expected);
         lane_states.push(if present_without_eh[lane_index] {
             FragmentState::Corrupt
         } else {
             match lane.state {
                 HierarchicalLaneState::Absent => FragmentState::Missing,
                 HierarchicalLaneState::Corrupt => FragmentState::Corrupt,
-                HierarchicalLaneState::Verified if agrees => FragmentState::Verified,
-                HierarchicalLaneState::Recovered if agrees => FragmentState::Recovered,
-                HierarchicalLaneState::Verified | HierarchicalLaneState::Recovered => {
-                    FragmentState::Corrupt
-                }
+                HierarchicalLaneState::Verified => FragmentState::Verified,
+                HierarchicalLaneState::Recovered => FragmentState::Recovered,
             }
         });
     }
@@ -596,7 +731,7 @@ fn recover_group(
         .common
         .and_then(|common| GroupIdentity::from_common(&common).ok())
         == Some(expected);
-    let state = match diagnostic.state {
+    let mut state = match diagnostic.state {
         HierarchicalGroupState::Missing if present_without_eh.iter().any(|value| *value) => {
             FragmentState::Corrupt
         }
@@ -609,12 +744,27 @@ fn recover_group(
             FragmentState::Corrupt
         }
     };
+    let mut common = common_agrees.then_some(diagnostic.common).flatten();
+    if let Some(output) = authoritative {
+        state = match output[2] {
+            0 => FragmentState::Missing,
+            4 => FragmentState::Ambiguous,
+            2 if output[3] == 1 => FragmentState::Verified,
+            3 if output[3] == 1 => FragmentState::Recovered,
+            _ => FragmentState::Corrupt,
+        };
+        common = if output[3] == 1 {
+            Some(output[4..].try_into().unwrap())
+        } else {
+            None
+        };
+    }
     Ok(GroupRecovery {
         identity: expected,
         first_id,
         factor,
         state,
-        common: common_agrees.then_some(diagnostic.common).flatten(),
+        common,
         lane_states,
     })
 }
@@ -738,10 +888,92 @@ fn checked_section_after_assembly(
     }))
 }
 
+fn bootstrap_inventory_active(
+    entries: &BTreeMap<u32, LaneInput>,
+    resource: &mut Budget,
+    active: &mut ActiveRecovery<'_>,
+) -> Result<Vec<GroupRecovery>> {
+    let output = active.group(1, 5, None, resource)?;
+    let observations = (1..=5)
+        .map(|id| entries.get(&id).and_then(|row| row.observation.clone()))
+        .collect::<Vec<_>>();
+    let diagnostic = diagnose_hierarchical(
+        profile_for_version(8).ok_or(DamageV2Error::Profile)?,
+        &observations,
+    )
+    .map_err(|_| DamageV2Error::Reconstruction)?;
+    let accepted = output[3] == 1;
+    let common: Option<[u8; 191]> = accepted.then(|| output[4..].try_into().unwrap());
+    let identity = if let Some(common) = common {
+        GroupIdentity::from_common(&common)?
+    } else {
+        GroupIdentity {
+            section_id: 1,
+            section_type: SECTION_INVENTORY,
+            section_version: 2,
+            fragment_index: 0,
+            fragment_count: 1,
+            section_envelope_length: 1,
+        }
+    };
+    let lane_states = diagnostic
+        .lanes
+        .iter()
+        .map(|lane| {
+            let agrees = !accepted
+                || lane
+                    .common
+                    .and_then(|raw| GroupIdentity::from_common(&raw).ok())
+                    == Some(identity);
+            match lane.state {
+                HierarchicalLaneState::Absent => FragmentState::Missing,
+                HierarchicalLaneState::Verified if agrees => FragmentState::Verified,
+                HierarchicalLaneState::Recovered if agrees => FragmentState::Recovered,
+                _ => FragmentState::Corrupt,
+            }
+        })
+        .collect();
+    let state = match output[2] {
+        0 => FragmentState::Missing,
+        4 => FragmentState::Ambiguous,
+        2 if accepted => FragmentState::Verified,
+        3 if accepted => FragmentState::Recovered,
+        _ => FragmentState::Corrupt,
+    };
+    let mut groups = vec![GroupRecovery {
+        identity,
+        first_id: 1,
+        factor: 5,
+        state,
+        common,
+        lane_states,
+    }];
+    if accepted {
+        for fragment_index in 1..identity.fragment_count {
+            groups.push(recover_group(
+                entries,
+                1 + 5 * u32::from(fragment_index),
+                5,
+                GroupIdentity {
+                    fragment_index,
+                    ..identity
+                },
+                resource,
+                Some(active),
+            )?);
+        }
+    }
+    Ok(groups)
+}
+
 fn bootstrap_inventory_groups(
     entries: &BTreeMap<u32, LaneInput>,
     resource: &mut Budget,
+    active: Option<&mut ActiveRecovery<'_>>,
 ) -> Result<Vec<GroupRecovery>> {
+    if let Some(active) = active {
+        return bootstrap_inventory_active(entries, resource, active);
+    }
     let initial = GroupIdentity {
         section_id: 1,
         section_type: SECTION_INVENTORY,
@@ -871,6 +1103,7 @@ fn bootstrap_inventory_groups(
             5,
             expected,
             resource,
+            None,
         )?);
     }
     Ok(output)
@@ -880,18 +1113,49 @@ fn groups_from_layout(
     entries: &BTreeMap<u32, LaneInput>,
     layout: &BTreeMap<u32, ExpectedLane>,
     resource: &mut Budget,
+    mut active: Option<&mut ActiveRecovery<'_>>,
+    inventory_bytes: Option<&[u8]>,
 ) -> Result<Vec<GroupRecovery>> {
-    let mut groups = Vec::new();
+    let mut selected = Vec::new();
     for (&id, lane) in layout {
-        if lane.replica_index != 0 || lane.identity.section_id == 1 {
+        if lane.replica_index != 0 || (active.is_none() && lane.identity.section_id == 1) {
             continue;
         }
+        let mut first = id;
+        let mut factor =
+            u8::try_from(lane.physical_replica_count).map_err(|_| DamageV2Error::Reconstruction)?;
+        let mut expected = lane.identity;
+        if let Some(active) = active.as_deref_mut() {
+            let roster = active.roster(
+                inventory_bytes.ok_or(DamageV2Error::Reconstruction)?,
+                id,
+                resource,
+            )?;
+            factor = roster[2];
+            first = u32::from_be_bytes(roster[3..7].try_into().unwrap());
+            let last = u32::from_be_bytes(roster[7..11].try_into().unwrap());
+            expected = GroupIdentity::from_key(&roster[11..31])?;
+            let total = u32::from_be_bytes(roster[31..35].try_into().unwrap());
+            if first != id
+                || u16::from(factor) != lane.physical_replica_count
+                || last != id + u32::from(factor) - 1
+                || expected != lane.identity
+                || total != active.units
+            {
+                return Err(DamageV2Error::Reconstruction);
+            }
+        }
+        selected.push((first, factor, expected));
+    }
+    let mut groups = Vec::with_capacity(selected.len());
+    for (first, factor, expected) in selected {
         groups.push(recover_group(
             entries,
-            id,
-            u8::try_from(lane.physical_replica_count).map_err(|_| DamageV2Error::Reconstruction)?,
-            lane.identity,
+            first,
+            factor,
+            expected,
             resource,
+            active.as_deref_mut(),
         )?);
     }
     Ok(groups)
@@ -903,22 +1167,6 @@ fn foreign_or_local_candidate<'a>(
 ) -> Option<&'a LocalCandidate> {
     let rows = candidates.get(&id)?;
     (rows.len() == 1).then(|| &rows[0])
-}
-
-fn candidate_matches_expected(
-    candidate: &LocalCandidate,
-    block: &crate::CommonBlock,
-    expected: ExpectedLane,
-) -> bool {
-    candidate.profile_version == PROFILE_V8
-        && block.profile_version == PROFILE_V8
-        && block.semantic_copy_id == 0
-        && block.section_id == expected.identity.section_id
-        && block.section_type == expected.identity.section_type
-        && block.section_version == expected.identity.section_version
-        && block.fragment_index == expected.identity.fragment_index
-        && block.fragment_count == expected.identity.fragment_count
-        && block.section_envelope_length == expected.identity.section_envelope_length
 }
 
 fn diagnostic_hash(
@@ -968,16 +1216,8 @@ fn diagnostics_with_layout(
             let profile8_lane_state = group_lane.map_or(FragmentState::Unknown, |(group, lane)| {
                 group.lane_states[lane as usize]
             });
-            let source_matches_expected = expected.is_some_and(|expected| {
-                source.as_ref().is_some_and(|(candidate, block)| {
-                    candidate_matches_expected(candidate, block, expected)
-                })
-            });
             let state = match (expected, entries.contains_key(&id)) {
                 (Some(_), false) => FragmentState::Missing,
-                (Some(_), true) if source.is_some() && !source_matches_expected => {
-                    FragmentState::Corrupt
-                }
                 (Some(_), true) => profile8_lane_state,
                 (None, true) => source
                     .as_ref()
@@ -1384,7 +1624,25 @@ fn recover_v8_inputs(
     accepted_hypotheses: Vec<AcceptedHypothesis>,
     context: Option<&crate::route_semantics_v2::ContextCommitments>,
 ) -> Result<RecoveryResultV2> {
-    let bootstrap_groups = bootstrap_inventory_groups(&entries, resource)?;
+    let mut active = if let Some(package) = package {
+        let workspace = crate::resources_v2::program_workspace(&package.encoded)
+            .map_err(|_| DamageV2Error::ResourceLimit)?;
+        let nodes = u32::from_be_bytes(package.encoded[20..24].try_into().unwrap()) as u64;
+        resource.event(Kernel::ProgramRefinement, nodes, workspace.refinement())?;
+        let execution = admit_recovery_programs(package, &[120, 123, 127])
+            .map_err(|_| DamageV2Error::Reconstruction)?;
+        Some(ActiveRecovery {
+            package,
+            execution,
+            entries,
+            units: u32::try_from(expected_units.ok_or(DamageV2Error::Reconstruction)?)
+                .map_err(|_| DamageV2Error::ResourceLimit)?,
+            completed: BTreeSet::new(),
+        })
+    } else {
+        None
+    };
+    let bootstrap_groups = bootstrap_inventory_groups(entries, resource, active.as_mut())?;
     let bootstrap_count = bootstrap_groups
         .iter()
         .filter(|g| g.common.is_some())
@@ -1402,6 +1660,7 @@ fn recover_v8_inputs(
     let bootstrap_attempt =
         assemble_raw_fragment_bytes(&bootstrap_groups).filter(|raw| structurally_attemptable(raw));
     let inventory_section = checked_section_after_assembly(&bootstrap_groups, None, resource)?;
+    let mut inventory_bytes = None;
     let inventory = if let Some(section) = inventory_section
         .as_ref()
         .and_then(|s| s.envelope.as_ref())
@@ -1413,6 +1672,7 @@ fn recover_v8_inputs(
             16 * section.payload.len() as u64,
         )?;
         let parsed = decode_inventory(&section.payload).ok();
+        inventory_bytes = Some(section.payload.clone());
         resource.retain("path:inventory", 16 * section.payload.len() as u64)?;
         parsed
     } else {
@@ -1501,8 +1761,19 @@ fn recover_v8_inputs(
         return Err(DamageV2Error::Reconstruction);
     }
     charge_layout(&inventory, layout.len() as u64, resource)?;
-    let mut groups = bootstrap_groups;
-    groups.extend(groups_from_layout(&entries, &layout, resource)?);
+    let groups = if active.is_some() {
+        groups_from_layout(
+            entries,
+            &layout,
+            resource,
+            active.as_mut(),
+            inventory_bytes.as_deref(),
+        )?
+    } else {
+        let mut groups = bootstrap_groups;
+        groups.extend(groups_from_layout(entries, &layout, resource, None, None)?);
+        groups
+    };
     let sections = recover_all_sections(&inventory, &groups, &inventory_result, resource)?;
     let mut result = RecoveryResultV2 {
         profile_version: Some(PROFILE_V8),
@@ -1576,7 +1847,13 @@ fn decoded_body(
         crate::route_receiver_v2::native_body_output(&buffer, payload.len() as u16)
     } else {
         buffer.extend((payload.len() as u16).to_be_bytes());
-        match evaluate_serialized_recipe_v1(package.unwrap(), 202, &buffer) {
+        let package = package.unwrap();
+        let evaluated = if package.encoded[8..10] == [0, 2] {
+            evaluate_serialized_recipe_v2(&package.encoded, 8, 202, &buffer)
+        } else {
+            evaluate_serialized_recipe_v1(package, 202, &buffer)
+        };
+        match evaluated {
             Ok(value) => value,
             Err(_) => return Ok(None),
         }
@@ -1776,11 +2053,11 @@ fn verify_owners() -> Result<()> {
         for (raw, expected) in [
             (
                 &include_bytes!("../../../spec/profile-policy-v2.toml")[..],
-                "a8b05a0fea0149d39feb219f7aca9f1ba661b3e1c5f78283f0fa38f8bc0398f5",
+                "9eaec2db363649ec2f8799867cecd4fed64d15ead5a64ab63564d670a2662804",
             ),
             (
                 &include_bytes!("../../../spec/damage-policy-v2.toml")[..],
-                "726524cf388c1a7345830260e32af0a3d13b723ab4700a7689ec6c203230a828",
+                "8284c96f0b8b5f53b28d0575341d9deb5f96a98d886e134579e14d67dc7430e0",
             ),
             (
                 &include_bytes!("../../../spec/profile-limits-v2.toml")[..],
@@ -1978,7 +2255,7 @@ fn units_core(raw: &[u8], budget: &mut Budget) -> Result<RecoveryResultV2> {
     foreign_hierarchical_checks(&foreign_inputs, commons, None, budget)?;
     budget.adapter.release_prefix("path:");
     if !result.inventory_established {
-        let groups = bootstrap_inventory_groups(&entries, budget)?;
+        let groups = bootstrap_inventory_groups(&entries, budget, None)?;
         let mut sections =
             discovered_sections_without_inventory(&local, &groups, &mut BTreeSet::new(), budget)?;
         if !sections.iter().any(|r| r.section_id == 1) {
@@ -3053,6 +3330,362 @@ pub fn render_decoder_result_v2(
 #[cfg(test)]
 mod body_path_tests {
     use super::*;
+    fn active_fixture_package() -> &'static RecipePackageV1 {
+        static PACKAGE: std::sync::OnceLock<RecipePackageV1> = std::sync::OnceLock::new();
+        PACKAGE.get_or_init(|| {
+            crate::recipe_wire_v2::decode_recipe_package_v2(
+                &crate::teaching_recipe_v2::build_teaching_recipe_package().unwrap(),
+                8,
+            )
+            .unwrap()
+        })
+    }
+
+    fn active_fixture_lane(common: &[u8; 191]) -> LaneInput {
+        LaneInput {
+            present: true,
+            observation: Some(EhObservation {
+                encoded: crate::candidate::encode_eh_unit(common),
+                erasures: vec![],
+            }),
+        }
+    }
+
+    fn active_fixture_handle<'a>(
+        package: &'a RecipePackageV1,
+        entries: &'a BTreeMap<u32, LaneInput>,
+        units: u32,
+    ) -> ActiveRecovery<'a> {
+        ActiveRecovery {
+            package,
+            execution: admit_recovery_programs(package, &[120, 123, 127]).unwrap(),
+            entries,
+            units,
+            completed: BTreeSet::new(),
+        }
+    }
+
+    #[test]
+    fn complete_group_dispatch_distinguishes_bootstrap_and_catalog_and_reuses_later_inventory() {
+        // This bounded roster exercises the executable transport relation. The
+        // full product inventory membership gate is tested by bootstrap_v2.
+        let inventory = Inventory {
+            inventory_version: 2,
+            entries: (1..=8)
+                .map(|id| InventoryEntry {
+                    section_id: id,
+                    section_type: if id == 1 { 1 } else { 4 },
+                    section_version: if id == 1 { 2 } else { 0 },
+                    closure_class: if id == 1 { 128 } else { 129 },
+                    check_id: 1,
+                    copy_count: 1,
+                    physical_replica_count: if id == 1 { 5 } else { 1 },
+                    dependencies: vec![],
+                    logical_payload_length: if id == 1 { 168 } else { 1 },
+                    game_ordinal: None,
+                })
+                .collect(),
+        };
+        let raw = crate::encode_inventory_fields(&inventory).unwrap();
+        assert_eq!(raw.len(), 168);
+        let envelope = crate::encode_section(&SectionEnvelope {
+            section_id: 1,
+            section_type: 1,
+            section_version: 2,
+            closure_class: 128,
+            check_id: 1,
+            dependencies: vec![],
+            payload: raw.clone(),
+        })
+        .unwrap();
+        let blocks = crate::fragment_envelope(8, 1, 0, 1, 2, &envelope).unwrap();
+        assert_eq!(blocks.len(), 2);
+        let entries = (1..=10)
+            .map(|id| (id, active_fixture_lane(&blocks[(id as usize - 1) / 5])))
+            .collect();
+        let package = active_fixture_package();
+        let mut handle = active_fixture_handle(package, &entries, 17);
+        let mut budget = Budget::default();
+        let initial = bootstrap_inventory_groups(&entries, &mut budget, Some(&mut handle)).unwrap();
+        assert_eq!(initial.len(), 2);
+        assert!(
+            initial
+                .iter()
+                .all(|group| group.state == FragmentState::Verified)
+        );
+        let groups = groups_from_layout(
+            &entries,
+            &inventory_layout(&inventory).unwrap(),
+            &mut budget,
+            Some(&mut handle),
+            Some(&raw),
+        )
+        .unwrap();
+        assert_eq!(groups.len(), 9);
+        assert!(
+            groups[..2]
+                .iter()
+                .all(|group| group.state == FragmentState::Verified)
+        );
+        assert!(
+            groups[2..]
+                .iter()
+                .all(|group| group.state == FragmentState::Missing)
+        );
+        // One distinct first-bootstrap 127; each of nine physical groups gets
+        // one 120, including seven missing groups; every group gets roster123.
+        assert_eq!(
+            budget.primitive_steps,
+            package.logical.recipe_primitive_steps(127).unwrap()
+                + 9 * package.logical.recipe_primitive_steps(120).unwrap()
+                + 9 * package.logical.recipe_primitive_steps(123).unwrap()
+        );
+        assert_eq!(
+            budget.adapter.rows()[Kernel::RepetitionAdapter as usize].calls(),
+            3
+        );
+        assert_eq!(
+            budget.adapter.rows()[Kernel::CommonFrame as usize].calls(),
+            3
+        );
+        assert_eq!(handle.completed.len(), 9);
+    }
+
+    #[test]
+    fn complete_group_missing_calls_bind_physical_first_and_all_twenty_key_bytes() {
+        let package = active_fixture_package();
+        let entries = BTreeMap::new();
+        let mut handle = active_fixture_handle(package, &entries, 100);
+        let expected = GroupIdentity {
+            section_id: 400,
+            section_type: 4,
+            section_version: 9,
+            fragment_index: 0,
+            fragment_count: 1,
+            section_envelope_length: 23,
+        };
+        let mut budget = Budget::default();
+        for (first, identity) in [
+            (1, expected),
+            (1, expected),
+            (2, expected),
+            (
+                1,
+                GroupIdentity {
+                    section_version: 10,
+                    ..expected
+                },
+            ),
+            (
+                1,
+                GroupIdentity {
+                    section_envelope_length: 24,
+                    ..expected
+                },
+            ),
+        ] {
+            assert_eq!(
+                handle.group(first, 1, Some(identity), &mut budget).unwrap()[2..4],
+                [0, 0]
+            );
+        }
+        assert_eq!(handle.completed.len(), 4);
+        assert_eq!(
+            budget.primitive_steps,
+            4 * package.logical.recipe_primitive_steps(120).unwrap()
+        );
+        assert_eq!(
+            budget.adapter.rows()[Kernel::RepetitionAdapter as usize].calls(),
+            0
+        );
+        assert_eq!(
+            budget.adapter.rows()[Kernel::CommonFrame as usize].calls(),
+            0
+        );
+    }
+
+    #[test]
+    fn complete_bootstrap_rejects_foreign_unique_and_preserves_local_lane_diagnostics() {
+        let package = active_fixture_package();
+        let block = crate::encode_common_block(&crate::CommonBlock {
+            profile_version: 8,
+            section_id: 400,
+            semantic_copy_id: 0,
+            section_type: 4,
+            section_version: 9,
+            fragment_index: 0,
+            fragment_count: 1,
+            section_envelope_length: 23,
+            payload: vec![7; 23],
+        })
+        .unwrap();
+        let entries = BTreeMap::from([(1, active_fixture_lane(&block))]);
+        let mut handle = active_fixture_handle(package, &entries, 100);
+        let mut budget = Budget::default();
+        let groups = bootstrap_inventory_groups(&entries, &mut budget, Some(&mut handle)).unwrap();
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].state, FragmentState::Corrupt);
+        assert!(groups[0].common.is_none());
+        assert_eq!(
+            groups[0].lane_states,
+            [
+                FragmentState::Verified,
+                FragmentState::Missing,
+                FragmentState::Missing,
+                FragmentState::Missing,
+                FragmentState::Missing
+            ]
+        );
+        assert_eq!(
+            budget.primitive_steps,
+            package.logical.recipe_primitive_steps(127).unwrap()
+        );
+    }
+
+    #[test]
+    fn foreign_local_lane_survives_group_conflict_and_identity_rejection_as_diagnostic() {
+        let package = active_fixture_package();
+        let make_common = |section_id, byte| {
+            crate::encode_common_block(&crate::CommonBlock {
+                profile_version: 8,
+                section_id,
+                semantic_copy_id: 0,
+                section_type: 4,
+                section_version: 0,
+                fragment_index: 0,
+                fragment_count: 1,
+                section_envelope_length: 23,
+                payload: vec![byte; 23],
+            })
+            .unwrap()
+        };
+        let own = make_common(400, b'A');
+        let foreign = make_common(500, b'B');
+        let expected = GroupIdentity::from_common(&own).unwrap();
+        for conflict in [false, true] {
+            let mut entries = BTreeMap::from([(100, active_fixture_lane(&foreign))]);
+            if conflict {
+                for lane in 1..5 {
+                    let mut value = active_fixture_lane(&own);
+                    let encoded = &mut value.observation.as_mut().unwrap().encoded;
+                    for bit in [32 + 2 * (lane - 1), 33 + 2 * (lane - 1)] {
+                        encoded[bit / 8] ^= 128 >> (bit % 8);
+                    }
+                    entries.insert(100 + lane as u32, value);
+                }
+            }
+            let mut handle = active_fixture_handle(package, &entries, 200);
+            let group = recover_group(
+                &entries,
+                100,
+                5,
+                expected,
+                &mut Budget::default(),
+                Some(&mut handle),
+            )
+            .unwrap();
+            assert_eq!(
+                group.state,
+                if conflict {
+                    FragmentState::Ambiguous
+                } else {
+                    FragmentState::Corrupt
+                }
+            );
+            assert!(group.common.is_none());
+            assert_eq!(group.lane_states[0], FragmentState::Verified);
+            let local = BTreeMap::from([(
+                100,
+                vec![LocalCandidate {
+                    profile_version: 8,
+                    common: foreign,
+                    quality: DecodeQuality::Verified,
+                }],
+            )]);
+            let layout = (0..5)
+                .map(|lane| {
+                    (
+                        100 + u32::from(lane),
+                        ExpectedLane {
+                            identity: expected,
+                            replica_index: lane,
+                            physical_replica_count: 5,
+                        },
+                    )
+                })
+                .collect();
+            let rows = diagnostics_with_layout(&entries, &local, &layout, &[group]);
+            assert_eq!(rows[0].state, FragmentState::Verified);
+            assert_eq!(rows[0].section_id, 400);
+            assert_eq!(
+                rows[0].common_block_sha256,
+                format!("{:x}", Sha256::digest(foreign))
+            );
+            assert!(
+                rows[1..]
+                    .iter()
+                    .all(|row| row.common_block_sha256 == ZERO_SHA256)
+            );
+        }
+    }
+
+    #[test]
+    fn complete_recovery_admission_charges_once_per_path_and_vm_precedes_adapters() {
+        let package = active_fixture_package();
+        let entries = BTreeMap::new();
+        let mut budget = Budget::default();
+        for path in 1..=2 {
+            let result = recover_v8_inputs(
+                &entries,
+                &BTreeMap::new(),
+                &mut budget,
+                Some(package),
+                Some(100),
+                vec![],
+                None,
+            )
+            .unwrap();
+            assert!(!result.inventory_established());
+            assert_eq!(
+                budget.adapter.rows()[Kernel::ProgramRefinement as usize].calls(),
+                path
+            );
+            assert_eq!(
+                budget.primitive_steps,
+                path * package.logical.recipe_primitive_steps(127).unwrap()
+            );
+        }
+        let block = crate::encode_common_block(&crate::CommonBlock {
+            profile_version: 8,
+            section_id: 400,
+            semantic_copy_id: 0,
+            section_type: 4,
+            section_version: 0,
+            fragment_index: 0,
+            fragment_count: 1,
+            section_envelope_length: 23,
+            payload: vec![7; 23],
+        })
+        .unwrap();
+        let present = BTreeMap::from([(1, active_fixture_lane(&block))]);
+        let mut handle = active_fixture_handle(package, &present, 100);
+        let mut budget = Budget::default();
+        budget.value.primitive_steps = u64::MAX;
+        assert_eq!(
+            handle.group(1, 5, None, &mut budget),
+            Err(DamageV2Error::ResourceLimit)
+        );
+        assert_eq!(
+            budget.adapter.rows()[Kernel::RepetitionAdapter as usize].calls(),
+            0
+        );
+        assert_eq!(
+            budget.adapter.rows()[Kernel::CommonFrame as usize].calls(),
+            0
+        );
+        assert_eq!(budget.value.primitive_steps, u64::MAX);
+    }
+
     #[test]
     fn legacy_inventory_fragments_reach_registry_fallback_assembly() {
         let envelope = crate::encode_section(&SectionEnvelope {
@@ -3197,6 +3830,13 @@ mod body_path_tests {
     }
     #[test]
     fn altered_valid_body_program_executes_generic_vm_and_keeps_failure_atomic() {
+        altered_body_program(false);
+    }
+    #[test]
+    fn altered_wire2_body_program_executes_generic_vm_and_keeps_failure_atomic() {
+        altered_body_program(true);
+    }
+    fn altered_body_program(wire2: bool) {
         let compact = crate::body_recipe_v1::build_revision_recipe_package().unwrap();
         let mut expanded = crate::recipe_wire_v1::expand_recipe_package_v1(&compact, 8).unwrap();
         let u16_at =
@@ -3222,8 +3862,13 @@ mod body_path_tests {
             .unwrap();
         expanded[node + 2] = 25;
         expanded[node + 24..node + 32].copy_from_slice(&4u64.to_be_bytes());
-        let changed = crate::recipe_wire_v1::encode_recipe_package_v1(&expanded, 8).unwrap();
-        let package = crate::recipe_wire_v1::decode_recipe_package_v1(&changed, 8).unwrap();
+        let package = if wire2 {
+            let changed = crate::recipe_wire_v2::encode_recipe_package_v2(&expanded, 8).unwrap();
+            crate::recipe_wire_v2::decode_recipe_package_v2(&changed, 8).unwrap()
+        } else {
+            let changed = crate::recipe_wire_v1::encode_recipe_package_v1(&expanded, 8).unwrap();
+            crate::recipe_wire_v1::decode_recipe_package_v1(&changed, 8).unwrap()
+        };
         assert!(!crate::route_receiver_v2::body_refines(&package));
         let mut budget = Budget::default();
         let output =

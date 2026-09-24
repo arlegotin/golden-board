@@ -2,7 +2,7 @@
 from dataclasses import dataclass, replace
 from hashlib import sha256
 
-from . import bootstrap, bootstrap_v2, m2_codec
+from . import bootstrap, bootstrap_v2, m2_codec, recipe_wire_v2
 from . import m2_damage as inherited
 from .m2_mapping_v2 import mapping_parameters
 
@@ -393,8 +393,15 @@ class DamageCorpusV2:
                         prefix[recipe+16:recipe+24] = (steps+1).to_bytes(8,'big')
                     else:
                         descriptors = int.from_bytes(prefix[recipe+4:recipe+6],'big')+int.from_bytes(prefix[recipe+6:recipe+8],'big')
-                        node = recipe+32+12*descriptors
-                        prefix[node+(number==4)] = 0
+                        node = recipe+32
+                        end = recipe+int.from_bytes(prefix[recipe+28:recipe+32],'big')
+                        if not 0 <= descriptors <= 128:
+                            raise ValueError('damage-compact-descriptors')
+                        for _ in range(descriptors):
+                            node = recipe_wire_v2._descriptor(prefix,node,end)[0]
+                        if not node < end or not prefix[node]&31 or not prefix[node]>>5:
+                            raise ValueError('damage-compact-target')
+                        prefix[node] &= 0xe0 if number==3 else 0x1f
             raw = self._route_mutation(change)
             params = dict(case_ordinal=('u64',number))
         elif ordinal < 428:

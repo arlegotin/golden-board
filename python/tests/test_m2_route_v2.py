@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from golden_board import recipe_wire_v1, m2_route_data
+from golden_board import recipe_wire_v2, m2_route_data
 from golden_board.m2_slice_v1 import compile_slice_v1
 from golden_board.m2_route_v2 import build_route_prefixes_v2, build_route_images_v2, validate_route_prefix_v2
 
@@ -25,9 +25,11 @@ class RevisedRoute(unittest.TestCase):
             self.assertEqual(len(records), 48)
             self.assertFalse(any(row.kind == 4 for row in records))
             package_record, = (r for r in records if r.kind == 5)
-            package = recipe_wire_v1.decode_recipe_package_v1(package_record.payload, 8)
-            self.assertEqual(len(package.logical.tables), 15)
-            self.assertTrue({17, 21, 22}.issubset({t.table_id for t in package.logical.tables}))
+            package = recipe_wire_v2.decode_recipe_package_v2(package_record.payload, 8)
+            self.assertEqual(len(package.logical.tables), 19)
+            self.assertTrue({17, 21, 23, 24, 25, 26, 27}.issubset({t.table_id for t in package.logical.tables}))
+            self.assertNotIn(22, {t.table_id for t in package.logical.tables})
+            self.assertTrue(set(range(114,128)).issubset({r.recipe_id for r in package.logical.recipes}))
             cases = [r for r in records if r.kind in (2, 3)]
             statuses = set()
             for row in cases:
@@ -39,17 +41,17 @@ class RevisedRoute(unittest.TestCase):
             self.assertEqual(statuses, {0, 4, 11})
 
     def test_shell_accounting_fits_with_unchanged_headroom(self):
-        images = build_route_images_v2(self.compiled, 2048, 112)
+        images = build_route_images_v2(self.compiled, 2040, 112)
         self.assertEqual(images.instruction_cells, sum(len(p)*8 for p in self.prefixes))
         self.assertEqual(images.headroom_cells, max((images.instruction_cells+19)//20, 1024))
         for sector, prefix in zip(images.sectors, self.prefixes):
-            self.assertEqual(len(sector.data)*8, 112*(2048-112))
+            self.assertEqual(len(sector.data)*8, 112*(2040-112))
             self.assertEqual(sector.data[:len(prefix)], prefix)
             self.assertEqual(sum(s.cell_count for s in sector.spans), len(sector.data)*8)
             self.assertGreaterEqual(sector.headroom_cells, 256)
 
     def test_all_framed_examples_receive_example_space_in_the_ledger(self):
-        images=build_route_images_v2(self.compiled,2048,112)
+        images=build_route_images_v2(self.compiled,2040,112)
         for sector,prefix in zip(images.sectors,self.prefixes,strict=True):
             records=validate_route_prefix_v2(prefix,self.compiled,sector.sector_id)
             framed=sum((8+len(row.payload))*8 for row in records if row.kind in (2,3))

@@ -8,11 +8,11 @@ affine extraction requires a separate observed-109 program refinement check.
 from dataclasses import dataclass, replace
 from math import gcd
 
-from . import bootstrap as b, bootstrap_v2, chess, content as c, m2_codec, recipe_wire_v1
+from . import bootstrap as b, bootstrap_v2, chess, content as c, m2_codec, recipe_wire_v1, recipe_wire_v2
 from .m2_transport_v2 import aggregate_replica_group
 from .m2_decoder import DecoderError
 
-_WIDTHS = (16,64,96,296,226,210,636,544,464,443,314,2421)
+_WIDTHS = (16,64,306,296,236,228,636,544,464,478,314,2485)
 _AUTHORITY = object()
 
 
@@ -120,6 +120,15 @@ def _facts_1_6(definitions, package):
         picture = r.n(4)
         r.expect((n,255^n,n),(1,1,2))
         _check(picture == (1 << n)-1 and picture.bit_count() == n,'fact3.count')
+    scalar_values = (0,1,127,128,255,256,16383,16384,65535,2**32-1,2**64-1)
+    r.expect((len(scalar_values),),(1,))
+    for value in scalar_values:
+        r.expect((value,),(8,))
+        length = r.n(1)
+        encoded = r.take(10)
+        _check(1 <= length <= 10 and not any(encoded[length:]),'fact3.scalar-padding')
+        decoded,end = recipe_wire_v2._read_uleb(encoded,0,length,64)
+        _check(decoded == value and end == length,'fact3.scalar')
     r.end()
     r = _Read(definitions[3], 'fact4')
     r.expect((32,8,24,6))
@@ -135,22 +144,26 @@ def _facts_1_6(definitions, package):
         ((0,8),(8,2),(10,2),(12,2),(14,2),(16,2),(18,2),(20,4),(24,4),(28,4),(32,4),(36,8),(44,4),(48,16)),
         ((0,2),(2,1),(3,1),(4,4),(8,4),(12,4)),
         ((0,2),(2,2),(4,2),(6,2),(8,4),(12,4),(16,8),(24,4),(28,4)),
-        ((0,2),(2,1),(3,1),(4,4),(8,4))):
+        ((0,2),(2,1),(3,1),(4,4),(8,4)),((0,1),(1,0))):
         r.layout(layout)
     recipe = next(item for item in package.logical.recipes if item.recipe_id == 109)
-    nodes_size = sum(6+2*len(n.arguments)+2*(n.opcode in (2,5,22))
-                     +8*(n.opcode in (1,5,14,22,25)) for n in recipe.nodes)
-    descriptors = 12*(len(recipe.inputs)+len(recipe.outputs))
-    r.expect((109,32,len(recipe.inputs),len(recipe.outputs),12,descriptors,
+    u=lambda value: len(recipe_wire_v2._uleb(value))
+    nodes_size = sum(1+u(n.output_width)+sum(u(a) for a in n.arguments)
+        +(u(n.auxiliary_u16) if n.opcode in (2,5,22) else 0)
+        +(u(n.immediate_u64) if n.opcode in (1,5,14,22,25) else 0) for n in recipe.nodes)
+    descriptors = sum(1+u(d.width) for d in recipe.inputs+recipe.outputs)
+    r.expect((109,32,len(recipe.inputs),len(recipe.outputs),2,descriptors,
               len(recipe.nodes),nodes_size,32+descriptors+nodes_size))
     r.end()
     r = _Read(definitions[5], 'fact6')
     for opcode in range(1,26):
         arity = 0 if opcode in (1,2,24,25) else 1 if opcode in (5,14,22) else 3 if opcode in (3,20,23) else 2
-        aux,immediate = 2*(opcode in (2,5,22)),8*(opcode in (1,5,14,22,25))
-        r.expect((opcode,arity,2*arity,aux,immediate,6+2*arity+aux+immediate),(1,)*6)
+        aux,immediate = 3*(opcode in (2,5,22)),10*(opcode in (1,5,14,22,25))
+        r.expect((opcode,arity,3*arity,aux,immediate,6+3*arity+aux+immediate),(1,)*6)
     for row in ((0,0,1,64),(1,0,1,1),(2,0,1,1048576),(3,1,0,1048576),(4,2,0,1048576),(5,0,16,16)):
         r.expect(row,(1,1,4,4))
+    for opcode,kind in ((1,0),(1,1),(3,2),(3,3),(2,4),(24,5)):
+        r.expect((opcode,kind,(kind<<5)|opcode),(1,1,1))
     r.end()
 
 
@@ -267,110 +280,58 @@ def _group(lanes, expected_key, erasures=None):
     return group,row,distinct
 
 
-def _group_trace(group, row, common):
-    # Equality classes stand for complete checked 191-byte candidates. A failed
-    # lane's placeholder bytes are never a candidate or an equality key.
-    def mask(block):
-        _check(block in common,'fact10.candidate')
-        return 1 << common.index(block)
-    lanes = tuple(mask(block) if state in (2,3) else 0
-                  for state,block in zip(group.lane_states,group.lane_blocks,strict=True))
-    rep = mask(group.repetition_block) if group.repetition_state == 3 else 0
-    union = rep
-    for value in lanes:
-        union |= value
-    return (*lanes, *((0,)*(5-len(lanes))), rep,
-            int(row[1]>0), int(2 in group.lane_states), row[5],
-            union, group.group_state, row[6])
-
-
-def _fact10(raw, common, encoded):
+def _fact10(raw, common, encoded, package):
+    """Independent finite relationship check, not the carried recovery program."""
     r = _Read(raw,'fact10')
-    r.expect((4,6))
-    roster = []
-    last = 0
-    for sid,fragment,count,factor in ((1,0,2,5),(1,1,2,5),(400,0,1,5),(401,0,1,2)):
-        row = r.row((2,)*6)
-        _check(row == (sid,fragment,count,factor,last+1,last+factor),'fact10.roster')
-        roster.append(row)
-        last += factor
-    r.expect((0,4,8,10,12,16,18,22),(1,)*8)
-    r.expect((2,),(1,))
-    keys = []
-    for sid in (400,401):
-        key = r.row((2,4,2,2,2,2,2,4))
-        _check(key == (8,sid,0,4,0,0,1,23),'fact10.expected-key')
-        keys.append(key)
-    r.expect((111,0),(2,1))
-    r.expect((13,4),(1,1))
-    templates = []
-    expected_templates = ((0,0,0,0),(0,0,59,5),(0,0,0,1)) + tuple((1,0,i,2) for i in range(0,10,2)) + tuple((0,1,i,5) for i in range(59,64))
-    for expected in expected_templates:
-        template = r.row((1,)*4)
-        _check(template == expected,'fact10.template')
-        templates.append(template)
-    r.expect((110,),(2,))
-    r.expect((8,24),(1,1))
-    expected_cases = ((11,0,0,0,0,0),(11,4,0,0,0,0),(11,1,0,0,0,0),(11,3,0,0,0,0),
-                      (11,1,4,5,6,7),(11,4,5,6,7,8),(11,9,10,11,12,13),(16,1,1,0,0,0))
-    erased_input = None
-    for number,expected_case in enumerate(expected_cases,1):
-        first,*tokens = r.row((1,)*6)
-        _check((first,*tokens) == expected_case,'fact10.physical-case')
-        allocation = next(row for row in roster if row[4] == first)
-        wanted = next(key for key in keys if (key[1],key[5],key[6]) == allocation[:3])
-        factor = allocation[3]
+    r.expect((123,124,120,125,126,127,24,25,26,27))
+    r.expect((8,57),(1,1))
+    tables = {t.table_id:t for t in package.logical.tables}
+    for tid,width,count in ((24,216,2),(25,68,1),(26,5,8),(27,4,14)):
+        table = tables[tid]
+        _check((table.element_type,table.element_width,table.element_count) ==
+               (b.BYTES,width,count),'fact10.table-shape')
+    _check(tables[24].payload == b''.join(encoded),'fact10.encoded-source')
+    inventory = tables[25].payload
+    _check(inventory[:8] == bytes.fromhex('0002000300000040'),'fact10.inventory-prefix')
+    roster,first = [],1
+    for offset in range(8,68,20):
+        header = inventory[offset:offset+20]
+        sid = int.from_bytes(header[:4],'big')
+        kind,version = int.from_bytes(header[4:6],'big'),int.from_bytes(header[6:8],'big')
+        factor = (header[11]>>1)&7
+        length = 22+int.from_bytes(header[14:18],'big')
+        count = (length+156)//157
+        _check(factor in (1,2,5) and header[12:14] == bytes(2),'fact10.inventory-entry')
+        roster.append((first,first+count*factor,factor,sid,kind,version,count,length))
+        first += count*factor
+    for case in range(8):
+        target,number = r.row((4,1))
+        _check(number == case and target == (11 if case == 7 else 6),'fact10.example-order')
+        allocation = next(row for row in roster if row[0] <= target < row[1])
+        start,_,factor,sid,kind,version,count,length = allocation
+        fragment = (target-start)//factor
+        first = start+fragment*factor
+        key = (8,sid,0,kind,version,fragment,count,length)
+        tokens = tables[26].payload[5*case:5*case+5]
         _check(not any(tokens[factor:]),'fact10.outside-factor')
         lanes,erasures = [],[]
         for token in tokens[:factor]:
+            _check(token < 14,'fact10.template-index')
             if token == 0:
-                lanes.append(None)
-                erasures.append(())
-                continue
-            source,is_unknown,start,count = templates[token-1]
-            wire = bytearray(encoded[source])
-            positions = tuple(range(start,start+count))
-            if is_unknown:
-                for bit in positions:
-                    wire[bit//8] &= ~(1 << (7-bit%8))
-            else:
-                wire = bytearray(_flip(bytes(wire),positions))
-            lanes.append(bytes(wire))
-            erasures.append(positions if is_unknown else ())
-        group,row,_ = _group(tuple(lanes),wanted,tuple(erasures))
-        r.expect((*group.lane_states,*((0,)*(5-factor)),group.repetition_state),(1,)*6)
-        r.expect(_group_trace(group,row,common),(1,)*12)
-        if number == 7:
-            # Derive the raw observation before looking at its decoded specimen.
-            wire = bytearray(216)
-            unknown = []
-            for bit in range(1728):
-                observed = [(lane[bit//8] >> (7-bit%8)) & 1
-                            for lane,missing in zip(lanes,erasures,strict=True)
-                            if lane is not None and bit not in missing]
-                zeros,ones = observed.count(0),observed.count(1)
-                if zeros == ones:
-                    unknown.append(bit)
-                elif ones > zeros:
-                    wire[bit//8] |= 1 << (7-bit%8)
-            _check(unknown == [63] and group.repetition_block == common[0],'fact10.raw-unknown')
-            erased_input = bytes(wire[:9])+bytes((len(unknown),unknown[0]%72+1,0,0))
-    r.expect((3,4),(1,1))
-    for bit in (0,63,72):
-        r.expect((bit,bit//72,bit%72+1),(2,1,1))
-    r.expect((7,0,0,30),(1,1,1,2))
-    _check(r.take(13) == erased_input,'fact10.erasure-input')
-    r.expect((113,4,8),(2,1,1))
-    for factor,symbols in ((2,(0,1,2,2,2)),(5,(0,1,1,1,1)),(5,(1,2,2,2,2)),(5,(2,2,2,2,2))):
-        observed_factor,*observed_symbols = r.row((1,)*6)
-        _check(observed_factor == factor and tuple(observed_symbols) == symbols,'fact10.raw-column')
-        zeros = observed_symbols[:observed_factor].count(0)
-        ones = observed_symbols[:observed_factor].count(1)
-        r.expect((int(zeros != ones),int(ones > zeros)),(1,1))
-    r.expect((5,),(1,))
-    for length in (22,157,158,314,315):
-        count = (length+156)//157
-        r.expect((length,count,length-157*(count-1)),(2,1,1))
+                lanes.append(None);erasures.append(());continue
+            source,unknown,bit,n = tables[27].payload[4*token:4*token+4]
+            _check(source in (0,1) and unknown in (0,1) and bit+n <= 1728,'fact10.template')
+            wire = bytearray(encoded[source]);positions=tuple(range(bit,bit+n))
+            for pos in positions:
+                if unknown:wire[pos//8] &= ~(128>>(pos%8))
+                else:wire[pos//8] ^= 128>>(pos%8)
+            lanes.append(bytes(wire));erasures.append(positions if unknown else ())
+        group,row,_ = _group(tuple(lanes),key,tuple(erasures))
+        expected_key=b''.join(value.to_bytes(width,'big') for value,width in
+                              zip(key,(2,4,2,2,2,2,2,4),strict=True))
+        expected=(bytes(2)+first.to_bytes(4,'big')+bytes((factor,))+expected_key
+                  +bytes((group.group_state,row[6]))+group.chosen_block[30:53])
+        _check(r.take(52) == expected,'fact10.complete-result')
     r.end()
 
 
@@ -498,8 +459,8 @@ def _miniature(raw):
     view = c.projection_view(projection)
     _check(len(view.records) == 29 and view.root_record_id == 29
            and tuple(sorted({record.kind for record in view.records})) == tuple(range(1,15)), 'fact12.miniature.coverage')
-    _check(r.n(4) == 1056,'fact12.supplement.length')
-    supplement = _Read(r.take(1056),'fact12.supplement')
+    _check(r.n(4) == 1120,'fact12.supplement.length')
+    supplement = _Read(r.take(1120),'fact12.supplement')
     r.end()
     scalar = ((0,2,1),(2,2,28),(4,2,0),(19,2,1),(563,2,65535),(571,2,0),
         (571,2,27),(573,2,7),(573,2,9),(573,2,65535),(555,2,2),(555,2,4),
@@ -552,11 +513,12 @@ def _miniature(raw):
         except c.ContentAuthoringError:
             accepted = 0
         supplement.expect((kind,12 if kind == 4 else 14,12,direct,transitive,accepted))
-    supplement.expect((8,))
+    supplement.expect((10,))
     actions = ((26,('03000000',)),(26,('01000002','03000000')),
                (26,('01000003','03000000')),(27,('01000002','01000001','03000000')),
                (28,('01000001','01000001','03000000')),(28,('01000002','01000001','03000000')),
-               (26,('01000001','01000001')),(26,('02000000','03000000')))
+               (26,('01000001','01000001')),(26,('02000000','03000000')),
+               (26,('01000001','01000002')),(26,('01000001','02000000')))
     by_id = {record.record_id:record.payload for record in view.records}
     for node,sequence in actions:
         state = c.new_run(projection)
@@ -624,7 +586,7 @@ def _fact12(raw, *, validate_mini=True):
     for row in ((1,1,0),(2,5,0),(3,4,0),(4,7,0),(5,10,0),(6,3,0),(7,18,0),
                 (8,10,1),(9,3,0),(10,6,1),(11,6,1),(12,20,0),(13,22,0),(14,4,1)):
         r.expect(row)
-    miniature = r.take(1639)
+    miniature = r.take(1703)
     if validate_mini:
         _miniature(miniature)
     references = tuple(r.row((2,)*4) for _ in range(10))
@@ -664,11 +626,11 @@ def validate_local_definitions(definitions, package, *, side, width, sector):
            and 2*width+8 <= side and 0 <= sector < 4,'geometry')
     _check(type(package) is recipe_wire_v1.RecipePackageV1,'package-type')
     try:
-        checked = recipe_wire_v1.decode_recipe_package_v1(package.encoded,8)
+        checked = recipe_wire_v2.decode_recipe_package_v2(package.encoded,8)
         _facts_1_6(definitions,checked)
         common,encoded = _facts_7_8(definitions)
         _fact9(definitions[8],checked)
-        _fact10(definitions[9],common,encoded)
+        _fact10(definitions[9],common,encoded,checked)
         _fact11(definitions[10],common)
         _fact12(definitions[11])
     except DecoderError:
@@ -728,7 +690,7 @@ def validate_recovered_context(commitments, *, required_bytes, all_bytes, body_p
     No unavailable stream is replaced with a source or retained clean stream.
     """
     _check(type(commitments) is DefinitionCommitmentsV2 and commitments._authority is _AUTHORITY
-           and type(commitments.fact12) is bytes and len(commitments.fact12) == 2421,'commitments')
+           and type(commitments.fact12) is bytes and len(commitments.fact12) == 2485,'commitments')
     if body_payloads is not None:
         _check(type(body_payloads) is dict and len(body_payloads) <= 4096
                and all(type(sid) is int and 1 <= sid <= 0xffffffff and type(raw) is bytes

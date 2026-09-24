@@ -4,49 +4,13 @@
 for profile 8. It is source, not a generated package or a recipient result.
 This adds no VM operation and does not change any historical package.
 
-The active teaching package replaces recipe110's former integer-concatenation
-example with the finite group-candidate decision below. Historical/base
-packages retain their original110. This repair follows the saved-method gap
-in the fresh technical trials; it does not broaden the correction profile.
-
-Recipe110 has six UINT2 inputs, then three BOOL inputs, and outputs STATUS16,
-UINT2, UINT8, BOOL. The six inputs are sets of fully checked common-block
-values: five physical lanes in order, then raw repetition. In the carried
-examples, bit0 denotes fact7's complete A and bit1 its complete B; encode each
-two-bit integer in its ordinary one-byte UINT representation. Unused/failed/absent candidate slots are zero.
-These are equality-class names for the complete191 bytes, never CRCs, decoded
-headers alone, or a production whitelist of A/B. The three flags are any lane
-present, any locally verified lane, and agreement of every checked candidate
-with the expected physical-group identity. Inputs come from fact10's complete
-constructions, not supplied judgments about a participant's output.
-
-OR all six candidate sets, including repetition after a verified lane. The
-union is empty, a singleton, or conflicting. Group state is4 for a conflict,
-2 for a singleton with a verified lane,3 for another singleton,1 for an empty
-set with a present lane, otherwise0. Acceptance is true exactly for a singleton
-and identity agreement. The same value from multiple sources stays one value;
-identity disagreement prevents acceptance without pretending the local check
-failed. VM status remains0 for these ordinary rejection/conflict outcomes.
-This finite executable decision composes with the carried unit/EH/common and
-raw-repetition constructions; it is not itself a complete carrier decoder.
-
-Active recipe111 replaces the duplicated CRC program; fact11 uses identical
-CRC recipe107. Historical packages retain111. Its inputs are BITS72 A, BITS72 B,
-BOOL source, BOOL unknown, UINT8 first, UINT8 count; outputs STATUS16, BITS72
-observed word, BITS72 erasure mask. Source0 selects A and1 selects B. Bit indices
-are zero-based/MSB-first. For [first,first+count), unknown0 flips known bits;
-unknown1 clears storage bits and marks those positions in the erasure mask.
-Count0 is a no-op. Checked addition and subtraction reject overflow or a range
-outside0..72 before any output. BOOL admission rejects selectors outside0/1.
-
-Table22 contains one BITS144 value, nine zero bytes followed by nine FF bytes.
-Slice72 bits at72-first and72-(first+count); XOR gives the range mask. SELECT,
-XOR and AND construct the two outcomes using the existing generic VM. No
-host-only operation or BITS shift is introduced. The ordinary fact10 pair
-uses the same first59/count5 with unknown1 and unknown0, respectively, and
-carries both source words and the four separately typed descriptor fields.
-All thirteen observed templates are additionally executed and checked against
-independent word/mask construction before the group traces.
+The active package carries the complete physical recovery programs owned by
+`recovery-program-v2.md` and its bounded neutral logical source. Recipes110/111
+and table22 from the earlier finite mask/word construction are absent from the
+active package. Historical packages and participant submissions remain unchanged.
+Fact11 continues to use CRC recipe107. The complete constructor126 invokes the
+same inventory and recovery kernels as the public arbitrary-input interfaces;
+no Boolean judgment supplied by the owner substitutes for decoding.
 
 Table21 is three UINT8 values7,8,9. Recipes
 210–212 preserve the logical conformance/recipe-v0.json programs 1–3 with
@@ -63,7 +27,7 @@ argument0, argument1, argument2, auxiliary, immediate)`. Unused arguments
 must be zero. Node IDs are implicit increasing ordinals. The opcode's existing
 arity and every existing reference, type, output, status and resource rule
 remain mandatory. The auxiliary-u32 field remains zero. This is a source
-notation only; actual bytes use recipe-wire-v1.md, never this table notation
+notation only; actual bytes use recipe-wire-v2.md, never this table notation
 as a new executable interpreter.
 
 Construct recipes in increasing ID order after the inherited and body-codec
@@ -73,12 +37,12 @@ byte-is-zero example was replaced by211, and no retained example, helper call
 or receiver operation consumes106. This removes134 compact bytes and its five
 nodes; it does not assign the dead predicate an invented use. The historical
 profile7 and standalone profile8 revision packages retain106 byte-for-byte.
-Except for the active110/111 replacements above, every other inherited recipe,
-table and output remains exact. The active
-recipe ID set is exactly
-`1,2,3,4,30,90,92,99,100,101,102,103,104,105,107,108,109,110,111,112,113,201,202,203,210,211,212,213,214`.
-The receiver's route2 allowlist must enforce this complete set; neither
-missing live recipes nor the former unused106 is an admitted substitute.
+Every retained inherited recipe and table remains exact; active omission of
+106/110/111 is explicit. The complete active recipe ID set is
+`1,2,3,4,30,90,92,99,100,101,102,103,104,105,107,108,109,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,201,202,203,210,211,212,213,214`.
+Tables are exactly `3,4,5,10,11,12,13,14,15,17,18,19,20,21,23,24,25,26,27`.
+The receiver enforces both sets and complete recovery refinement; a missing
+live program, old mask classifier, or different helper closure is not admitted.
 No implementation may copy the other implementation's encoded package as its
 generation input. Parse this bounded source with exact keys/types/counts,
 or construct the exact same logical rows independently.

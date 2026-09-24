@@ -201,7 +201,7 @@ class RevisedObservationDecoder(unittest.TestCase):
         # Saturating an optional cache changes no availability. Force the
         # generic VM branch and an explicit program rejection, not cache failure.
         with patch('golden_board.m2_decoder_v2.body_program_refined',return_value=False), \
-             patch('golden_board.m2_decoder_v2.recipe_wire_v1.evaluate_recipe_v1',
+              patch('golden_board.m2_decoder_v2.recipe_wire_v2.evaluate_recipe_v2',
                    return_value=bootstrap.RecipeResult(3,())):
             required,all_stream,_,_ = decoder._recover_content_tiers(
                 decoder.profile_by_version[8],self.inventory,self.envelopes())

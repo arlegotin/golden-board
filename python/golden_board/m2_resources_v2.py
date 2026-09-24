@@ -10,7 +10,7 @@ from . import bootstrap
 from .m2_decoder import DecoderError, ResourceUsage
 from . import canonical_manifest
 
-RESOURCE_OWNER_SHA256 = 'e36aaee1b61b47bc71ebc7a6bdbbb91b721d14b6d49bf8aec969aebdb8dd807f'
+RESOURCE_OWNER_SHA256 = 'afc4d29160a682e2e0ab44524371425844afce981165c50ac2c3831dc1edfce2'
 _RESOURCE_KEYS = ('section_attempts','primitive_steps','peak_scratch_bytes')
 _ADAPTER_KEYS = ('calls','reference_input_units','peak_workspace_bytes')
 _OWNER_PATHS = ('spec/profile-policy-v2.toml','spec/profile-limits-v2.toml',
@@ -182,7 +182,13 @@ def _recipe_shape(raw):
         return len(raw),0,0,0,0,0
     n = lambda at,width,maximum: min(maximum,int.from_bytes(raw[at:at+width],'big'))
     p,t,nodes,edges,data = n(16,2,256),n(18,2,4096),n(20,4,65535),n(24,4,262140),n(28,4,1048576)
-    expanded = min(1048576,len(raw)+26*nodes) if raw[8:10] == b'\0\1' else len(raw)
+    if raw[8:10] == b'\0\2':
+        # At most30 omitted bytes per node and10 per interface descriptor;
+        # at most64 inputs and64 outputs for each declared recipe. Reserve
+        # before parsing untrusted variable-width records.
+        expanded = min(1048576,len(raw)+30*nodes+1280*p)
+    else:
+        expanded = min(1048576,len(raw)+26*nodes) if raw[8:10] == b'\0\1' else len(raw)
     return expanded,p,t,nodes,edges,data
 
 

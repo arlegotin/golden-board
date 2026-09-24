@@ -456,6 +456,9 @@ struct PathState {
     groups: BTreeSet<(u16, Vec<Option<u32>>)>,
     bodies: BTreeMap<u32, Option<Vec<u8>>>,
     bootstrap: BTreeMap<u16, BTreeMap<u32, Lane>>,
+    active_units: Option<usize>,
+    catalog: bool,
+    complete_groups: BTreeSet<(u16, u32, Vec<u8>)>,
 }
 impl PathState {
     fn hold(&mut self, ledger: &mut Ledger, bytes: u64) -> Result<()> {
@@ -504,7 +507,40 @@ fn choose_group(
             .map(|id| inputs.contains_key(id).then_some(*id))
             .collect(),
     );
-    if matches!(ids.len(), 2 | 5) && present && state.groups.insert(key) {
+    if let Some(units) = state.active_units.filter(|_| profile == 8) {
+        let bootstrap = !state.catalog && ids.first() == Some(&1);
+        let recipe_id = if bootstrap { 127 } else { 120 };
+        let mut identity = Vec::new();
+        if bootstrap {
+            identity.extend_from_slice(&(units as u32).to_be_bytes());
+        } else {
+            let e = expected.ok_or(ScanError::Source)?;
+            identity.extend_from_slice(&profile.to_be_bytes());
+            identity.extend_from_slice(&e.id.to_be_bytes());
+            identity.extend_from_slice(&0u16.to_be_bytes());
+            identity.extend_from_slice(&e.kind.to_be_bytes());
+            identity.extend_from_slice(&e.version.to_be_bytes());
+            identity.extend_from_slice(&e.index.to_be_bytes());
+            identity.extend_from_slice(&e.count.to_be_bytes());
+            identity.extend_from_slice(&e.length.to_be_bytes());
+        }
+        identity.push(ids.len() as u8);
+        for id in ids {
+            identity.push(u8::from(inputs.contains_key(id)));
+        }
+        if state.complete_groups.insert((recipe_id, ids[0], identity)) {
+            let shape = program.shapes.get(&recipe_id).ok_or(ScanError::Source)?;
+            ledger.vm_repeated(shape.steps, shape.scratch, 1)?;
+            if matches!(ids.len(), 2 | 5) && present {
+                ledger.adapter(
+                    Kernel::RepetitionAdapter,
+                    ids.len() as u64 * 1728,
+                    216 + 2 * 1728,
+                )?;
+                ledger.adapter(Kernel::CommonFrame, 191, 191)?;
+            }
+        }
+    } else if matches!(ids.len(), 2 | 5) && present && state.groups.insert(key) {
         let workspace = 216 + 2 * 1728;
         ledger.adapter(
             Kernel::RepetitionAdapter,
@@ -520,7 +556,23 @@ fn choose_group(
         ledger.release(lease)?;
     }
     if profile == 8 {
-        return Ok(super::group(inputs, lanes, ids, expected));
+        let mut group = super::group(inputs, lanes, ids, expected);
+        if let Some(units) = state
+            .active_units
+            .filter(|_| !state.catalog && ids.first() == Some(&1))
+        {
+            if group.lane.as_ref().is_some_and(|lane| {
+                let b = &lane.block;
+                b.section_type != 1
+                    || b.section_version != 2
+                    || !(22..=16406).contains(&b.section_envelope_length)
+                    || usize::from(b.fragment_count) * 5 > units
+            }) {
+                group.state = FragmentState::Corrupt;
+                group.lane = None;
+            }
+        }
+        return Ok(group);
     }
     let mut candidates = BTreeMap::<[u8; 191], Lane>::new();
     for id in ids {
@@ -854,6 +906,17 @@ impl FullOracleV2<'_> {
         path: &mut PathState,
         ledger: &mut Ledger,
     ) -> Result<PathResult> {
+        if profile == 8 && geometry.is_some() {
+            if path.active_units.is_none() {
+                ledger.adapter(
+                    Kernel::ProgramRefinement,
+                    program.storage.logical_nodes,
+                    program.storage.refinement_extra_bytes,
+                )?;
+            }
+            path.active_units = geometry;
+            path.catalog = false;
+        }
         let first = choose_group(
             inputs,
             lanes,
@@ -879,7 +942,7 @@ impl FullOracleV2<'_> {
                 && b.fragment_index == 0
                 && b.section_type == 1
                 && b.section_version == if profile == 8 { 2 } else { 1 }
-                && usize::from(b.fragment_count) * 5 <= 2389
+                && usize::from(b.fragment_count) * 5 <= geometry.unwrap_or(2389)
             {
                 bootstrap_identity = Some(b.clone());
                 let mut selected = Vec::new();
@@ -934,6 +997,14 @@ impl FullOracleV2<'_> {
         if let Some(inventory) = inventory {
             let layout = super::layout(&inventory).map_err(|_| ScanError::Source)?;
             retain_layout(&inventory, layout.len(), path, ledger)?;
+            if path.active_units.is_some() {
+                let roster = program.shapes.get(&123).ok_or(ScanError::Source)?;
+                for expected in layout.values().filter(|row| row.replica == 0) {
+                    let _ = expected;
+                    ledger.vm_repeated(roster.steps, roster.scratch, 1)?;
+                }
+                path.catalog = true;
+            }
             let mut cursor = 1u32;
             let mut sections = Vec::new();
             for entry in &inventory.entries {

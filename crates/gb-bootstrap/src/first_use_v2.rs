@@ -1,6 +1,6 @@
 //! Finite first-use coverage from observed route bytes. No source construction.
 use crate::damage::ResourceProjection;
-use crate::recipe_wire_v1::{decode_recipe_package_v1, evaluate_serialized_recipe_v1};
+use crate::recipe_wire_v2::{decode_recipe_package_v2, evaluate_serialized_recipe_v2};
 use crate::route_receiver_v2::admit_route_prefix;
 use gb_foundation::{ManifestValue as V, serialize_manifest, validate_canonical_manifest};
 use sha2::{Digest, Sha256};
@@ -57,6 +57,27 @@ fn uint(raw: &[u8], at: usize, width: usize) -> Result<u64> {
 }
 fn num(raw: &[u8], at: usize, width: usize) -> Result<usize> {
     usize::try_from(uint(raw, at, width)?).map_err(|_| FirstUseError::Partition)
+}
+fn uleb(raw: &[u8], at: &mut usize, end: usize, bits: usize) -> Result<u64> {
+    let mut value = 0u64;
+    for ordinal in 0..bits.div_ceil(7) {
+        need(*at < end && end <= raw.len(), FirstUseError::Partition)?;
+        let byte = raw[*at];
+        *at += 1;
+        let digit = u64::from(byte & 127);
+        let shift = ordinal * 7;
+        need(digit <= (u64::MAX >> shift), FirstUseError::Partition)?;
+        value |= digit << shift;
+        need(
+            bits == 64 || value < (1u64 << bits),
+            FirstUseError::Partition,
+        )?;
+        if byte < 128 {
+            need(ordinal == 0 || byte != 0, FirstUseError::Partition)?;
+            return Ok(value);
+        }
+    }
+    Err(FirstUseError::Partition)
 }
 fn n(value: usize) -> V {
     V::U64(value as u64)
@@ -232,6 +253,7 @@ struct Scan {
     recipes: Vec<[usize; 6]>,
     descriptors: Vec<[usize; 8]>,
     nodes: Vec<Node>,
+    node_fields: Vec<[usize; 6]>,
     calls: Vec<[usize; 3]>,
 }
 fn fields(
@@ -262,6 +284,7 @@ fn scan(raw: &[u8], definitions: &[Vec<u8>]) -> Result<Scan> {
         recipes: vec![],
         descriptors: vec![],
         nodes: vec![],
+        node_fields: vec![],
         calls: vec![],
     };
     let mut at = 0;
@@ -283,11 +306,27 @@ fn scan(raw: &[u8], definitions: &[Vec<u8>]) -> Result<Scan> {
         need(end == size, FirstUseError::Partition)?;
         out.layouts.push(Layout { start, pairs });
     }
+    let start = at;
+    need(num(&definitions[4], at, 2)? == 2, FirstUseError::Partition)?;
+    at += 2;
+    let mut pairs = vec![];
+    for _ in 0..2 {
+        pairs.push((
+            num(&definitions[4], at, 2)?,
+            num(&definitions[4], at + 2, 2)?,
+        ));
+        at += 4;
+    }
+    need(pairs == [(0, 1), (1, 0)], FirstUseError::Partition)?;
+    out.layouts.push(Layout { start, pairs });
     fields(&mut out.fields, &out.layouts, 2, 0, 0, 0);
     let table_count = num(raw, 18, 2)?;
     let recipe_count = num(raw, 16, 2)?;
     need(
-        table_count <= 256 && recipe_count <= 256 && raw.len() <= 32768,
+        table_count <= 256
+            && recipe_count <= 256
+            && raw.len() <= 32768
+            && raw.get(8..10) == Some(&[0, 2]),
         FirstUseError::Input,
     )?;
     at = 64;
@@ -314,6 +353,8 @@ fn scan(raw: &[u8], definitions: &[Vec<u8>]) -> Result<Scan> {
         let no = num(raw, at + 6, 2)?;
         let nn = num(raw, at + 8, 4)?;
         let size = num(raw, at + 28, 4)?;
+        let recipe_end = start.checked_add(size).ok_or(FirstUseError::Partition)?;
+        need(recipe_end <= raw.len(), FirstUseError::Partition)?;
         need(
             nn <= 4096 && out.nodes.len() + nn <= 4096 && ni <= 4096 && no <= 4096,
             FirstUseError::Input,
@@ -325,30 +366,40 @@ fn scan(raw: &[u8], definitions: &[Vec<u8>]) -> Result<Scan> {
         let mut outputs = BTreeMap::new();
         for (io, count) in [ni, no].into_iter().enumerate() {
             for index in 1..=count {
-                out.descriptors.push([
-                    id,
-                    io,
-                    index,
-                    num(raw, at, 2)?,
-                    at,
-                    num(raw, at + 2, 1)?,
-                    num(raw, at + 4, 4)?,
-                    num(raw, at + 8, 4)?,
-                ]);
-                fields(&mut out.fields, &out.layouts, 5, id, index + io * 65536, at);
-                if io == 0 {
-                    values.insert(index, (at, 12));
-                } else {
-                    outputs.insert(index, (at, 12));
+                let begin = at;
+                need(at < recipe_end, FirstUseError::Partition)?;
+                let kind = num(raw, at, 1)?;
+                at += 1;
+                let width_start = at;
+                let width = usize::try_from(uleb(raw, &mut at, recipe_end, 32)?)
+                    .map_err(|_| FirstUseError::Partition)?;
+                need(matches!(kind, 0 | 1 | 2 | 3 | 5), FirstUseError::Partition)?;
+                out.descriptors
+                    .push([id, io, index, index, begin, kind, width, 1]);
+                for (field, offset, length) in [(0, begin, 1), (1, width_start, at - width_start)] {
+                    out.fields.push(row([
+                        6,
+                        id,
+                        index + io * 65536,
+                        field,
+                        offset,
+                        length,
+                        out.layouts[6].start + 2 + 4 * field,
+                    ]));
                 }
-                at += 12;
+                if io == 0 {
+                    values.insert(index, (begin, at - begin));
+                } else {
+                    outputs.insert(index, (begin, at - begin));
+                }
             }
         }
         for index in 1..=nn {
             let node_start = at;
-            let opcode = num(raw, at, 1)?;
-            let kind = num(raw, at + 1, 1)?;
-            let width = num(raw, at + 2, 4)?;
+            need(at < recipe_end, FirstUseError::Partition)?;
+            let tag = num(raw, at, 1)?;
+            let opcode = tag & 31;
+            let kind = tag >> 5;
             need(
                 (1..=25).contains(&opcode) && kind <= 5,
                 FirstUseError::Partition,
@@ -358,21 +409,31 @@ fn scan(raw: &[u8], definitions: &[Vec<u8>]) -> Result<Scan> {
             let ab = shape[3];
             let ib = shape[4];
             need(
-                arity <= 3 && matches!(ab, 0 | 2) && matches!(ib, 0 | 8),
+                arity <= 3 && matches!(ab, 0 | 3) && matches!(ib, 0 | 10),
                 FirstUseError::Partition,
             )?;
-            at += 6;
+            out.node_fields.push([id, index, 0, 0, at, 1]);
+            at += 1;
+            let field = at;
+            let width = usize::try_from(uleb(raw, &mut at, recipe_end, 32)?)
+                .map_err(|_| FirstUseError::Partition)?;
+            out.node_fields.push([id, index, 1, 0, field, at - field]);
             let mut args = vec![];
-            for _ in 0..arity {
-                let value = num(raw, at, 2)?;
+            for ordinal in 1..=arity {
+                let field = at;
+                let value = usize::try_from(uleb(raw, &mut at, recipe_end, 16)?)
+                    .map_err(|_| FirstUseError::Partition)?;
                 let &(pos, len) = values.get(&value).ok_or(FirstUseError::Grounding)?;
-                args.push([value, at, pos, len]);
-                at += 2;
+                args.push([value, field, pos, len]);
+                out.node_fields
+                    .push([id, index, 2, ordinal, field, at - field]);
             }
             let mut aux = vec![];
             let mut immediate = None;
             if ab != 0 {
-                let target = num(raw, at, 2)?;
+                let field = at;
+                let target = usize::try_from(uleb(raw, &mut at, recipe_end, 16)?)
+                    .map_err(|_| FirstUseError::Partition)?;
                 let (pos, len) = match opcode {
                     2 => {
                         let t = out
@@ -395,15 +456,16 @@ fn scan(raw: &[u8], definitions: &[Vec<u8>]) -> Result<Scan> {
                     }
                     _ => return Err(FirstUseError::Partition),
                 };
-                aux = vec![target, at, pos, len];
-                at += 2;
+                aux = vec![target, field, pos, len];
+                out.node_fields.push([id, index, 3, 0, field, at - field]);
             }
             if ib != 0 {
-                immediate = Some((at, uint(raw, at, 8)?));
-                at += 8;
+                let field = at;
+                immediate = Some((field, uleb(raw, &mut at, recipe_end, 64)?));
+                out.node_fields.push([id, index, 4, 0, field, at - field]);
             }
             need(
-                at - node_start == usize::from(shape[5]),
+                at - node_start <= usize::from(shape[5]),
                 FirstUseError::Partition,
             )?;
             out.nodes.push(Node {
@@ -637,13 +699,13 @@ fn uses(scan: &Scan, routes: &Routes) -> Result<(V, V)> {
             }
         }
         if fact == 10 {
-            roots.push((fact, num(&routes.definitions[9], 158, 2)?));
+            roots.push((fact, num(&routes.definitions[9], 8, 2)?));
         }
         if fact == 8 {
             roots.push((8, 108));
         }
     }
-    roots.extend([30, 109, 113, 202].map(|id| (0, id)));
+    roots.extend([30, 109, 113, 120, 123, 127, 202].map(|id| (0, id)));
     let mut all_recipes = BTreeSet::new();
     let mut all_tables = BTreeSet::from([17]);
     let mut use_rows = vec![];
@@ -673,7 +735,7 @@ fn uses(scan: &Scan, routes: &Routes) -> Result<(V, V)> {
     Ok((rows(use_rows), rows(conventions)))
 }
 fn adapters(routes: &Routes) -> Result<V> {
-    let package = decode_recipe_package_v1(&routes.package, 8).map_err(|_| FirstUseError::Route)?;
+    let package = decode_recipe_package_v2(&routes.package, 8).map_err(|_| FirstUseError::Route)?;
     let mut result = vec![];
     for (block, base) in [134, 325].into_iter().enumerate() {
         for lane in 0..24 {
@@ -690,7 +752,7 @@ fn adapters(routes: &Routes) -> Result<V> {
                 .collect();
             let offset = 112 + 216 * block + 9 * lane;
             let expected = &routes.definitions[7][offset..offset + 9];
-            let actual = evaluate_serialized_recipe_v1(&package, 108, &input)
+            let actual = evaluate_serialized_recipe_v2(&package.encoded, 8, 108, &input)
                 .map_err(|_| FirstUseError::Grounding)?;
             need(
                 actual.len() == 11 && actual[..2] == [0, 0] && actual[2..] == *expected,
@@ -857,6 +919,10 @@ pub fn build_first_use_v2(input: FirstUseInputs<'_>) -> Result<Vec<u8>> {
         rows(scan.nodes.iter().map(Node::manifest)),
     );
     value.insert(
+        "node_field_rows".into(),
+        rows(scan.node_fields.iter().copied().map(row)),
+    );
+    value.insert(
         "call_rows".into(),
         rows(scan.calls.iter().copied().map(row)),
     );
@@ -895,6 +961,28 @@ pub fn validate_first_use_v2(raw: &[u8], input: FirstUseInputs<'_>) -> Result<()
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn canonical_integer_spans_reject_overlong_overflow_and_boundary_crossing() {
+        for (raw, bits, expected) in [
+            (vec![0], 16, 0),
+            (vec![128, 1], 16, 128),
+            (vec![255, 255, 3], 16, 65535),
+            ([vec![255; 9], vec![1]].concat(), 64, u64::MAX),
+        ] {
+            let mut at = 0;
+            assert_eq!(uleb(&raw, &mut at, raw.len(), bits).unwrap(), expected);
+            assert_eq!(at, raw.len());
+        }
+        for (raw, bits, end) in [
+            (vec![128, 0], 16, 2),
+            (vec![128], 16, 1),
+            (vec![255, 255, 4], 16, 3),
+            ([vec![255; 9], vec![2]].concat(), 64, 10),
+            (vec![128, 1], 16, 1),
+        ] {
+            assert!(uleb(&raw, &mut 0, end, bits).is_err());
+        }
+    }
     #[test]
     fn missing_and_circular_definitions_never_receive_a_topological_order() {
         let ordered = BTreeMap::from([(1, BTreeSet::new()), (2, BTreeSet::from([1]))]);

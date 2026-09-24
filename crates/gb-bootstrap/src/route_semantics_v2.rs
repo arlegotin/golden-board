@@ -5,7 +5,8 @@
 use crate::candidate::{
     EhObservation, aggregate_repetition_observation, decode_eh_unit_fast, encode_eh_unit,
 };
-use crate::recipe_wire_v1::{RecipePackageV1, decode_recipe_package_v1};
+use crate::recipe_wire_v1::RecipePackageV1;
+use crate::recipe_wire_v2::decode_recipe_package_v2;
 use gb_content::{ContentProjection, Record, RecordPayload as P};
 use std::collections::{BTreeMap, BTreeSet};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -121,6 +122,17 @@ fn wire_frames(raw: &[u8]) -> Result<(BTreeMap<u16, &[u8]>, BTreeMap<u16, &[u8]>
     need(at == raw.len())?;
     Ok((tables, recipes))
 }
+fn uleb(mut value: u64) -> Vec<u8> {
+    let mut out = vec![];
+    loop {
+        let digit = (value & 127) as u8;
+        value >>= 7;
+        out.push(digit | if value == 0 { 0 } else { 128 });
+        if value == 0 {
+            return out;
+        }
+    }
+}
 fn first_six(v: &[&[u8]], package: &RecipePackageV1) -> Result<()> {
     let mut out = vec![];
     for b in [0u8, 128, 170, 240, 204, 1, 129, 24] {
@@ -162,6 +174,26 @@ fn first_six(v: &[&[u8]], package: &RecipePackageV1) -> Result<()> {
         out.extend(((1u32 << n) - 1).to_be_bytes());
         out.extend([n, 255 ^ n]);
         words(&mut out, &[u16::from(n)]);
+    }
+    out.push(11);
+    for scalar in [
+        0u64,
+        1,
+        127,
+        128,
+        255,
+        256,
+        16383,
+        16384,
+        65535,
+        u32::MAX as u64,
+        u64::MAX,
+    ] {
+        let encoded = uleb(scalar);
+        out.extend(scalar.to_be_bytes());
+        out.push(encoded.len() as u8);
+        out.extend(&encoded);
+        out.resize(out.len() + 10 - encoded.len(), 0);
     }
     exact(v[2], out)?;
     let mut out = vec![];
@@ -228,6 +260,7 @@ fn first_six(v: &[&[u8]], package: &RecipePackageV1) -> Result<()> {
             (28, 4),
         ],
         &[(0, 2), (2, 1), (3, 1), (4, 4), (8, 4)],
+        &[(0, 1), (1, 0)],
     ] {
         layout(&mut out, fields);
     }
@@ -235,7 +268,7 @@ fn first_six(v: &[&[u8]], package: &RecipePackageV1) -> Result<()> {
     let r = recipes.get(&109).ok_or(SemanticError)?;
     let input = u16_at(r, 4)?;
     let output = u16_at(r, 6)?;
-    let descriptors = (input + output) * 12;
+    let descriptors = (input + output) * 2;
     let nodes = u32_at(r, 8)?;
     let front = 32 + usize::from(descriptors);
     need(nodes <= u16::MAX as u32 && r.len() <= u16::MAX as usize)?;
@@ -246,7 +279,7 @@ fn first_six(v: &[&[u8]], package: &RecipePackageV1) -> Result<()> {
             32,
             input,
             output,
-            12,
+            2,
             descriptors,
             nodes as u16,
             (r.len() - front) as u16,
@@ -262,13 +295,13 @@ fn first_six(v: &[&[u8]], package: &RecipePackageV1) -> Result<()> {
             3 | 20 | 23 => 3,
             _ => 2,
         };
-        let aux = if matches!(op, 2 | 5 | 22) { 2 } else { 0 };
+        let aux = if matches!(op, 2 | 5 | 22) { 3 } else { 0 };
         let imm = if matches!(op, 1 | 5 | 14 | 22 | 25) {
-            8
+            10
         } else {
             0
         };
-        out.extend([op, a, 2 * a, aux, imm, 6 + 2 * a + aux + imm]);
+        out.extend([op, a, 3 * a, aux, imm, 6 + 3 * a + aux + imm]);
     }
     for (t, u, min, max) in [
         (0, 0, 1, 64),
@@ -280,6 +313,9 @@ fn first_six(v: &[&[u8]], package: &RecipePackageV1) -> Result<()> {
     ] {
         out.extend([t, u]);
         longs(&mut out, &[min, max]);
+    }
+    for (op, kind) in [(1, 0), (1, 1), (3, 2), (3, 3), (2, 4), (24, 5)] {
+        out.extend([op, kind, (kind << 5) | op]);
     }
     exact(v[5], out)
 }
@@ -446,16 +482,6 @@ fn ninth(raw: &[u8], package: &RecipePackageV1) -> Result<()> {
     }
     exact(raw, out)
 }
-fn lane(block: [u8; 191], flips: &[usize]) -> EhObservation {
-    let mut encoded = encode_eh_unit(&block);
-    for bit in flips {
-        encoded[bit / 8] ^= 1 << (7 - bit % 8);
-    }
-    EhObservation {
-        encoded,
-        erasures: vec![],
-    }
-}
 fn group(
     lanes: &[Option<EhObservation>],
     key: &[u8],
@@ -580,189 +606,102 @@ fn group(
     ]);
     Ok((row, summary, trace))
 }
-fn tenth(raw: &[u8], a: [u8; 191], b: [u8; 191]) -> Result<()> {
-    need(raw.len() == 443 && raw[..4] == [0, 4, 0, 6])?;
-    let mut roster = Vec::new();
-    for (i, expected) in [
-        [1u16, 0, 2, 5, 1, 5],
-        [1, 1, 2, 5, 6, 10],
-        [400, 0, 1, 5, 11, 15],
-        [401, 0, 1, 2, 16, 17],
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        let row = (0..6)
-            .map(|j| u16_at(raw, 4 + i * 12 + 2 * j))
-            .collect::<Result<Vec<_>>>()?;
-        need(row == expected)?;
-        roster.push(row);
-    }
-    need(raw[52..61] == [0, 4, 8, 10, 12, 16, 18, 22, 2])?;
-    let keys = [take(raw, 61, 20)?, take(raw, 81, 20)?];
-    for (key, section) in keys.iter().zip([400, 401]) {
-        need(
-            u16_at(key, 0)? == 8
-                && u32_at(key, 2)? == section
-                && u16_at(key, 6)? == 0
-                && u16_at(key, 8)? == 4
-                && u16_at(key, 10)? == 0
-                && u16_at(key, 12)? == 0
-                && u16_at(key, 14)? == 1
-                && u32_at(key, 16)? == 23,
-        )?;
-    }
-    need(raw[101..106] == [0, 111, 0, 13, 4])?;
-    let expected_templates = [
-        [0u8, 0, 0, 0],
-        [0, 0, 59, 5],
-        [0, 0, 0, 1],
-        [1, 0, 0, 2],
-        [1, 0, 2, 2],
-        [1, 0, 4, 2],
-        [1, 0, 6, 2],
-        [1, 0, 8, 2],
-        [0, 1, 59, 5],
-        [0, 1, 60, 5],
-        [0, 1, 61, 5],
-        [0, 1, 62, 5],
-        [0, 1, 63, 5],
-    ];
-    let mut templates = Vec::new();
-    for (row, expected) in raw[106..158].chunks_exact(4).zip(expected_templates) {
-        need(row == expected)?;
-        let block = if row[0] == 0 { a } else { b };
-        let mut observation = lane(block, &[]);
-        for bit in usize::from(row[2])..usize::from(row[2]) + usize::from(row[3]) {
-            if row[1] == 0 {
-                observation.encoded[bit / 8] ^= 1 << (7 - bit % 8);
-            } else {
-                observation.encoded[bit / 8] &= !(1 << (7 - bit % 8));
-                observation.erasures.push(crate::candidate::EhErasure {
-                    codeword: (bit / 72) as u8,
-                    position: (bit % 72 + 1) as u8,
-                });
-            }
-        }
-        templates.push(observation);
-    }
-    need(raw[158..162] == [0, 110, 8, 24])?;
-    let expected_cases = [
-        [11u8, 0, 0, 0, 0, 0],
-        [11, 4, 0, 0, 0, 0],
-        [11, 1, 0, 0, 0, 0],
-        [11, 3, 0, 0, 0, 0],
-        [11, 1, 4, 5, 6, 7],
-        [11, 4, 5, 6, 7, 8],
-        [11, 9, 10, 11, 12, 13],
-        [16, 1, 1, 0, 0, 0],
-    ];
-    let mut groups = Vec::new();
-    for (row, expected) in raw[162..354].chunks_exact(24).zip(expected_cases) {
-        need(row[..6] == expected)?;
-        let physical = u16::from(row[0]);
-        let owner = roster
-            .iter()
-            .find(|r| r[4] <= physical && physical <= r[5])
-            .ok_or(SemanticError)?;
-        let factor = usize::from(owner[3]);
-        need(row[1 + factor..6].iter().all(|id| *id == 0))?;
-        let key = keys
-            .iter()
-            .find(|key| {
-                u32_at(key, 2).ok() == Some(u32::from(owner[0]))
-                    && u16_at(key, 12).ok() == Some(owner[1])
-                    && u16_at(key, 14).ok() == Some(owner[2])
-            })
-            .ok_or(SemanticError)?;
-        let observations = row[1..1 + factor]
-            .iter()
-            .map(|id| {
-                if *id == 0 {
-                    Ok(None)
-                } else {
-                    Ok(Some(
-                        templates
-                            .get(usize::from(*id - 1))
-                            .ok_or(SemanticError)?
-                            .clone(),
-                    ))
-                }
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let (_, states, trace) = group(&observations, key, &a, &b)?;
-        need(row[6..12] == states[..6] && row[12..24] == trace)?;
-        groups.push(observations);
-    }
-    need(raw[354..356] == [3, 4])?;
-    for (row, expected_bit) in raw[356..368].chunks_exact(4).zip([0u16, 63, 72]) {
-        let bit = u16_at(row, 0)?;
-        need(
-            bit == expected_bit
-                && u16::from(row[2]) == bit / 72
-                && u16::from(row[3]) == bit % 72 + 1,
-        )?;
-    }
-    need(raw[368..373] == [7, 0, 0, 0, 30])?;
-    let rep = aggregate_repetition_observation(&groups[usize::from(raw[368] - 1)])
-        .map_err(|_| SemanticError)?
-        .ok_or(SemanticError)?;
-    let word = usize::from(raw[370]);
-    let mut input = rep.encoded[word * 9..word * 9 + 9].to_vec();
-    let positions = rep
-        .erasures
-        .iter()
-        .filter(|e| usize::from(e.codeword) == word)
-        .map(|e| e.position)
-        .collect::<Vec<_>>();
-    need(positions.len() <= 3)?;
-    input.push(positions.len() as u8);
-    input.extend(positions);
-    input.resize(13, 0);
-    need(raw[373..386] == input)?;
+fn tenth(raw: &[u8], a: [u8; 191], b: [u8; 191], package: &RecipePackageV1) -> Result<()> {
     need(
-        decode_eh_unit_fast(&rep, 8)
-            .map_err(|_| SemanticError)?
-            .common
-            == a,
+        raw.len() == 478
+            && raw[..22]
+                == [
+                    0, 123, 0, 124, 0, 120, 0, 125, 0, 126, 0, 127, 0, 24, 0, 25, 0, 26, 0, 27, 8,
+                    57,
+                ],
     )?;
-    need(raw[386..390] == [0, 113, 4, 8])?;
-    for (row, expected) in raw[390..422].chunks_exact(8).zip([
-        [2u8, 0, 1, 2, 2, 2],
-        [5, 0, 1, 1, 1, 1],
-        [5, 1, 2, 2, 2, 2],
-        [5, 2, 2, 2, 2, 2],
-    ]) {
-        need(row[..6] == expected)?;
-        let r = usize::from(row[0]);
-        need(matches!(r, 2 | 5) && row[1 + r..6].iter().all(|s| *s == 2))?;
-        let zeros = row[1..1 + r].iter().filter(|s| **s == 0).count();
-        let ones = row[1..1 + r].iter().filter(|s| **s == 1).count();
-        let erased = r - zeros - ones;
-        let zero = 2 * ones + erased < r;
-        let one = 2 * zeros + erased < r;
-        need(row[6..] == [u8::from(zero != one), u8::from(one && !zero)])?;
+    let (tables, _) = wire_frames(&package.encoded)?;
+    for (id, width, count) in [(24, 216, 2), (25, 68, 1), (26, 5, 8), (27, 4, 14)] {
+        let t = tables.get(&id).ok_or(SemanticError)?;
+        need(t[2] == 3 && u32_at(t, 4)? == width && u32_at(t, 8)? == count)?;
     }
-    need(raw[422] == 5)?;
-    for (row, length) in raw[423..443]
-        .chunks_exact(4)
-        .zip([22u16, 157, 158, 314, 315])
-    {
+    let encoded = [encode_eh_unit(&a), encode_eh_unit(&b)];
+    need(tables[&24][16..] == [encoded[0].as_slice(), encoded[1].as_slice()].concat())?;
+    let inventory = &tables[&25][16..];
+    need(inventory[..8] == [0, 2, 0, 3, 0, 0, 0, 64])?;
+    let mut roster = vec![];
+    let mut first = 1u32;
+    for header in inventory[8..].chunks_exact(20) {
+        let sid = u32_at(header, 0)?;
+        let kind = u16_at(header, 4)?;
+        let version = u16_at(header, 6)?;
+        let factor = (header[11] >> 1) & 7;
+        let length = 22u32
+            .checked_add(u32_at(header, 14)?)
+            .ok_or(SemanticError)?;
         let count = length.div_ceil(157);
-        let last = length - 157 * (count - 1);
-        need(u16_at(row, 0)? == length && u16::from(row[2]) == count && u16::from(row[3]) == last)?;
-        need(
-            (0..count)
-                .map(|i| {
-                    if i + 1 == count {
-                        u16::from(row[3])
-                    } else {
-                        157
-                    }
-                })
-                .sum::<u16>()
-                == length,
-        )?;
+        need(matches!(factor, 1 | 2 | 5) && header[12..14] == [0, 0])?;
+        let end = first
+            .checked_add(count.checked_mul(u32::from(factor)).ok_or(SemanticError)?)
+            .ok_or(SemanticError)?;
+        roster.push((first, end, factor, sid, kind, version, count, length));
+        first = end;
+    }
+    for (case, example) in raw[22..].chunks_exact(57).enumerate() {
+        let target = u32_at(example, 0)?;
+        need(example[4] as usize == case && target == if case == 7 { 11 } else { 6 })?;
+        let &(start, _, factor, sid, kind, version, count, length) = roster
+            .iter()
+            .find(|r| r.0 <= target && target < r.1)
+            .ok_or(SemanticError)?;
+        let fragment = (target - start) / u32::from(factor);
+        let first = start + fragment * u32::from(factor);
+        let mut key = vec![];
+        words(&mut key, &[8]);
+        longs(&mut key, &[sid]);
+        words(&mut key, &[0, kind, version, fragment as u16, count as u16]);
+        longs(&mut key, &[length]);
+        let tokens = &tables[&26][16 + case * 5..16 + case * 5 + 5];
+        need(tokens[usize::from(factor)..].iter().all(|v| *v == 0))?;
+        let mut lanes = vec![];
+        for &token in &tokens[..usize::from(factor)] {
+            need(token < 14)?;
+            if token == 0 {
+                lanes.push(None);
+                continue;
+            }
+            let template = &tables[&27][16 + usize::from(token) * 4..20 + usize::from(token) * 4];
+            let source = template[0] as usize;
+            let unknown = template[1];
+            let bit = usize::from(template[2]);
+            let count = usize::from(template[3]);
+            need(source < 2 && unknown <= 1 && bit + count <= 1728)?;
+            let mut observation = EhObservation {
+                encoded: encoded[source],
+                erasures: vec![],
+            };
+            for pos in bit..bit + count {
+                let mask = 128 >> (pos % 8);
+                if unknown == 1 {
+                    observation.encoded[pos / 8] &= !mask;
+                    observation.erasures.push(crate::candidate::EhErasure {
+                        codeword: (pos / 72) as u8,
+                        position: (pos % 72 + 1) as u8,
+                    });
+                } else {
+                    observation.encoded[pos / 8] ^= mask;
+                }
+            }
+            lanes.push(Some(observation));
+        }
+        let (row, summary, _) = group(&lanes, &key, &a, &b)?;
+        let chosen = if summary[6] == 1 {
+            if summary[8] == 1 { a } else { b }
+        } else {
+            [0; 191]
+        };
+        let mut expected = vec![0, 0];
+        longs(&mut expected, &[first]);
+        expected.push(factor);
+        expected.extend(key);
+        expected.extend([summary[7], row[6]]);
+        expected.extend(&chosen[30..53]);
+        need(example[5..] == expected)?;
     }
     Ok(())
 }
@@ -1138,7 +1077,7 @@ fn role_witness(
     Ok(pruned(records, 29).is_ok())
 }
 fn miniature(raw: &[u8]) -> Result<()> {
-    need(u32_at(raw, 0)? == 575 && u32_at(raw, 579)? == 1056 && raw.len() == 1639)?;
+    need(u32_at(raw, 0)? == 575 && u32_at(raw, 579)? == 1120 && raw.len() == 1703)?;
     let mini = take(raw, 4, 575)?;
     let projection = gb_content::stream_validation(mini).map_err(|_| SemanticError)?;
     need(projection.records().len() == 29 && projection.root_record_id() == 29)?;
@@ -1237,18 +1176,33 @@ fn miniature(raw: &[u8]) -> Result<()> {
         need(u16::from(encode_records(&records).is_ok()) == expected[5])?;
         at += 12;
     }
-    need(u16_at(s, at)? == 8)?;
+    need(u16_at(s, at)? == 10)?;
     at += 2;
-    for _ in 0..8 {
+    let action_inputs: [(u16, &[[u8; 4]]); 10] = [
+        (26, &[[3, 0, 0, 0]]),
+        (26, &[[1, 0, 0, 2], [3, 0, 0, 0]]),
+        (26, &[[1, 0, 0, 3], [3, 0, 0, 0]]),
+        (27, &[[1, 0, 0, 2], [1, 0, 0, 1], [3, 0, 0, 0]]),
+        (28, &[[1, 0, 0, 1], [1, 0, 0, 1], [3, 0, 0, 0]]),
+        (28, &[[1, 0, 0, 2], [1, 0, 0, 1], [3, 0, 0, 0]]),
+        (26, &[[1, 0, 0, 1], [1, 0, 0, 1]]),
+        (26, &[[2, 0, 0, 0], [3, 0, 0, 0]]),
+        (26, &[[1, 0, 0, 1], [1, 0, 0, 2]]),
+        (26, &[[1, 0, 0, 1], [2, 0, 0, 0]]),
+    ];
+    for (expected_node, expected_actions) in action_inputs {
         let row = take(s, at, 32)?;
         let node = u16_at(row, 0)?;
         let count = row[2] as usize;
         need(
-            (26..=28).contains(&node)
-                && count <= 3
+            node == expected_node
+                && count == expected_actions.len()
                 && row[18] <= 2
                 && row[3 + count * 4..15].iter().all(|b| *b == 0),
         )?;
+        for (actual, expected) in row[3..3 + count * 4].chunks_exact(4).zip(expected_actions) {
+            need(actual == expected)?;
+        }
         let mut state = gb_content::new_run(&projection);
         for expected in 26..node {
             need(state.current_node_id() == expected)?;
@@ -1430,18 +1384,18 @@ fn twelfth(raw: &[u8]) -> Result<()> {
         words(&mut expected, &[(i + 1) as u16, *n, *fixed]);
     }
     need(take(raw, 18, 188)? == expected)?;
-    miniature(take(raw, 206, 1639)?)?;
+    miniature(take(raw, 206, 1703)?)?;
     for i in 0..10 {
-        let r = take(raw, 1845 + i * 8, 8)?;
+        let r = take(raw, 1909 + i * 8, 8)?;
         need(u16_at(r, 0)? > 0 && u16_at(r, 6)? <= 14)?;
     }
     let mut expected = vec![];
     for row in [[3, 5, 8], [3, 5, 7], [8, 1, 9], [8, 1, 8]] {
         words(&mut expected, &row);
     }
-    need(take(raw, 1925, 24)? == expected)?;
+    need(take(raw, 1989, 24)? == expected)?;
     for i in 0..2 {
-        let frame = take(raw, 1949 + i * 18, 18)?;
+        let frame = take(raw, 2013 + i * 18, 18)?;
         need(
             u16_at(frame, 0)? > 0
                 && u16_at(frame, 2)? == 8
@@ -1451,8 +1405,8 @@ fn twelfth(raw: &[u8]) -> Result<()> {
                 && u16_at(frame, 10)? == 2 + i as u16
                 && u16_at(frame, 12)? == 1,
         )?;
-        let reference = u16_at(raw, 1985 + i * 2)?;
-        let row = take(raw, 1989 + i * 12, 12)?;
+        let reference = u16_at(raw, 2049 + i * 2)?;
+        let row = take(raw, 2053 + i * 12, 12)?;
         need(u32_at(row, 0)? == if i == 0 { 100 } else { 200 })?;
         need(
             u16_at(row, 4)? == u16_at(frame, 0)?
@@ -1463,26 +1417,26 @@ fn twelfth(raw: &[u8]) -> Result<()> {
         )?;
     }
     need(
-        u16_at(raw, 2013 + 151)? == u16_at(raw, 1989 + 12 + 6)?
-            && u16_at(raw, 2013 + 390)? == u16_at(raw, 1989 + 6)?,
+        u16_at(raw, 2077 + 151)? == u16_at(raw, 2053 + 12 + 6)?
+            && u16_at(raw, 2077 + 390)? == u16_at(raw, 2053 + 6)?,
     )?;
-    position_local(take(raw, 2013, 408)?)
+    position_local(take(raw, 2077, 408)?)
 }
 /// Reparse the immutable input bytes; cached logical package fields are not trusted.
 pub fn validate_definitions(
     values: &[&[u8]],
     package: &RecipePackageV1,
 ) -> Result<ContextCommitments> {
-    const WIDTHS: [usize; 12] = [16, 64, 96, 296, 226, 210, 636, 544, 464, 443, 314, 2421];
+    const WIDTHS: [usize; 12] = [16, 64, 306, 296, 236, 228, 636, 544, 464, 478, 314, 2485];
     need(values.len() == 12)?;
     for (value, width) in values.iter().zip(WIDTHS) {
         need(value.len() == width)?;
     }
-    let package = decode_recipe_package_v1(&package.encoded, 8).map_err(|_| SemanticError)?;
+    let package = decode_recipe_package_v2(&package.encoded, 8).map_err(|_| SemanticError)?;
     first_six(values, &package)?;
     let (a, b) = seventh_eighth(values)?;
     ninth(values[8], &package)?;
-    tenth(values[9], a, b)?;
+    tenth(values[9], a, b, &package)?;
     eleventh(values[10], a)?;
     twelfth(values[11])?;
     Ok(ContextCommitments {
@@ -1548,8 +1502,8 @@ fn required_claims(raw: &[u8], c: &[u8]) -> Result<()> {
         }
         words(&mut expected, &[owner, offset as u16, value, kind]);
     }
-    need(take(c, 1845, 80)? == expected)?;
-    let suffix = &c[2013..];
+    need(take(c, 1909, 80)? == expected)?;
+    let suffix = &c[2077..];
     let id = u16_at(suffix, 22)?;
     let p = projection
         .records()
@@ -1604,11 +1558,11 @@ fn moves(raw: &[u8]) -> Result<Vec<gb_chess::Move>> {
 }
 fn all_claims(raw: &[u8], c: &[u8], bodies: &BTreeMap<u32, Vec<u8>>) -> Result<bool> {
     let (projection, frames) = check_context(raw, 1, c)?;
-    let suffix = &c[2013..];
+    let suffix = &c[2077..];
     let mut bodies_complete = true;
     for i in 0..2 {
-        let carried = take(c, 1949 + i * 18, 18)?;
-        let row = take(c, 1989 + i * 12, 12)?;
+        let carried = take(c, 2013 + i * 18, 18)?;
+        let row = take(c, 2053 + i * 12, 12)?;
         let sid = u32_at(row, 0)?;
         let binding = u16_at(row, 4)?;
         let subject = u16_at(row, 6)?;

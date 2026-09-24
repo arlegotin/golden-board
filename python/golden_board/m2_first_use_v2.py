@@ -4,7 +4,7 @@ from hashlib import sha256
 from . import canonical_manifest
 from .m2_decoder import DecoderError
 from .m2_route_receiver_v2 import decode_observed_route_v2
-from .recipe_wire_v1 import decode_recipe_package_v1, evaluate_recipe_v1
+from .recipe_wire_v2 import decode_recipe_package_v2, evaluate_recipe_v2
 
 _LIMIT = 1_048_576
 _DEPS = ((),(1,),(1,),(2,3),(3,4),(5,),(6,),(6,7),(6,8),(7,8,9),(10,),(11,))
@@ -26,6 +26,19 @@ def _number(raw, at, width):
 
 def _identity(raw):
     return dict(bytes=len(raw),sha256=sha256(raw).hexdigest())
+
+
+def _uleb(raw, at, end, bits):
+    """Read a bounded canonical field while preserving its actual wire span."""
+    start=at;value=0
+    for ordinal in range((bits+6)//7):
+        _need(at<end<=len(raw),'integer-boundary')
+        byte=raw[at];at+=1;value|=(byte&127)<<(7*ordinal)
+        _need(value<1<<bits,'integer-overflow')
+        if byte<128:
+            _need(ordinal==0 or byte!=0,'integer-noncanonical')
+            return value,at,at-start
+    raise FirstUseError('integer-length')
 
 
 def _opcode_order(dependencies):
@@ -87,7 +100,13 @@ def _scan(raw,definitions):
             pos=_number(definitions[4],at,2);width=_number(definitions[4],at+2,2);at+=4
             _need(pos==end and width>0,'layout-partition');end+=width;pairs.append([pos,width])
         _need(end==size,'layout-size');layouts.append([lid,start,pairs])
-    fields=[];tables=[];recipes=[];descriptors=[];nodes=[];calls=[]
+    start=at;n=_number(definitions[4],at,2);at+=2;pairs=[]
+    _need(n==2,'compact-descriptor-layout')
+    for _ in range(n):
+        pairs.append([_number(definitions[4],at,2),_number(definitions[4],at+2,2)]);at+=4
+    _need(pairs==[[0,1],[1,0]],'compact-descriptor-layout')
+    layouts.append([6,start,pairs])
+    fields=[];tables=[];recipes=[];descriptors=[];nodes=[];calls=[];node_fields=[]
     def header(lid,owner,item,start):
         for index,(offset,width) in enumerate(layouts[lid][2]):
             fields.append([lid,owner,item,index,start+offset,width,layouts[lid][1]+2+4*index])
@@ -95,7 +114,7 @@ def _scan(raw,definitions):
     table_map={};recipe_map={};node_map={};input_map={};output_map={}
     at=64
     nt=_number(raw,18,2);nr=_number(raw,16,2)
-    _need(nt<=256 and nr<=256 and len(raw)<=32768,'package-bound')
+    _need(nt<=256 and nr<=256 and len(raw)<=32768 and raw[8:10]==b'\0\2','package-bound')
     for _ in range(nt):
         tid=_number(raw,at,2);size=_number(raw,at+12,4)
         row=[tid,at,16+size,at+16,size,raw[at+2],_number(raw,at+4,4),_number(raw,at+8,4)]
@@ -103,31 +122,39 @@ def _scan(raw,definitions):
     for _ in range(nr):
         start=at;rid=_number(raw,at,2);ni=_number(raw,at+4,2);no=_number(raw,at+6,2)
         nn=_number(raw,at+8,4);size=_number(raw,at+28,4)
+        recipe_end=start+size;_need(recipe_end<=len(raw),'recipe-boundary')
         _need(nn<=4096 and len(nodes)+nn<=4096,'node-bound')
         row=[rid,start,size,ni,no,nn];recipes.append(row);recipe_map[rid]=row
         header(4,rid,0,start);at+=32;values={};outputs={}
         for io,count in enumerate((ni,no)):
             _need(count<=4096,'descriptor-bound')
             for index in range(1,count+1):
-                d=[rid,io,index,_number(raw,at,2),at,raw[at+2],_number(raw,at+4,4),_number(raw,at+8,4)]
-                descriptors.append(d);header(5,rid,index+io*65536,at)
-                (values if io==0 else outputs)[index]=(at,12)
+                begin=at;_need(at<recipe_end,'descriptor-boundary');kind=raw[at]
+                width,at,length=_uleb(raw,at+1,recipe_end,32)
+                _need(kind in (0,1,2,3,5),'descriptor-type')
+                d=[rid,io,index,index,begin,kind,width,1]
+                descriptors.append(d)
+                for field,offset,span in ((0,begin,1),(1,begin+1,length)):
+                    fields.append([6,rid,index+io*65536,field,offset,span,layouts[6][1]+2+4*field])
+                (values if io==0 else outputs)[index]=(begin,at-begin)
                 (input_map if io==0 else output_map)[rid,index]=d
-                at+=12
         for index in range(1,nn+1):
-            start_node=at;op=raw[at];ty=raw[at+1];width=_number(raw,at+2,4)
+            start_node=at;_need(at<recipe_end,'node-boundary');op=raw[at]&31;ty=raw[at]>>5
             _need(1<=op<=25 and 0<=ty<=5,'node-convention')
             shape=definitions[5][(op-1)*6:op*6]
             arity,auxbytes,immbytes=shape[1],shape[3],shape[4]
-            _need(arity<=3 and auxbytes in (0,2) and immbytes in (0,8),'node-shape')
-            at+=6;args=[]
-            for _ in range(arity):
-                value=_number(raw,at,2)
+            _need(arity<=3 and auxbytes in (0,3) and immbytes in (0,10),'node-shape')
+            node_fields.append([rid,index,0,0,at,1]);at+=1
+            field=at;width,at,length=_uleb(raw,at,recipe_end,32)
+            node_fields.append([rid,index,1,0,field,length]);args=[]
+            for ordinal in range(1,arity+1):
+                field=at;value,at,length=_uleb(raw,at,recipe_end,16)
                 _need(value in values,'late-argument')
-                args.append([value,at,*values[value]]);at+=2
+                args.append([value,field,*values[value]])
+                node_fields.append([rid,index,2,ordinal,field,length])
             aux=[];imm=[]
             if auxbytes:
-                target=_number(raw,at,2)
+                field=at;target,at,length=_uleb(raw,at,recipe_end,16)
                 if op==2:
                     _need(target in table_map,'missing-table');t=table_map[target];span=(t[1],t[2])
                 elif op==5:
@@ -135,16 +162,17 @@ def _scan(raw,definitions):
                 else:
                     _need(op==22 and target<rid and target in recipe_map,'late-callee')
                     t=recipe_map[target];span=(t[1],t[2]);calls.append([rid,index,target])
-                aux=[target,at,*span];at+=2
+                aux=[target,field,*span];node_fields.append([rid,index,3,0,field,length])
             if immbytes:
-                imm=[at,_number(raw,at,8)];at+=8
-            _need(at-start_node==shape[5],'node-partition')
+                field=at;immediate,at,length=_uleb(raw,at,recipe_end,64)
+                imm=[field,immediate];node_fields.append([rid,index,4,0,field,length])
+            _need(at-start_node<=shape[5],'node-partition')
             node=[rid,index,ni+index,start_node,at-start_node,op,ty,width,args,aux,imm]
             nodes.append(node);node_map[rid,index]=node;values[ni+index]=(start_node,at-start_node)
         _need(at==start+size,'recipe-partition')
     _need(at==len(raw) and len(fields)<=65536,'package-partition')
     return dict(layout_rows=layouts,field_rows=fields,table_rows=tables,recipe_rows=recipes,
-                descriptor_rows=descriptors,node_rows=nodes,call_rows=calls),node_map,input_map,output_map
+                descriptor_rows=descriptors,node_rows=nodes,node_field_rows=node_fields,call_rows=calls),node_map,input_map,output_map
 
 
 def _grounding(value,node_map,inputs,outputs):
@@ -219,8 +247,8 @@ def _uses(value,routes,definitions):
         for e in examples:
             if (fact,e[1]) not in roots:roots.append((fact,e[1]))
         if fact==8:roots.append((8,108))
-        if fact==10:roots.append((10,_number(definitions[9],158,2)))
-    roots.extend((0,rid) for rid in (30,109,113,202))
+        if fact==10:roots.append((10,_number(definitions[9],8,2)))
+    roots.extend((0,rid) for rid in (30,109,113,120,123,127,202))
     uses=[[fact,rid,*closure(rid)] for fact,rid in roots]
     reached=set(r for row in uses for r in row[2]);tables=set(t for row in uses for t in row[3])|{17}
     _need(reached==recipe_ids and tables==table_ids,'unused-definition')
@@ -229,7 +257,7 @@ def _uses(value,routes,definitions):
 
 
 def _adapter_rows(package,definitions):
-    parsed=decode_recipe_package_v1(package,8)
+    parsed=decode_recipe_package_v2(package,8)
     rows=[]
     for block,base in enumerate((134,325)):
         for lane in range(24):
@@ -238,7 +266,7 @@ def _adapter_rows(package,definitions):
             source=b''.join(definitions[f-1][at:at+n] for f,at,n in segments)
             output=[8,112+216*block+9*lane,9]
             expected=definitions[7][output[1]:output[1]+9]
-            result=evaluate_recipe_v1(parsed,108,(source,))
+            result=evaluate_recipe_v2(parsed,108,(source,))
             _need(result.status==0 and result.outputs==(expected,),'whole-unit-encoder-use')
             rows.append([8,108,block,lane,segments,output])
     return rows

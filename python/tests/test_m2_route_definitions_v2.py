@@ -3,7 +3,9 @@ from dataclasses import FrozenInstanceError, replace
 from pathlib import Path
 import unittest
 
-from golden_board import bootstrap, m2_codec, recipe_wire_v1
+from golden_board import bootstrap, bootstrap_v2, m2_codec, recipe_wire_v1, recipe_wire_v2
+from golden_board.m2_recovery_recipe_v2 import evaluate_recovery_native
+from golden_board.m2_teaching_recipe_v2 import build_teaching_recipe_package
 from golden_board.m2_revision_recipe import build_revision_recipe_package
 from golden_board.m2_slice_v1 import compile_slice_v1
 from golden_board.m2_route_definitions_v2 import build_route_definitions_v2
@@ -25,7 +27,7 @@ class RouteDefinitions(unittest.TestCase):
     def test_exact_finite_shape_and_fresh_immutable_records(self):
         self.assertEqual(tuple(r.fact_id for r in self.rows), tuple(range(1, 13)))
         self.assertEqual(tuple(len(r.value) for r in self.rows),
-                         (16,64,96,296,226,210,636,544,464,443,314,2421))
+                         (16,64,306,296,236,228,636,544,464,478,314,2485))
         again = build_route_definitions_v2(self.compiled, self.source)
         self.assertEqual(again, self.rows)
         self.assertIsNot(again[0], self.rows[0])
@@ -76,118 +78,82 @@ class RouteDefinitions(unittest.TestCase):
                     known, bit = m2_codec.repetition_symbol_counts(factor,zeros,ones)
                     self.assertEqual((result.status,result.outputs), (0,(bytes([known]),bytes([bit]))))
 
-    def test_physical_context_and_lane_states_are_carried_before_decision(self):
-        from golden_board.m2_teaching_recipe_v2 import build_teaching_recipe_package
-        from golden_board.m2_transport_v2 import aggregate_replica_group
+    def test_complete_physical_context_and_observation_results_are_carried(self):
+        package = recipe_wire_v2.decode_recipe_package_v2(build_teaching_recipe_package(),8)
+        tables = {t.table_id:t.payload for t in package.logical.tables}
         value = self.rows[9].value
-        self.assertEqual(len(value),443)
-        self.assertEqual(value[:4],b'\0\4\0\6','missing finite physical roster')
-        roster = [tuple(int.from_bytes(value[j:j+2],'big') for j in range(i,i+12,2))
-                  for i in range(4,52,12)]
-        self.assertEqual(roster[2:],[(400,0,1,5,11,15),(401,0,1,2,16,17)])
-        offsets = value[52:60]
-        widths = (2,4,2,2,2,2,2,4)
-        self.assertEqual(value[60],2)
-        keys=[]
-        for base in (61,81):
-            cursor=base; key=[]
-            for width in widths:
-                key.append(int.from_bytes(value[cursor:cursor+width],'big'));cursor+=width
-            keys.append(tuple(key))
-        self.assertEqual(keys,[(8,400,0,4,0,0,1,23),(8,401,0,4,0,0,1,23)])
-        self.assertEqual(value[104:106],bytes((13,4)))
-        templates=[value[i:i+4] for i in range(106,158,4)]
-        self.assertEqual(value[160:162],bytes((8,24)))
-        encoded=(self.rows[7].value[112:328],self.rows[7].value[328:544])
-        common=(self.rows[6].value[134:325],self.rows[6].value[325:516])
-        package=recipe_wire_v1.decode_recipe_package_v1(build_teaching_recipe_package(),8)
-        groups=[]
-        for case,at in enumerate(range(162,354,24)):
-            row=value[at:at+24]
-            owner=next(r for r in roster if r[4]==row[0])
-            expected=next(k for k in keys if (k[1],k[5],k[6])==owner[:3])
-            factor=owner[3]; lanes=[]
-            self.assertEqual(row[1+factor:6],bytes(5-factor))
-            for token in row[1:1+factor]:
-                if token==0:lanes.append(None);continue
-                source,unknown,first,count=templates[token-1]
-                raw=bytearray(encoded[source]); erased=[]
-                for bit in range(first,first+count):
-                    if unknown: raw[bit//8]&=~(1<<(7-bit%8));erased.append(bit)
-                    else:raw[bit//8]^=1<<(7-bit%8)
-                lanes.append(m2_codec.CopyObservation(bytes(raw),tuple(erased)))
-            group=aggregate_replica_group(lanes); groups.append(group)
-            self.assertEqual(row[6:11],bytes(group.lane_states)+bytes(5-factor))
-            self.assertEqual(row[11],group.repetition_state)
-            checked={raw for state,raw in zip(group.lane_states,group.lane_blocks,strict=True) if state in (2,3)}
-            if group.repetition_state==3:checked.add(group.repetition_block)
-            def key(raw):return tuple(int.from_bytes(raw[o:o+w],'big') for o,w in zip(offsets,widths,strict=True))
-            identity=bool(checked) and all(key(raw)==expected for raw in checked)
-            self.assertEqual(row[20],int(identity))
-            result=recipe_wire_v1.evaluate_recipe_v1(package,110,tuple(bytes((v,)) for v in row[12:21]))
-            self.assertEqual((result.status,b''.join(result.outputs)),(0,row[21:24]))
-            if case==6:
-                guessed=aggregate_replica_group(tuple(m2_codec.CopyObservation(l.encoded,()) for l in lanes))
-                self.assertEqual(group.repetition_block,common[0])
-                self.assertEqual(group.lane_states,(1,)*5)
-                self.assertEqual((guessed.repetition_state,guessed.group_state),(1,1))
-        self.assertEqual(groups[0].repetition_state,0)
-        self.assertEqual(value[174+2*24+10],2)  # clean A remains verified
-        self.assertEqual(value[174+3*24+10],3)  # corrected A is not verified
-        self.assertEqual(value[174+4*24+9:174+4*24+12],bytes((3,4,0)))
-        self.assertEqual(value[174+5*24+9:174+5*24+12],bytes((2,3,1)))
-        self.assertEqual(value[174+7*24+8:174+7*24+12],bytes((0,1,2,0)))
+        self.assertEqual(len(value),478)
+        self.assertEqual(tuple(int.from_bytes(value[i:i+2],'big') for i in range(0,20,2)),
+                         (123,124,120,125,126,127,24,25,26,27))
+        self.assertEqual(value[20:22],bytes((8,57)))
+        self.assertEqual(tables[24],self.rows[7].value[112:544])
+        # The miniature is a traversal illustration, never a production
+        # inventory that passed all mandatory roles and semantic admission.
+        with self.assertRaises(bootstrap.BootstrapReject):
+            bootstrap_v2.decode_inventory(tables[25])
+        first, roster = 1, {}
+        for at in range(8,68,20):
+            header = tables[25][at:at+20]
+            sid = int.from_bytes(header[:4],'big')
+            factor = (header[11] >> 1) & 7
+            envelope = 22+int.from_bytes(header[14:18],'big')
+            count = (envelope+156)//157
+            roster[sid] = (factor,first,first+factor*count-1,header[4:8],envelope,count)
+            first += factor*count
+        self.assertEqual(tuple((sid,*row[:3]) for sid,row in roster.items()),
+                         ((1,5,1,5),(400,5,6,10),(401,2,11,12)))
+        common = (self.rows[6].value[134:325],self.rows[6].value[325:516])
+        for case in range(8):
+            row = value[22+57*case:22+57*(case+1)]
+            target = 11 if case == 7 else 6
+            sid = 401 if case == 7 else 400
+            factor,first,_,kind_version,envelope,count = roster[sid]
+            key = (bytes((0,8))+sid.to_bytes(4,'big')+bytes(2)+kind_version+bytes(2)
+                   +count.to_bytes(2,'big')+envelope.to_bytes(4,'big'))
+            state = (0,1,2,3,4,3,3,2)[case]
+            accepted = (0,0,1,1,0,1,1,0)[case]
+            payload = bytes(23) if case in (0,1,4) else common[int(case==5)][30:53]
+            expected = (bytes(2)+first.to_bytes(4,'big')+bytes((factor,))+key
+                        +bytes((state,accepted))+payload)
+            self.assertEqual(row[:5],target.to_bytes(4,'big')+bytes((case,)))
+            self.assertEqual(row[5:],expected)
+            result = evaluate_recovery_native(package,126,(row[:4],row[4:5]))
+            self.assertEqual(result.status.to_bytes(2,'big')+b''.join(result.outputs),expected)
 
-    def test_erasure_coordinates_and_raw_symbol_counts_feed_existing_recipes(self):
-        from golden_board.m2_teaching_recipe_v2 import build_teaching_recipe_package
-        package=recipe_wire_v1.decode_recipe_package_v1(build_teaching_recipe_package(),8)
-        value=self.rows[9].value
-        self.assertEqual(value[354:356],bytes((3,4)))
-        anchors=[(int.from_bytes(value[i:i+2],'big'),value[i+2],value[i+3]) for i in range(356,368,4)]
-        self.assertEqual(anchors,[(0,0,1),(63,0,64),(72,1,1)])
-        for bit,word,position in anchors:self.assertEqual((word,position),(bit//72,bit%72+1))
-        self.assertEqual(value[368:373],bytes((7,0,0,0,30)))
-        incoming=value[373:386]
-        self.assertEqual(incoming.hex(),'00014000000000062001400000')
-        expected=self.rows[6].value[134:142]
-        for stored in (incoming[:9],incoming[:7]+bytes((incoming[7]|1,))+incoming[8:9]):
-            result=recipe_wire_v1.evaluate_recipe_v1(package,30,(stored,incoming[9:10],incoming[10:]))
-            self.assertEqual((result.status,result.outputs),(0,(expected,)))
-        self.assertEqual(value[386:390],bytes((0,113,4,8)))
-        derived=[]
-        for i in range(390,422,8):
-            row=value[i:i+8];factor=row[0];symbols=row[1:6]
-            self.assertEqual(symbols[factor:],bytes((2,))*(5-factor))
-            args=bytes((factor,symbols[:factor].count(0),symbols[:factor].count(1)));derived.append(args)
-            result=recipe_wire_v1.evaluate_recipe_v1(package,113,tuple(bytes((v,)) for v in args))
-            self.assertEqual((result.status,b''.join(result.outputs)),(0,row[6:]))
-        self.assertEqual(derived,[bytes((2,1,1)),bytes((5,1,4)),bytes((5,0,1)),bytes((5,0,0))])
-        self.assertEqual(value[422],5)
-        for i in range(423,443,4):
-            length=int.from_bytes(value[i:i+2],'big');count,last=value[i+2:i+4]
-            self.assertEqual((count,last),((length+156)//157,length-157*(count-1)))
+    def test_unknown_observations_are_not_guessed_zero_during_repetition(self):
+        from golden_board.m2_transport_v2 import aggregate_replica_group
+        package = recipe_wire_v2.decode_recipe_package_v2(build_teaching_recipe_package(),8)
+        tables = {t.table_id:t.payload for t in package.logical.tables}
+        lanes = []
+        for token in tables[26][5*6:5*7]:
+            source,unknown,first,count = tables[27][4*token:4*(token+1)]
+            self.assertEqual(unknown,1)
+            raw = bytearray(tables[24][216*source:216*(source+1)])
+            erased = tuple(range(first,first+count))
+            for bit in erased:
+                raw[bit//8] &= 255 ^ (128 >> (bit%8))
+            lanes.append(m2_codec.CopyObservation(bytes(raw),erased))
+        result = aggregate_replica_group(tuple(lanes))
+        self.assertEqual(result.lane_states,(1,)*5)
+        self.assertEqual((result.repetition_state,result.group_state),(3,3))
+        self.assertEqual(result.chosen_block,self.rows[6].value[134:325])
+        guessed = aggregate_replica_group(tuple(m2_codec.CopyObservation(lane.encoded,()) for lane in lanes))
+        self.assertEqual((guessed.repetition_state,guessed.group_state),(1,1))
+        self.assertEqual(self.rows[9].value[22+57*6+32:22+57*6+34],bytes((3,1)))
 
-    def test_typed_constructor_rejects_the_prior_packed_descriptor_reading(self):
-        from golden_board.m2_teaching_recipe_v2 import build_teaching_recipe_package
-        package=recipe_wire_v1.decode_recipe_package_v1(build_teaching_recipe_package(),8)
-        value=self.rows[9].value
-        self.assertEqual(value[101:106],bytes((0,111,0,13,4)))
-        self.assertEqual(value[158:160],bytes((0,110)))
-        words=(self.rows[7].value[112:121],self.rows[7].value[328:337])
-        for i in range(13):
-            descriptor=value[106+4*i:110+4*i]
-            source,unknown,first,count=descriptor
-            result=recipe_wire_v1.evaluate_recipe_v1(package,111,
-                words+tuple(bytes((v,)) for v in descriptor))
-            mask=((1<<count)-1)<<(72-first-count)
-            original=int.from_bytes(words[source],'big')
-            expected=original & ~mask if unknown else original ^ mask
-            self.assertEqual(result.outputs,(expected.to_bytes(9,'big'),
-                (mask if unknown else 0).to_bytes(9,'big')))
-            if unknown:
-                self.assertGreater(int.from_bytes(descriptor[1:3],'big'),72)
-        self.assertEqual(value[110:114],bytes((0,0,59,5)))
-        self.assertEqual(value[138:142],bytes((0,1,59,5)))
+    def test_complete_constructor_takes_query_and_case_without_host_decision_flags(self):
+        package = recipe_wire_v2.decode_recipe_package_v2(build_teaching_recipe_package(),8)
+        recipes = {r.recipe_id:r for r in package.logical.recipes}
+        self.assertNotIn(110,recipes)
+        self.assertNotIn(111,recipes)
+        self.assertEqual(tuple((d.value_type,d.width) for d in recipes[126].inputs),
+                         ((bootstrap.UINT,32),(bootstrap.UINT,8)))
+        self.assertEqual(tuple(n.auxiliary_u16 for n in recipes[126].nodes if n.opcode == 22),
+                         (122,125,119))
+        self.assertEqual({n.auxiliary_u16 for n in recipes[125].nodes if n.opcode == 2},
+                         {24,26,27})
+        self.assertTrue(any(n.opcode == 22 and n.auxiliary_u16 == 121 for n in recipes[122].nodes))
+        self.assertTrue(any(n.opcode == 22 and n.auxiliary_u16 == 114 for n in recipes[119].nodes))
 
     def test_mutations_separate_local_crc_from_envelope_identity(self):
         value = self.rows[6].value
@@ -223,10 +189,10 @@ class RouteDefinitions(unittest.TestCase):
         mini = content.projection_view(content.stream_validation(value[210:785]))
         self.assertEqual(len(mini.records),29)
         self.assertEqual({record.kind for record in mini.records},set(range(1,15)))
-        bridges = value[1989:2013]
+        bridges = value[2053:2077]
         self.assertEqual(bridges.hex(),'00000064024c024d00020001000000c802cc02cd00030001')
         from golden_board.position_teaching_v2 import build_position_teaching_v2
-        self.assertEqual(value[2013:],build_position_teaching_v2(self.compiled).value)
+        self.assertEqual(value[2077:],build_position_teaching_v2(self.compiled).value)
 
     def test_mapping_examples_include_slot_wrap_and_both_pad_boundaries(self):
         value = self.rows[8].value

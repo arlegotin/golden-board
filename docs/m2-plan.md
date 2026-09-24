@@ -80,6 +80,19 @@ regressions. A learner may follow a successful provisional technical recovery
 on its exact recovered stream. Existing participants may provide formative
 feedback; unchanged-candidate retry limits still apply to fresh blind trials.
 
+The trajectory review through trial13 identifies the complete recovery chain,
+not another isolated example, as the current repair. Its implementation is
+tracked in [`the complete recovery plan`](superpowers/plans/2026-09-23-m2-complete-recovery.md).
+Active carried programs derive physical ownership from inventory, construct
+all raw observations, form the complete candidate union, then check conflicts
+and identity. Production recovery uses those same admitted programs. Canonical
+wire2 keeps their complete closures within the unchanged carrier ceiling;
+historical encodings and participant evidence remain unchanged. Preserve all64
+games unless an actual measured benefit warrants a separate content decision.
+After focused verification, use the smallest useful formative transfer with
+an already exposed collaborator before another fresh qualifying handoff. A
+correct owner implementation or example replay is not recipient acquisition.
+
 The exhaustive production sequence below is the final stable-candidate barrier,
 after the required provisional trials succeed. A trial success is pending until
 that barrier and exact source/package/evaluation reconciliation pass. This

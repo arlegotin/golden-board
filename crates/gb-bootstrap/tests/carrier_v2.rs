@@ -35,9 +35,9 @@ fn independent_carrier_search_and_matrix_recovery_close_every_owned_cell() {
     let carrier = build_carrier(&compiled).unwrap();
     assert_eq!(
         (carrier.side(), carrier.shell_width(), carrier.unit_count()),
-        (2048, 112, 1925)
+        (2040, 112, 1908)
     );
-    assert_eq!(carrier.packed_bytes().len(), 4 + 2048 * 2048 / 8);
+    assert_eq!(carrier.packed_bytes().len(), 4 + 2040 * 2040 / 8);
     assert!(carrier.packed_bytes().len() - 4 <= 512 * 1024);
     assert_eq!(carrier.search_ledger().last().unwrap().accepted, true);
     assert!(
