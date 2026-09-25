@@ -56,9 +56,9 @@ and requires exact canonical provenance bytes.
    those same extracted prefixes and geometry. These fresh checks retain their
    existing scopes; neither proof's output/schema is redefined here.
 
-All section/body orders ascend ID. Body IDs are exactly16,17,18,100..163,
+All section/body orders ascend ID. Body IDs are exactly16,17,18,100..152,
 200..210 under inventory2. At most4096 section rows,2389 physical units and
-78 decoded bodies are retained; each decoded body is at most16384 bytes and
+67 decoded bodies are retained; each decoded body is at most16384 bytes and
 the aggregate at most1048576. Each stream is4..1048576 bytes. Sector extraction
 visits at most4×32768×8 cells. No output document exceeds1MiB. Use checked u64
 arithmetic for lengths/products; booleans do not satisfy integer fields.
@@ -85,7 +85,7 @@ first_use,result. Values are:
   to complete bytes (canonical JSON includes its final LF).
 * prefix_rows has four rows in sector order, exactly sector_id,bytes,sha256.
 * stream_rows has two rows, section_id2 then3, each section_id,bytes,sha256.
-* body_rows has78 ascending rows, each section_id,section_version,envelope,
+* body_rows has67 ascending rows, each section_id,section_version,envelope,
   stored,decoded; the last three are identity objects for the actual checked
   envelope, stored payload and decoded payload.
 

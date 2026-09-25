@@ -16,7 +16,7 @@ impl Fixture {
         KnowledgeInputs {
             prefixes: self.prefixes.each_ref().map(Vec::as_slice),
             side: 2048,
-            width: 112,
+            width: 128,
             required_stream: &self.required,
             all_stream: &self.all,
             body_payloads: &self.bodies,
@@ -154,7 +154,7 @@ fn fact10_contradiction_fails_at_its_exact_case7_binding_boundary() {
     use gb_bootstrap::route_receiver_v2::admit_route_prefix;
     let raw = &fixture().prefixes[0];
     let mut full = ResourceProjection::default();
-    let route = admit_route_prefix(raw, 2048, 112, 0, &mut full)
+    let route = admit_route_prefix(raw, 2048, 128, 0, &mut full)
         .unwrap()
         .unwrap();
     let mut binding = ResourceProjection::default();
@@ -194,7 +194,7 @@ fn fact10_contradiction_fails_at_its_exact_case7_binding_boundary() {
     assert!(reached && binding.primitive_steps < full.primitive_steps);
     let mut actual = ResourceProjection::default();
     assert!(
-        admit_route_prefix(&changed, 2048, 112, 0, &mut actual)
+        admit_route_prefix(&changed, 2048, 128, 0, &mut actual)
             .unwrap()
             .is_none()
     );

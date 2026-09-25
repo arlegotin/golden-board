@@ -1,6 +1,7 @@
 from dataclasses import FrozenInstanceError, replace
 from copy import deepcopy
 from pathlib import Path
+import json
 import os
 import tomllib
 import unittest
@@ -34,7 +35,10 @@ def inventory():
         rows.append(sid.to_bytes(4, 'big') + kind.to_bytes(2, 'big') + b'\0\2'
                     + bytes((0, 1, 1, 2*factor)) + bytes(2)
                     + size.to_bytes(4, 'big') + bytes(2))
-    return b'\0\2\0\3\0\0\0\x40' + b''.join(rows)
+    declaration = json.loads((Path(__file__).resolve().parents[2] /
+                              'studies/m2/slice-v1.json').read_bytes())
+    games = len(declaration['selected_game_ordinals'])
+    return b'\0\2\0\3\0\0' + games.to_bytes(2, 'big') + b''.join(rows)
 
 
 def common(value=b'A', copy=0, version=0):
@@ -260,7 +264,8 @@ class RecoveryNative(unittest.TestCase):
         result = self.parity(122, (bytes(state), b'\xff' * 8))
         self.assertEqual(result.status, 0)
         self.assertEqual(result.outputs[0][:16384], state[:16384])
-        for at, bad in ((0, b'\0\1'), (2, b'\xff\xff'), (19, b'\x06'),
+        wrong_game_count = (int.from_bytes(raw[6:8], 'big')+1).to_bytes(2, 'big')
+        for at, bad in ((0, b'\0\1'), (2, b'\xff\xff'), (6, wrong_game_count), (19, b'\x06'),
                         (20, b'\xff\xff'), (28, bytes(4)), (42, b'\xff'*4)):
             changed = bytearray(raw)
             changed[at:at+len(bad)] = bad

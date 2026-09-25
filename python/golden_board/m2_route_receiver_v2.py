@@ -15,7 +15,7 @@ from .m2_route_semantics_v2 import validate_local_definitions
 from .m2_resources_v2 import recipe_storage, recipe_workspace, definition_workspace
 
 _STAGES = (0,0,1,1,2,2,3,3,4,4,5,5)
-_WIDTHS = (16,64,306,296,236,228,636,544,464,478,314,2485)
+_WIDTHS = (16,64,306,296,236,228,636,544,464,478,314,4888)
 _PRIMARY = (101,102,103,104,105,211,107,113,124,126,107,112)
 _RECIPES = (1,2,3,4,30,90,92,99,*range(100,106),107,108,109,112,113,*range(114,128),201,202,203,210,211,212,213,214)
 _TABLES = (3,4,5,10,11,12,13,14,15,17,18,19,20,21,23,24,25,26,27)

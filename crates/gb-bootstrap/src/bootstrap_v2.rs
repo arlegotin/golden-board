@@ -17,7 +17,7 @@ pub const MAX_STORED_PAYLOAD_BYTES: usize = 16_384;
 pub const REQUIRED_SECTION_IDS: [u32; 6] = [1, 2, 3, 16, 17, 18];
 
 fn body_ids() -> Vec<u32> {
-    (16..=18).chain(100..=163).chain(200..=210).collect()
+    (16..=18).chain(100..=152).chain(200..=210).collect()
 }
 
 fn invalid() -> BootstrapError {
@@ -28,7 +28,7 @@ fn validate_inventory(inventory: &Inventory, encoded_length: Option<usize>) -> R
     if inventory.entries.len() > MAX_INVENTORY_ENTRIES {
         return Err(BootstrapError::new(RejectCode::ResourceLimit));
     }
-    if inventory.inventory_version != 2 || inventory.entries.len() < 81 {
+    if inventory.inventory_version != 2 || inventory.entries.len() < 70 {
         return Err(invalid());
     }
     if inventory.entries[..3]
@@ -78,7 +78,7 @@ fn validate_inventory(inventory: &Inventory, encoded_length: Option<usize>) -> R
         {
             return Err(invalid());
         }
-        let ordinal = if (100..=163).contains(&entry.section_id) {
+        let ordinal = if (100..=152).contains(&entry.section_id) {
             Some((entry.section_id - 100) as u16)
         } else {
             None

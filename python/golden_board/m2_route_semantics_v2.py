@@ -12,7 +12,7 @@ from . import bootstrap as b, bootstrap_v2, chess, content as c, m2_codec, recip
 from .m2_transport_v2 import aggregate_replica_group
 from .m2_decoder import DecoderError
 
-_WIDTHS = (16,64,306,296,236,228,636,544,464,478,314,2485)
+_WIDTHS = (16,64,306,296,236,228,636,544,464,478,314,4888)
 _AUTHORITY = object()
 
 
@@ -292,7 +292,7 @@ def _fact10(raw, common, encoded, package):
                (b.BYTES,width,count),'fact10.table-shape')
     _check(tables[24].payload == b''.join(encoded),'fact10.encoded-source')
     inventory = tables[25].payload
-    _check(inventory[:8] == bytes.fromhex('0002000300000040'),'fact10.inventory-prefix')
+    _check(inventory[:8] == bytes.fromhex('0002000300000035'),'fact10.inventory-prefix')
     roster,first = [],1
     for offset in range(8,68,20):
         header = inventory[offset:offset+20]
@@ -381,7 +381,7 @@ def _fact11(raw, common):
     for adjacency,selected in ((0x7000,8),(0x4200,8),(0,4),(0x4800,8)):
         closure,valid = _closure(adjacency,selected)
         r.expect((adjacency,selected,closure,valid),(2,1,1,1))
-    for sid,ordinal,has in ((100,0,1),(163,63,1),(211,65535,0),(101,0,1)):
+    for sid,ordinal,has in ((100,0,1),(152,52,1),(211,65535,0),(101,0,1)):
         header = (sid.to_bytes(4,'big')+(4 if sid == 211 else 3).to_bytes(2,'big')+b'\0\0'
                   +bytes((129,1,1,2+has))+b'\0\0'+(1).to_bytes(4,'big')+ordinal.to_bytes(2,'big'))
         try:
@@ -451,7 +451,124 @@ def _role_example(role, mode, predicate, trace, feedback):
     return c.encode_content_v0(c.ContentAuthoringProjection(0,tuple(r for r in records if r.record_id in chosen)))
 
 
-def _miniature(raw):
+def _connected_controls(r, base):
+    r.layout(((0,1),(1,4),(5,2),(7,1),(8,1),(9,1),(10,1),(11,1),
+              (12,1),(13,4),(17,1),(18,2),(20,2),(22,2),(24,2)))
+    r.expect((5,))
+    for link in ((13,1,9,1),(13,2,10,1),(13,3,11,1),(14,2,22,2),(13,14,24,2)):
+        r.expect(link,(1,)*4)
+    r.expect((7,))
+    inputs = (
+        ((), 'N11RN12RN1RCNCA21CA11CR'),
+        (((512,1,2,3),), 'NCA21CNCA11C'),
+        (((512,1,2,3),(514,1,0,1)), 'NCA11C'),
+        (((542,1,3,2),(544,1,1,0)), 'NCACA21C'),
+        (((467,2,2,16),(573,2,8,22)), 'N11RN12R'),
+        (((573,2,8,9),), 'NCNRC'),
+        ((), 'N2CA2CA2CACA1'),
+    )
+    for patches, sequence in inputs:
+        r.expect((len(patches),))
+        changed = base
+        for offset,width,old,new in patches:
+            r.expect((offset,width,old,new),(2,2,4,4))
+            _check(int.from_bytes(changed[offset:offset+width],'big') == old,'fact12.control-old')
+            changed = _patched(changed,offset,width,new)
+        projection = c.stream_validation(changed)
+        records = {record.record_id:record.payload for record in c.projection_view(projection).records}
+        r.expect((len(sequence),))
+        state = None
+        for symbol in sequence:
+            action,last = bytes(4),0
+            if symbol == 'N':
+                op,state = 0,c.new_run(projection)
+            elif symbol == 'A':
+                op,state = 2,c.advance_committed(projection,state)
+            else:
+                op = 1
+                action = {'1':b'\1\0\0\1','2':b'\1\0\0\2','R':b'\2\0\0\0','C':b'\3\0\0\0'}[symbol]
+                state,last = c.step(projection,state,action)
+            view = c.run_state_view(state)
+            node = records[view.current_node_id]
+            ids = view.selection_buffer
+            if view.phase == 2:
+                response = view.committed_response
+                ids = tuple(int.from_bytes(response[i:i+2],'big') for i in range(3,len(response),2))
+            _check(len(ids) <= 2,'fact12.control-selections')
+            r.expect((op,),(1,))
+            _check(r.take(4) == action,'fact12.control-action')
+            r.expect((view.current_node_id,view.phase,last,node.response_shape,node.answer_mode,
+                      node.flags,len(ids)),(2,1,1,1,1,1,1))
+            r.expect((*ids,*(0 for _ in range(2-len(ids)))))
+            r.expect((view.outcome,view.feedback_ref,view.next_node_ref,
+                      view.global_remaining,view.local_remaining),(1,2,2,2,2))
+
+
+def _role_grounding(r, projection, roles):
+    r.expect((2,))
+    for link in ((8,2,3,10),(10,8,9,12)):
+        r.expect(link,(2,1,1,2))
+    by_id = {record.record_id:record for record in c.projection_view(projection).records}
+    _check(by_id[19].kind == 10 and by_id[25].kind == 12,'fact12.presence-kinds')
+    r.expect((3,))
+    for reference in (0,19,25):
+        r.expect((reference,int(reference != 0)),(2,1))
+    r.expect((6,))
+    for lo,hi in ((0,0),(0,1),(1,1)):
+        for presence in (0,1):
+            r.expect((lo,hi,presence,int(lo <= presence <= hi)),(1,)*4)
+    r.expect((3,))
+    for rid in (26,27,28):
+        node = by_id[rid].payload
+        bounds = next(row for row in roles if row[:2] == (node.role,node.answer_mode))
+        accepted = sum(case.case_class == 1 for case in node.cases)
+        r.expect((rid,node.role,node.answer_mode,accepted,len(node.cases),bounds[4],bounds[5],
+                  int(accepted >= bounds[4] and len(node.cases) <= bounds[5])))
+
+
+def _complement_closure(package):
+    """Finite observed graph refinement, not an unmetered generic VM call."""
+    recipe = next(row for row in package.logical.recipes if row.recipe_id == 101)
+    descriptors = tuple((d.value_id,d.value_type,d.width,d.count) for d in recipe.inputs+recipe.outputs)
+    _check(descriptors == ((1,2,8,1),(1,5,16,1),(2,2,8,1)),'fact12.assertion-ports')
+    nodes = tuple((n.node_id,n.opcode,n.output_type,n.output_width,n.arguments,
+                   n.auxiliary_u16,n.auxiliary_u32,n.immediate_u64) for n in recipe.nodes)
+    _check(nodes == ((1,2,4,8,(),19,0,0),(2,1,0,8,(),0,0,0),(3,21,2,8,(2,3),0,0,0),
+                     (4,13,2,8,(1,4),0,0,0),(5,24,5,16,(),0,0,0),
+                     (6,5,5,16,(6,),1,0,0),(7,5,5,16,(5,),2,0,0)),'fact12.assertion-program')
+    table = next(row for row in package.logical.tables if row.table_id == 19)
+    _check((table.element_type,table.element_width,table.element_count,table.payload) ==
+           (2,8,1,b'\xff'),'fact12.assertion-table')
+
+
+def _assertion_direction(r, base, package):
+    if package is not None:
+        _complement_closure(package)
+    r.expect((1,))
+    r.expect((2,19,18,101,0,17,2,1,1,10,4,1),(2,2,2,2,1,2,2,1,1,2,2,1))
+    descriptors = ((87,1,5),(100,1,1),(145,1,1),(314,1,3))
+    r.expect((4,))
+    for row in descriptors:
+        r.expect(row,(2,2,4))
+    r.expect((4,))
+    for values in ((255,1,1,254),(255,2,2,253),(255,2,2,254),(255,1,1,253)):
+        r.expect(values,(4,)*4)
+        changed = base
+        for (offset,width,old), value in zip(descriptors,values,strict=True):
+            _check(int.from_bytes(changed[offset:offset+width],'big') == old,'fact12.assertion-old')
+            changed = _patched(changed,offset,width,value)
+        projection = c.stream_validation(changed)
+        records = {record.record_id:record.payload for record in c.projection_view(projection).records}
+        assertion = records[19]
+        _check((assertion.predicate_binding_ref,assertion.subject_opaque_data_ref,
+                assertion.result_atom_vector_ref) == (18,17,10),'fact12.assertion-links')
+        # Typed stream admission binds the predicate, subject and result schemas.
+        subject, asserted = records[17].data[0],records[10].atoms[0]
+        computed = subject ^ 255
+        r.expect((1,0,computed,int(asserted == computed)),(1,2,1,1))
+
+
+def _miniature(raw, package):
     r = _Read(raw,'fact12.miniature')
     _check(r.n(4) == 575,'fact12.miniature.length')
     base = r.take(575)
@@ -459,8 +576,8 @@ def _miniature(raw):
     view = c.projection_view(projection)
     _check(len(view.records) == 29 and view.root_record_id == 29
            and tuple(sorted({record.kind for record in view.records})) == tuple(range(1,15)), 'fact12.miniature.coverage')
-    _check(r.n(4) == 1120,'fact12.supplement.length')
-    supplement = _Read(r.take(1120),'fact12.supplement')
+    _check(r.n(4) == 3523,'fact12.supplement.length')
+    supplement = _Read(r.take(3523),'fact12.supplement')
     r.end()
     scalar = ((0,2,1),(2,2,28),(4,2,0),(19,2,1),(563,2,65535),(571,2,0),
         (571,2,27),(573,2,7),(573,2,9),(573,2,65535),(555,2,2),(555,2,4),
@@ -482,9 +599,15 @@ def _miniature(raw):
     for row in roles:
         supplement.expect(row,(1,1,1,1,2,2,1,1,1,1))
         role,mode,pmin,pmax,_,_,tmin,tmax,feedback,outcome = row
-        for predicate in range(pmin,pmax+1):
-            for trace in range(tmin,tmax+1):
-                example = _role_example(role,mode,predicate,trace,feedback)
+        for predicate in (0,1):
+            for trace in (0,1):
+                expected = pmin <= predicate <= pmax and tmin <= trace <= tmax
+                try:
+                    example = _role_example(role,mode,predicate,trace,feedback)
+                except c.ContentAuthoringError:
+                    _check(not expected,'fact12.role-required')
+                    continue
+                _check(expected,'fact12.role-prohibited')
                 parsed = c.stream_validation(example)
                 state = c.new_run(parsed)
                 # Packed default needs a nonaccepted region; other modes commit empty.
@@ -541,6 +664,9 @@ def _miniature(raw):
         supplement.expect((*selections,*(0 for _ in range(2-len(selections)))))
         supplement.expect((actual.outcome,actual.feedback_ref,actual.next_node_ref,
                            actual.global_remaining,actual.local_remaining),(1,2,2,2,2))
+    _connected_controls(supplement,base)
+    _role_grounding(supplement,projection,roles)
+    _assertion_direction(supplement,base,package)
     supplement.end()
 
 
@@ -555,7 +681,7 @@ def _position_local(raw):
         r.expect(row)
     first = r.take(67)
     _check(chess.encode_position(chess.decode_position(first)) == first,'fact12.position-wire')
-    r.expect((1,717,22,68,23,67))
+    r.expect((1,695,22,68,23,67))
     tagged,second = r.take(68),r.take(67)
     _check(tagged == b'\1'+second and chess.encode_position(chess.decode_position(second)) == second,'fact12.variant')
     r.layout(((10,6),(4,6),(1,3),(0,1)))
@@ -574,7 +700,7 @@ def _position_local(raw):
     r.end()
 
 
-def _fact12(raw, *, validate_mini=True):
+def _fact12(raw, *, validate_mini=True, package=None):
     r = _Read(raw,'fact12')
     contexts = tuple(r.row((2,2,2)) for _ in range(3))
     _check(tuple(row[0] for row in contexts) == (0,1,2)
@@ -586,9 +712,9 @@ def _fact12(raw, *, validate_mini=True):
     for row in ((1,1,0),(2,5,0),(3,4,0),(4,7,0),(5,10,0),(6,3,0),(7,18,0),
                 (8,10,1),(9,3,0),(10,6,1),(11,6,1),(12,20,0),(13,22,0),(14,4,1)):
         r.expect(row)
-    miniature = r.take(1703)
+    miniature = r.take(4106)
     if validate_mini:
-        _miniature(miniature)
+        _miniature(miniature,package)
     references = tuple(r.row((2,)*4) for _ in range(10))
     for owner,offset,target,kind in references:
         _check(1 <= owner <= contexts[0][2] and kind <= 14 and offset <= 16384,'fact12.reference-shape')
@@ -632,7 +758,7 @@ def validate_local_definitions(definitions, package, *, side, width, sector):
         _fact9(definitions[8],checked)
         _fact10(definitions[9],common,encoded,checked)
         _fact11(definitions[10],common)
-        _fact12(definitions[11])
+        _fact12(definitions[11],package=checked)
     except DecoderError:
         raise
     except (ValueError,TypeError,KeyError,IndexError,StopIteration,OverflowError) as error:
@@ -690,7 +816,7 @@ def validate_recovered_context(commitments, *, required_bytes, all_bytes, body_p
     No unavailable stream is replaced with a source or retained clean stream.
     """
     _check(type(commitments) is DefinitionCommitmentsV2 and commitments._authority is _AUTHORITY
-           and type(commitments.fact12) is bytes and len(commitments.fact12) == 2485,'commitments')
+           and type(commitments.fact12) is bytes and len(commitments.fact12) == 4888,'commitments')
     if body_payloads is not None:
         _check(type(body_payloads) is dict and len(body_payloads) <= 4096
                and all(type(sid) is int and 1 <= sid <= 0xffffffff and type(raw) is bytes
@@ -698,6 +824,8 @@ def validate_recovered_context(commitments, *, required_bytes, all_bytes, body_p
     try:
         # Recheck retained observed bytes: dataclass replacement must not turn a
         # caller-constructed wrapper into authority over unvalidated statements.
+        # Recheck every carried byte even on replaced public dataclass values.
+        # The observed program closure was separately checked at local admission.
         contexts,references,bindings,bridges,suffix = _fact12(commitments.fact12)
         required = None if required_bytes is None else _stream(required_bytes,*contexts[0][1:])
         all_ = None if all_bytes is None else _stream(all_bytes,*contexts[1][1:])

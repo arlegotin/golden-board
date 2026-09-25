@@ -165,22 +165,74 @@ def admit_transition_v2(root,policy):
     """Read the exact preserved tuple and sole roadmap authority; no writes."""
     archive=root/transition.ARCHIVE
     transition._load_package(archive,ARCHIVE_SHA256)
-    before=transition._read(archive/'pending/docs/roadmap.md')
+    transition._read(archive/'pending/docs/roadmap.md')
     current=read_source_file_v2(root,'docs/roadmap.md')[0]
     require(not os.path.lexists(root/transition.TOMBSTONE)
         and not os.path.lexists(root/transition.REPORT),'historical-authority-present')
     report_path=root/policy.document['authority']['report_path']
     gate8=root/policy.document['authority']['gate8_root']
-    if current==before:
-        require(not os.path.lexists(report_path) and not os.path.lexists(gate8),'partial-pending-authority')
-        return 'pending',before
-    from golden_board.m2_gate8_reports_v2 import validate_candidate_ready_roadmap_v2
+    from golden_board.m2_gate8_reports_v2 import (
+        recover_pending_roadmap_v2,validate_pending_roadmap_v2)
+    report_exists=os.path.lexists(report_path)
+    gate8_exists=os.path.lexists(gate8)
+    require(report_exists==gate8_exists,'partial-authority')
+    if not report_exists:
+        validate_pending_roadmap_v2(policy,current)
+        return 'pending',current
     report=read_source_file_v2(root,policy.document['authority']['report_path'],1048576)[0]
-    validate_candidate_ready_roadmap_v2(policy,before,current,report)
+    state='ready'
+    if b'| Project state | Candidate ready |\n' not in current:
+        from golden_board.m2_qualification_v2 import (
+            PATH,admit_qualification_v2,recover_ready_roadmap_v2)
+        qualification=read_source_file_v2(root,PATH,8192)[0]
+        current=recover_ready_roadmap_v2(policy,current,report,qualification)
+        admit_qualification_v2(qualification,policy,root)
+        state='complete'
+    before=recover_pending_roadmap_v2(policy,current,report)
     producer._directory(gate8,private=True)
     require(tuple(policy.document['authority']['gate8_root']+'/'+row['path'] for row in
         producer.tree_rows(gate8,272,4194306,83886080))==_gate8_paths(policy),'installed-gate8-inventory')
-    return 'ready',before
+    return state,before
+
+
+def publish_completion_v2(root,policy,before,report,source):
+    """Install only the report-bound human-qualified status after release passes."""
+    from golden_board.m2_gate8_reports_v2 import render_candidate_ready_roadmap_v2
+    from golden_board.m2_qualification_v2 import (
+        PATH,admit_qualification_v2,render_complete_roadmap_v2)
+    roadmap=root/'docs/roadmap.md'
+    ready=render_candidate_ready_roadmap_v2(policy,before,report)
+    require(read_source_file_v2(root,'docs/roadmap.md')[0]==ready,'completion-stale-roadmap')
+    qualification=read_source_file_v2(root,PATH,8192)[0]
+    admit_qualification_v2(qualification,policy,root)
+    complete=render_complete_roadmap_v2(policy,ready,report,qualification)
+    validate_source_projection_v2(source,root,policy)
+    private=Path(tempfile.mkdtemp(prefix='m2-complete-',dir=root/'artifacts'))
+    os.chmod(private,0o700)
+    installed=False
+    try:
+        producer.write_file(private,'complete.md',complete)
+        producer.write_file(private,'ready.md',ready)
+        require(read_source_file_v2(root,'docs/roadmap.md')[0]==ready,'completion-race')
+        os.replace(private/'complete.md',roadmap);installed=True
+        producer.fsync_directory(roadmap.parent)
+        validate_source_projection_v2(source,root,policy)
+        require(admit_transition_v2(root,policy)[0]=='complete','completion-admission')
+    except BaseException:
+        if installed:
+            require(read_source_file_v2(root,'docs/roadmap.md')[0]==complete,
+                'completion-rollback-race')
+            os.replace(private/'ready.md',roadmap)
+            producer.fsync_directory(roadmap.parent)
+        raise
+    finally:
+        shutil.rmtree(private)
+
+
+def admit_release_qualification_v2(root,policy):
+    from golden_board.m2_qualification_v2 import PATH,admit_qualification_v2
+    raw=read_source_file_v2(root,PATH,8192)[0]
+    return admit_qualification_v2(raw,policy,root)
 
 
 def _gate8_paths(policy):
@@ -537,7 +589,9 @@ def workflow_v2(mode):
     require(mode in ('bootstrap','full','release') and Path.cwd()==ROOT,'workflow')
     policy=load_gate8_policy_v2(read_source_file_v2(ROOT,'spec/gate8-policy-v2.toml')[0])
     state,before=admit_transition_v2(ROOT,policy)
-    require(state==('pending' if mode=='bootstrap' else 'ready'),'workflow-state')
+    require((state=='pending') if mode=='bootstrap' else state in ('ready','complete'),
+        'workflow-state')
+    if mode=='release':admit_release_qualification_v2(ROOT,policy)
     # Keep all failed stages/logs for bounded local diagnosis. No stage is authority.
     work=Path(tempfile.mkdtemp(prefix='golden-board-gate8-v2-'+mode+'-')).resolve();os.chmod(work,0o700)
     print('M2 v2 '+mode+' work: '+str(work),file=sys.stderr,flush=True)
@@ -560,10 +614,14 @@ def workflow_v2(mode):
         attestation=read_source_file_v2(ROOT,policy.document['linux']['attestation_path'])[0]
     assembly=work/'assembly';assembly.mkdir(mode=0o700)
     report=assemble_v2(assembly,policy,source,receipts,attestation,before,
-                       'generate' if mode=='bootstrap' else 'check')
+        'generate' if mode=='bootstrap' else 'check')
     require(retained_report is None or retained_report==report,'release-report-changed')
     validate_source_projection_v2(initial,ROOT,policy)
-    require(admit_transition_v2(ROOT,policy)[0]=='ready','workflow-final-state')
+    if mode=='release' and state=='ready':
+        publish_completion_v2(ROOT,policy,before,report,initial)
+    require(admit_transition_v2(ROOT,policy)[0]==(
+        'complete' if mode=='release' else 'ready' if mode=='bootstrap' else state),
+        'workflow-final-state')
     print('M2 v2 '+mode+' passed; report SHA-256 '+digest(report)+'.',file=sys.stderr,flush=True)
 
 

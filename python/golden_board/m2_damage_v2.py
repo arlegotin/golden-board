@@ -2,7 +2,7 @@
 from dataclasses import dataclass, replace
 from hashlib import sha256
 
-from . import bootstrap, bootstrap_v2, m2_codec, recipe_wire_v2
+from . import bootstrap, bootstrap_v2, body_codec_v1, m2_codec, recipe_wire_v2
 from . import m2_damage as inherited
 from .m2_mapping_v2 import mapping_parameters
 
@@ -162,6 +162,44 @@ class DamageCorpusV2:
         original = bootstrap.decode_section_envelope(self.clean_envelopes[section_id])
         return self._section_replacements(section_id,
             bootstrap.encode_section_envelope(replace(original,payload=payload)))
+
+    def _optional_codec_baseline(self):
+        for section in self.sections.values():
+            if section.section_type!=3 or section.closure!=129 or section.version!=0:
+                continue
+            candidate = body_codec_v1.encode_lzss(section.payload)
+            original = bootstrap.decode_section_envelope(self.clean_envelopes[section.section_id])
+            changed = replace(original,section_version=1,payload=candidate)
+            envelope = bootstrap.encode_section_envelope(changed)
+            if not (6 <= len(candidate) < len(section.payload)
+                    and (len(envelope)+156)//157 == section.fragments):
+                continue
+            if body_codec_v1.decode_body(1,candidate)!=section.payload:
+                raise ValueError('damage-compressed-baseline')
+            inventory = replace(self.inventory,entries=tuple(
+                replace(entry,section_version=1,logical_payload_length=len(candidate))
+                if entry.section_id==section.section_id else entry for entry in self.inventory.entries))
+            inventory_payload = bootstrap_v2.encode_inventory(inventory)
+            if len(inventory_payload)!=len(self.sections[1].payload):
+                raise ValueError('damage-compressed-inventory-length')
+            return changed,inventory_payload
+        raise ValueError('damage-compressed-target')
+
+    def _optional_codec_replacements(self, baseline, inventory_payload, payload):
+        # This scoped reauthoring permits only a proven fragment-count tie.
+        original = bootstrap.decode_section_envelope(self.clean_envelopes[baseline.section_id])
+        if (baseline.section_type!=3 or baseline.closure_class!=129 or original.section_version!=0
+                or baseline.section_version!=1 or len(payload)!=len(baseline.payload)
+                or body_codec_v1.decode_body(1,baseline.payload)!=original.payload):
+            raise ValueError('damage-compressed-baseline')
+        envelope = bootstrap.encode_section_envelope(replace(baseline,payload=payload))
+        blocks = bootstrap.fragment_section(envelope,8,0)
+        rows = self.rows_by_section[baseline.section_id]
+        if len(blocks)!=1+max(row['fragment_index'] for row in rows):
+            raise ValueError('damage-compressed-fragment-count')
+        encoded = tuple(m2_codec.eh72_encode_unit(block) for block in blocks)
+        changed = {row['physical_unit_id']:encoded[row['fragment_index']] for row in rows}
+        return self._changed_payload(1,inventory_payload)|changed
 
     def _replace_prefix(self, matrix, sector, prefix, *, width=None):
         width = self.width if width is None else width
@@ -407,11 +445,15 @@ class DamageCorpusV2:
         elif ordinal < 428:
             operator = 'compressed-body-mutants'
             role,number = divmod(ordinal-414,7)
-            section = next((s for s in self.sections.values() if s.section_type==3 and s.version==1
-                            and s.closure==(128 if role==0 else 129)),None)
-            if section is None or len(section.payload) < 6:
-                raise ValueError('damage-compressed-target')
-            payload = section.payload
+            if role:
+                baseline,inventory_payload = self._optional_codec_baseline()
+                section_id,payload = baseline.section_id,baseline.payload
+            else:
+                section = next((s for s in self.sections.values() if s.section_type==3
+                                and s.version==1 and s.closure==128),None)
+                if section is None or len(section.payload)<6:
+                    raise ValueError('damage-compressed-target')
+                section_id,payload = section.section_id,section.payload
             if number == 0:
                 payload = b'\x02'+payload[1:]
             elif number == 1:
@@ -420,8 +462,10 @@ class DamageCorpusV2:
                 prefix = (b'\x03\0\0',b'\x03\0\x03\x80\0\0',b'\x03\0\x01\x01\0',
                           b'\x03\0\x01\0\0',b'\x03\0\x01\x80\0\x0f')[number-2]
                 payload = prefix+bytes(len(payload)-len(prefix))
-            raw = self._units(self._changed_payload(section.section_id,payload))
-            params = dict(case_ordinal=('u64',number),section_id=('u64',section.section_id))
+            replacements = (self._optional_codec_replacements(baseline,inventory_payload,payload)
+                if role else self._changed_payload(section_id,payload))
+            raw = self._units(replacements)
+            params = dict(case_ordinal=('u64',number),section_id=('u64',section_id))
         elif ordinal < 434:
             operator = 'checked-tier-control-mutants'
             role,number = divmod(ordinal-428,3)

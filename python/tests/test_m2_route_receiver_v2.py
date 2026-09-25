@@ -25,16 +25,16 @@ class ObservedRouteV2(unittest.TestCase):
 
     def test_complete_observed_package_executes_all_examples(self):
         for sector, prefix in enumerate(self.prefixes):
-            result = decode_observed_route_v2(prefix, 2040, 112, sector)
+            result = decode_observed_route_v2(prefix, 2048, 128, sector)
             self.assertEqual(result.sector, sector)
-            self.assertEqual(result.prefix_bytes, 25424)
+            self.assertEqual(result.prefix_bytes, 27827)
             self.assertEqual(result.package.profile_version, 8)
             self.assertEqual(result.example_count, 33)
             self.assertEqual(result.inventory_section_id, 1)
-            self.assertEqual(result.mapping['unit_population'], 1908)
-            self.assertEqual(result.mapping['offset'], (8*40503+112*257) % 1816**2)
+            self.assertEqual(result.mapping['unit_population'], 1858)
+            self.assertEqual(result.mapping['offset'], (8*40503+128*257) % 1792**2)
             self.assertGreater(result.primitive_steps, 0)
-            self.assertEqual(decode_observed_route_v2(prefix+b'\xff'*128,2040,112,sector),result)
+            self.assertEqual(decode_observed_route_v2(prefix+b'\xff'*128,2048,128,sector),result)
 
     def test_shape_versions_order_and_example_truth_fail_closed(self):
         prefix = self.prefixes[0]
@@ -43,7 +43,7 @@ class ObservedRouteV2(unittest.TestCase):
             raw = bytearray(prefix)
             raw[offset] = value
             with self.subTest(offset=offset), self.assertRaises(DecoderError):
-                decode_observed_route_v2(bytes(raw),2040,112,0)
+                decode_observed_route_v2(bytes(raw),2048,128,0)
         # Change a carried result byte, leaving every outer frame intact.
         offset = 64
         while prefix[offset+1] != 2:
@@ -52,12 +52,12 @@ class ObservedRouteV2(unittest.TestCase):
         raw = bytearray(prefix)
         raw[offset+8+length-1] ^= 1
         with self.assertRaises(DecoderError) as rejected:
-            decode_observed_route_v2(bytes(raw),2040,112,0)
+            decode_observed_route_v2(bytes(raw),2048,128,0)
         self.assertGreater(rejected.exception.primitive_steps,0)
         self.assertGreater(rejected.exception.peak_scratch_bytes,0)
-        for data, side, width, sector in ((prefix[:-1],2040,112,0),
-             (bytearray(prefix),2040,112,0),(prefix,True,112,0),
-             (prefix,2040,104,0),(prefix,2040,112,1),(prefix,2056,112,0)):
+        for data, side, width, sector in ((prefix[:-1],2048,128,0),
+             (bytearray(prefix),2048,128,0),(prefix,True,112,0),
+             (prefix,2040,104,0),(prefix,2048,128,1),(prefix,2056,112,0)):
             with self.subTest(side=side,width=width,sector=sector), self.assertRaises(DecoderError):
                 decode_observed_route_v2(data,side,width,sector)
 
@@ -81,13 +81,13 @@ class ObservedRouteV2(unittest.TestCase):
                         corrupted=bytearray(prefix)
                         corrupted[end-1]^=1
                         with self.subTest(sector=sector,fact=fact,operator='contradict'),self.assertRaises(DecoderError):
-                            decode_observed_route_v2(bytes(corrupted),2040,112,sector)
+                            decode_observed_route_v2(bytes(corrupted),2048,128,sector)
                         removed=bytearray(prefix[:offset]+prefix[end:])
                         removed[46:48]=(int.from_bytes(prefix[46:48],'big')-1).to_bytes(2,'big')
                         removed[48:52]=(len(removed)-64).to_bytes(4,'big')
                         removed[56:60]=(len(removed)*8).to_bytes(4,'big')
                         with self.subTest(sector=sector,fact=fact,operator='remove'),self.assertRaises(DecoderError):
-                            decode_observed_route_v2(bytes(removed),2040,112,sector)
+                            decode_observed_route_v2(bytes(removed),2048,128,sector)
                     offset=end
                 self.assertEqual(seen,list(range(1,13)))
 
@@ -104,7 +104,7 @@ class ObservedRouteV2(unittest.TestCase):
 
     def test_complete_closure_rejects_changed_raw_data_template_or_program_before_calls(self):
         original = self.prefixes[0]
-        package = decode_observed_route_v2(original,2040,112,0).package
+        package = decode_observed_route_v2(original,2048,128,0).package
         source = recipe_wire_v2.expand_recipe_package_v2(package.encoded,8)
         locations = {}
         at = 64
@@ -127,7 +127,7 @@ class ObservedRouteV2(unittest.TestCase):
             changed[start+8:end] = changed_package
             calls = []
             with self.subTest(mutation=name), self.assertRaisesRegex(DecoderError,'complete-recovery-program') as rejected:
-                decode_observed_route_v2(bytes(changed),2040,112,0,
+                decode_observed_route_v2(bytes(changed),2048,128,0,
                     charge=lambda steps,scratch:calls.append((steps,scratch)))
             self.assertEqual(calls,[])
             self.assertEqual((rejected.exception.primitive_steps,rejected.exception.peak_scratch_bytes),(0,0))
@@ -135,7 +135,7 @@ class ObservedRouteV2(unittest.TestCase):
     def test_every_context_witness_executes_and_is_charged(self):
         prefix = self.prefixes[0]
         calls = []
-        route = decode_observed_route_v2(prefix,2040,112,0,
+        route = decode_observed_route_v2(prefix,2048,128,0,
             charge=lambda steps,scratch:calls.append((steps,scratch)))
         framed = [int.from_bytes(prefix[start+10:start+12],'big')
                   for _,kind,start,_ in self.records(prefix) if kind in (2,3)]
@@ -158,7 +158,7 @@ class ObservedRouteV2(unittest.TestCase):
             changed[fact10+offset] ^= 1
             observed = []
             with self.subTest(offset=offset), self.assertRaisesRegex(DecoderError,label) as rejected:
-                decode_observed_route_v2(bytes(changed),2040,112,0,
+                decode_observed_route_v2(bytes(changed),2048,128,0,
                     charge=lambda steps,scratch:observed.append((steps,scratch)))
             self.assertEqual(observed,calls[:count])
             self.assertEqual(rejected.exception.primitive_steps,sum(row[0] for row in calls[:count]))
@@ -166,7 +166,7 @@ class ObservedRouteV2(unittest.TestCase):
     def test_bad_target_and_case_charge_the_failed_complete_call(self):
         prefix = self.prefixes[0]
         expected = []
-        decode_observed_route_v2(prefix,2040,112,0,
+        decode_observed_route_v2(prefix,2048,128,0,
             charge=lambda steps,scratch:expected.append((steps,scratch)))
         fact10 = next(start+22 for rid,_,start,_ in self.records(prefix) if rid == 1001)
         for case, offset, replacement in ((0,0,bytes(4)),(5,4,bytes((255,)))):
@@ -175,7 +175,7 @@ class ObservedRouteV2(unittest.TestCase):
             changed[start:start+len(replacement)] = replacement
             calls = []
             with self.subTest(case=case), self.assertRaisesRegex(DecoderError,'group-complete-trace') as rejected:
-                decode_observed_route_v2(bytes(changed),2040,112,0,
+                decode_observed_route_v2(bytes(changed),2048,128,0,
                     charge=lambda steps,scratch:calls.append((steps,scratch)))
             self.assertEqual(calls,expected[:37+case])
             self.assertEqual(rejected.exception.primitive_steps,sum(row[0] for row in calls))
@@ -185,7 +185,7 @@ class ObservedRouteV2(unittest.TestCase):
         records = self.records(prefix)
         fact10 = next(start+22 for rid,_,start,_ in records if rid == 1001)
         calls = []
-        decode_observed_route_v2(prefix,2040,112,0,
+        decode_observed_route_v2(prefix,2048,128,0,
             charge=lambda steps,scratch:calls.append((steps,scratch)))
         for rid, case in ((1002,4),(1003,6),(1004,7)):
             _, _, start, end = next(row for row in records if row[0] == rid)
@@ -198,7 +198,7 @@ class ObservedRouteV2(unittest.TestCase):
             before = sum(kind in (2,3) for _,kind,at,_ in records if at < start)
             observed = []
             with self.subTest(record=rid), self.assertRaisesRegex(DecoderError,'group-primary') as rejected:
-                decode_observed_route_v2(bytes(changed),2040,112,0,
+                decode_observed_route_v2(bytes(changed),2048,128,0,
                     charge=lambda steps,scratch:observed.append((steps,scratch)))
             self.assertEqual(observed,calls[:before])
             self.assertEqual(rejected.exception.primitive_steps,sum(row[0] for row in observed))
@@ -215,10 +215,10 @@ class ObservedRouteV2(unittest.TestCase):
         for start in (fact10+22+57*4,primary):
             changed[start:start+4] = (7).to_bytes(4,'big')
         expected, calls = [], []
-        decode_observed_route_v2(prefix,2040,112,0,
+        decode_observed_route_v2(prefix,2048,128,0,
             charge=lambda steps,scratch:expected.append((steps,scratch)))
         with self.assertRaisesRegex(DecoderError,'fact10.example-order') as rejected:
-            decode_observed_route_v2(bytes(changed),2040,112,0,
+            decode_observed_route_v2(bytes(changed),2048,128,0,
                 charge=lambda steps,scratch:calls.append((steps,scratch)))
         self.assertEqual(calls,expected)
         self.assertEqual(len(calls),44)
@@ -233,7 +233,7 @@ class ObservedRouteV2(unittest.TestCase):
               patch('os.open',side_effect=AssertionError('descriptor access')),
               patch('golden_board.m2_route_v2.build_route_prefixes_v2',
                     side_effect=AssertionError('route reconstruction'))):
-            route = decode_observed_route_v2(self.prefixes[0],2040,112,0)
+            route = decode_observed_route_v2(self.prefixes[0],2048,128,0)
         self.assertEqual(route.primitive_steps,152936421)
 
 

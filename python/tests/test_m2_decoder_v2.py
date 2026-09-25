@@ -1,6 +1,7 @@
 """Recovery from observations; source-built values appear only in the oracle."""
 from pathlib import Path
 from dataclasses import replace
+from collections import Counter
 from unittest.mock import patch
 import json
 import os
@@ -142,27 +143,48 @@ class RevisedObservationDecoder(unittest.TestCase):
         self.assertEqual(second,first)
         self.assertEqual(decoder._rejected_route_steps,charged)
 
-    def replace_section_units(self, section_id, envelope):
+    def replace_section_units(self, section_id, envelope, units=None):
         blocks = bootstrap.fragment_section(envelope,8,0)
-        replaced = dict(self.units)
+        replaced = dict(self.units if units is None else units)
         for row in self.expected:
             if row.section_id == section_id:
                 replaced[row.unit_id] = m2_codec.eh72_encode_unit(blocks[row.fragment_index])
         return replaced
 
     def test_fresh_transport_checks_do_not_hide_invalid_compressed_content(self):
-        all_only = next(s.section_id for s in self.image.capacity_plan.sections
-                        if s.section_type == 3 and s.version == 1 and s.section_id >= 100)
-        for sid in (16,all_only):
-            original = bootstrap.decode_section_envelope(self.envelopes()[sid])
-            malformed = replace(original,payload=b'\x02'+original.payload[1:])
-            units = self.replace_section_units(sid,bootstrap.encode_section_envelope(malformed))
-            result = self.decoder.decode(old.OBS_UNITS,serialized(units))
-            with self.subTest(section=sid):
-                self.assertEqual(next(s for s in result.section_results if s.section_id == sid).state,'verified')
-                self.assertIsNone(result.m2_all_stream)
-                self.assertEqual(result.m2_required_stream,self.compiled.required_content_bytes if sid != 16 else None)
-                self.assertEqual(result.artifact_state,'degraded' if sid != 16 else 'failure')
+        original = bootstrap.decode_section_envelope(self.envelopes()[16])
+        self.assertEqual(original.section_version,1)
+        malformed = replace(original,payload=b'\x02'+original.payload[1:])
+        units = self.replace_section_units(16,bootstrap.encode_section_envelope(malformed))
+        result = self.decoder.decode(old.OBS_UNITS,serialized(units))
+        self.assertEqual(next(s for s in result.section_results if s.section_id == 16).state,'verified')
+        self.assertIsNone(result.m2_all_stream)
+        self.assertIsNone(result.m2_required_stream)
+        self.assertEqual(result.artifact_state,'failure')
+
+    def test_optional_compressed_diagnostic_accepts_valid_tokens_and_rejects_invalid_tokens(self):
+        from golden_board.body_codec_v1 import encode_lzss
+        envelopes = self.envelopes()
+        original = bootstrap.decode_section_envelope(envelopes[200])
+        self.assertEqual(original.section_version,0)
+        encoded = encode_lzss(original.payload)
+        self.assertLessEqual(22+len(encoded),157)
+        entries = tuple(replace(entry,section_version=1,logical_payload_length=len(encoded))
+                        if entry.section_id == 200 else entry for entry in self.inventory.entries)
+        inventory = bootstrap_v2.encode_inventory(replace(self.inventory,entries=entries))
+        inventory_envelope = bootstrap.decode_section_envelope(envelopes[1])
+        units = self.replace_section_units(1,bootstrap.encode_section_envelope(
+            replace(inventory_envelope,payload=inventory)))
+        for corrupt in (False,True):
+            payload = b'\x02'+encoded[1:] if corrupt else encoded
+            diagnostic = replace(original,section_version=1,payload=payload)
+            observed = self.replace_section_units(200,bootstrap.encode_section_envelope(diagnostic),units)
+            result = self.decoder.decode(old.OBS_UNITS,serialized(observed))
+            with self.subTest(corrupt=corrupt):
+                self.assertEqual(next(s for s in result.section_results if s.section_id == 200).state,'verified')
+                self.assertEqual(result.m2_required_stream,self.compiled.required_content_bytes)
+                self.assertEqual(result.m2_all_stream,None if corrupt else self.compiled.content_bytes)
+                self.assertEqual(result.artifact_state,'degraded' if corrupt else 'exact')
 
     def test_square_inventory_must_cover_its_observed_physical_population(self):
         decoder = ObservationDecoderV2(*self.owner)
@@ -191,9 +213,14 @@ class RevisedObservationDecoder(unittest.TestCase):
                 decoder.profile_by_version[8],self.inventory,self.envelopes())
         self.assertEqual(required,self.compiled.required_content_bytes)
         self.assertEqual(all_stream,self.compiled.content_bytes)
-        self.assertEqual(decode.call_count,78)
-        self.assertEqual(sum(call.args[0] == 1 for call in decode.call_args_list),10)
-        self.assertEqual(steps,10*decoder.policy.decompression_primitive_steps)
+        bodies = tuple(s for s in self.image.capacity_plan.sections if s.section_type == 3)
+        compressed = sum(s.version == 1 for s in bodies)
+        self.assertGreater(compressed,0)
+        self.assertEqual(decode.call_count,len(bodies))
+        self.assertEqual(Counter(call.args for call in decode.call_args_list),
+                         Counter((s.version,s.payload) for s in bodies))
+        self.assertEqual(sum(call.args[0] == 1 for call in decode.call_args_list),compressed)
+        self.assertEqual(steps,compressed*decoder.policy.decompression_primitive_steps)
         self.assertEqual(scratch,decoder.policy.decompression_peak_scratch_bytes)
         route = decoder._parse_route(self.cells,self.image.capacity_plan.width,0)
         decoder._current_package = decoder._observed_packages[route.packages[0]]

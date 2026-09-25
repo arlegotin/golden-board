@@ -141,6 +141,7 @@ def compile_pages(pages):
 
 def slice_declaration(raw, legacy_declaration):
     """Emit logical authoring data, not encoded content as a Rust preimage."""
+    from golden_board.m2_slice_v1 import SELECTED_GAME_ORDINALS
     view = c.projection_view(c.stream_validation(raw))
     records = []
     for record in view.records:
@@ -155,6 +156,7 @@ def slice_declaration(raw, legacy_declaration):
     # The manifest serializer deliberately rejects tuples and null values.
     value = json.loads(json.dumps({'schema':'golden-board.m2-slice/v1',
         'legacy_declaration_sha256':sha(legacy_declaration),
+        'selected_game_ordinals':list(SELECTED_GAME_ORDINALS),
         'lesson_records':records}))
     return canonical_manifest.serialize_manifest(value)
 

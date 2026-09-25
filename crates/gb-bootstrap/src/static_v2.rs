@@ -313,8 +313,7 @@ fn semantic(
         let section = sections.get(&id).ok_or(CarrierError::Section)?;
         let raw = crate::body_codec_v1::decode_body(section.section_version, &section.payload)
             .map_err(|_| CarrierError::Section)?;
-        let (version, encoded) =
-            crate::body_codec_v1::encode_body(&raw).map_err(|_| CarrierError::Section)?;
+        let (version, encoded) = crate::carrier_v2::encode_body_v2(&raw)?;
         require(version == section.section_version && encoded == section.payload)?;
         decoded.insert(id, raw.len() as u64);
         stored_sum = add(stored_sum, section.payload.len() as u64)?;
@@ -326,7 +325,7 @@ fn semantic(
             n(section.payload.len() as u64),
             n(version),
             a(assignment.record_ids().iter().copied().map(n)),
-            n(if (100..=163).contains(&id) {
+            n(if (100..=152).contains(&id) {
                 id - 100
             } else {
                 65535

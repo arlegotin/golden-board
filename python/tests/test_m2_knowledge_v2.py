@@ -33,7 +33,7 @@ class CarriedKnowledge(unittest.TestCase):
             cursor=end
         cls.bodies={row.section_id:b''.join(frames[rid] for rid in row.record_ids)
                     for row in cls.compiled.atomic_assignments if row.section_id in (100,200)}
-        cls.arguments=dict(side=2048,width=112,
+        cls.arguments=dict(side=2048,width=128,
             required_stream=cls.compiled.required_content_bytes,
             all_stream=raw,body_payloads=cls.bodies)
         with (patch('builtins.open',side_effect=AssertionError('source access')),
@@ -75,14 +75,14 @@ class CarriedKnowledge(unittest.TestCase):
 
     def test_fact10_contradiction_requires_its_exact_binding_boundary(self):
         prefix=self.prefixes[0]
-        route=decode_observed_route_v2(prefix,2048,112,0)
+        route=decode_observed_route_v2(prefix,2048,128,0)
         records=knowledge._records(prefix)
         definition=next(r for r in records if r['record_id']==1001)
         changed=knowledge._ablate(prefix,definition,'contradict')
         binding=knowledge._fact10_binding_cost(prefix,records,route.package)
         full=(route.primitive_steps,route.peak_scratch_bytes)
         with self.assertRaises(RouteRejectionV2) as caught:
-            decode_observed_route_v2(changed,2048,112,0)
+            decode_observed_route_v2(changed,2048,128,0)
         error=caught.exception
         self.assertEqual(error.reason,'route-v2.group-primary')
         self.assertLess(binding[0],full[0])

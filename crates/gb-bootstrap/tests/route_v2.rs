@@ -167,10 +167,10 @@ fn complete_construction_examples_invoke_the_same_kernel_and_physical_identity()
 fn complete_images_charge_every_cell_and_reject_geometry_and_insufficient_fit() {
     let compiled = slice();
     let prefixes = build_route_prefixes(&compiled).unwrap();
-    let images = build_route_images(&compiled, 2048, 112).unwrap();
-    assert_eq!(prefixes[0].len(), 25424);
+    let images = build_route_images(&compiled, 2048, 128).unwrap();
+    assert_eq!(prefixes[0].len(), 27827);
     assert_eq!(
-        build_route_images(&compiled, 2008, 112).unwrap_err(),
+        build_route_images(&compiled, 1936, 128).unwrap_err(),
         CarrierError::RouteFit
     );
     let total: usize = prefixes.iter().map(|prefix| prefix.len() * 8).sum();
@@ -185,7 +185,7 @@ fn complete_images_charge_every_cell_and_reject_geometry_and_insufficient_fit() 
         images.headroom_cells
     );
     for (sector, image) in images.sectors.iter().enumerate() {
-        assert_eq!(image.bits.len(), 112 * (2048 - 112));
+        assert_eq!(image.bits.len(), 128 * (2048 - 128));
         assert!(image.bits.iter().all(|bit| *bit <= 1));
         assert_eq!(
             image.route_prefix_cells,

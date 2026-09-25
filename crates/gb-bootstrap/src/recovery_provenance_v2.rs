@@ -406,7 +406,7 @@ pub fn build_recovery_provenance_v2(
         bodies.iter().map(|b| b.section_id).collect::<Vec<_>>()
             == [16, 17, 18]
                 .into_iter()
-                .chain(100..164)
+                .chain(100..153)
                 .chain(200..211)
                 .collect::<Vec<_>>(),
     )?;

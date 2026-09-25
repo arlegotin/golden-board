@@ -75,7 +75,7 @@ bucket_fields/bucket_rows, capacity_section_fields/capacity_section_rows,
 slot_fields/slot_rows, totals.
 
 * prototype: `(kind,prototype_id,source_record_id,frame_bytes)`; kind order1..14.
-* real_section: `(section_id,closure_class,physical_replica_count,decoded_payload_bytes,stored_payload_bytes,section_version,record_ids,game_ordinal,fixture_ordinal)`; ascendingsection ID. Decoded bytes sum complete assigned non-root frames; stored/version are actual body-codec selection. Required factor5; all-only factor1.
+* real_section: `(section_id,closure_class,physical_replica_count,decoded_payload_bytes,stored_payload_bytes,section_version,record_ids,game_ordinal,fixture_ordinal)`; ascendingsection ID. Decoded bytes sum complete assigned non-root frames; stored/version are the exact profile-specific carrier-v2 choice, preferring raw when compression would not reduce the complete envelope fragment count. Required factor5; all-only factor1.
 * tier_frame: `(section_id,physical_replica_count,payload_bytes,dependency_ids,assembled_stream_bytes,assembled_record_count,root_record_bytes)`; IDs2,3, factor5. root_record_bytes is a byte count, not opaque hex.
 * bucket: `(bucket_id,tier,protection_class,payload_bytes,slot_count,section_count)`; unchanged neutral capacity order.
 * capacity_section: `(section_id,bucket_id,section_ordinal,tier,protection_class,first_slot_ordinal,slot_count,payload_bytes)`; IDs start211, omit zero payloads, neutral bucket/section order.

@@ -50,14 +50,14 @@ class RecoveryProvenance(unittest.TestCase):
         self.assertEqual(r.required_stream,self.compiled.required_content_bytes)
         self.assertEqual(r.all_stream,self.compiled.content_bytes)
         self.assertEqual(tuple(b.section_id for b in r.bodies),
-            (16,17,18,*range(100,164),*range(200,211)))
+            (16,17,18,*range(100,153),*range(200,211)))
         self.assertEqual(len(value['prefix_rows']),4)
-        self.assertEqual(len(value['body_rows']),78)
+        self.assertEqual(len(value['body_rows']),67)
         for name,raw in (('decoder_result',r.decoder_result),('knowledge_use',r.knowledge_use),('first_use',r.first_use)):
             self.assertEqual(value[name],{'bytes':len(raw),'sha256':sha256(raw).hexdigest()})
         knowledge=manifest.validate_canonical_manifest(r.knowledge_use)
         self.assertEqual(knowledge['inputs']['required_stream']['sha256'],sha256(r.required_stream).hexdigest())
-        self.assertEqual(len(knowledge['inputs']['decoded_bodies']),78)
+        self.assertEqual(len(knowledge['inputs']['decoded_bodies']),67)
         self.assertEqual(manifest.validate_canonical_manifest(r.decoder_result)['artifact_state'],'exact')
         with self.assertRaises(FrozenInstanceError):
             r.required_stream=b''

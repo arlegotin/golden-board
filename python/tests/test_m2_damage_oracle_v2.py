@@ -38,6 +38,18 @@ class RevisedDamageOracle(unittest.TestCase):
                 self.assertIsNone(expected.all_stream)
                 self.assertTrue(expected.reauthored_boundary)
 
+    def test_optional_codec_cases_preserve_valid_inventory_and_required_stream(self):
+        clean = self.oracle.evaluate(self.corpus.case('D5',0))
+        for ordinal in range(7,14):
+            value = self.oracle.evaluate(self.corpus.boundary_case(ordinal))
+            with self.subTest(ordinal=ordinal):
+                self.assertEqual(value.artifact_state,'degraded')
+                self.assertEqual(value.required_stream,clean.required_stream)
+                self.assertIsNone(value.all_stream)
+                self.assertEqual(dict(value.section_states)[1],'verified')
+                self.assertEqual(dict(value.section_states)[200],'verified')
+                self.assertEqual(value.wrong_accepts,2)
+
     def test_compact_and_foreign_bootstrap_never_establish_content(self):
         for ordinal in (408,413,414):
             value = self.oracle.evaluate(self.corpus.case('D7',ordinal))

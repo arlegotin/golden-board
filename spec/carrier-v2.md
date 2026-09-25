@@ -9,12 +9,20 @@ Logical capacity derives from the existing candidate-neutral curriculum/role
 policy and historical capacity prototypes, with the actual new slice lengths.
 All 105277 future authoring bytes remain. Let C be the uncompressed body and
 tier payload bytes plus the complete16384-byte inventory allowance and future
-authoring bytes. Reserve is `max(382,ceil(C/19))`; the present slice gives9353.
+authoring bytes. Reserve is `max(382,ceil(C/19))`; the present slice gives9213.
 No compression saving reduces this promise. Probe payloads are never compressed.
 
 Real bodies are whole-record section assignments of slice-v1. Independently
-encode each with body-codec-v1, selecting its version1 bytes only if strictly
-shorter than the raw version0 body. Tier frames preserve exact decoded lengths,
+encode each with body-codec-v1. Select its version1 bytes only when their
+complete section envelope requires fewer157-byte fragments than the raw
+version0 envelope. Prefer directly readable raw bodies on a physical-cost tie,
+even when compression saves stored bytes. Body envelopes have no dependencies,
+so compare `ceil((22+stored_bytes)/157)` with `ceil((22+raw_bytes)/157)`.
+This profile-specific choice leaves the general body-codec-v1 encoder unchanged.
+Teaching accessibility takes priority over game quantity; preserve direct
+worked examples where practical and remeasure the selected anthology instead
+of compressing prerequisite teaching merely to retain more games.
+Tier frames preserve exact decoded lengths,
 record counts, body IDs and terminal ROOT frames. Their sections stay version0.
 All stored payloads are1..16384 bytes. Whole-unit factors are5 for inventory,
 both tiers and bodies16/17/18;1 for other bodies; capacity factor2 for

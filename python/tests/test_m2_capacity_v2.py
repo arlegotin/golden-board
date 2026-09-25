@@ -27,8 +27,8 @@ class CompressedCapacity(unittest.TestCase):
     def test_complete_costs_keep_future_allowance_and_uncompressed_reserve(self):
         plan = self.plan()
         self.assertEqual(plan.authoring_bytes, 105277)
-        self.assertEqual(plan.reserve_bytes, 9353)
-        self.assertEqual(sum(len(s.payload) for s in plan.sections if s.section_type == 3), 25929)
+        self.assertEqual(plan.reserve_bytes, 9213)
+        self.assertEqual(sum(len(s.payload) for s in plan.sections if s.section_type == 3), 23411)
         self.assertEqual(sum(len(s.payload) for s in plan.sections if s.section_type == 3 and s.factor == 5), 12804)
         self.assertEqual({s.section_id for s in plan.sections if s.factor == 5}, bootstrap_v2.SPINE)
         self.assertEqual(sum(s.factor*s.fragments for s in plan.sections), plan.units)
@@ -38,6 +38,21 @@ class CompressedCapacity(unittest.TestCase):
         self.assertEqual(len(plan.inventory.entries), len(plan.sections))
         inv_section, = (s for s in plan.sections if s.section_id == 1)
         self.assertEqual(bootstrap_v2.decode_inventory(inv_section.payload), plan.inventory)
+
+    def test_optional_fixtures_are_raw_when_compression_saves_no_physical_units(self):
+        sections = {row.section_id:row for row in self.plan().sections}
+        self.assertEqual([sections[sid].version for sid in range(200,210)], [0]*10)
+        self.assertTrue(all(sections[sid].fragments == 1 for sid in range(200,210)))
+
+    def test_one_byte_over_fragment_boundary_makes_compression_useful(self):
+        from golden_board.body_codec_v1 import decode_body, encode_body
+        from golden_board.m2_capacity_v2 import encode_carrier_body
+        # The 22-byte envelope leaves 135 payload bytes in its first fragment.
+        self.assertEqual(encode_body(b'A'*135)[0],1)
+        self.assertEqual(encode_carrier_body(b'A'*135),(0,b'A'*135))
+        version, payload = encode_carrier_body(b'A'*136)
+        self.assertEqual(version,1)
+        self.assertEqual(decode_body(version,payload),b'A'*136)
 
     def test_smaller_route_selects_first_geometry_and_oversize_rejects(self):
         plan = self.plan((23000,)*4)
@@ -58,7 +73,7 @@ class CompressedCapacity(unittest.TestCase):
         self.assertEqual(recovered.required_bytes, self.compiled.required_content_bytes)
         self.assertEqual(recovered.all_bytes, self.compiled.content_bytes)
         self.assertEqual(sum(len(s.payload) for s in plan.sections if s.section_type == 4), 105277)
-        self.assertEqual(sum(len(s.payload) for s in plan.sections if s.section_type == 5), 9353)
+        self.assertEqual(sum(len(s.payload) for s in plan.sections if s.section_type == 5), 9213)
         self.assertTrue(all(s.version == 0 for s in plan.sections if s.section_type in (4, 5, 6)))
         total = sum(len(s.payload) for s in plan.sections if s.section_type in (4, 5, 6))
         fill = capacity.probe_fill_bytes(self.compiled.content_sha256, total+(plan.pad_cells+7)//8)

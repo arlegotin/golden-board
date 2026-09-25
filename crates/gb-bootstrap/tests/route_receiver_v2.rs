@@ -20,10 +20,10 @@ fn observed_complete_route_admits_only_after_every_example_and_mapping() {
     let prefixes = gb_bootstrap::route_v2::build_route_prefixes(&slice()).unwrap();
     for (sector, prefix) in prefixes.iter().enumerate() {
         let mut cost = ResourceProjection::default();
-        let route = admit_route_prefix(prefix, 2048, 112, sector as u8, &mut cost)
+        let route = admit_route_prefix(prefix, 2048, 128, sector as u8, &mut cost)
             .unwrap()
             .unwrap();
-        assert_eq!(route.mapping().unit_slot_count(), 1925);
+        assert_eq!(route.mapping().unit_slot_count(), 1858);
         assert_eq!(route.package().encoded.len(), 17719);
         let logical = &route.package().logical;
         let mut expected_steps = 3 * logical.recipe_primitive_steps(109).unwrap()
@@ -51,7 +51,7 @@ fn structural_status_example_package_and_domain_mutants_fail_closed() {
         let mut changed = original.clone();
         changed[at] = value;
         assert!(
-            admit_route_prefix(&changed, 2040, 112, 0, &mut ResourceProjection::default())
+            admit_route_prefix(&changed, 2040, 128, 0, &mut ResourceProjection::default())
                 .unwrap()
                 .is_none()
         );
@@ -66,7 +66,7 @@ fn structural_status_example_package_and_domain_mutants_fail_closed() {
     let output = first_example + 8 + 12 + input;
     changed[output + 1] ^= 1;
     assert!(
-        admit_route_prefix(&changed, 2040, 112, 0, &mut ResourceProjection::default())
+        admit_route_prefix(&changed, 2040, 128, 0, &mut ResourceProjection::default())
             .unwrap()
             .is_none()
     );
@@ -79,7 +79,7 @@ fn structural_status_example_package_and_domain_mutants_fail_closed() {
         admit_route_prefix(
             &original[..original.len() - 1],
             2040,
-            112,
+            128,
             0,
             &mut ResourceProjection::default()
         )
@@ -95,7 +95,7 @@ fn structural_status_example_package_and_domain_mutants_fail_closed() {
     changed[output + output_length - 1] ^= 1;
     let mut consumed = ResourceProjection::default();
     assert!(
-        admit_route_prefix(&changed, 2040, 112, 0, &mut consumed)
+        admit_route_prefix(&changed, 2040, 128, 0, &mut consumed)
             .unwrap()
             .is_none()
     );
@@ -116,7 +116,7 @@ fn structural_status_example_package_and_domain_mutants_fail_closed() {
     changed[package_record + 8 + 36..package_record + 8 + 44]
         .copy_from_slice(&268435457u64.to_be_bytes());
     assert!(
-        admit_route_prefix(&changed, 2040, 112, 0, &mut ResourceProjection::default())
+        admit_route_prefix(&changed, 2040, 128, 0, &mut ResourceProjection::default())
             .unwrap()
             .is_none()
     );
@@ -127,14 +127,14 @@ fn contradictory_numeric_definition_rejects_after_owned_example_schedule() {
     prefix[64 + 8 + 14 + 1] ^= 1;
     let mut cost = ResourceProjection::default();
     assert!(
-        admit_route_prefix(&prefix, 2040, 112, 0, &mut cost)
+        admit_route_prefix(&prefix, 2040, 128, 0, &mut cost)
             .unwrap()
             .is_none()
     );
     let clean = gb_bootstrap::route_v2::build_route_prefixes(&slice()).unwrap()[0].clone();
     let mut full = ResourceProjection::default();
     assert!(
-        admit_route_prefix(&clean, 2040, 112, 0, &mut full)
+        admit_route_prefix(&clean, 2040, 128, 0, &mut full)
             .unwrap()
             .is_some()
     );
@@ -162,7 +162,7 @@ fn valid_but_unrelated_primary_case_cannot_replace_its_bound_case() {
     changed[primary + 12..primary + 12 + 57]
         .copy_from_slice(&original[definition + 22 + 57 * 5..definition + 22 + 57 * 6]);
     assert!(
-        admit_route_prefix(&changed, 2048, 112, 0, &mut ResourceProjection::default())
+        admit_route_prefix(&changed, 2048, 128, 0, &mut ResourceProjection::default())
             .unwrap()
             .is_none()
     );
@@ -177,7 +177,7 @@ fn embedded_complete_group_failure_retains_exact_invoked_cost() {
             .unwrap();
     let mut complete = ResourceProjection::default();
     assert!(
-        admit_route_prefix(&original, 2048, 112, 0, &mut complete)
+        admit_route_prefix(&original, 2048, 128, 0, &mut complete)
             .unwrap()
             .is_some()
     );
@@ -188,7 +188,7 @@ fn embedded_complete_group_failure_retains_exact_invoked_cost() {
         changed[definition + 22 + 57 * case + 5 + 28] ^= 1;
         let mut charged = ResourceProjection::default();
         assert!(
-            admit_route_prefix(&changed, 2048, 112, 0, &mut charged)
+            admit_route_prefix(&changed, 2048, 128, 0, &mut charged)
                 .unwrap()
                 .is_none()
         );
@@ -203,7 +203,7 @@ fn embedded_complete_group_failure_retains_exact_invoked_cost() {
         changed[definition + at] ^= 1;
         let mut charged = ResourceProjection::default();
         assert!(
-            admit_route_prefix(&changed, 2048, 112, 0, &mut charged)
+            admit_route_prefix(&changed, 2048, 128, 0, &mut charged)
                 .unwrap()
                 .is_none()
         );
@@ -247,7 +247,7 @@ fn changed_bootstrap_closure_rejects_before_any_example_execution() {
     changed[at..at + len].copy_from_slice(&package);
     let mut charged = ResourceProjection::default();
     assert!(
-        admit_route_prefix(&changed, 2048, 112, 0, &mut charged)
+        admit_route_prefix(&changed, 2048, 128, 0, &mut charged)
             .unwrap()
             .is_none()
     );

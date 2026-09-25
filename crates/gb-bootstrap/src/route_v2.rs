@@ -1170,7 +1170,7 @@ fn tenth(a: &[u8; 191], b: &[u8; 191], package: &RecipePackageV1) -> Result<Vec<
 }
 
 fn metadata_inventory() -> crate::Inventory {
-    let bodies: Vec<_> = (16..=18).chain(100..=163).chain(200..=210).collect();
+    let bodies: Vec<_> = (16..=18).chain(100..=152).chain(200..=210).collect();
     let mut entries = Vec::new();
     for id in [1, 2, 3].into_iter().chain(bodies.iter().copied()) {
         let required = [1, 2, 3, 16, 17, 18].contains(&id);
@@ -1196,14 +1196,14 @@ fn metadata_inventory() -> crate::Inventory {
                 vec![]
             },
             logical_payload_length: 1,
-            game_ordinal: if (100..=163).contains(&id) {
+            game_ordinal: if (100..=152).contains(&id) {
                 Some((id - 100) as u16)
             } else {
                 None
             },
         });
     }
-    entries[0].logical_payload_length = 1952;
+    entries[0].logical_payload_length = 1688;
     crate::Inventory {
         inventory_version: 2,
         entries,
@@ -1311,7 +1311,7 @@ fn eleventh(a: &[u8; 191]) -> Result<Vec<u8>> {
     }
     for (id, ordinal, has, expected) in [
         (100u16, 0u16, 1u16, 1u16),
-        (163, 63, 1, 1),
+        (152, 52, 1, 1),
         (211, 65535, 0, 1),
         (101, 0, 1, 0),
     ] {
@@ -1803,10 +1803,21 @@ fn record_refs(payload: &gb_content::RecordPayload) -> Vec<u16> {
 }
 
 fn role_example(records: &[gb_content::Record], role: u8, mode: u8) -> Result<Vec<u8>> {
-    use gb_content::{LessonCase, RecordPayload as P};
     let packed = mode == 1;
     let trace = role == 3 || packed;
     let predicate = role <= 3 || packed;
+    role_example_presence(records, role, mode, predicate, trace)
+}
+
+fn role_example_presence(
+    records: &[gb_content::Record],
+    role: u8,
+    mode: u8,
+    predicate: bool,
+    trace: bool,
+) -> Result<Vec<u8>> {
+    use gb_content::{LessonCase, RecordPayload as P};
+    let packed = mode == 1;
     let feedback = if packed {
         22
     } else if role == 4 {
@@ -1876,7 +1887,7 @@ fn role_example(records: &[gb_content::Record], role: u8, mode: u8) -> Result<Ve
         .map_err(|_| CarrierError::Section)
 }
 
-fn content_teaching() -> Result<Vec<u8>> {
+pub(crate) fn content_teaching(package: &RecipePackageV1) -> Result<Vec<u8>> {
     use gb_content::RecordPayload as P;
     let (mini, records) = miniature()?;
     let mut supplement = Vec::new();
@@ -2191,13 +2202,368 @@ fn content_teaching() -> Result<Vec<u8>> {
         words16(&mut supplement, &[feedback, next, global, local]);
     }
     ensure(supplement.len() == 1120)?;
+    supplement.extend(connected_content(&mini)?);
+    supplement.extend(role_grounding(&records, &roles)?);
+    supplement.extend(assertion_direction(&mini, package)?);
+    ensure(supplement.len() == 3523)?;
     let mut value = Vec::new();
     words32(&mut value, &[mini.len() as u32]);
     value.extend(mini);
     words32(&mut value, &[supplement.len() as u32]);
     value.extend(supplement);
-    ensure(value.len() == 1703)?;
+    ensure(value.len() == 4106)?;
     Ok(value)
+}
+
+fn connected_content(mini: &[u8]) -> Result<Vec<u8>> {
+    use gb_content::RecordPayload as P;
+    let mut out = Vec::new();
+    layout(
+        &mut out,
+        &[
+            (0, 1),
+            (1, 4),
+            (5, 2),
+            (7, 1),
+            (8, 1),
+            (9, 1),
+            (10, 1),
+            (11, 1),
+            (12, 1),
+            (13, 4),
+            (17, 1),
+            (18, 2),
+            (20, 2),
+            (22, 2),
+            (24, 2),
+        ],
+    );
+    words16(&mut out, &[5]);
+    for row in [
+        [13, 1, 9, 1],
+        [13, 2, 10, 1],
+        [13, 3, 11, 1],
+        [14, 2, 22, 2],
+        [13, 14, 24, 2],
+    ] {
+        out.extend(row);
+    }
+    let variants: [(&[[u32; 4]], &[u8]); 7] = [
+        (&[], b"N11RN12RN1RCNCA21CA11CR"),
+        (&[[512, 1, 2, 3]], b"NCA21CNCA11C"),
+        (&[[512, 1, 2, 3], [514, 1, 0, 1]], b"NCA11C"),
+        (&[[542, 1, 3, 2], [544, 1, 1, 0]], b"NCACA21C"),
+        (&[[467, 2, 2, 16], [573, 2, 8, 22]], b"N11RN12R"),
+        (&[[573, 2, 8, 9]], b"NCNRC"),
+        (&[], b"N2CA2CA2CACA1"),
+    ];
+    words16(&mut out, &[7]);
+    for (patches, schedule) in variants {
+        let mut changed = mini.to_vec();
+        words16(&mut out, &[patches.len() as u16]);
+        for &[offset, width, old, new] in patches {
+            let (at, n) = (offset as usize, width as usize);
+            ensure(changed[at..at + n] == old.to_be_bytes()[4 - n..])?;
+            changed[at..at + n].copy_from_slice(&new.to_be_bytes()[4 - n..]);
+            words16(&mut out, &[offset as u16, width as u16]);
+            words32(&mut out, &[old, new]);
+        }
+        let projection =
+            gb_content::stream_validation(&changed).map_err(|_| CarrierError::Section)?;
+        let mut run = gb_content::new_run(&projection);
+        words16(&mut out, &[schedule.len() as u16]);
+        for operation in schedule {
+            let (op, action) = match operation {
+                b'N' => (0, [0; 4]),
+                b'A' => (2, [0; 4]),
+                b'1' => (1, [1, 0, 0, 1]),
+                b'2' => (1, [1, 0, 0, 2]),
+                b'R' => (1, [2, 0, 0, 0]),
+                b'C' => (1, [3, 0, 0, 0]),
+                _ => return Err(CarrierError::Section),
+            };
+            let mut last = 0;
+            match op {
+                0 => run = gb_content::new_run(&projection),
+                1 => (run, last) = gb_content::step(&projection, run, &action),
+                _ => {
+                    run = gb_content::advance_committed(&projection, &run)
+                        .map_err(|_| CarrierError::Section)?
+                }
+            }
+            let view = gb_content::run_state_view(&run);
+            let node = projection
+                .records()
+                .iter()
+                .find(|r| r.record_id() == view.current_node_id())
+                .ok_or(CarrierError::Section)?;
+            let P::LessonNode {
+                response_shape,
+                answer_mode,
+                flags,
+                ..
+            } = node.payload()
+            else {
+                return Err(CarrierError::Section);
+            };
+            let selections = if view.phase() == 2 {
+                let response = view.committed_response();
+                ensure(
+                    response.len() >= 3
+                        && response[0] == *response_shape
+                        && response.len() == 3 + 2 * usize::from(u16_at(response, 1)?),
+                )?;
+                response[3..]
+                    .chunks_exact(2)
+                    .map(|p| u16::from_be_bytes([p[0], p[1]]))
+                    .collect::<Vec<_>>()
+            } else {
+                view.selection_buffer().to_vec()
+            };
+            ensure(selections.len() <= 2)?;
+            out.push(op);
+            out.extend(action);
+            words16(&mut out, &[view.current_node_id()]);
+            out.extend([
+                view.phase(),
+                last,
+                *response_shape,
+                *answer_mode,
+                *flags,
+                selections.len() as u8,
+            ]);
+            words16(
+                &mut out,
+                &[
+                    selections.first().copied().unwrap_or(0),
+                    selections.get(1).copied().unwrap_or(0),
+                ],
+            );
+            out.push(view.outcome());
+            words16(
+                &mut out,
+                &[
+                    view.feedback_ref(),
+                    view.next_node_ref(),
+                    view.global_remaining(),
+                    view.local_remaining(),
+                ],
+            );
+        }
+    }
+    ensure(out.len() == 2160)?;
+    Ok(out)
+}
+
+fn role_grounding(records: &[gb_content::Record], roles: &[[u16; 10]; 6]) -> Result<Vec<u8>> {
+    use gb_content::RecordPayload as P;
+    // All presence combinations, including rejected cases, use typed dependencies.
+    for role in roles {
+        for predicate in 0..=1 {
+            for trace in 0..=1 {
+                let expected = (role[2]..=role[3]).contains(&predicate)
+                    && (role[6]..=role[7]).contains(&trace);
+                ensure(
+                    role_example_presence(
+                        records,
+                        role[0] as u8,
+                        role[1] as u8,
+                        predicate == 1,
+                        trace == 1,
+                    )
+                    .is_ok()
+                        == expected,
+                )?;
+            }
+        }
+    }
+    for role in 1..=5 {
+        for mode in 1..=3 {
+            if !roles.iter().any(|row| row[..2] == [role, mode]) {
+                ensure(role_example(records, role as u8, mode as u8).is_err())?;
+            }
+        }
+    }
+    let mut out = Vec::new();
+    words16(&mut out, &[2]);
+    for (offset, min, max, kind) in [(8, 2, 3, 10), (10, 8, 9, 12)] {
+        words16(&mut out, &[offset]);
+        out.extend([min, max]);
+        words16(&mut out, &[kind]);
+    }
+    words16(&mut out, &[3]);
+    for (id, kind) in [(0, 0), (19, 10), (25, 12)] {
+        if id != 0 {
+            ensure(
+                records
+                    .iter()
+                    .any(|r| r.record_id() == id && r.kind() == kind),
+            )?;
+        }
+        words16(&mut out, &[id]);
+        out.push(u8::from(id != 0));
+    }
+    words16(&mut out, &[6]);
+    for (min, max) in [(0, 0), (0, 1), (1, 1)] {
+        for presence in 0..=1 {
+            out.extend([
+                min,
+                max,
+                presence,
+                u8::from((min..=max).contains(&presence)),
+            ]);
+        }
+    }
+    words16(&mut out, &[3]);
+    for id in [26, 27, 28] {
+        let record = records
+            .iter()
+            .find(|r| r.record_id() == id)
+            .ok_or(CarrierError::Section)?;
+        let P::LessonNode {
+            role,
+            answer_mode,
+            cases,
+            predicate_result_ref,
+            passive_trace_ref,
+            ..
+        } = record.payload()
+        else {
+            return Err(CarrierError::Section);
+        };
+        let bounds = roles
+            .iter()
+            .find(|r| r[..2] == [u16::from(*role), u16::from(*answer_mode)])
+            .ok_or(CarrierError::Section)?;
+        for (reference, kind, min, max) in [
+            (*predicate_result_ref, 10, bounds[2], bounds[3]),
+            (*passive_trace_ref, 12, bounds[6], bounds[7]),
+        ] {
+            ensure((min..=max).contains(&u16::from(reference != 0)))?;
+            if reference != 0 {
+                ensure(
+                    records
+                        .iter()
+                        .any(|r| r.record_id() == reference && r.kind() == kind),
+                )?;
+            }
+        }
+        let accepted = cases.iter().filter(|c| c.case_class == 1).count() as u16;
+        let within = accepted >= bounds[4] && cases.len() <= usize::from(bounds[5]);
+        ensure(within)?;
+        words16(
+            &mut out,
+            &[
+                id,
+                u16::from(*role),
+                u16::from(*answer_mode),
+                accepted,
+                cases.len() as u16,
+                bounds[4],
+                bounds[5],
+                u16::from(within),
+            ],
+        );
+    }
+    ensure(out.len() == 101)?;
+    Ok(out)
+}
+
+fn assertion_direction(mini: &[u8], package: &RecipePackageV1) -> Result<Vec<u8>> {
+    use gb_content::RecordPayload as P;
+    {
+        let expanded = crate::recipe_wire_v2::expand_recipe_package_v2(&package.encoded, 8)
+            .map_err(|_| CarrierError::Recipe)?;
+        let recipe = recipe_record(&expanded, 101)?;
+        ensure(u16_at(recipe, 4)? == 1 && u16_at(recipe, 6)? == 2)?;
+        for (at, id, kind, width) in [(32, 1, 2, 8), (44, 1, 5, 16), (56, 2, 2, 8)] {
+            ensure(
+                u16_at(recipe, at)? == id
+                    && recipe[at + 2] == kind
+                    && recipe[at + 3] == 0
+                    && u32_at(recipe, at + 4)? == width
+                    && u32_at(recipe, at + 8)? == 1,
+            )?;
+        }
+    }
+    let mut out = Vec::new();
+    words16(&mut out, &[1, 2, 19, 18, 101]);
+    out.push(0);
+    words16(&mut out, &[17, 2]);
+    out.extend([1, 1]);
+    words16(&mut out, &[10, 4]);
+    out.push(1);
+    let descriptors = [(87, 1, 5u32), (100, 1, 1), (145, 1, 1), (314, 1, 3)];
+    words16(&mut out, &[4]);
+    for (offset, width, old) in descriptors {
+        words16(&mut out, &[offset, width]);
+        words32(&mut out, &[old]);
+    }
+    words16(&mut out, &[4]);
+    for replacements in [
+        [255u32, 1, 1, 254],
+        [255, 2, 2, 253],
+        [255, 2, 2, 254],
+        [255, 1, 1, 253],
+    ] {
+        let mut changed = mini.to_vec();
+        for ((offset, width, old), new) in descriptors.into_iter().zip(replacements) {
+            let (at, n) = (usize::from(offset), usize::from(width));
+            ensure(changed[at..at + n] == old.to_be_bytes()[4 - n..])?;
+            changed[at..at + n].copy_from_slice(&new.to_be_bytes()[4 - n..]);
+        }
+        let projection =
+            gb_content::stream_validation(&changed).map_err(|_| CarrierError::Section)?;
+        let payload = |id| {
+            projection
+                .records()
+                .iter()
+                .find(|r| r.record_id() == id)
+                .map(|r| r.payload())
+                .ok_or(CarrierError::Section)
+        };
+        ensure(matches!(
+            payload(19)?,
+            P::PredicateResult {
+                predicate_binding_ref: 18,
+                subject_opaque_data_ref: 17,
+                result_atom_vector_ref: 10
+            }
+        ))?;
+        ensure(matches!(
+            payload(18)?,
+            P::SemanticBinding {
+                binding_class: 2,
+                argument: 16,
+                auxiliary: 7,
+                ..
+            }
+        ))?;
+        let P::OpaqueData {
+            data_binding_ref: 16,
+            data,
+        } = payload(17)?
+        else {
+            return Err(CarrierError::Section);
+        };
+        let P::AtomVector {
+            atom_schema_ref: 7,
+            atoms,
+        } = payload(10)?
+        else {
+            return Err(CarrierError::Section);
+        };
+        ensure(data.len() == 1 && atoms.len() == 1 && data[0] <= 255 && atoms[0] <= 255)?;
+        let computed = evaluate_route_recipe(package, 101, &[data[0] as u8])
+            .map_err(|_| CarrierError::Recipe)?;
+        ensure(computed == [0, 0, (data[0] as u8) ^ 255])?;
+        words32(&mut out, &replacements);
+        out.push(1);
+        out.extend(&computed);
+        out.push(u8::from(u32::from(computed[2]) == atoms[0]));
+    }
+    ensure(out.len() == 142)?;
+    Ok(out)
 }
 
 fn content_frames(raw: &[u8]) -> Result<Vec<&[u8]>> {
@@ -2293,9 +2659,9 @@ fn opaque_subject(
 /// actual decoded subjects and public chess replay. Wire-valid need not be legal.
 pub fn build_position_teaching_v2(slice: &SliceCompilation) -> Result<PositionTeachingV2> {
     ensure(
-        slice.game_payloads().len() == 64
+        slice.game_payloads().len() == 53
             && slice.fixture_payloads().len() == 10
-            && slice.assignments().len() == 78,
+            && slice.assignments().len() == 67,
     )?;
     for (stream, projection) in [
         (slice.required_stream(), slice.required_projection()),
@@ -2360,7 +2726,7 @@ pub fn build_position_teaching_v2(slice: &SliceCompilation) -> Result<PositionTe
                     "010f15"
                 ))?,
     )?;
-    let fixture = opaque_subject(slice, 200, 3, 716, 717, &slice.fixture_payloads()[0])?;
+    let fixture = opaque_subject(slice, 200, 3, 694, 695, &slice.fixture_payloads()[0])?;
     let (prior, subject, expected) = fixture_parts(&fixture, 1)?;
     ensure(
         fixture.len() == 90
@@ -2432,7 +2798,7 @@ pub fn build_position_teaching_v2(slice: &SliceCompilation) -> Result<PositionTe
         words16(&mut value, &row);
     }
     value.extend(first);
-    words16(&mut value, &[1, 717, 22, 68, 23, 67]);
+    words16(&mut value, &[1, 695, 22, 68, 23, 67]);
     value.extend(expected);
     value.extend(second);
     layout(&mut value, &[(10, 6), (4, 6), (1, 3), (0, 1)]);
@@ -2457,7 +2823,7 @@ pub fn build_position_teaching_v2(slice: &SliceCompilation) -> Result<PositionTe
     Ok(PositionTeachingV2 { value })
 }
 
-fn twelfth(slice: &SliceCompilation) -> Result<Vec<u8>> {
+fn twelfth(slice: &SliceCompilation, package: &RecipePackageV1) -> Result<Vec<u8>> {
     let required = content_frames(slice.required_stream())?;
     let all = content_frames(slice.all_stream())?;
     let first = required.get(..12).ok_or(CarrierError::Section)?;
@@ -2531,7 +2897,7 @@ fn twelfth(slice: &SliceCompilation) -> Result<Vec<u8>> {
     ] {
         words16(&mut value, &row);
     }
-    value.extend(content_teaching()?);
+    value.extend(content_teaching(package)?);
     let by_id: BTreeMap<_, _> = required
         .iter()
         .map(|frame| Ok((u16_at(frame, 0)?, *frame)))
@@ -2610,7 +2976,7 @@ fn twelfth(slice: &SliceCompilation) -> Result<Vec<u8>> {
             &[u16_at(binding, 0)?, u16_at(opaque, 0)?, namespace, 1],
         );
     }
-    ensure(value.len() == 2077)?;
+    ensure(value.len() == 4480)?;
     value.extend(build_position_teaching_v2(slice)?.value());
     Ok(value)
 }
@@ -2624,10 +2990,10 @@ fn definitions(slice: &SliceCompilation, package: &RecipePackageV1) -> Result<Ve
     values.push(ninth()?);
     values.push(tenth(&a, &b, package)?);
     values.push(eleventh(&a)?);
-    values.push(twelfth(slice)?);
+    values.push(twelfth(slice, package)?);
     ensure(
         values.iter().map(Vec::len).collect::<Vec<_>>()
-            == [16, 64, 306, 296, 236, 228, 636, 544, 464, 478, 314, 2485],
+            == [16, 64, 306, 296, 236, 228, 636, 544, 464, 478, 314, 4888],
     )?;
     Ok(values)
 }
@@ -2733,9 +3099,14 @@ mod tests {
 
     #[test]
     fn carried_selection_witnesses_reject_replacement_and_separate_exhaustion() {
-        let raw = content_teaching().expect("content teaching");
+        let raw = content_teaching(
+            &decode_recipe_package_v2(&build_teaching_recipe_package().unwrap(), 8).unwrap(),
+        )
+        .expect("content teaching");
         let count_at = 583 + 2 + 48 * 14 + 2 + 6 * 12 + 2 + 4 * 12;
-        let rows = raw[count_at + 2..].chunks_exact(32).collect::<Vec<_>>();
+        let rows = raw[count_at + 2..count_at + 2 + 320]
+            .chunks_exact(32)
+            .collect::<Vec<_>>();
         for (second, last, selected, first) in [(1, 6, 1, 1), (2, 7, 1, 1), (0, 2, 0, 0)] {
             let actions = if second == 0 {
                 [1, 0, 0, 1, 2, 0, 0, 0]
@@ -2764,9 +3135,39 @@ mod tests {
                 .unwrap_or_else(|error| panic!("role={role}, mode={mode}: {error:?}"));
         }
         assert_eq!(
-            content_teaching().expect("all content consequences").len(),
-            1703
+            content_teaching(
+                &decode_recipe_package_v2(&build_teaching_recipe_package().unwrap(), 8).unwrap()
+            )
+            .expect("all content consequences")
+            .len(),
+            4106
         );
+    }
+
+    #[test]
+    fn assertion_source_rejects_equal_byte_complement_with_wrong_port_types() {
+        let package = build_teaching_recipe_package().unwrap();
+        let mut expanded = crate::recipe_wire_v2::expand_recipe_package_v2(&package, 8).unwrap();
+        let mut at = 64;
+        for _ in 0..u16_at(&expanded, 18).unwrap() {
+            if u16_at(&expanded, at).unwrap() == 19 {
+                expanded[at + 2] = 0;
+            }
+            at += 16 + u32_at(&expanded, at + 12).unwrap() as usize;
+        }
+        let recipe = recipe_record(&expanded, 101).unwrap();
+        let at = recipe.as_ptr() as usize - expanded.as_ptr() as usize;
+        for offset in [32 + 2, 56 + 2, 68 + 2 * 32 + 3, 68 + 3 * 32 + 3] {
+            expanded[at + offset] = 0;
+        }
+        let compact = crate::recipe_wire_v2::encode_recipe_package_v2(&expanded, 8).unwrap();
+        let observed = decode_recipe_package_v2(&compact, 8).unwrap();
+        assert_eq!(
+            evaluate_route_recipe(&observed, 101, &[254]).unwrap(),
+            [0, 0, 1]
+        );
+        let (mini, _) = miniature().unwrap();
+        assert!(assertion_direction(&mini, &observed).is_err());
     }
 }
 

@@ -119,6 +119,85 @@ impl<'a> SemanticOracleV2<'a> {
     pub fn new(source: &'a DamageCorpusV2) -> Self {
         Self { source }
     }
+    fn validate_optional_codec_baseline(&self, observed: &[SectionResult]) -> Result<()> {
+        // Recompute diagnostic metadata from source bytes. The generator's
+        // baseline helper and recovered inventory cannot supply expectations.
+        let core = self.source.source_core();
+        for original in &core.sections {
+            if (
+                original.section_type,
+                original.section_version,
+                original.closure_class,
+            ) != (crate::SECTION_CONTENT_BODY, 0, 129)
+            {
+                continue;
+            }
+            let packed = crate::body_codec_v1::encode_lzss(&original.payload)
+                .map_err(|_| OracleError::Source)?;
+            let old = original.envelope().map_err(|_| OracleError::Source)?;
+            let mut baseline = crate::decode_section(&old).map_err(|_| OracleError::Source)?;
+            baseline.section_version = 1;
+            baseline.payload = packed;
+            let encoded = crate::encode_section(&baseline).map_err(|_| OracleError::Source)?;
+            if baseline.payload.len() < 6
+                || baseline.payload.len() >= original.payload.len()
+                || encoded.len().div_ceil(157) != old.len().div_ceil(157)
+            {
+                continue;
+            }
+            if crate::body_codec_v1::decode_body(1, &baseline.payload)
+                .map_err(|_| OracleError::Source)?
+                != original.payload
+            {
+                return Err(OracleError::Source);
+            }
+            let source_inventory = core
+                .sections
+                .iter()
+                .find(|s| s.section_id == 1)
+                .ok_or(OracleError::Source)?;
+            let mut inventory = crate::bootstrap_v2::decode_inventory(&source_inventory.payload)
+                .map_err(|_| OracleError::Source)?;
+            let entry = inventory
+                .entries
+                .iter_mut()
+                .find(|e| e.section_id == original.section_id)
+                .ok_or(OracleError::Source)?;
+            entry.section_version = 1;
+            entry.logical_payload_length = baseline.payload.len() as u32;
+            let mut expected_inventory = source_inventory.clone();
+            expected_inventory.payload = crate::bootstrap_v2::encode_inventory(&inventory)
+                .map_err(|_| OracleError::Source)?;
+            let expected = expected_inventory
+                .envelope()
+                .map_err(|_| OracleError::Source)?;
+            let actual = observed
+                .iter()
+                .find(|s| s.section_id == 1)
+                .and_then(|s| s.envelope.as_ref())
+                .ok_or(OracleError::Source)?;
+            if expected_inventory.payload.len() != source_inventory.payload.len()
+                || *actual != expected
+            {
+                return Err(OracleError::Source);
+            }
+            let body = observed
+                .iter()
+                .find(|s| s.section_id == original.section_id)
+                .and_then(|s| s.envelope.as_ref())
+                .ok_or(OracleError::Source)?;
+            let mut body = crate::decode_section(body).map_err(|_| OracleError::Source)?;
+            if body.payload.len() != baseline.payload.len() {
+                return Err(OracleError::Source);
+            }
+            body.payload = baseline.payload;
+            if crate::encode_section(&body).map_err(|_| OracleError::Source)? != encoded {
+                return Err(OracleError::Source);
+            }
+            return Ok(());
+        }
+        Err(OracleError::Source)
+    }
     fn finish(
         &self,
         state: ArtifactState,
@@ -370,6 +449,9 @@ impl<'a> SemanticOracleV2<'a> {
             } else {
                 ArtifactState::Degraded
             };
+            if boundary && (7..14).contains(&ordinal) {
+                self.validate_optional_codec_baseline(&sections)?;
+            }
             return self.finish(state, sections, fragments, required, all, boundary);
         }
         // No catalog: only actual individually checked headers can supply

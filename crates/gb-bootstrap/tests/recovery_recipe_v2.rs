@@ -209,7 +209,7 @@ fn complete_group_generic_matches_native_when_valid_lane_conflicts_with_raw_rep(
 }
 
 fn inventory() -> Vec<u8> {
-    let mut raw = vec![0, 2, 0, 3, 0, 0, 0, 64];
+    let mut raw = vec![0, 2, 0, 3, 0, 0, 0, 53];
     for (id, kind, factor, length) in [(1u32, 1u16, 5u8, 68u32), (2, 2, 2, 157), (3, 3, 1, 1)] {
         raw.extend(id.to_be_bytes());
         raw.extend(kind.to_be_bytes());

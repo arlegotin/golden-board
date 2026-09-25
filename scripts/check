@@ -195,7 +195,7 @@ transport() {
         python.tests.test_m2_gate8_policy \
         python.tests.test_m2_gate8_policy_v2 python.tests.test_m2_source_v2 \
         python.tests.test_m2_gate8_receipts_v2 python.tests.test_m2_gate8_evidence_v2 \
-        python.tests.test_m2_gate8_reports_v2 \
+        python.tests.test_m2_gate8_reports_v2 python.tests.test_m2_qualification_v2 \
         python.tests.test_m2_execution_v2 python.tests.test_m2_pair_execution_v2 \
         python.tests.test_m2_pair_cancellation_v2 python.tests.test_m2_publication_v2 \
         python.tests.test_m2_publication_cancellation_v2 \

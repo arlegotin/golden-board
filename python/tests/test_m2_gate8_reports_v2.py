@@ -108,8 +108,8 @@ class Gate8ReportProjectionsV2Tests(unittest.TestCase):
         metrics = derive_candidate_metrics_v2(self.policy,files.__getitem__)
         self.assertEqual(set(metrics),set(self.policy.document['metrics']['keys']))
         self.assertEqual((metrics['carrier_cells'],metrics['carrier_bytes'],metrics['shell_width']),
-                         (2040**2,2040**2//8,112))
-        self.assertEqual((metrics['required_stream_bytes'],metrics['all_stream_bytes']),(42432,55664))
+                         (2048**2,2048**2//8,128))
+        self.assertEqual((metrics['required_stream_bytes'],metrics['all_stream_bytes']),(42432,53039))
         self.assertEqual((metrics['measured_primitive_steps'],metrics['measured_peak_scratch_bytes'],
                           metrics['measured_section_attempts']),(123,456,7))
         measured['maximum_resource']['primitive_steps'] = True
@@ -187,6 +187,20 @@ class Gate8ReportProjectionsV2Tests(unittest.TestCase):
         self.assertIn(sha256(raw).hexdigest().encode(),after)
         self.assertIn(b'Historic evidence.',after)
         validate_candidate_ready_roadmap_v2(self.policy,roadmap,after,raw)
+        from golden_board.m2_gate8_reports_v2 import recover_pending_roadmap_v2
+        self.assertEqual(recover_pending_roadmap_v2(self.policy,after,raw),roadmap)
+        from golden_board.m2_qualification_v2 import render_complete_roadmap_v2, recover_ready_roadmap_v2
+        from python.tests.test_m2_qualification_v2 import record
+        reviewed=record(h,h)
+        complete=render_complete_roadmap_v2(self.policy,after,raw,reviewed)
+        self.assertEqual(roadmap_normative_sha256(complete),roadmap_normative_sha256(roadmap))
+        self.assertEqual(recover_ready_roadmap_v2(self.policy,complete,raw,reviewed),after)
+        self.assertIn(sha256(reviewed).hexdigest().encode(),complete)
+        with self.assertRaises(ValueError):recover_ready_roadmap_v2(
+            self.policy,complete.replace(sha256(reviewed).hexdigest().encode(),b'0'*64,1),raw,reviewed)
+        for invalid in (after+b'x',after.replace(b'Candidate ready',b'In progress',1),
+                        after.replace(sha256(raw).hexdigest().encode(),b'0'*64,1)):
+            with self.assertRaises(ValueError):recover_pending_roadmap_v2(self.policy,invalid,raw)
         for before in (roadmap.replace(b'| 11 |',b'| 10 |',1),after,
                        roadmap.replace(b'Historic evidence.',b'Historic evidence. '+owner['lifecycle']['pre_ready_tail'].encode())):
             with self.assertRaises(ValueError):render_candidate_ready_roadmap_v2(self.policy,before,raw)

@@ -1092,7 +1092,14 @@ fn encode_inventory_fields(inventory: &Inventory) -> Result<Vec<u8>> {
     raw.extend_from_slice(&inventory.inventory_version.to_be_bytes());
     raw.extend_from_slice(&(inventory.entries.len() as u16).to_be_bytes());
     raw.extend_from_slice(&0u16.to_be_bytes());
-    raw.extend_from_slice(&64u16.to_be_bytes());
+    raw.extend_from_slice(
+        &if inventory.inventory_version == 2 {
+            53u16
+        } else {
+            64
+        }
+        .to_be_bytes(),
+    );
     for entry in &inventory.entries {
         raw.extend_from_slice(&entry.section_id.to_be_bytes());
         raw.extend_from_slice(&entry.section_type.to_be_bytes());
@@ -1134,9 +1141,10 @@ fn decode_inventory_fields(
         return Err(BootstrapError::new(RejectCode::ResourceLimit));
     }
     let inventory_version = read_u16(raw, 0, RejectCode::Inventory)?;
+    let game_count = if inventory_version == 2 { 53 } else { 64 };
     if !admitted_versions.contains(&inventory_version)
         || read_u16(raw, 4, RejectCode::Inventory)? != 0
-        || read_u16(raw, 6, RejectCode::Inventory)? != 64
+        || read_u16(raw, 6, RejectCode::Inventory)? != game_count
     {
         return Err(BootstrapError::new(RejectCode::Inventory));
     }
@@ -1193,7 +1201,7 @@ fn decode_inventory_fields(
         }
         offset = dependency_end;
         let game_ordinal = if flags & 1 == 1 {
-            if encoded_ordinal > 63 {
+            if encoded_ordinal >= game_count {
                 return Err(BootstrapError::new(RejectCode::Inventory));
             }
             Some(encoded_ordinal)

@@ -14,7 +14,7 @@ The `Project state` and `Current milestone` rows are derived display fields. Sec
 
 This document is the complete implementation plan for **Golden Board**. It is written for a coding agent entering a brand-new repository. It is self-contained and does not depend on undocumented project history.
 
-Golden Board is a self-teaching, damage-tolerant chess artifact whose canonical message is one square binary bitplane. From that bitplane, a technically capable recipient should be able to recover a generic content stream. A chess-naive learner using that exact recovered stream should be able to learn the practical rules of orthodox chess, acquire a bounded set of basic chess concepts, practise through finite exercises, and replay exactly sixty-four games compiled from `docs/64_games.md`.
+Golden Board is a self-teaching, damage-tolerant chess artifact whose canonical message is one square binary bitplane. From that bitplane, a technically capable recipient should be able to recover a generic content stream. A chess-naive learner using that exact recovered stream should be able to learn the practical rules of orthodox chess, acquire a bounded set of basic chess concepts, practise through finite exercises, and replay the complete games selected from `docs/64_games.md` under Section 5.
 
 The anthology remains a separate repository file. This roadmap never embeds or enumerates its games.
 
@@ -32,7 +32,7 @@ Build one deterministic square bitplane that:
 2. teaches the practical rules needed to set up, play, finish, and read ordinary orthodox chess games;
 3. separates exact rules and observable relations from fallible strategic heuristics;
 4. provides finite exercises and complete passive worked traces without acting as an opponent;
-5. contains exactly sixty-four complete move-stream-plus-score game records compiled from `docs/64_games.md`; and
+5. contains the selected complete move-stream-plus-score game records compiled from `docs/64_games.md`, as owned by Section 5; and
 6. remains useful, explicit, and fail-closed under a finite accidental-damage contract.
 
 The recipient is not expected to decode the artifact correctly on the first attempt. Golden Board assumes an intentional, finite message known to be important, potentially profound, and benign/nonhostile, whose recipient may test hypotheses, make mistakes, backtrack, and exhaust bounded alternatives until one interpretation survives the artifact's checks and examples.
@@ -61,7 +61,7 @@ The final candidate MUST satisfy all of the following:
 - every exact lesson answer is computed from a frozen finite predicate or explicit accepted set;
 - every packed interactive lesson has a complete passive route, and every
   interaction has finite local/global event budgets;
-- all sixty-four game records originate from `docs/64_games.md`, replay legally from the standard initial position, and carry no descriptive source metadata;
+- every selected game record originates from `docs/64_games.md`, replays legally from the standard initial position, and carries no descriptive source metadata;
 - damaged observations never yield silently accepted wrong canonical bytes in the frozen damage corpus;
 - final dimensions are chosen from the complete actual shell, curriculum, anthology, integrity, redundancy, and reserve ledger;
 - the final bitplane can be reproduced byte-for-byte from declared semantic inputs in two clean environments; and
@@ -233,7 +233,11 @@ No protocol assumes a one-shot decode. A technical recipient unit may:
 - restart from earlier observations; and
 - retain its own notes between sessions.
 
-The scored result is the final submitted derivation, decoder, extracted stream, and held-out behavior within the active-time and candidate-attempt limits. A failed hypothesis is not a failure of the recipient or artifact unless the intended path remains unresolved when the run ends.
+For the current M2 pilot, human reasoning time and attempts are open-ended.
+The final derivation, decoder, extracted stream, and held-out behavior must
+still be reproducible with bounded local computation. A failed hypothesis is
+not a failure of the recipient or artifact unless the intended path remains
+unresolved when the group chooses to stop.
 
 ### 2.6 Evaluator-side identities
 
@@ -315,6 +319,9 @@ The selected transport, checks, interleave, shell notation, profile limits, and 
 - `spec/chess-v0.md` owns chess types, APIs, rules, and rejection precedence.
 - `spec/source-v0.md` owns the exact accepted source grammar and source-parser
   safety limits.
+- `spec/slice-v1.md` owns the active M2 selection of complete records from that
+  independently validated source set and their content-stream assignment;
+  Section 5 owns the authorized anthology product scope.
 - `spec/content-v0.md` owns generic record bytes and pre-profile parser-safety
   limits.
 - `spec/constants-v0.toml` owns the established M1 cross-chess/source/content
@@ -697,6 +704,34 @@ This Section 5 owns anthology product scope and milestone intent.
 `spec/source-v0.md` is the sole owner of exact raw grammar, project SAN, spans,
 compiler operations/rejections, general game/set bytes, and evidence schema.
 
+**Current revision 11, profile 8 / slice-v1 scope:** The owner authorizes
+reducing anthology quantity to preserve clear teaching, for existing material
+as well as new repairs. The active artifact contains exactly 53 selected
+complete games. `spec/slice-v1.md` owns the exact ascending selection of original
+canonical ordinals in `studies/m2/slice-v1.json`; independent compilers apply it
+only after validating the full source compilation. Retained GameBytes and their
+relative order do not change. The subset receives dense artifact ordinals
+`0..52`, and original canonical ordinal 0 remains first. No move or score may be
+removed from a selected game to make it fit.
+
+This changes the active artifact's content scope, not the source anthology or
+M0/M1. `docs/64_games.md`, its lock and source hash, the exact 64-game v0 grammar,
+full source-compilation report, `game-set-v0` bytes/identity and completed M0/M1
+contracts remain unchanged. Historical frozen candidates, packets and results
+retain their original 64-game scope. Requirements below for the v0 source set
+continue to mean all 64 source games; requirements for the active artifact mean
+all 53 selected games. The teaching-space decision is recorded in
+[`studies/m2/teaching-space-review-v2.md`](../studies/m2/teaching-space-review-v2.md).
+
+Teaching clarity takes precedence over retaining additional anthology games.
+Do not obscure a necessary teaching relationship merely to retain a larger
+count. Preserve complete required lessons, protection, reserve, bounded work
+and the 512 KiB physical ceiling. Further changes to the selected set require
+updating its owner and fresh measured candidate/evidence bindings under the
+existing invalidation rules. This authorization supplies no fit, independent
+implementation, human-validation or release result; current checks remain
+pending and Section 13 remains the sole milestone-status authority.
+
 ### 5.2 Immediate source doctor
 
 M0 runs a read-only byte scanner before production parser work. It reports, bound to the raw source hash:
@@ -801,11 +836,15 @@ u8 score_code
 
 No name, date, event, site, round, rating, opening code, source collection, critical move, FEN, annotation, prose, chronology, source ordinal, path, or filename is visible to the canonical serializer.
 
-The canonical anthology set is `u16_be(64)` followed by the sixty-four sorted,
+The unchanged v0 source anthology set is `u16_be(64)` followed by the sixty-four sorted,
 self-delimiting game IR byte strings. M1 registers domain-separated identities
 for semantic positions, repetition keys, individual games, and this game set in
 `spec/identity-v0.md`; source hashes and source ordinals never enter those
 semantic identity preimages.
+
+The active artifact includes the complete selected records from this source
+set under Section 5.1 and `spec/slice-v1.md`; selecting a subset does not rewrite
+the v0 source-set object or its identity.
 
 The serializer accepts only the minimal IR type. Metadata noninterference tests mutate every excluded field, outer prose, line ending, filename, and source order while holding moves and score constant; canonical game bytes MUST remain identical.
 
@@ -817,7 +856,7 @@ Define:
 game_key = u16_be(ply_count) || move_bytes || u8(score_code)
 ```
 
-After duplicate-move-stream rejection, sort the sixty-four distinct `game_key` values lexicographically and assign wire ordinals `0..63` by sorted position.
+For the full v0 source set, after duplicate-move-stream rejection, sort the sixty-four distinct `game_key` values lexicographically and assign source-set canonical ordinals `0..63` by sorted position. The active subset preserves their relative order and receives its own dense artifact ordinals under Section 5.1.
 
 Profile v0 requires sixty-four distinct move streams. Two records with identical move bytes reject, whether their score codes match or differ. This catches accidental duplicate anthology entries and contradictory score variants without using names, dates, source order, or other metadata. A future profile that intentionally wants multiplicity would need an explicit new canonical rule; v0 does not.
 
@@ -919,7 +958,7 @@ The mandatory scored Core 3 families are: attacked/defended, absolute pin, fork/
 
 #### Core 4 — anthology
 
-- exactly sixty-four atomic game records;
+- every game in the selected anthology, as a complete atomic record under Section 5;
 - deterministic replay from the standard start; and
 - navigation by canonical ordinal only.
 
@@ -1235,15 +1274,19 @@ A single remapped transfer control MAY test whether a learner acquired a rule ra
 
 ### 6.16 Curriculum capacity and cut order
 
-M2 establishes hard record-family maxima; M3 serializes actual content. The cut order is:
+M2 establishes hard record-family maxima; M3 serializes actual content. Clear
+teaching, including earlier teaching, takes precedence over anthology quantity.
+Apply Section 5.1's owned selection before obscuring necessary instruction to
+retain more games. The cut order is:
 
-1. remove optional alternate presentations;
-2. reduce repeated heuristic examples while preserving one limitation each;
-3. reduce nonessential repetitions of exact relations while preserving every boundary and transfer family;
-4. remove lowest-priority heuristics;
-5. simplify optional interaction branches while preserving passive traces;
-6. remove nonessential navigation conveniences; and
-7. revise the profile only after the above options are exhausted.
+1. reduce anthology quantity through an owned selection of the strongest artistic, teaching and complementary examples, retaining every selected game complete;
+2. remove optional alternate presentations;
+3. reduce repeated heuristic examples while preserving one limitation each;
+4. reduce nonessential repetitions of exact relations while preserving every boundary and transfer family;
+5. remove lowest-priority heuristics;
+6. simplify optional interaction branches while preserving passive traces;
+7. remove nonessential navigation conveniences; and
+8. revise the profile only after the above options are exhausted.
 
 Never cut:
 
@@ -1255,7 +1298,7 @@ Never cut:
 - corruption/incomplete-record teaching;
 - the retained Core 3 claim families;
 - one passive path for every retained concept;
-- exactly sixty-four complete source games; or
+- any move or score from a game retained by the selected anthology; or
 - final reserve/headroom requirements.
 
 ---
@@ -1272,7 +1315,7 @@ Golden Board has five semantic layers:
 | 1 — protected transport | self-identifying fragments and complete checked sections | verified/recovered/incomplete/corrupt/ambiguous/unknown |
 | 2 — generic content grammar | scalars, arrays, roles, lesson graphs | reject malformed or missing dependencies |
 | 3 — chess curriculum | Core 1–3 rules, practice, passive traces | surviving complete tiers remain usable |
-| 4 — anthology | sixty-four atomic games | each game complete or unavailable |
+| 4 — anthology | every selected atomic game | each game complete or unavailable |
 
 Layers are dependency closures, not necessarily contiguous rectangles.
 
@@ -1435,7 +1478,10 @@ The semantic section preimage excludes physical copy ID, fragment placement, and
 
 Fragments are self-identifying, so no directory is needed to discover and assemble an observed section. Completeness, however, requires an expected inventory: each independently protected Core 0 copy contains the canonical IDs, types, copy expectations, dependency IDs, and ordinal ranges for every mandatory non-inventory section. The shell knows the fixed IDs of the Core 0/inventory entry copies, avoiding self-reference. Conflicting valid inventories are `ambiguous`; loss of every inventory copy prevents a completeness/tier claim even when some fragments remain discoverable. A separate convenience catalog MAY accelerate navigation but has no authority.
 
-Game inventory semantics MUST make exactly the canonical ordinal range `0..63` expected, so a wholly absent game or game-bearing section cannot disappear silently.
+Game inventory semantics MUST declare the complete dense ordinal range of the
+selected anthology (`0..52` for current profile 8 / slice-v1), so a wholly absent
+game or game-bearing section cannot disappear silently. Historical v0/v1
+inventories retain their original `0..63` requirement.
 
 Core 0–2 have at least two complete semantic copies or an equivalently simple independently verifiable construction. A third copy is allowed only when the measured damage margin justifies its physical cost. Copies share semantic bytes but occupy machine-proved independent failure domains. Conflicting complete valid copies produce `ambiguous`; there is no majority vote over different valid semantic bytes.
 
@@ -1448,7 +1494,7 @@ RT0 = shell + protected transport + content grammar
 RT1 = RT0 + complete Core 1
 RT2 = RT1 + complete Core 2
 RT3 = RT2 + complete Core 3
-RT4 = RT3 + all sixty-four games
+RT4 = RT3 + every game in the selected anthology
 ```
 
 A tier is available only when every transitive dependency is verified or recovered. Surviving bytes without their schema, state, or integrity do not count.
@@ -1977,7 +2023,7 @@ The explorer is a noncanonical public aid. Its implementation MAY begin after th
 
 - Discover: inspect the bitplane and decoded sections;
 - Learn: follow passive lessons and optional finite practice;
-- Games: replay the sixty-four canonical move streams by ordinal and minimal score only, with no descriptive anthology metadata; and
+- Games: replay the selected canonical move streams by ordinal and minimal score only, with no descriptive anthology metadata; and
 - Damage: apply selected documented damage examples and inspect recovery states.
 
 It uses the same Rust semantic core compiled to Wasm, has no network dependency, no engine, no opponent, and no separate game database. JavaScript handles only static UI/adaptation.
@@ -2024,7 +2070,7 @@ capacity/reserve probe sections, and explicit fixed pad. An all-zero or
 conspicuously easy interior cannot close the gate unless that is the intended
 final physical pattern.
 
-One fresh technical recipient unit starts from `OBS_BITS`, not an isolated shell crop. The unit must:
+One fresh technical recipient unit starts from `OBS_BITS`, not an isolated shell crop. For the current M2 pilot this is a fixed group of two or three people who may work asynchronously and combine artifact-derived discoveries. The unit must:
 
 1. derive a matrix hypothesis and canonical transform;
 2. locate and validate a complete shell route;
@@ -2035,23 +2081,21 @@ One fresh technical recipient unit starts from `OBS_BITS`, not an isolated shell
 7. return explicit failure on one wrong-parameter/beyond-profile case; and
 8. identify every convention they had to guess.
 
-The unit may try multiple hypotheses and retain notes across sessions. The
-profile fails if success depends on an untaught artifact-specific convention or
-critical hint.
+The unit may try as many hypotheses and sessions as it needs. One member's
+reproducible solution closes a required part for the group; a member need not
+repeat another's work. The group must also connect the parts in one complete
+raw-symbol-to-content account. The profile fails if success depends on an
+untaught artifact-specific convention, missing bytes borrowed from another
+observation, or an owner-supplied critical hint.
 
-M2 requires one qualifying fresh-unit pass after the latest material
-recipient-visible change. An otherwise qualifying success whose unit has
-substantial exact-profile prior knowledge requires corroboration by another
-fresh unit. A run that exposes material ambiguity is unresolved, not a pass; it
-requires repair and fresh evidence. A material selected-bootstrap change makes
-an earlier pass stale for the changed candidate. After one otherwise valid
-unresolved run on an unchanged candidate, one further fresh unchanged-candidate
-unit is allowed only after a concrete alternative explanation and stop rule are
-recorded before exposure. Two valid unresolved rounds on the unchanged
-candidate require redesign, scope narrowing, or an open gate; do not recruit
-repeatedly until someone passes. Administrative/environment-invalid and hinted
-runs remain represented while summary permission continues but do not count as
-result-bearing passes; withdrawal/deletion follows the participant note.
+M2 requires one qualifying fresh-group pass after the latest material
+recipient-visible change. The current open-ended condition applies
+prospectively; trial 18's original checkpoint and continuation remain separate
+historical results. A run that exposes material ambiguity is unresolved, not a
+pass; it requires repair and fresh evidence. A material selected-bootstrap
+change makes an earlier pass stale for the changed candidate. Preserve all
+group attempts and partial results. Do not conceal unsuccessful work or recruit
+indefinitely after the group has identified a stable missing teaching step.
 
 ### 10.3 Early learner micro-pilot
 
@@ -2079,10 +2123,11 @@ before M3.
 
 ### 10.4 Pilot-calibrated time envelopes
 
-Initial pilot ceilings are:
-
-- technical: 16 unit-active hours across at most seven elapsed days;
-- learner slice: 3 active hours across at most two sessions.
+For the current M2 technical feasibility pilot, no human-time or attempt
+ceiling applies. Decoder executions remain bounded by the frozen resource
+contract. The historical 16-hour/seven-day technical envelope below is not
+the active M2 rule. The learner slice retains its separate three-hour/two-session
+condition until its own protocol is revised.
 
 For a technical team, unit-active time is the union of intervals in which at
 least one member works; simultaneous work is not double-counted. Summed
@@ -2191,9 +2236,9 @@ may be made.
 
 The human plan is intentionally small:
 
-- M2: one qualifying fresh technical recipient unit after the latest material
-  change, with one diagnosed unchanged-candidate retry at most and additional
-  fresh rounds only after a material redesign;
+- M2: one qualifying open-ended fresh technical group after the latest
+  material change, with each component accepted from any member's reproducible
+  artifact-derived work and one integrated group account;
 - M2/M3: one or two reusable learner micro-pilots;
 - M3: two to four reusable integrated formative learners;
 - M4: at most one additional fresh nonfinal technical recipient unit, only when the selected final carrier falls outside the exact M2 pilot envelope defined below; and
@@ -2345,7 +2390,7 @@ separate from the canonical artifact and contain no learner-visible answer maps.
 Their concrete payloads, schedules, accepted sets, and usable generation inputs
 remain outside the public checkout until all delayed windows resolve. The final
 record-reading fixture is a newly generated legal record in the canonical
-format, not one of the sixty-four study records.
+format, not one of the selected study records.
 
 The same generic transducer presents both. Final scoring happens after event capture through the independent Python/Rust evaluator. This prevents hidden host chess code from masquerading as artifact teaching.
 
@@ -2504,8 +2549,8 @@ Prove the hardest bitstream-to-generic-content path before full authoring, compa
 - exact cell-to-observation conversion for each retained candidate;
 - a full-size provisional bitplane with realistic shell and interior density;
 - real bootstrap grammar, provisional Core-0-entry/inventory and vertical-slice
-  sections, representative chess/content/lesson records, all sixty-four
-  existing atomic game payloads, and all candidate checks;
+  sections, representative chess/content/lesson records, every selected
+  complete atomic game payload under Section 5.1, and all candidate checks;
 - exact shell/recipe/capacity/work ledgers;
 - a functioning clean Linux verification path;
 - one qualifying fresh full-carrier technical recipient-unit pilot after the
@@ -2791,7 +2836,7 @@ This matrix is part of the implementation contract. It does not claim to cover e
 | Frames or units arrive in arbitrary order | Plate-carried identities restore canonical order; duplicates and conflicts follow fixed precedence | G12 |
 | One critical copy nominally differs but shares a physical failure domain with another | The placement proof fails before candidate packing | G12 |
 | Every convenience catalog copy is missing but the required Core 0 inventory survives | Self-identifying fragments remain discoverable and completeness is judged from the surviving authoritative inventory | G12 |
-| Every authoritative inventory copy is missing | Observed sections may be exposed individually with their states, but no complete tier or silent 64-game completeness claim is made | G12 |
+| Every authoritative inventory copy is missing | Observed sections may be exposed individually with their states, but no complete tier or silent anthology-completeness claim is made | G12 |
 | Two complete copies have identical bytes | They merge as one semantic section with multiple physical witnesses | G12 |
 | Two complete copies pass local checks but conflict | The semantic section is corrupt/ambiguous; no copy is preferred by location, order, or plausibility | G12 |
 | A locally repaired fragment makes the enclosing section check fail | No bytes reach semantic parsing; the enclosing section is corrupt | G12 |
@@ -3063,7 +3108,7 @@ Golden Board is complete only when all of the following are true for one named f
 5. The exact stream produced by that independent implementation, without semantic rewriting, was the input to the final learner path.
 6. The final learner cohort met the frozen family-level acquisition, integrated-play/record-reading, basic-concept, and delayed gates without semantic hints.
 7. Python and Rust agree on every canonical game, lesson, state transition, rejection code, section extraction, and recovery-state fixture used by the final candidate.
-8. `docs/64_games.md` independently compiles to exactly sixty-four atomic move-stream-plus-score records; the roadmap and artifact contain no hardcoded anthology list or descriptive source fields.
+8. `docs/64_games.md` independently compiles to the unchanged sixty-four-record v0 source set, and the artifact contains every complete game selected under Section 5; the roadmap and artifact contain no hardcoded anthology list or descriptive source fields.
 9. The final damage corpus contains no accepted wrong canonical bytes, and every guaranteed, sampled, and outside-profile result is labelled accurately.
 10. Native and clean Linux builds consume the same semantic-input manifest and produce identical bitplane and canonical extraction bytes.
 11. The guided explorer is an offline, faithful view over the exact validated core and artifact, with no engine, answer database, network dependency, or parallel game corpus.

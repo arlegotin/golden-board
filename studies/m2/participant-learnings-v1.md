@@ -9,7 +9,7 @@ profound, benign material can reasonably require sustained effort, wrong starts
 and revisiting examples. No names, dates, consent flow or reconstructed timing
 are needed here.
 
-The [trajectory review through trial 15](technical-trajectory-review.md) audits
+The [trajectory review through trial 16](technical-trajectory-review.md) audits
 recurrence across these rounds. It supersedes any implication in the sequential
 next-work notes that another local example plus focused checks is sufficient
 reason to recruit again. The ownership/composition problem was already known
@@ -24,7 +24,9 @@ local and repetition candidates; complete bytes establish conflict; expected
 identity then establishes acceptance. The production receiver invokes the same
 admitted procedures. Ordinary examples derive their inputs instead of accepting
 unexplained classifier flags. Canonical wire2 fits this complete connection
-while preserving all64 games and the future-authoring/reserve promises.
+while preserving all64 games and the future-authoring/reserve promises in that
+earlier repair. The subsequent connected-content repair selects53 complete games
+to prioritize direct teaching; the full source anthology remains unchanged.
 The descriptions of110/111 below remain the history of what those participants
 actually saw, not the current active program set.
 
@@ -54,6 +56,24 @@ preserve that checkpoint. The completed diagnostic continuation now reproduces
 complete live recovery and exposes a different, concrete content-teaching rival;
 see the continuation finding below. Trial 14 remains successful formative
 transfer. Neither result establishes fresh complete acquisition.
+
+The [trial-16 review](../../artifacts/quiz/16-fresh-technical-content-control/review/ANALYSIS.md)
+reproduces complete expected clean/A/B recovery with the unchanged method and
+exact requested query bytes. Its original C/D and control interpretation remain
+unresolved at that checkpoint. The assisted
+[continuation](../../artifacts/quiz/16-fresh-technical-content-control/review-continue/ANALYSIS.md)
+now closes unit recovery/refusal on known inputs and demonstrates the remaining
+content confounds. It does not qualify the original declared-ready result.
+
+The complete trajectory recheck supports the
+[connected content repair](../../docs/superpowers/plans/2026-09-24-m2-connected-content-repair.md),
+owned in [the content teaching specification](../../spec/content-teaching-v2.md).
+Both language implementations and focused teaching regressions are complete.
+The [teaching-space review](teaching-space-review-v2.md) records measured fit;
+the frozen formative packet's owner evidence records final handout readiness.
+Preserve the successful recovery connection and all earlier findings, then use
+focused checks and formative feedback before another fresh trial. Exhaustive
+qualification remains deferred until the required human results succeed.
 
 Historical evidence remains under `artifacts/quiz/` (`Q` below): `ANALYSIS.md`,
 the original `01-start`–`04-wrap-up` answers, every `05-continue` and `06-fresh`
@@ -211,6 +231,125 @@ result/resource equality and the owned recovery promises. Fast checks pass.
 The520204-byte artifact keeps all64games and both exact lesson streams; its
 four route prefixes change only the intended content definition. This supports
 exposure of the revised packet, not fresh human success or final qualification.
+
+## Trial 16: distinguish matrix progress from the remaining transfer gaps
+
+The [independent audit](../../artifacts/quiz/16-fresh-technical-content-control/review/ANALYSIS.md)
+replays the unchanged source in network-off, bounded Linux containers. Clean/A/B
+recover all 136/121/124 expected envelopes and exact available lesson streams.
+All 132 embedded examples pass on each matrix run; all 64 games/4,915 plies
+and the requested record/move/position reproduce. A/B's partial status denotes
+correct degradation, not a failed result. The earlier missing live physical
+group connection on B does not recur. All 32,283 submitted files are preserved.
+
+The declared-ready method always reacquires a guide and recipe from a square
+surface. C/D contain unit observations without a guide, and neither reaches
+artifact recovery. The participant understood protected units and inventory
+relationships but did not preserve a unit-input recovery path. Their notes
+group retained recipe knowledge with borrowing missing clean content. This
+suggests a task/knowledge-boundary misunderstanding; it does not prove an
+instruction defect or missing in-band recovery fact. Unsupported D is not an
+artifact-aware rejection.
+
+The revised content rows are present in the recovered definition and saved
+hexdump. The query parser stops at the 29-object miniature and never interprets
+the following role/action supplement. The earlier replace-last implementation
+is not repeated, but the capacity/reset/exhaustion prediction is unfulfilled.
+Do not mistake lack of interpretation for a new demonstrated ambiguity, or
+respond with another isolated row. The correct selector bytes receive credit;
+the operational field explanation remains partial. Opaque assertion subjects
+need not be decoded or executed, and a full lesson engine is not a new gate.
+
+The [short same-participant continuation](../../artifacts/quiz/16-fresh-technical-content-control/continue/README.md)
+keeps original results fixed, clarifies learned rules versus donor content and
+focuses on these two stopping points. The clarification is assistance; revised
+work and prompted retrospective notes remain diagnostic. A concrete remaining
+missing relation or supported rival must precede any source repair. Existing
+retry/stop rules govern any later fresh trial; no new recruitment, carrier
+change, game-count reduction or exhaustive qualification follows this review.
+M2 remains In progress. All prior findings below remain applicable.
+
+### Trial 16 continuation: a closed unit gap and demonstrated content confounds
+
+The [continuation review](../../artifacts/quiz/16-fresh-technical-content-control/review-continue/ANALYSIS.md)
+independently reproduces C's 136 exact envelopes and both streams, D's required
+normal-path refusal, and all six unit controls/30 checks. D's separate salvage
+recovers 135 exact non-directory envelopes and quarantines the exact directory;
+its reconstructed streams remain diagnostic, with no artifact admission.
+The retained recipe supplies learned procedures, while each observation supplies
+its own message bytes. The clarification was assistance and the stopping note
+was prompted after it; neither revises the original unresolved fresh result.
+
+Continued effort connects the queried matrix, regions, reset/selection history,
+feedback and continuation, and corrects the empty/nonempty outcome hypothesis.
+All 23 final generic-analysis files reproduce. The old replace-last rival is
+excluded on its demonstrated cases. These are real improvements, not recurrence
+of the earlier missing live recovery connection.
+
+The remaining content problem is now demonstrated. All ten carried action rows
+permit `local_remaining` to be read as exact transcript matching. All shown
+uncommitted states are exhausted, so an always-exhausted uncommitted model also
+fits. The miniature's shape/mode pairs 1/1, 2/2 and 3/3 allow selection behavior
+to be dispatched through the wrong field. The queried node's 1/3 pair has no
+discriminating shown history. Owner probes expose different duplicate, phase
+and counter results; these are design diagnostics, not new human questions.
+The 24-byte arithmetic tail does not itself identify the action-row counter.
+
+Typed subject/vector links improve while asserted-result versus parameter
+direction remains unexplained. Do not demand opaque execution or a complete
+engine. Preserve the role-presence-bound uncertainty without adding a quiz.
+The general lesson is that numerous matching examples can conceal correlated
+fields and missing intermediate states; successful byte validation is weaker
+than distinct operational meaning.
+
+Close this participant's continuation. Review the whole queried teaching chain
+and make one coordinated revision with independently varied fields, budget
+trajectories and explicit dependency relationships before further recruitment.
+Carry learned-rules versus donor-content clarity into the default opening.
+Use focused readiness and formative feedback before the next fresh trial;
+required human success still precedes exhaustive qualification. No production
+repair or human pass is claimed by this audit. All originals and prior findings
+remain, no game reduction is yet justified, and M2 stays In progress.
+
+### Coordinated repair decision after reviewing every technical round
+
+The [trajectory recheck](technical-trajectory-review.md) preserves all 31
+findings below and the technical continuations through trial 16. The repeated
+recovery-composition omission through trial 13 is distinct from the fresh matrix
+transfer in trial 16; trial 15's original non-readiness is also distinct from a
+failed complete method. Later assisted recovery and owner probes remain
+diagnostic. Neither folder counts nor example counts establish fresh success.
+
+The [repair plan](../../docs/superpowers/plans/2026-09-24-m2-connected-content-repair.md)
+and [smallest teaching owner](../../spec/content-teaching-v2.md) define the
+implemented whole bounded control/reference repair: independently
+varied shape/mode/flags, active intermediate states, separate local/global
+counts, grounded role-presence/case bounds, and a finite typed assertion/result
+bridge. Preserve the original retention/reset distinction and make linked
+intermediate inputs discoverable and checked. Different constructions can have
+equal final answers, as trial 12 demonstrated. The queried opaque subject is
+not made executable, and structural admission does not prove an assertion true.
+
+The default prospective opening now distinguishes learned decoding rules,
+parameters and procedures from missing message bytes borrowed from another
+observation. This addresses the observed knowledge/interface boundary before
+readiness, without changing the saved-method checkpoint or supplying a solution.
+Past packets and the assistance needed for trial 16's continuation stay fixed.
+
+The [teaching-space review](teaching-space-review-v2.md) records the direct
+teaching design, review of older encodings and the local 53-game capacity
+arrangement, preserving the full source anthology. Rust's final finite preflight
+passes with all22 files; final cross-language and handout outcomes are retained
+under `artifacts/quiz/17-connected-content-formative/owner/` before exposure.
+No new human result or complete qualification is claimed here. The prediction
+is that the connected evidence excludes the demonstrated simple rivals on
+independent controls and intermediate histories. Use focused checks and an
+exposed collaborator's formative investigation before fresh recruitment. If the
+same relationship remains unsupported, reconsider representation or scope rather
+than adding isolated rows. Keep all C01–C11 obligations, learner repairs, normal
+retry limits and final gates. After focused checks, the next formative request
+uses the revised artifact and the same content query with the trial-16
+participant. It adds no quiz, full-engine task or form. M2 remains In progress.
 
 ## Recovery-teaching repair after revised technical trials 08 and 10
 

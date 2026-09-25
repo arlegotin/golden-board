@@ -751,7 +751,7 @@ fn semantic_expected(se: &Object, sections: &[Section]) -> Result<(BTreeMap<u64,
         let records = numbers(&r[6], 65535, 65535)?;
         good &= !records.is_empty() && records.iter().all(|id| *id > 0 && used_records.insert(*id));
         good &= n(&r[7])?
-            == if (100..=163).contains(&id) {
+            == if (100..=152).contains(&id) {
                 id - 100
             } else {
                 65535
@@ -780,7 +780,7 @@ fn semantic_expected(se: &Object, sections: &[Section]) -> Result<(BTreeMap<u64,
     }
     let owned_bodies = [16, 17, 18]
         .into_iter()
-        .chain(100..=163)
+        .chain(100..=152)
         .chain(200..=210)
         .collect::<BTreeSet<_>>();
     good &= real_ids == owned_bodies && required_ids == BTreeSet::from([16, 17, 18]);

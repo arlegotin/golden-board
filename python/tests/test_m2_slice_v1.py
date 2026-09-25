@@ -29,10 +29,15 @@ class ParticipantSlice(unittest.TestCase):
         cls.declaration = slice_declaration(cls.raw, cls.sources[0])
         cls.compiled = compile_slice_v1(cls.declaration, *cls.sources)
 
-    def test_required_teaching_is_complete_and_anthology_is_retained(self):
+    def test_required_teaching_is_complete_and_selected_games_are_exact(self):
         self.assertEqual((ROOT / 'studies/m2/slice-v1.json').read_bytes(), self.declaration)
         self.assertEqual(self.compiled.required_content_bytes, self.raw)
-        self.assertEqual(len(self.compiled.game_payloads), 64)
+        legacy = compile_slice_v0(*self.sources)
+        excluded = {24,28,32,34,35,38,44,52,58,61,63}
+        self.assertEqual(self.compiled.game_payloads,
+                         tuple(raw for i, raw in enumerate(legacy.game_payloads) if i not in excluded))
+        self.assertEqual(len(self.compiled.game_payloads), 53)
+        self.assertEqual(self.compiled.game_payloads[0], legacy.game_payloads[0])
         self.assertEqual(len(self.compiled.fixture_payloads), 10)
         self.assertEqual(len(self.owner['pages']), len(self.pages))
         by_id = {r.record_id: r for r in self.compiled.projection.records}
@@ -63,7 +68,7 @@ class ParticipantSlice(unittest.TestCase):
         result = runner.frame()
         self.assertEqual(result.outcome, 3)
         self.assertEqual(result.feedback, initial.passive.resulting_presentation)
-        self.assertEqual(sum(record.kind == 9 for record in result.feedback.records), 74)
+        self.assertEqual(sum(record.kind == 9 for record in result.feedback.records), 63)
         runner.advance()
         self.assertEqual(runner.frame().current_node_id, self.owner['pages'][0]['node_id'])
 
@@ -89,6 +94,17 @@ class ParticipantSlice(unittest.TestCase):
         changed['lesson_records'][0]['payload']['atom_width'] = True
         with self.assertRaises(ValueError):
             compile_slice_v1(manifest.serialize_manifest(changed), *self.sources)
+
+    def test_selection_rejects_missing_reordered_duplicate_or_other_games(self):
+        original = manifest.validate_canonical_manifest(self.declaration)
+        selected = original['selected_game_ordinals']
+        for changed_selection in (selected[:-1], selected[::-1],
+                                  [selected[1], *selected[1:]],
+                                  [*selected[:-1], 63], list(range(64)),
+                                  [False, *selected[1:]]):
+            with self.subTest(selection=changed_selection), self.assertRaises(ValueError):
+                compile_slice_v1(manifest.serialize_manifest(dict(original,
+                    selected_game_ordinals=changed_selection)), *self.sources)
 
     def test_capacity_charges_real_teaching_and_preserves_separate_prototypes(self):
         old = compile_slice_v0(*self.sources)

@@ -14,6 +14,18 @@ class PhysicalEvidence(unittest.TestCase):
         cls.static = fixtures.StaticProjection.result
         cls.inputs = (cls.static.candidate_manifest, cls.static.capacity_ledger,
                       cls.static.ownership_ledger,cls.static.semantic_envelope)
+        # Apply the owner's witness formulas to the independently authored
+        # capacity plan, never to counters returned by the proof under test.
+        plan = fixtures.StaticProjection.image.capacity_plan
+        cls.side,cls.width = plan.side,plan.width
+        cls.interior = plan.side-2*plan.width
+        groups = {factor:sum(s.fragments for s in plan.sections if s.factor == factor)
+                  for factor in (1,2,5)}
+        dependencies = sum(len(s.dependencies) for s in plan.sections if s.section_type == 2)
+        cls.witness_counts = (
+            cls.interior**2, plan.side**2, plan.side**2-cls.interior**2,
+            1728*plan.units, plan.side**2, 1728*(groups[2]+10*groups[5]),
+            6*(256+5*plan.units), sum(groups.values())+dependencies+4+1)
 
     def rebound_inputs(self, ownership=None, route_length=None):
         candidate,capacity,raw,semantic = self.inputs
@@ -35,7 +47,7 @@ class PhysicalEvidence(unittest.TestCase):
         self.assertEqual(value['scope'], 'physical-predicates-only')
         self.assertNotIn('summary', value)
         self.assertEqual([r['witness_count'] for r in value['predicate_rows']],
-                         [3297856,4161600,863744,3297024,4161600,2688768,58776,1098])
+                         list(self.witness_counts))
         self.assertTrue(all(r['result']=='pass' and r['violation_count']==0
                             for r in value['predicate_rows']),value['predicate_rows'])
 
@@ -72,18 +84,20 @@ class PhysicalEvidence(unittest.TestCase):
         units=[dict(row) for row in candidate.units]
         units[0]['fragment_index']=1
         witnesses,violations=proof.separation_evidence(replace(candidate,units=tuple(units)))
-        self.assertEqual(witnesses,2688768)
+        self.assertEqual(witnesses,self.witness_counts[5])
         self.assertGreaterEqual(violations,4*1728)
 
     def test_d2_witness_uses_the_owned_damage_square_not_separation_window(self):
         candidate = proof.admit_physical_inputs(*self.inputs)
         physical_cells = set()
         inverse = type(candidate).inverse
+        square = max(32,self.interior//32)
+        self.assertLess(square,max(32,self.interior//8))
 
         def first_anchor(actual, side):
             self.assertIs(actual,candidate)
-            self.assertEqual(side,56)  # owned I=1816 damage square
-            return ((112,112),)
+            self.assertEqual(side,square)
+            return ((self.width,self.width),)
 
         def record_inverse(actual, physical):
             physical_cells.add(physical)
@@ -93,7 +107,7 @@ class PhysicalEvidence(unittest.TestCase):
                 patch.object(type(candidate),'inverse',new=record_inverse):
             proof.closure_evidence(candidate)
         self.assertEqual(physical_cells,
-                         {row*1816+column for row in range(56) for column in range(56)})
+                         {row*self.interior+column for row in range(square) for column in range(square)})
 
     def test_shell_span_class_cannot_be_relabelled_as_headroom(self):
         ownership=canonical_manifest.validate_canonical_manifest(self.inputs[2])
@@ -105,7 +119,7 @@ class PhysicalEvidence(unittest.TestCase):
         rows={row['predicate_id']:row for row in result['predicate_rows']}
         self.assertGreater(rows['shell-sector-total-partition']['violation_count'],0)
         self.assertGreater(rows['owner-factor-ledger-reconciliation']['violation_count'],0)
-        self.assertEqual(rows['shell-sector-total-partition']['witness_count'],863744)
+        self.assertEqual(rows['shell-sector-total-partition']['witness_count'],self.witness_counts[2])
 
     def test_route_prefix_length_is_cross_bound_to_shell_extent(self):
         with self.assertRaises(proof.PhysicalEvidenceError):
@@ -116,13 +130,14 @@ class PhysicalEvidence(unittest.TestCase):
         candidate=proof.admit_physical_inputs(*self.inputs)
         groups=(False,)*len(candidate.group_specs())
         counts={'all-cells':candidate.side**2}
-        self.assertEqual(proof.inventory_evidence(candidate,groups,counts),(1098,0))
+        witnesses = self.witness_counts[7]
+        self.assertEqual(proof.inventory_evidence(candidate,groups,counts),(witnesses,0))
         for deps,violations in (([100,101,102],4),([17,18],2)):
             sections=tuple(dict(row,dependency_ids=deps) if row['section_id']==2 else row
                            for row in candidate.sections)
             with self.subTest(dependencies=deps):
                 self.assertEqual(proof.inventory_evidence(
-                    replace(candidate,sections=sections),groups,counts),(1098,violations))
+                    replace(candidate,sections=sections),groups,counts),(witnesses,violations))
 
 
 if __name__=='__main__':

@@ -10,7 +10,7 @@ from .m2_knowledge_v2 import build_knowledge_use_v2
 from .m2_physical_v2 import admit_physical_inputs
 
 PROFILE = 'eh72-hier-r5-r2-r1-lzss-crc32c-v1'
-BODY_IDS = (16, 17, 18, *range(100, 164), *range(200, 211))
+BODY_IDS = (16, 17, 18, *range(100, 153), *range(200, 211))
 POLICIES = ('spec/profile-policy-v2.toml', 'spec/profile-limits-v2.toml',
             'spec/damage-policy-v2.toml')
 

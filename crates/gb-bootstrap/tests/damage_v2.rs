@@ -1,5 +1,42 @@
 use gb_bootstrap::damage::{ArtifactState, UnitEntry, serialize_obs_units};
 use gb_bootstrap::damage_v2::{decode_observation_v2, render_decoder_result_v2};
+
+#[test]
+fn declared_active_package_identity_and_resources_match_source_programs() {
+    use sha2::{Digest, Sha256};
+    let raw = gb_bootstrap::teaching_recipe_v2::build_teaching_recipe_package().unwrap();
+    let package = gb_bootstrap::recipe_wire_v2::decode_recipe_package_v2(&raw, 8).unwrap();
+    let owner: toml::Value =
+        toml::from_str(include_str!("../../../spec/damage-policy-v2.toml")).unwrap();
+    let rows = owner["program_resource"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|row| row["profile_version"].as_integer() == Some(8))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        rows.iter()
+            .map(|row| row["recipe_id"].as_integer().unwrap())
+            .collect::<Vec<_>>(),
+        [30, 113, 202]
+    );
+    for row in rows {
+        assert_eq!(
+            row["package_sha256"].as_str().unwrap(),
+            format!("{:x}", Sha256::digest(&raw))
+        );
+        let id = row["recipe_id"].as_integer().unwrap() as u16;
+        assert_eq!(
+            row["primitive_steps"].as_integer().unwrap() as u64,
+            package.logical.recipe_primitive_steps(id).unwrap()
+        );
+        assert_eq!(
+            row["peak_scratch_bytes"].as_integer().unwrap() as u64,
+            package.logical.recipe_peak_scratch_bytes(id).unwrap()
+        );
+    }
+}
+
 #[test]
 fn malformed_observations_always_project_v2_failure_without_inventing_streams() {
     for channel in ["OBS_BITS", "OBS_MATRIX", "OBS_UNITS"] {
@@ -247,7 +284,11 @@ fn clean_bits_and_matrix_recover_from_their_actual_observed_routes() {
             assert_eq!(witness.package_sha256().len(), 64);
             assert_eq!(witness.definitions_sha256().len(), 64);
         }
-        assert_eq!(result.resource().section_attempts, 136);
+        assert_eq!(carrier.sections().len(), 125);
+        assert_eq!(
+            result.resource().section_attempts,
+            carrier.sections().len() as u64
+        );
         render_decoder_result_v2(channel, &result).unwrap();
     }
 }
@@ -559,7 +600,7 @@ fn checked_root_controls_reach_full_content_validation_and_undercoverage_keeps_d
     .unwrap();
     for (ordinal, bodies, validations, state) in [
         (14, 3, 1, ArtifactState::Failure),
-        (17, 78, 2, ArtifactState::Degraded),
+        (17, 67, 2, ArtifactState::Degraded),
     ] {
         let case = corpus.case("B0", ordinal).unwrap();
         let result = decode_observation_v2("OBS_UNITS", case.bytes());

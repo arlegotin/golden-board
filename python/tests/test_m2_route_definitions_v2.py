@@ -27,7 +27,7 @@ class RouteDefinitions(unittest.TestCase):
     def test_exact_finite_shape_and_fresh_immutable_records(self):
         self.assertEqual(tuple(r.fact_id for r in self.rows), tuple(range(1, 13)))
         self.assertEqual(tuple(len(r.value) for r in self.rows),
-                         (16,64,306,296,236,228,636,544,464,478,314,2485))
+                         (16,64,306,296,236,228,636,544,464,478,314,4888))
         again = build_route_definitions_v2(self.compiled, self.source)
         self.assertEqual(again, self.rows)
         self.assertIsNot(again[0], self.rows[0])
@@ -182,17 +182,17 @@ class RouteDefinitions(unittest.TestCase):
     def test_content_contexts_and_real_namespace_bridges_remain_distinct(self):
         value = self.rows[11].value
         context = tuple(int.from_bytes(value[i:i+2],'big') for i in range(0,18,2))
-        self.assertEqual(context,(0,588,588,1,746,746,2,29,29))
+        self.assertEqual(context,(0,588,588,1,724,724,2,29,29))
         mini_length = int.from_bytes(value[206:210],'big')
         self.assertEqual(mini_length,575)
         from golden_board import content
         mini = content.projection_view(content.stream_validation(value[210:785]))
         self.assertEqual(len(mini.records),29)
         self.assertEqual({record.kind for record in mini.records},set(range(1,15)))
-        bridges = value[2053:2077]
-        self.assertEqual(bridges.hex(),'00000064024c024d00020001000000c802cc02cd00030001')
+        bridges = value[4456:4480]
+        self.assertEqual(bridges.hex(),'00000064024c024d00020001000000c802b602b700030001')
         from golden_board.position_teaching_v2 import build_position_teaching_v2
-        self.assertEqual(value[2077:],build_position_teaching_v2(self.compiled).value)
+        self.assertEqual(value[4480:],build_position_teaching_v2(self.compiled).value)
 
     def test_mapping_examples_include_slot_wrap_and_both_pad_boundaries(self):
         value = self.rows[8].value

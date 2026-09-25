@@ -5,12 +5,22 @@ or the identity of any released candidate. Promotion and fresh carrier gates
 are required before this slice has a Candidate-ready claim.
 
 The canonical-manifest-v0 declaration has exactly `schema`,
-`legacy_declaration_sha256`, and `lesson_records`. The schema is
+`legacy_declaration_sha256`, `selected_game_ordinals`, and `lesson_records`. The schema is
 `golden-board.m2-slice/v1`. The legacy digest binds the unchanged slice-v0
 declaration. Both independent compilers validate that declaration and its six
 source inputs using their v0 compiler, obtaining the same 64 complete games,
 ten binary chess fixtures, curriculum families and capacity prototypes.
 Neither compiler consumes the other compiler's binary output.
+
+Teaching quality takes precedence over anthology quantity. `selected_game_ordinals`
+is the exact ascending list of original zero-based canonical game ordinals0..63
+excluding24,28,32,34,35,38,44,52,58,61,63:53 complete games. Both compilers validate
+that exact list, including integer types, order and uniqueness, before selection.
+Original ordinal0 remains first. Selection changes no retained game bytes and
+no required teaching page. The selected games receive dense new ordinals0..52;
+original ordinals are source identities, not the new namespace codes. This does
+not alter the full historical anthology or game-set-v0. The curation rationale
+and measured capacity decision are recorded in the connected-content repair plan.
 
 `lesson_records` is a nonempty array of at most 4096 logical content-v0 records,
 with consecutive IDs starting at one. Its final record is its only ROOT.
@@ -42,16 +52,16 @@ Owner-side page names, expected choices and chess checks are separate build
 evidence; the viewer interprets only content-v0.
 
 The all stream shares every required non-root record byte for byte. At the
-required root's former ID, it appends the 64 game binding/payload pairs in
+required root's former ID, it appends the 53 selected game binding/payload pairs in
 ordinal order (namespace 2), then the ten fixture pairs (namespace 3). Each
 pair binds byte schema 1, semantic code ordinal+1 and exact payload length.
 It then appends, in order: TEXT `0`; TEXT `1`; limitation TEXT
 `Inspecting raw records alone does not establish their chess meaning.`;
 a byte MATRIX with one row, one column
-and cell 74; REGION_SET with one region (ID 1, label 0, full matrix, flags 1);
+and cell 63; REGION_SET with one region (ID 1, label 0, full matrix, flags 1);
 FIELD_SCHEMA with two fields named respectively by those texts, storage 2, respectively
-type MATRIX (4)/count 1 and type OPAQUE_DATA (9)/count 74; TUPLE referencing
-that matrix and the 74 payload records; limitation FEEDBACK (5) displaying
+type MATRIX (4)/count 1 and type OPAQUE_DATA (9)/count 63; TUPLE referencing
+that matrix and the 63 payload records; limitation FEEDBACK (5) displaying
 that tuple with predicate 0; PASSIVE_TRACE; one unscored LESSON_NODE; and the
 sole all ROOT.
 
@@ -73,7 +83,7 @@ answer is accepted to implement navigation, and no viewer semantics are added.
 Section assignment is deterministic. Required non-root frames are packed
 greedily in record order into sections 16..31, each at most 16,384 bytes;
 one frame cannot be split. More than 16 sections or one oversized frame
-rejects. Games occupy sections 100..163, fixtures 200..209, and the ten
+rejects. Games occupy sections 100..152, fixtures 200..209, and the ten
 library-support non-root records section 210. All have semantic copy ID 0.
 Tier-root sections are 2 (required) and 3 (all). Body sections plus the
 separate header/root frames must reconstruct each stream exactly.

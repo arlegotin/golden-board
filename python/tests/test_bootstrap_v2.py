@@ -7,9 +7,9 @@ from golden_board import bootstrap_v2 as revised
 
 
 def inventory_fixture():
-    bodies = (16, 17, 18, *range(100, 164), *range(200, 211))
+    bodies = (16, 17, 18, *range(100, 153), *range(200, 211))
     entries = [
-        base.InventoryEntry(1, 1, 2, 128, 1, 1, (), 8 + 20 * 81 + 4 * 81,
+        base.InventoryEntry(1, 1, 2, 128, 1, 1, (), 8 + 20 * (3 + len(bodies)) + 4 * (3 + len(bodies)),
                             physical_replica_count=5),
         base.InventoryEntry(2, 2, 0, 128, 1, 1, (16, 17, 18), 46,
                             physical_replica_count=5),
@@ -18,7 +18,7 @@ def inventory_fixture():
     ]
     entries.extend(base.InventoryEntry(
         sid, 3, int(sid in (16, 17, 18)), 128 if sid < 100 else 129,
-        1, 1, (), 100, sid - 100 if 100 <= sid < 164 else None,
+        1, 1, (), 100, sid - 100 if 100 <= sid < 153 else None,
         5 if sid < 100 else 1,
     ) for sid in bodies)
     return base.Inventory(tuple(entries), 2)
@@ -29,7 +29,7 @@ class RevisedInventory(unittest.TestCase):
         source = inventory_fixture()
         encoded = revised.encode_inventory(source)
         self.assertEqual(revised.decode_inventory(encoded), source)
-        self.assertEqual(encoded[:8], b'\0\2\0Q\0\0\0@')
+        self.assertEqual(encoded[:8], b'\0\2\0F\0\0\0\x35')
         with self.assertRaises(base.BootstrapReject):
             base.decode_inventory(encoded)
         with self.assertRaises(base.BootstrapReject):
@@ -65,7 +65,7 @@ class RevisedInventory(unittest.TestCase):
         for cut in (0, 1, 7, 8, 27, len(raw) - 1):
             with self.assertRaises(base.BootstrapReject):
                 revised.decode_inventory(raw[:cut])
-        for offset, value in ((0, 1), (8, 1), (19, 0x8a), (18, 2), (24, 255)):
+        for offset, value in ((0, 1), (7, 64), (8, 1), (19, 0x8a), (18, 2), (24, 255)):
             mutated = bytearray(raw)
             mutated[offset] = value
             with self.subTest(offset=offset):
@@ -111,7 +111,7 @@ class RevisedContentAssembly(unittest.TestCase):
                 len(stream), int.from_bytes(stream[2:4], 'big'),
                 capacity._frames(stream, 'tier')[row.record_id]))
             envelopes[row.section_id] = base.SectionEnvelope(row.section_id, 2, 0, 128, 1, ids, wire)
-        rows = [base.InventoryEntry(1, 1, 2, 128, 1, 1, (), 1952, physical_replica_count=5)]
+        rows = [base.InventoryEntry(1, 1, 2, 128, 1, 1, (), 8 + 20 * (len(envelopes)+1) + 4 * sum(len(e.dependencies) for e in envelopes.values()), physical_replica_count=5)]
         rows.extend(base.InventoryEntry(sid, env.section_type, env.section_version,
             env.closure_class, 1, 1, env.dependencies, len(env.payload), ordinals.get(sid),
             5 if sid in revised.SPINE else 1) for sid, env in sorted(envelopes.items()))

@@ -23,8 +23,8 @@ fn capacity_preserves_uncompressed_authoring_promise_and_all_actual_bodies() {
     let compiled = slice();
     let capacity = derive_capacity(&compiled).unwrap();
     assert_eq!(capacity.future_authoring_bytes(), 105277);
-    assert_eq!(capacity.reserve_bytes(), 9353);
-    assert_eq!(capacity.body_count(), 78);
+    assert_eq!(capacity.reserve_bytes(), 9213);
+    assert_eq!(capacity.body_count(), 67);
     assert_eq!(capacity.capacity_probe_count(), 53);
     assert!(capacity.stored_body_bytes() < capacity.uncompressed_body_bytes());
 }
@@ -35,10 +35,30 @@ fn independent_carrier_search_and_matrix_recovery_close_every_owned_cell() {
     let carrier = build_carrier(&compiled).unwrap();
     assert_eq!(
         (carrier.side(), carrier.shell_width(), carrier.unit_count()),
-        (2040, 112, 1908)
+        (2048, 128, 1858)
     );
-    assert_eq!(carrier.packed_bytes().len(), 4 + 2040 * 2040 / 8);
+    assert_eq!(carrier.packed_bytes().len(), 4 + 2048 * 2048 / 8);
     assert!(carrier.packed_bytes().len() - 4 <= 512 * 1024);
+    let compressed: Vec<_> = carrier
+        .sections()
+        .iter()
+        .filter(|s| s.section_type == gb_bootstrap::SECTION_CONTENT_BODY && s.section_version == 1)
+        .map(|s| s.section_id)
+        .collect();
+    assert_eq!(compressed, [16, 17, 18]);
+    for section in carrier
+        .sections()
+        .iter()
+        .filter(|s| (200..=206).contains(&s.section_id))
+    {
+        assert_eq!(section.section_version, 0);
+        let packed = gb_bootstrap::body_codec_v1::encode_lzss(&section.payload).unwrap();
+        assert!(packed.len() < section.payload.len());
+        assert_eq!(
+            (22 + packed.len()).div_ceil(157),
+            (22 + section.payload.len()).div_ceil(157)
+        );
+    }
     assert_eq!(carrier.search_ledger().last().unwrap().accepted, true);
     assert!(
         carrier.search_ledger()[..carrier.search_ledger().len() - 1]

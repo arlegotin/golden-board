@@ -65,6 +65,123 @@ _ACTIONS = (
     (26, ("01000001", "02000000"), 3, 2, 1, (), 0, 0, 0, 6, 0),
 )
 
+# Finite input experiments owned by content-teaching-v2, not a new VM.
+_TRANSITION_LAYOUT = ((0,1),(1,4),(5,2),(7,1),(8,1),(9,1),(10,1),(11,1),
+                      (12,1),(13,4),(17,1),(18,2),(20,2),(22,2),(24,2))
+_STATE_LINKS = ((13,1,9,1),(13,2,10,1),(13,3,11,1),(14,2,22,2),(13,14,24,2))
+_CONTROL_INPUTS = (
+    ((), 'N11RN12RN1RCNCA21CA11CR'),
+    (((512,1,2,3),), 'NCA21CNCA11C'),
+    (((512,1,2,3),(514,1,0,1)), 'NCA11C'),
+    (((542,1,3,2),(544,1,1,0)), 'NCACA21C'),
+    (((467,2,2,16),(573,2,8,22)), 'N11RN12R'),
+    (((573,2,8,9),), 'NCNRC'),
+    ((), 'N2CA2CA2CACA1'),
+)
+
+
+def _connected_controls(base: bytes) -> bytes:
+    result = bytearray(struct.pack('>H', len(_TRANSITION_LAYOUT)))
+    for row in _TRANSITION_LAYOUT:
+        result.extend(struct.pack('>HH', *row))
+    result.extend(struct.pack('>H', len(_STATE_LINKS)))
+    for row in _STATE_LINKS:
+        result.extend(bytes(row))
+    result.extend(struct.pack('>H', len(_CONTROL_INPUTS)))
+    actions = {'1':b'\1\0\0\1', '2':b'\1\0\0\2', 'R':b'\2\0\0\0', 'C':b'\3\0\0\0'}
+    for patches, sequence in _CONTROL_INPUTS:
+        changed = bytearray(base)
+        result.extend(struct.pack('>H', len(patches)))
+        for offset, width, old, new in patches:
+            _require(int.from_bytes(changed[offset:offset+width], 'big') == old)
+            changed[offset:offset+width] = new.to_bytes(width, 'big')
+            result.extend(struct.pack('>HHII', offset, width, old, new))
+        projection = C.stream_validation(bytes(changed))
+        nodes = {r.record_id:r.payload for r in C.projection_view(projection).records}
+        result.extend(struct.pack('>H', len(sequence)))
+        state = None
+        for symbol in sequence:
+            action, last = bytes(4), 0
+            if symbol == 'N':
+                operation, state = 0, C.new_run(projection)
+            elif symbol == 'A':
+                operation, state = 2, C.advance_committed(projection, state)
+            else:
+                operation, action = 1, actions[symbol]
+                state, last = C.step(projection, state, action)
+            view = C.run_state_view(state)
+            node = nodes[view.current_node_id]
+            ids = view.selection_buffer
+            if view.committed_response:
+                ids = tuple(int.from_bytes(view.committed_response[i:i+2], 'big')
+                            for i in range(3, len(view.committed_response), 2))
+            _require(len(ids) <= 2)
+            result.extend(struct.pack('>B4sH6BHHB4H', operation, action,
+                view.current_node_id, view.phase, last, node.response_shape,
+                node.answer_mode, node.flags, len(ids), *(ids+(0,)*(2-len(ids))),
+                view.outcome, view.feedback_ref, view.next_node_ref,
+                view.global_remaining, view.local_remaining))
+    _require(len(result) == 2160)
+    return bytes(result)
+
+
+def _role_grounding(base: bytes) -> bytes:
+    result = bytearray(struct.pack('>H', 2))
+    for row in ((8,2,3,10),(10,8,9,12)):
+        result.extend(struct.pack('>HBBH', *row))
+    result.extend(struct.pack('>H', 3))
+    records = {r.record_id:r for r in C.projection_view(C.stream_validation(base)).records}
+    _require(records[19].kind == 10 and records[25].kind == 12)
+    for reference in (0,19,25):
+        result.extend(struct.pack('>HB', reference, int(reference != 0)))
+    result.extend(struct.pack('>H', 6))
+    for lo, hi in ((0,0),(0,1),(1,1)):
+        for presence in (0,1):
+            result.extend(bytes((lo,hi,presence,int(lo <= presence <= hi))))
+    result.extend(struct.pack('>H', 3))
+    for rid in (26,27,28):
+        node = records[rid].payload
+        row = next(row for row in _ROLES if row[:2] == (node.role,node.answer_mode))
+        accepted = sum(case.case_class == 1 for case in node.cases)
+        result.extend(struct.pack('>8H', rid,node.role,node.answer_mode,accepted,
+                                  len(node.cases),row[4],row[5],int(accepted >= row[4] and len(node.cases) <= row[5])))
+    _require(len(result) == 101)
+    return bytes(result)
+
+
+def _assertion_direction(base: bytes) -> bytes:
+    from . import recipe_wire_v2
+    from .m2_teaching_recipe_v2 import build_teaching_recipe_package
+    package = recipe_wire_v2.decode_recipe_package_v2(build_teaching_recipe_package(), 8)
+    recipe = next(row for row in package.logical.recipes if row.recipe_id == 101)
+    _require(tuple((d.value_id,d.value_type,d.width,d.count) for d in recipe.inputs) ==
+             ((1,2,8,1),))
+    _require(tuple((d.value_id,d.value_type,d.width,d.count) for d in recipe.outputs) ==
+             ((1,5,16,1),(2,2,8,1)))
+    result = bytearray(struct.pack('>H4HBHHBBHHB', 1,2,19,18,101,0,17,2,1,1,10,4,1))
+    descriptors = ((87,1,5),(100,1,1),(145,1,1),(314,1,3))
+    result.extend(struct.pack('>H', 4))
+    for row in descriptors:
+        result.extend(struct.pack('>HHI', *row))
+    result.extend(struct.pack('>H', 4))
+    for values in ((255,1,1,254),(255,2,2,253),(255,2,2,254),(255,1,1,253)):
+        changed = bytearray(base)
+        for (offset,width,old), new in zip(descriptors,values,strict=True):
+            _require(int.from_bytes(changed[offset:offset+width], 'big') == old)
+            changed[offset:offset+width] = new.to_bytes(width, 'big')
+        projection = C.stream_validation(bytes(changed))
+        records = {r.record_id:r.payload for r in C.projection_view(projection).records}
+        assertion = records[19]
+        _require((assertion.predicate_binding_ref,assertion.subject_opaque_data_ref,
+                  assertion.result_atom_vector_ref) == (18,17,10))
+        subject, asserted = records[17].data[0], records[10].atoms[0]
+        executed = recipe_wire_v2.evaluate_recipe_v2(package,101,(bytes((subject,)),))
+        computed = subject ^ 255
+        _require(executed.status == 0 and executed.outputs == (bytes((computed,)),))
+        result.extend(struct.pack('>4IBHBB', *values,1,0,computed,int(asserted == computed)))
+    _require(len(result) == 142)
+    return bytes(result)
+
 
 def _require(condition: bool) -> None:
     if not condition:
@@ -359,8 +476,10 @@ def build_content_teaching_v2(fixture_source: bytes) -> ContentTeachingV2:
         )
         supplement = b"".join(count.to_bytes(2, "big") + raw for count, raw in blocks)
         _require(len(supplement) == 1120)
+        supplement += _connected_controls(base) + _role_grounding(base) + _assertion_direction(base)
+        _require(len(supplement) == 3523)
         value = len(base).to_bytes(4, "big") + base + len(supplement).to_bytes(4, "big") + supplement
-        _require(len(value) == 1703)
+        _require(len(value) == 4106)
         return ContentTeachingV2(base, value)
     except ContentTeachingError:
         raise

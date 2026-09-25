@@ -61,9 +61,9 @@ maximum_units_formula = "floor((side_max-2*shell_width_min)^2/1728)"
 [storage]
 spine_ids = [1, 2, 3, 16, 17, 18]
 required_body_ids = [16, 17, 18]
-all_body_ranges = [[16, 18], [100, 163], [200, 210]]
-game_section_range = [100, 163]
-game_ordinals = [0, 63]
+all_body_ranges = [[16, 18], [100, 152], [200, 210]]
+game_section_range = [100, 152]
+game_ordinals = [0, 52]
 probe_first_id = 211
 spine_factor = 5
 replicated_factor = 2

@@ -134,11 +134,11 @@ fn actual_recovery_feeds_both_evidence_producers() {
     let e = build_recovery_provenance_v2(input(d)).unwrap();
     let mut v = validate_canonical_manifest(e.canonical_bytes()).unwrap();
     assert_eq!(obj(&mut v).len(), 13);
-    assert_eq!(e.bodies().len(), 78);
+    assert_eq!(e.bodies().len(), 67);
     assert_eq!(e.required_stream().len(), 42432);
-    assert_eq!(e.all_stream().len(), 55664);
-    assert!(e.prefixes().iter().all(|p| p.len() == 25424));
-    assert_eq!(e.first_use().len(), 492857);
+    assert_eq!(e.all_stream().len(), 53039);
+    assert!(e.prefixes().iter().all(|p| p.len() == 27827));
+    assert_eq!(e.first_use().len(), 492885);
     obj(&mut v).insert("result".into(), V::String("failure".into()));
     assert!(validate_recovery_provenance_v2(&serialize_manifest(&v).unwrap(), input(d)).is_err());
     // Optional development comparison export; never consumed as a test input.

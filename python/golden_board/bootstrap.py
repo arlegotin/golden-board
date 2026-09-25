@@ -751,7 +751,7 @@ def _encode_inventory(inventory: Inventory, *, maximum_inventory_version: int) -
     output = bytearray(
         _be16(inventory.version, "inventory_version")
         + _be16(len(inventory.entries), "entry_count")
-        + b"\0\0\0@"
+        + b"\0\0" + _be16(53 if inventory.version == 2 else 64, "game_ordinal_count")
     )
     previous = 0
     ordinals: list[int] = []
@@ -819,7 +819,7 @@ def _encode_inventory(inventory: Inventory, *, maximum_inventory_version: int) -
         output.extend(
             b"".join(_be32(value, "dependency") for value in entry.dependencies)
         )
-    if sorted(ordinals) != list(range(64)):
+    if sorted(ordinals) != list(range(53 if inventory.version == 2 else 64)):
         _reject(INVENTORY, "game_ordinals")
     _validate_inventory_fixed_entries(inventory.entries, inventory.version)
     validate_inventory_closure(inventory)
@@ -956,12 +956,14 @@ def _decode_inventory(data: bytes, *, maximum_inventory_version: int) -> Invento
     if (
         type(data) is not bytes
         or len(data) < 8
-        or data[4:8] != b"\0\0\0@"
+        or data[4:6] != b"\0\0"
     ):
         _reject(INVENTORY, "inventory.header")
     inventory_version = _u16(data, 0)
     if maximum_inventory_version not in (1, 2) or inventory_version not in range(maximum_inventory_version + 1):
         _reject(INVENTORY, "inventory.version")
+    if _u16(data, 6) != (53 if inventory_version == 2 else 64):
+        _reject(INVENTORY, "inventory.header")
     count = _u16(data, 2)
     if not 3 <= count <= INVENTORY_ENTRY_MAX:
         _reject(INVENTORY, "inventory.entry_count")
@@ -1053,7 +1055,7 @@ def _decode_inventory(data: bytes, *, maximum_inventory_version: int) -> Invento
         dependency not in ids for entry in entries for dependency in entry.dependencies
     ):
         _reject(INVENTORY, "dependencies")
-    if sorted(ordinals) != list(range(64)):
+    if sorted(ordinals) != list(range(53 if inventory_version == 2 else 64)):
         _reject(INVENTORY, "game_ordinals")
     _validate_inventory_fixed_entries(entries, inventory_version)
     if any(

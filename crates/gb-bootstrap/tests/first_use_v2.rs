@@ -27,7 +27,7 @@ fn input() -> FirstUseInputs<'static> {
     FirstUseInputs {
         prefixes: prefixes().each_ref().map(Vec::as_slice),
         side: 2048,
-        width: 112,
+        width: 128,
     }
 }
 fn proof() -> &'static Vec<u8> {
@@ -122,7 +122,7 @@ fn complete_observed_package_has_exact_finite_coverage() {
     let value = validate_canonical_manifest(proof()).unwrap();
     assert_eq!(
         &rows(&value, "mapping_use")[..3],
-        &[V::U64(9), V::U64(17), V::U64(228)]
+        &[V::U64(9), V::U64(17), V::U64(224)]
     );
     for (key, count) in [
         ("route_rows", 4),

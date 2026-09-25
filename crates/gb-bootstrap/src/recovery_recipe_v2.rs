@@ -34,7 +34,7 @@ const TABLE_SHAPES: [(u16, u8, u32, u32); 5] = [
 ];
 const TABLE_DIGESTS: [&str; 4] = [
     "852a7ac722c3d320e634ed8617e04f3105e18f683746c4e03578074945a19b9e",
-    "64285c0bea30c06f2e16507c0a5f2c3a751082abc840429fa3a4bfda53d5c6c6",
+    "01876cb51b48ac8a91d65bd430930820d7060d6fc259bb4fa024c79df34e5c44",
     "3445e37879b2a7aa5e885fba817e974fa3234f352ffc82a301fbfdfd509f5b72",
     "fb6d348c685a7537d1ea70572feece31bdfcf1d743c62597c0e333f7aa4deaaa",
 ];
@@ -409,7 +409,7 @@ fn roster(raw: &[u8], length: usize, target: u32) -> Vec<u8> {
     let count = usize::from(u16_at(raw, 2));
     if !(8..=16384).contains(&length)
         || raw[..2] != [0, 2]
-        || raw[4..8] != [0, 0, 0, 64]
+        || raw[4..8] != [0, 0, 0, 53]
         || !(3..=818).contains(&count)
         || target == 0
     {
@@ -744,4 +744,24 @@ pub fn evaluate_recovery_native(
         Vec::new()
     };
     Ok(RecipeOutcome { status, outputs })
+}
+
+#[cfg(test)]
+mod roster_count_tests {
+    use super::*;
+
+    #[test]
+    fn roster_requires_the_profile8_game_count_without_admitting_the_old_count() {
+        let mut raw = vec![0, 2, 0, 3, 0, 0, 0, 53];
+        for (id, kind, factor, length) in [(1u32, 1u16, 5u8, 68u32), (2, 2, 2, 157), (3, 3, 1, 1)] {
+            raw.extend(id.to_be_bytes());
+            raw.extend(kind.to_be_bytes());
+            raw.extend([0, 2, 0, 1, 1, 2 * factor, 0, 0]);
+            raw.extend(length.to_be_bytes());
+            raw.extend([0, 0]);
+        }
+        assert_eq!(&roster(&raw, 68, 1)[..2], &[0, 0]);
+        raw[7] = 64;
+        assert_eq!(roster(&raw, 68, 1), [0, 3]);
+    }
 }

@@ -42,6 +42,14 @@ def _inventory_size(entries, dependencies):
     return 8 + 20*entries + 4*dependencies
 
 
+def encode_carrier_body(raw: bytes) -> tuple[int, bytes]:
+    """Keep profile-8 bodies directly readable when compression saves no units."""
+    version, encoded = body_codec_v1.encode_body(raw)
+    if version == 1 and (22+len(encoded)+156)//157 < (22+len(raw)+156)//157:
+        return version, encoded
+    return 0, raw
+
+
 def _layout(noninventory, units, dependencies):
     base_entries = 1 + len(noninventory)
     base_units = sum(s.fragments*s.factor for s in noninventory)
@@ -86,7 +94,7 @@ def build_capacity_plan(compiled, prototype_source, blueprint, policy,
     sections = []
     for row in inputs.real_content_sections:
         source = b''.join(frames[rid] for rid in row.record_ids)
-        version, encoded = body_codec_v1.encode_body(source)
+        version, encoded = encode_carrier_body(source)
         required = row.closure == 'm2_required'
         sections.append(Section(row.section_id, 3, version, 128 if required else 129,
                                 (), encoded, 5 if required else 1,

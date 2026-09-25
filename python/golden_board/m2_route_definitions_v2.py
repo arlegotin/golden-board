@@ -229,7 +229,7 @@ def _eleven(common):
         except b.BootstrapReject:
             _check(valid == 0 and closure == 0, 'dependency.reject')
         result.extend(_ints((adjacency,))+bytes((selected,closure,valid)))
-    for sid,ordinal,has,admitted in ((100,0,1,1),(163,63,1,1),(211,65535,0,1),(101,0,1,0)):
+    for sid,ordinal,has,admitted in ((100,0,1,1),(152,52,1,1),(211,65535,0,1),(101,0,1,0)):
         header = _ints((sid,),4)+_ints((4 if sid == 211 else 3,0))+bytes((129,1,1,2+has))+bytes(2)+_ints((1,),4)+_ints((ordinal,))
         try:
             bootstrap_v2.decode_inventory_entry_header(header)
@@ -276,7 +276,7 @@ def _twelve(compiled, required, all_frames, miniature):
         result.extend(_ints((owner,offset,value,kind)))
     result.extend(_ints(x for row in ((3,5,8),(3,5,7),(8,1,9),(8,1,8)) for x in row))
     bridges = []
-    _check(len(compiled.atomic_assignments) <= 4095 and len(compiled.game_payloads) == 64
+    _check(len(compiled.atomic_assignments) <= 4095 and len(compiled.game_payloads) == 53
            and len(compiled.fixture_payloads) == 10, 'source.subjects')
     for sid,namespace,payload in ((100,2,compiled.game_payloads[0]),(200,3,compiled.fixture_payloads[0])):
         matches = tuple(a for a in compiled.atomic_assignments if a.section_id == sid)
@@ -317,7 +317,7 @@ def build_route_definitions_v2(
     seven,eight,encoded = _seven_eight(common)
     values = (*_first_six(),seven,eight,_nine(),_ten(common,encoded),_eleven(common),
               _twelve(compiled,required,all_frames,miniature))
-    _check(tuple(map(len,values)) == (16,64,306,296,236,228,636,544,464,478,314,2485), 'value.sizes')
+    _check(tuple(map(len,values)) == (16,64,306,296,236,228,636,544,464,478,314,4888), 'value.sizes')
     metadata = ((0,()),(0,(1,)),(1,(1,)),(1,(2,3)),(2,(3,4)),(2,(5,)),
                 (3,(6,)),(3,(6,7)),(4,(6,8)),(4,(7,8,9)),(5,(10,)),(5,(11,)))
     return tuple(RouteDefinitionV2(i,stage,dependencies,value)

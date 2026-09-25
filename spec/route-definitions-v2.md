@@ -32,7 +32,7 @@ source compiler retains source identity checks. Stream-derived IDs and lengths a
 historical slice-v0 IDs. The first twelve required frames must have kinds
 `2,3,4,7,8,9,8,10,4,11,12,13`; failure requires revising the owning example,
 not silently substituting a different subject. The source compiler separately
-establishes the 64 canonical games; DEFINE generation is not that identity gate.
+establishes the 53 selected canonical games; DEFINE generation is not that identity gate.
 
 The fact stages/dependencies are:
 
@@ -252,7 +252,7 @@ The fact stages/dependencies are:
     These subgraphs are not complete admitted inventories.
 
     Append four u16 rows `(section,ordinal,has_ordinal,entry_admitted)`:
-    `(100,0,1,1),(163,63,1,1),(211,65535,0,1),(101,0,1,0)`. Use body
+    `(100,0,1,1),(152,52,1,1),(211,65535,0,1),(101,0,1,0)`. Use body
     version 0, closure129, CRC1, copy1, factor1, no dependencies, payload
     length1; section211 is type4, others type3. Validate the actual v2 entry
     header. The last row conflicts with the required ordinal and duplicates
@@ -273,9 +273,9 @@ The fact stages/dependencies are:
     (8,10,1),(9,3,0),(10,6,1),(11,6,1),(12,20,0),(13,22,0),(14,4,1)`.
     These are content-v0's stage-3 shapes, not complete dynamic validation.
 
-    Append the complete `ContentTeachingV2.value` owned by
-    `spec/content-teaching-v2.md`: miniature length:u32, complete575-byte
-    miniature, supplement length:u32, complete1120-byte supplement; total1703.
+    Append the direct4106-byte teaching value owned by
+    `spec/content-teaching-v2.md`: miniature length575:u32, complete575-byte
+    miniature, supplement length3523:u32, and complete3523-byte supplement.
     Generate from the canonical content-v0 conformance fixture's semantic
     source and validate every carried consequence. Never substitute a generated
     opaque blob as production input. This is generic content/control teaching,
@@ -295,7 +295,7 @@ The fact stages/dependencies are:
     200, then their two-byte OPAQUE binding-reference prefixes, then two rows
     `(section:u32,binding_id:u16,opaque_id:u16,namespace:u16,code:u16)`.
     Require namespaces2/3 respectively and code1; verify their full OPAQUE
-    payloads equal source game0/fixture0. Current pairs are588/589 and716/717;
+    payloads equal source game0/fixture0. Current pairs are588/589 and694/695;
     regenerate from assignments rather than freezing historical record IDs.
     Finally append the complete 408-byte Position/Move16 numeric suffix owned
     by `spec/position-teaching-v2.md`. Its two Position examples are extracted
@@ -303,19 +303,23 @@ The fact stages/dependencies are:
     fixture variant1 is distinct from Position and generic STATUS16. Move wire
     admission is distinct from legal move admission. The 65 learner pages and
     final consequence questions are unchanged.
-    Current total is 2485 bytes; changing actual source frames changes measured
+    Current total is 4888 bytes; changing actual source frames changes measured
     cost and requires review rather than truncation.
 
 ## Admission and remaining limits
 
 The current expected value sizes are
-`16,64,306,296,236,228,636,544,464,478,314,2485`, total6067 bytes. This is
+`16,64,306,296,236,228,636,544,464,478,314,4888`, total8470 bytes. This is
 an audited construction target, not a cap or a passing fit. Compared with the
 3779-byte design estimate, 26 bytes explicitly frame package TABLEs, 16 bytes
 ground selected-profile rejection, 8 bytes carry ordinal admission outcomes,
 and 12 bytes disambiguate the two content-stream ID spaces. The miniature
 replacement and its third context add1396 bytes to that3841-byte intermediate.
 The explicit Position/Move16 suffix adds another408 bytes.
+The connected content repair preserves all old teaching and adds2403 directly
+carried bytes. The complete4106-byte miniature teaching does not depend on body
+decompression. Game quantity is subordinate to the complete learning path;
+capacity must be remeasured without weakening protection or physical bounds.
 
 Implementations must verify positive/negative observations with production
 primitives and compare generic EH/repetition recipe consequences separately.

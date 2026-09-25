@@ -37,7 +37,7 @@ _TABLE_SHAPES = ((23, bootstrap.BYTES, 8, 1), (24, bootstrap.BYTES, 216, 2),
 _TABLE_DIGESTS = (
     sha256(bytes.fromhex('d3916ac47208be5f')).hexdigest(),
     '852a7ac722c3d320e634ed8617e04f3105e18f683746c4e03578074945a19b9e',
-    '64285c0bea30c06f2e16507c0a5f2c3a751082abc840429fa3a4bfda53d5c6c6',
+    '01876cb51b48ac8a91d65bd430930820d7060d6fc259bb4fa024c79df34e5c44',
     '3445e37879b2a7aa5e885fba817e974fa3234f352ffc82a301fbfdfd509f5b72',
     'fb6d348c685a7537d1ea70572feece31bdfcf1d743c62597c0e333f7aa4deaaa',
 )
@@ -258,7 +258,7 @@ def _group(inputs):
 def _roster(raw, length, target):
     count = int.from_bytes(raw[2:4], 'big')
     if (not 8 <= length <= 16384 or raw[:2] != b'\0\2'
-            or raw[4:8] != b'\0\0\0\x40' or not 3 <= count <= 818 or target == 0):
+            or raw[4:8] != b'\0\0\0\x35' or not 3 <= count <= 818 or target == 0):
         return bootstrap.RecipeResult(3, ())
     cursor, next_unit, previous, selected = 8, 1, 0, None
     for ordinal in range(count):

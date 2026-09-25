@@ -115,8 +115,39 @@ Run that host-side admission against `/input` before materialization; the
 ignored historical archive is not a fresh producer generation input.
 The installed archive is the already prepared exact manifest with SHA-256
 `6c9c4e7a70bd8d281425885416aef77c237fdf827a547300b6dc5c7eb5928d25`.
-Admit its full preserved tuple and the exact pending roadmap (or its owned
-Candidate-ready projection), and reject historical or partial live authority.
+Admit its full preserved tuple as immutable transition history. The live
+pending roadmap may contain later source-owned normative edits: admit it only
+with the exact revision-11 In-progress status shape and pre-ready tail, with
+the current report and Gate8 tree both absent. Use those live bytes as the
+prepublication roadmap and bind them in the fresh source projection; do not
+replace them with the older archived pending document. For an installed
+Candidate-ready roadmap, reverse only the report-bound status edits to recover
+those exact live prepublication bytes, then require that the ordinary status
+renderer reproduces the installed bytes. Reject historical status, partial
+authority, an unbound status edit or a source-projection mismatch.
+
+After a successful `release` with the reviewed, source-bound qualification
+record defined in `spec/m2-participant-trials-v1.md`, the coordinator may
+atomically replace only the mutable roadmap status rows with M2 Complete and
+M3 current-milestone rows. Its exact inverse must recover the same
+Candidate-ready roadmap and report-bound pending bytes. Future full/release
+checks admit that terminal status only when the qualification record, current
+bundle-file inventories, report, Gate8 tree and source projection still match.
+The automated report's pending-human fields remain a truthful description of
+its own prequalification stage; the separate reviewed record and release-last
+roadmap transition establish the later human result.
+The completed status edits are exactly `Project state` from `Candidate ready`
+to `In progress`, `Current milestone` from
+`M2 — Full-carrier bootstrap and transport feasibility` to
+`M3 — Complete content and formative integration`, and the M2 status cell
+from `Candidate ready — independent validation pending` to
+`Complete — human feasibility qualified`.
+Replace only the policy's Candidate-ready tail with one sentence pair naming
+the unchanged candidate ID, automated report path/hash, qualification record
+path/hash and M4 actual-content rerun. Preserve the historical row prefix and
+every other roadmap byte; require the exact inverse and normative hash to
+match. A malformed or partial completion status rejects before any release
+claim.
 
 Linux exported output has exactly `linux-python.json`, `linux-rust.json` and
 `verification.json`. The verification file is canonical JSON with exact keys

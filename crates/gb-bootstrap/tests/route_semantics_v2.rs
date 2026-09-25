@@ -132,9 +132,9 @@ fn contradictions_in_each_fact_and_miniature_consequence_reject() {
         (9, 174 + 3 * 24 + 7),
         (10, 73),
         (11, 210),
-        (11, 206 + 1703 - 1),
-        (11, 2077 + 146),
-        (11, 2077 + 321),
+        (11, 206 + 4106 - 1),
+        (11, 4480 + 146),
+        (11, 4480 + 321),
     ] {
         let mut changed = values.clone();
         changed[fact][at] ^= 1;

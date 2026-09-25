@@ -6,11 +6,88 @@ This is the default M2 iteration order, approved by the owner on 2026-09-22:
 after a successful stable trial → complete automated verification → closure.**
 
 It replaces the blanket requirement to complete Gate8/bootstrap/release before
-any participant exposure. It changes scheduling, not the carrier ceiling,
-damage promises, independent implementations, final gates, participant tasks,
-freshness, assistance, saved-method checkpoints or retry limits. This is an M2
-development rule; the later M4/M5 final-evaluation barriers remain unchanged.
+any participant exposure. It does not change the carrier ceiling, damage
+promises, independent implementations or final automated gates. The current M2
+technical trial is an open-ended, collaborative feasibility test as specified
+below; its rules supersede the earlier saved-method and unchanged-retry rules
+in historical M2 plans. Later M4/M5 final-evaluation barriers remain unchanged.
 The roadmap remains the sole milestone-status authority.
+
+## Current M2 technical condition
+
+The latest technical evidence shows exact clean/A/B recovery and exact content
+query bytes at the original trial-18 checkpoint. Its neutral continuation
+recovers C and makes the correct artifact-aware D refusal from each observation's
+own bytes. That establishes strong feasibility, but the original saved-method
+round remains unresolved under its frozen rules. Its later work is not silently
+relabelled as an old pass. No carrier repair is justified solely by that stop.
+
+For the next M2 technical result, use one fixed group of two or three people
+new to Golden Board. Members may work asynchronously on the same frozen
+packet, keep their own attempts and share discoveries with teammates. No
+simultaneous meeting, human-time ceiling, one-shot decoder freeze or fixed
+number of hypotheses is required. Start with clean symbols; release the
+storage descriptions and then observations as each member is ready. Keep all
+versions, ordinary notes, commands and actual outputs. The group may improve
+its method after seeing a held-out observation. No owner answer, repository
+source, task-specific external lookup or artifact-specific hint may supply a
+missing step. Decoder runs and artifacts remain locally bounded.
+
+Judge each required part separately. One member's independently evidenced,
+reproducible solution is enough for that part; other members need not repeat
+it. A part is unresolved only when no member can solve it after the group
+chooses to stop, or when the only purported solution borrows missing message
+bytes or a solution from outside the group. The final group account must
+connect the solved parts into one reproducible raw-symbol-to-content recovery,
+including separate A/B/C outcomes and D's explicit fail-closed result. Partial
+success is real progress but does not become a complete G6 pass by adding
+unconnected answers. Preserve every attempt and the actual information
+condition; do not select a favorable member while hiding the others.
+
+This is a prospective change of what the M2 feasibility trial measures, not
+a retroactive pass for trials 16 or 18. The unused fixed-pair packet 19 is
+historical preparation, not a handout. A new source-bound packet with this
+opening and the same checked carrier/observations is required before exposure.
+The exact participant-recovered clean lesson stream may support a learner
+trial now; if the technical group has not completed G6, the learner result is
+provisional evidence and M2 still cannot close. The full final automated
+requirements remain after the stable technical and learner results.
+
+## When a teaching failure recurs
+
+Review the complete dependency that the existing task requires before choosing
+another repair. Distinguish an explicitly unfinished method, an unread teaching
+connection and a demonstrated alternative interpretation. Preserve the original
+checkpoint and assistance history; continued effort is not itself a failure.
+Use bounded diagnosis to establish the missing relationship before changing
+the carrier. Do not repeatedly add one isolated example and recruit again.
+
+For a coordinated repair, own the full finite witness design in the smallest
+teaching specification before implementation. Connect its inputs, intermediate
+states and outcomes through carried evidence. Where fields have been correlated,
+vary them independently; where only final outcomes were shown, expose the
+intermediate states needed to distinguish the observed alternatives. Check exact
+inputs and their recomputed consequences, since different constructions can
+produce the same final answer. Preserve the earlier working distinctions and
+the complete existing task boundary.
+
+After focused checks, challenge a repair of recurrent teaching failures through
+bounded formative work with an exposed collaborator before another fresh trial.
+If the same missing relationship or supported rival survives, reconsider the
+representation or scope before fresh recruitment. Formative work adds no quiz,
+full-engine requirement or participant administration, and cannot qualify the
+candidate. The ordinary fresh-trial, readiness, assistance and retry rules still
+apply; neither a cosmetic edit nor formative success resets an exhausted retry.
+
+The historical connected-content application is the
+[connected content repair](../docs/superpowers/plans/2026-09-24-m2-connected-content-repair.md),
+owned by [the content teaching specification](content-teaching-v2.md). Both
+implementations and their focused teaching regressions are complete. The next
+formative handoff uses participant16 and the same content query. Its frozen
+readiness and check results belong in
+`artifacts/quiz/17-connected-content-formative/owner/`; install and expose that
+packet only after all required finite checks pass. This protocol records no
+new human result or full qualification.
 
 ## Before a trial
 
@@ -53,40 +130,37 @@ receipt, Candidate-ready report or completed milestone.
 
 ## Participant work and its meaning
 
-Before readiness is declared, the clean opening explains the complete existing
-saved-method task: derive a general recovery method from the artifact, including
-damaged or missing data and explicit uncertainty/failure; preserve it; add only
-a thin storage adapter when later formats are released; then use the unchanged
-method and saved adapter on new observations. Later substantive changes remain
-diagnostic. The recipient may take sustained effort and revisit the artifact's
-own checks and examples before declaring readiness. This advance disclosure
-supplies no artifact-specific solution, later format, mechanics fixture, damage
-case or pre-checkpoint practice input. The staged release and both checkpoints
-remain unchanged. Preview and production copy the shared technical instruction
-templates, whose bytes are included in each source/package freeze. The clearer
-task applies prospectively; past frozen packets and results remain historical.
+The current technical opening explains the whole task and permits repeated
+attempts and method improvements after later observations. It supplies no
+artifact-specific solution or expected answer. Learned decoding rules and
+parameters may be retained, while each observation must supply its own message
+bytes. The staged release preserves which evidence was available when; saved
+versions are history, not one-shot scoring cutoffs. Preview and production copy
+the shared technical templates, whose bytes are included in each source and
+package freeze. Past frozen packets and results remain historical.
 
 Two uses are distinct, without different participant paperwork:
 
 - **Formative:** a previous or helped participant can explore a repair and
   explain remaining confusion. Their work informs design and remains formative.
-- **Provisional blind trial:** a fresh eligible person receives the frozen
-  material in the normal order, without substantive hints. Before exposure,
-  record that a successful result is pending complete automated verification.
-  Preserve clean method → thin adapter → all held-outs/query → final account.
-  A learner may follow a successful provisional technical trial using its exact
-  recovered lesson bytes, without waiting for exhaustive verification.
+- **Provisional M2 technical trial:** the fixed fresh group receives the
+  frozen material in the normal order, without substantive hints. Its complete
+  integrated success remains pending automated verification. Earlier attempts
+  and partial results are retained. A learner may use exact independently
+  recovered clean lesson bytes while G6 remains open, with that dependency
+  stated plainly.
 
 Extra effort, repeated sessions, wrong starts and backtracking are welcome.
-Later decoder changes remain useful diagnostics and cannot retroactively pass
-the earlier saved-method checkpoint. Keep all failed/unresolved results visible;
-the existing one-diagnosed-unchanged-retry limit still applies. A cosmetic change
-or switching this workflow does not reset it. The reviewed 08/10 attempts remain
-historical; this rule does not retroactively reclassify either as a pass.
+Keep all failed and unresolved results visible. The old unchanged-retry limit
+governs its historical one-shot rounds; it does not cap the current group's
+attempts. A new group or material packet change needs its own source-bound
+record and cannot erase an earlier failure.
 
-A failed trial normally goes directly back to repair and focused checks. It
-does not trigger an exhaustive run to discover that the same teaching needs
-another change. A successful provisional result stays **pending**, not
+A failed or unresolved trial goes to bounded diagnosis, then a supported repair
+and focused checks. Apply the recurrence rule above where the failure repeats;
+an unfinished submission alone does not establish a teaching defect. It does
+not trigger an exhaustive run to discover that the same teaching needs another
+change. A successful provisional result stays **pending**, not
 qualifying, until the final requirements below are met. The participant need
 not repeat a successful trial solely because automated checks run afterward.
 
@@ -119,6 +193,54 @@ success become the qualifying result. Until then keep it in ordinary trial notes
 with its files and hashes. The current automated Candidate-ready report schema
 still contains pending human fields; this workflow does not invent a new report
 enum or silently admit human summaries through the existing generator.
+
+## Minimal M2 qualification record
+
+For the completed open technical group and individual learner trial, the owner
+records one canonical, tracked `studies/m2/qualification-v2.json` after reviewing
+the saved participant work. It contains no participant names, dates, timers or
+new answers. It asserts the technical group's clean/A/B/C exact recovery,
+observation-local strict D refusal and exact content query, and the learner's
+12 exact final answers, with SHA-256 identities for the group account, learner
+answer and attempt, owner review, frozen trial source snapshot, and the exact
+technical and learner packet-file inventories. The ordinary ignored trial
+folder retains attempts and detailed evidence; the tracked record is the
+durable, compact owner judgment. These are the same task and acceptance rules
+frozen before exposure, not a retrospective rubric change.
+
+The record has exact top-level keys `schema,trial_id,frozen_source_snapshot_sha256,
+technical,learner,source_reconciliation`. Its schema is
+`golden-board.m2-human-qualification/v2` and trial ID is
+`20-open-technical-group`. The technical object has exact keys
+`unit,result,group_final_sha256,review_sha256,packet_files_sha256,
+clean_abc,d_strict,content_query`; its non-hash values are respectively
+`fresh-three-person-group`, `pass`, `exact`, `explicit-refusal`, and `exact`.
+The learner object has exact keys
+`unit,result,answer_sha256,attempt_sha256,review_sha256,packet_files_sha256,
+finals_correct`; its non-hash values are `fresh-individual`, `pass`, and the
+integer 12. The source-reconciliation object has exact keys
+`meaning,changed_paths`, with literal meaning
+`nonsemantic-execution-and-qualification-only` and unique, ASCII-sorted
+repository-relative changed paths. Every SHA is lowercase 64-hex.
+The packet-file digest is SHA-256 of canonical JSON
+`{schema:"golden-board.m2-packet-files/v2",files:[{path,bytes,sha256},...]}`
+over every recipient and owner file in the respective frozen trial packet,
+sorted by path. At release the same calculation over the complete current
+Gate8 bundle files must match. Bundle manifests are source-bound and may
+change with the final source projection; recipient and owner files may not.
+
+The Gate8 report remains the immutable automated Candidate-ready result and
+keeps its explicit pending-human fields; it is not rewritten with an invented
+human result. A completed M2 claim instead requires that record, exact current
+bundle-file equality with its two packet inventories, the recorded source
+reconciliation, complete automated bootstrap and a successful fresh release.
+Only the release coordinator may then write the report-bound M2 Complete
+roadmap status. The status names the automated report SHA-256 and qualification
+record SHA-256, and advances the derived current milestone to M3. A later
+read-only release must admit the same exact completed status and repeat its
+normal automated checks; neither file presence nor an owner assertion alone
+is a completed gate. This small status and evidence overlay supersedes the
+historical R3 requirement to insert human summaries into the automated report.
 
 Run expensive commands at the final stable barrier. Do not run standalone
 `full` and `linux` and then immediately `release` on the same frozen inputs;

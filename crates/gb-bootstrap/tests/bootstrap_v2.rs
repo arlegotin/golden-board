@@ -8,7 +8,7 @@ use gb_bootstrap::{
 use std::collections::BTreeMap;
 
 fn bodies() -> Vec<u32> {
-    (16..=18).chain(100..=163).chain(200..=210).collect()
+    (16..=18).chain(100..=152).chain(200..=210).collect()
 }
 
 fn entry(id: u32, kind: u16, version: u16, required: bool) -> InventoryEntry {
@@ -49,11 +49,11 @@ fn fixture() -> Inventory {
     entries[1].dependencies = vec![16, 17, 18];
     entries[1].logical_payload_length = 46;
     entries[2].dependencies = bodies();
-    entries[2].logical_payload_length = 346;
+    entries[2].logical_payload_length = 302;
     for id in bodies() {
         let mut row = entry(id, SECTION_CONTENT_BODY, u16::from(id % 2 == 0), id < 100);
         row.logical_payload_length = 100;
-        if (100..=163).contains(&id) {
+        if (100..=152).contains(&id) {
             row.game_ordinal = Some((id - 100) as u16);
         }
         entries.push(row);
@@ -89,20 +89,23 @@ fn wire_offset(raw: &[u8], wanted: u32) -> usize {
 }
 
 #[test]
-fn exact_81_entry_metadata_round_trip_and_legacy_rejection() {
+fn exact_70_entry_metadata_round_trip_and_legacy_rejection() {
     let inventory = fixture();
-    assert_eq!(inventory.entries.len(), 81);
-    assert_eq!(inventory.entries[0].logical_payload_length, 1952);
+    assert_eq!(inventory.entries.len(), 70);
+    assert_eq!(inventory.entries[0].logical_payload_length, 1688);
     let raw = v2::encode_inventory(&inventory).unwrap();
-    assert_eq!(raw.len(), 1952);
-    assert_eq!(&raw[..8], &[0, 2, 0, 81, 0, 0, 0, 64]);
+    assert_eq!(raw.len(), 1688);
+    assert_eq!(&raw[..8], &[0, 2, 0, 70, 0, 0, 0, 53]);
     assert_eq!(
         &raw[8..28],
         &[
-            0, 0, 0, 1, 0, 1, 0, 2, 128, 1, 1, 10, 0, 0, 0, 0, 7, 160, 255, 255,
+            0, 0, 0, 1, 0, 1, 0, 2, 128, 1, 1, 10, 0, 0, 0, 0, 6, 152, 255, 255,
         ]
     );
     assert_eq!(v2::decode_inventory(&raw).unwrap(), inventory);
+    let mut historical_count = raw.clone();
+    historical_count[6..8].copy_from_slice(&64u16.to_be_bytes());
+    assert!(v2::decode_inventory(&historical_count).is_err());
     assert_eq!(v2::encode_inventory(&inventory).unwrap(), raw);
     assert!(legacy::encode_inventory(&inventory).is_err());
     assert!(legacy::decode_inventory(&raw).is_err());
@@ -119,7 +122,7 @@ fn versions_checks_copy_counts_and_exact_spine_are_closed() {
         changed.inventory_version = version;
         assert!(v2::encode_inventory(&changed).is_err());
     }
-    for id in [1, 2, 3, 16, 17, 18, 100, 163, 200, 210] {
+    for id in [1, 2, 3, 16, 17, 18, 100, 152, 200, 210] {
         for factor in [0, 1, 2, 3, 5, 7] {
             let mut changed = good.clone();
             row_mut(&mut changed, id).physical_replica_count = factor;
@@ -170,7 +173,7 @@ fn bodies_dependencies_and_game_ordinals_are_exact_not_just_complete_counts() {
         row_mut(&mut changed, tier).dependencies.swap(0, 1);
         assert!(v2::encode_inventory(&changed).is_err());
     }
-    for id in [16, 17, 18, 100, 163, 200, 210] {
+    for id in [16, 17, 18, 100, 152, 200, 210] {
         let mut changed = good.clone();
         row_mut(&mut changed, id).section_version = 2;
         assert!(v2::encode_inventory(&changed).is_err());
@@ -190,6 +193,16 @@ fn bodies_dependencies_and_game_ordinals_are_exact_not_just_complete_counts() {
     let mut unknown = good.clone();
     row_mut(&mut unknown, 200).section_id = 199;
     assert!(v2::encode_inventory(&unknown).is_err());
+    let mut old_last_game = good.clone();
+    let row = row_mut(&mut old_last_game, 152);
+    row.section_id = 163;
+    row.game_ordinal = Some(63);
+    row_mut(&mut old_last_game, 3)
+        .dependencies
+        .iter_mut()
+        .filter(|id| **id == 152)
+        .for_each(|id| *id = 163);
+    assert!(v2::encode_inventory(&old_last_game).is_err());
     let mut duplicate = good.clone();
     duplicate.entries[4].section_id = 16;
     assert!(v2::encode_inventory(&duplicate).is_err());
@@ -260,19 +273,19 @@ fn stored_lengths_inventory_self_length_and_maximum_entry_population_are_bounded
     wrong_self.entries[0].logical_payload_length += 1;
     assert!(v2::encode_inventory(&wrong_self).is_err());
     let mut at_limit = good;
-    for id in 211..932 {
+    for id in 211..945 {
         at_limit
             .entries
             .push(entry(id, SECTION_CAPACITY_PROBE, 0, false));
     }
     update_length(&mut at_limit);
-    assert_eq!(at_limit.entries.len(), 802);
+    assert_eq!(at_limit.entries.len(), 804);
     let raw = v2::encode_inventory(&at_limit).unwrap();
-    assert_eq!(raw.len(), 16372);
+    assert_eq!(raw.len(), 16368);
     assert_eq!(v2::decode_inventory(&raw).unwrap(), at_limit);
     at_limit
         .entries
-        .push(entry(932, SECTION_CAPACITY_PROBE, 0, false));
+        .push(entry(945, SECTION_CAPACITY_PROBE, 0, false));
     update_length(&mut at_limit);
     assert!(v2::encode_inventory(&at_limit).is_err());
     assert!(v2::decode_inventory(&vec![0; 16385]).is_err());
@@ -513,6 +526,6 @@ fn record_boundaries_are_checked_even_if_concatenated_content_would_be_identical
     sections.insert(1, legacy::encode_section(&inventory_envelope).unwrap());
     let result = v2::recover_content(&sections).unwrap();
     assert_eq!((result.required_bytes, result.all_bytes), (None, None));
-    assert_eq!(result.checked_section_ids.len(), 81);
+    assert_eq!(result.checked_section_ids.len(), 70);
     assert!(result.rejected_section_ids.is_empty());
 }

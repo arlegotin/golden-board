@@ -4,7 +4,7 @@ This projection is semantic evidence, not a full resource/hypothesis result
 or a gate receipt. Its complete envelopes must come from observed lane data.
 The clean source supplies ownership and an independent wrong-accept baseline.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from . import bootstrap, bootstrap_v2, body_codec_v1, m2_codec
 from . import m2_damage as inherited
@@ -25,7 +25,7 @@ class OracleProjectionV2:
 class _ContextV2(inherited._Context):
     """Reuse the historical source oracle's group/section arithmetic only."""
 
-    def __init__(self, corpus):
+    def __init__(self, corpus, *, optional_codec=False):
         self.profile = m2_codec.CandidateProfile(
             profile_id='eh72-hier-r5-r2-r1-lzss-crc32c-v1',profile_version=8,
             transport_id=m2_codec.HIER_TRANSPORT,section_check_id=m2_codec.CRC32C,
@@ -43,6 +43,45 @@ class _ContextV2(inherited._Context):
             self.rows_by_group.setdefault((row['section_id'],row['fragment_index']),[]).append(row)
         self.section_rows = tuple(dict(section_id=s.section_id,closure_class=s.closure,
             fragment_count=s.fragments) for s in corpus.sections.values())
+        if optional_codec:
+            self._diagnostic_codec_baseline(corpus)
+
+    def _diagnostic_codec_baseline(self, corpus):
+        # Derive expected metadata from source bodies, independently of the
+        # corpus mutation helper and every observed/decoded inventory byte.
+        for sid,raw in sorted(corpus.clean_envelopes.items()):
+            original = bootstrap.decode_section_envelope(raw)
+            if (original.section_type,original.section_version,original.closure_class)!=(3,0,129):
+                continue
+            packed = body_codec_v1.encode_lzss(original.payload)
+            candidate = replace(original,section_version=1,payload=packed)
+            encoded = bootstrap.encode_section_envelope(candidate)
+            if not (6<=len(packed)<len(original.payload) and (len(raw)+156)//157==(len(encoded)+156)//157):
+                continue
+            if body_codec_v1.decode_body(1,packed)!=original.payload:
+                raise ValueError('oracle.codec-baseline')
+            inventory = bootstrap_v2.decode_inventory(bootstrap.decode_section_envelope(corpus.clean_envelopes[1]).payload)
+            inventory = replace(inventory,entries=tuple(replace(entry,section_version=1,
+                logical_payload_length=len(packed)) if entry.section_id==sid else entry for entry in inventory.entries))
+            inventory_section = bootstrap.decode_section_envelope(corpus.clean_envelopes[1])
+            inventory_raw = bootstrap.encode_section_envelope(replace(inventory_section,
+                payload=bootstrap_v2.encode_inventory(inventory)))
+            if len(inventory_raw)!=len(corpus.clean_envelopes[1]):
+                raise ValueError('oracle.codec-inventory-length')
+            self.inventory = inventory
+            self.clean_envelopes = self.clean_envelopes|{1:inventory_raw,sid:encoded}
+            self.clean_common,self.clean_encoded = dict(self.clean_common),dict(self.clean_encoded)
+            for changed_id,envelope in ((1,inventory_raw),(sid,encoded)):
+                blocks = bootstrap.fragment_section(envelope,8,0)
+                rows = corpus.rows_by_section[changed_id]
+                if len(blocks)!=1+max(row['fragment_index'] for row in rows):
+                    raise ValueError('oracle.codec-fragment-count')
+                for row in rows:
+                    unit,block = row['physical_unit_id'],blocks[row['fragment_index']]
+                    self.clean_common[unit] = block
+                    self.clean_encoded[unit] = m2_codec.eh72_encode_unit(block)
+            return
+        raise ValueError('oracle.codec-target')
 
     def _oracle_aggregate_group(self, observations):
         return aggregate_replica_group(observations)
@@ -137,13 +176,17 @@ class DamageOracleV2:
         return self._evaluate_observation(case)
 
     def _evaluate_observation(self, case):
+        context = (_ContextV2(self.corpus,optional_codec=True)
+            if case.family=='B0' and 7<=case.ordinal<14 else self.context)
         if case.family=='D7' and case.ordinal in (405,406,407,408,409,410,411,412,413):
             forced = 'resource-limit' if case.ordinal in (405,406) else 'failure'
-            result = self.context._evaluate_r3({}, {},set(),route_conflict=False,forced_state=forced)
+            result = context._evaluate_r3({}, {},set(),route_conflict=False,forced_state=forced)
         else:
             replacements,erasures,omitted = self._observed_units(case)
-            result = self.context._evaluate_r3(replacements,erasures,omitted,
+            result = context._evaluate_r3(replacements,erasures,omitted,
                 route_conflict=False,forced_state=None)
         semantic = result.decoder_base
-        return OracleProjectionV2(result.artifact_state,result.section_states,result.wrong_accepts,
+        wrong = sum(row.envelope is not None and row.envelope!=self.corpus.clean_envelopes[row.section_id]
+            for row in semantic.section_results)
+        return OracleProjectionV2(result.artifact_state,result.section_states,wrong,
             semantic.m2_required_stream,semantic.m2_all_stream,case.family=='B0',semantic)

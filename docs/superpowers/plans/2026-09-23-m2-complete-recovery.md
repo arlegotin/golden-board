@@ -211,8 +211,11 @@ recomputing their consequences. The participant's requested task stays unchanged
   add the two rows and reconcile both independent builders/admissions and sizes.
 - [x] Complete focused checks, actual source-built carrier/clean recovery and
   planned handout comparisons; freeze a revised provisional technical packet.
-- [ ] Run the ordinary fresh technical trial and required learner trial; preserve
-  readiness, assistance and retry limits. Then run full qualification.
+- [x] Run and independently evaluate the ordinary fresh technical trial16;
+  its unresolved outcome is recorded below, not promoted to success.
+- [ ] Diagnose the unit-transfer/content-interpretation boundaries, then obtain
+  required fresh technical and learner success under the existing assistance,
+  retry and stop rules. Run full qualification only after that stable success.
 
 Prediction before the next exposure: the added contrasting rows distinguish
 capacity, reset and last-action result from phase, while the complete live
@@ -232,3 +235,91 @@ Carrier520204bytes, SHA256
 `9a51ec9f89df35b811b5660f754d9f4e4516a5a0d61b6610e8784cf05f73d2e0`;
 all64games and both lesson streams are unchanged. Every old teaching row is
 preserved. This records provisional readiness, not a new human or full gate pass.
+
+## Trial 16 result and the next diagnostic boundary
+
+The [completed review](../../../artifacts/quiz/16-fresh-technical-content-control/review/ANALYSIS.md)
+freshly reproduces the unchanged declared-ready source in bounded network-off
+Linux containers. Clean/A/B match every expected envelope (136/121/124) and
+available stream, all 132 embedded examples per matrix run, full chess replay
+and exact query bytes. C/D only parse/export storage: the method requires a
+fresh guide on every input and has no unit-input recovery path. This is a
+substantial improvement on the earlier live B omission, but not technical
+success. All 32,283 original files remain unchanged.
+
+The new content supplement was recovered but not interpreted. The query walks
+the 29 miniature objects without acquiring the following role/action tables.
+No new competing behavior fitting the revised rows has been demonstrated.
+Do not implement another witness or assume decoding opaque subjects is required.
+The query's operational explanation remains partial despite exact bytes.
+
+The next action is the
+[bounded same-person continuation](../../../artifacts/quiz/16-fresh-technical-content-control/continue/README.md).
+It clarifies retained decoding knowledge versus donor content and asks for
+continued work at the two observed stops. This is explicit assistance; the
+preserved saved-method outcome remains unresolved and later work diagnostic.
+Retrospective notes are prompted after clarification, not independent evidence
+of the original causal path. No new artifact, new person, extra participant
+form or exhaustive command is introduced. A demonstrated missing relationship
+or supported rival is required before selecting another source repair; the
+existing factual-alternative/prediction/stop rule applies to any fresh retry.
+
+No result-bearing code, contract, packet, expected answer or canonical authority
+changes in this review. The reviewed source delta is these historical status
+notes plus the local audit/continuation material. Keep the human-first ordering
+and all final gates. M2 remains In progress.
+
+## Trial 16 continuation: diagnosis completed; coordinated teaching repair next
+
+The [continuation analysis and replay evidence](../../../artifacts/quiz/16-fresh-technical-content-control/review-continue/ANALYSIS.md)
+close the bounded diagnostic work. C recovers136 exact envelopes and both
+streams; D's normal path refuses its profile conflict; all six unit controls
+and30 checks reproduce. D's separately labeled salvage remains diagnostic.
+The original unresolved trial and both submissions are preserved.
+
+The content model and all23 final output files reproduce, but two concrete
+operational rivals fit the ten carried action rows: dispatching selection through
+answer mode rather than response shape, and treating remaining local budget as
+transcript matching. Missing active intermediate states permit another wrong
+phase rule. The old retain/reset correction works for its intended cases; the
+complete content chain needs a wider design review before another local edit.
+This supersedes the earlier absence-of-demonstrated-rival decision, not its
+historical evidence. No further participant assignment follows this review.
+
+Next implementation unit, still pending:
+
+- [x] Independently replay the revised unit, generic and control sources;
+  compare actual bytes and preserve55,468 continuation/32,283 original files.
+- [x] Demonstrate the surviving confounds with owner counterexamples, preserving
+  their status as unshown design diagnostics rather than added human gates.
+- [ ] Review every meaning/reference required by the existing record12 query.
+  Map it to carried evidence, observed alternatives and an explicit
+  discriminator. Include role-presence bounds and subject/asserted-result
+  direction; do not require opaque execution or a complete lesson engine.
+- [ ] Own one finite coordinated witness design in `spec/content-teaching-v2.md`.
+  Vary shape independently from mode in valid miniature variants. Show initial
+  and prefix states, independently changing local/global budgets, and specific
+  action results through ACTIVE/COMMITTED/EXHAUSTED states. Preserve existing
+  capacity-retention/reset witnesses. The checked node26 shape1/2/3 with mode1
+  and node27 shape2/3 with mode2 variants establish feasibility, not a final
+  witness selection or space charge. The unlabelled arithmetic tail alone is
+  insufficient to identify the runtime counters.
+- [ ] Ground the asserted-result direction in the same carried representation,
+  or resolve its intended explanatory scope in the smallest owner before
+  implementation. Structural compatibility must not be called assertion truth.
+- [ ] Reconcile Python/Rust builders, admissions, exact charge and affected
+  focused checks for the complete design. Preserve content-v0 behavior and
+  check independence of examples from owner-only names/answer access.
+- [ ] Carry retained learned rules versus borrowed message content into default
+  prospective task wording before readiness, without supplying a unit decoder,
+  parameter values or expected results. Keep one ordinary opening, not a form.
+- [ ] Review the coherent revised material formatively with an exposed
+  collaborator before a further ordinary fresh trial. Record the predicted
+  distinctions and existing stop condition; do not create an unlimited loop
+  of unchanged recruitment. Formative work never substitutes for fresh success.
+
+Only after stable required fresh technical and learner success run exhaustive
+damage, native/Linux, Gate8 and release qualification. No such work or source
+repair was performed by this continuation audit. Do not reduce games without
+a measured capacity reason. Earlier learner/technical findings remain binding;
+M2 stays In progress and no canonical authority is promoted.

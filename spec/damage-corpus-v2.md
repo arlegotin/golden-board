@@ -27,10 +27,9 @@ route at that donor geometry before extracting the complete declared prefix.
 D7 first preserves the 408 v1 operator positions and their exact order.
 Replace v7 by v8 for the active carrier, inventory, grouping and physical
 placement. The foreign route remains the source-built profile3 route. Its
-27714-byte prefix cannot fit the selected W112 sector; ordinal10 therefore
-uses the explicit donor width128 above, with its own observed sector scan.
-Only those prefix cells change. Some are revised interior cells, so this case
-does not promise an unchanged interior. The complete valid foreign route
+27714-byte prefix uses the explicit donor width128 above, with its own observed
+sector scan. Only those prefix cells change. The current active carrier also
+uses width128, so its interior remains unchanged. The complete valid foreign route
 and unchanged correct-recovery-or-explicit-failure/zero-wrong-accept guarantee
 are retained. Do not truncate the prefix, drop the case or enlarge a ceiling.
 This is the sole replacement of the inherited D7 physical mutation geometry.
@@ -65,9 +64,31 @@ Use IDs `B0-000000` through `B0-000020`, in this order:
 
 | Ordinals | Operator | Exact order and target |
 |---|---|---|
-| 0..13 | compressed-body-mutants | required then all-only; lowest numeric compressed body of that closure. For each target: unknown codec2; declared decoded length16385; zero decoded length with trailing source; first token backward-reference before output; one-literal output with nonzero unused flag bits; one-literal output with trailing data; first copy length18 against decoded limit1. Preserve the original stored payload length, filling the explicitly synthetic suffix with zero bytes, and recompute the section and every local check/EH lane. Inventory shape and physical grouping remain unchanged. |
+| 0..13 | compressed-body-mutants | required then all-only. Required targets the lowest numeric compressed required body. All-only targets the diagnostic compressed baseline defined below. For each target: unknown codec2; declared decoded length16385; zero decoded length with trailing source; first token backward-reference before output; one-literal output with nonzero unused flag bits; one-literal output with trailing data; first copy length18 against decoded limit1. Preserve the baseline stored payload length, filling the explicitly synthetic suffix with zero bytes, and recompute the section and every local check/EH lane. Inventory shape and physical grouping remain unchanged. |
 | 14..19 | checked-tier-control-mutants | tier2 then tier3; each: terminal ROOT entry0; terminal ROOT budget0; assembled stream byte length plus1. Change only the named field and recompute the section and local checks/EH lanes. All stored lengths remain unchanged. |
 | 20 | square-inventory-undercoverage | subtract157 from the lowest numeric load section payload length declared in inventory2, keeping the inventory byte length and all other entries unchanged; recompute all inventory section/local checks and fivefold lanes; replace those lanes at their actual matrix cells. Observed Q is unchanged. |
+
+For B0 ordinals7..13 only, derive a valid diagnostic baseline from the canonical
+source before applying the malformed-codec operator. Select the lowest numeric
+all-only CONTENT_BODY stored raw whose deterministic body-codec-v1 LZSS payload
+is at least6 bytes, strictly shorter than its raw payload, and occupies exactly
+the same number of157-byte envelope fragments. Recheck that decoding this
+candidate reproduces the exact source body. The current target is section200.
+Reauthor that section with version1 and the candidate payload; update only its
+inventory entry's version and stored payload length, and recompute inventory,
+section, common-block and EH checks. Preserve inventory byte length, section
+order, dependencies, physical IDs, fragment counts and replica factors. The
+canonical carrier remains unchanged; this exception applies only to these
+seven explicitly reauthored boundary observations.
+
+The source-informed oracle independently derives this same valid baseline from
+the source bodies, rather than adopting observed inventory metadata or decoder
+results as expectations. Use that baseline to admit section metadata for these
+seven cases. The public `wrong_accept_count` retains its existing comparison
+against canonical source envelopes, so both the reauthored inventory and
+authenticated malformed body count as intentional boundary differences. B0's
+existing explicit reauthoring exception remains unchanged; it does not apply
+to D0–D7. All other cases retain the canonical-source baseline.
 
 For the synthetic compressed cases, require the target stored length at least6;
 the last five forms begin respectively `03 00 00`,
@@ -79,7 +100,7 @@ valid decoded content. Required failure must expose neither stream; an
 all-only failure may retain independently valid required content. Exact
 section diagnostics and resource outcomes must be independently derived.
 
-D7 count is415. Total damage count is840+5Q; the current Q1908 gives10380.
+D7 count is415. Total damage count is840+5Q; the current Q1858 gives10130.
 The21 boundary KATs are counted separately and all are required.
 This arithmetic is an operator inventory, not a successful corpus run.
 All observations are generated lazily, one bounded byte string at a time.

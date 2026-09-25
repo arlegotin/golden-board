@@ -623,7 +623,7 @@ fn tenth(raw: &[u8], a: [u8; 191], b: [u8; 191], package: &RecipePackageV1) -> R
     let encoded = [encode_eh_unit(&a), encode_eh_unit(&b)];
     need(tables[&24][16..] == [encoded[0].as_slice(), encoded[1].as_slice()].concat())?;
     let inventory = &tables[&25][16..];
-    need(inventory[..8] == [0, 2, 0, 3, 0, 0, 0, 64])?;
+    need(inventory[..8] == [0, 2, 0, 3, 0, 0, 0, 53])?;
     let mut roster = vec![];
     let mut first = 1u32;
     for header in inventory[8..].chunks_exact(20) {
@@ -736,7 +736,7 @@ fn graph(adjacency: u16, selected: u8) -> Option<u8> {
 // A complete neutral metadata witness lets the production v2 validator check
 // individual ordinal claims without admitting an incomplete illustrative roster.
 fn ordinal_witness(id: u16, ordinal: u16, present: bool) -> bool {
-    let body_ids: Vec<u32> = (16..=18).chain(100..=163).chain(200..=210).collect();
+    let body_ids: Vec<u32> = (16..=18).chain(100..=152).chain(200..=210).collect();
     let mut entries = vec![];
     for sid in [1, 2, 3]
         .into_iter()
@@ -763,7 +763,7 @@ fn ordinal_witness(id: u16, ordinal: u16, present: bool) -> bool {
                 _ => vec![],
             },
             logical_payload_length: 1,
-            game_ordinal: if (100..=163).contains(&sid) {
+            game_ordinal: if (100..=152).contains(&sid) {
                 Some((sid - 100) as u16)
             } else {
                 None
@@ -849,8 +849,8 @@ fn eleventh(raw: &[u8], a: [u8; 191]) -> Result<()> {
         words(&mut out, &[adj]);
         out.extend([mask, result.unwrap_or(0), u8::from(result.is_some())]);
     }
-    for (id, ordinal, has) in [(100u16, 0, 1), (163, 63, 1), (211, 65535, 0), (101, 0, 1)] {
-        let admitted = if (100..=163).contains(&id) {
+    for (id, ordinal, has) in [(100u16, 0, 1), (152, 52, 1), (211, 65535, 0), (101, 0, 1)] {
+        let admitted = if (100..=152).contains(&id) {
             has == 1 && ordinal == id - 100
         } else {
             id >= 211 && has == 0 && ordinal == 65535
@@ -1076,8 +1076,8 @@ fn role_witness(
     }
     Ok(pruned(records, 29).is_ok())
 }
-fn miniature(raw: &[u8]) -> Result<()> {
-    need(u32_at(raw, 0)? == 575 && u32_at(raw, 579)? == 1120 && raw.len() == 1703)?;
+fn miniature(raw: &[u8], package: &RecipePackageV1) -> Result<()> {
+    need(u32_at(raw, 0)? == 575 && u32_at(raw, 579)? == 3523 && raw.len() == 4106)?;
     let mini = take(raw, 4, 575)?;
     let projection = gb_content::stream_validation(mini).map_err(|_| SemanticError)?;
     need(projection.records().len() == 29 && projection.root_record_id() == 29)?;
@@ -1085,11 +1085,64 @@ fn miniature(raw: &[u8]) -> Result<()> {
     let mut at = 0;
     need(u16_at(s, at)? == 48)?;
     at += 2;
-    for _ in 0..48 {
+    // The observation must retain every owned experiment, including witnesses
+    // which share an acceptance result but rule out different alternatives.
+    let scalar_inputs: [[u32; 4]; 48] = [
+        [0, 2, 0, 1],
+        [2, 2, 29, 28],
+        [4, 2, 1, 0],
+        [19, 2, 2, 1],
+        [563, 2, 29, 65535],
+        [571, 2, 26, 0],
+        [571, 2, 26, 27],
+        [573, 2, 8, 7],
+        [573, 2, 8, 9],
+        [573, 2, 8, 65535],
+        [555, 2, 3, 2],
+        [555, 2, 3, 4],
+        [6, 2, 1, 0],
+        [167, 2, 6, 0],
+        [167, 2, 6, 12],
+        [167, 2, 6, 1],
+        [169, 2, 2, 0],
+        [178, 1, 5, 6],
+        [129, 2, 2, 1],
+        [145, 1, 1, 0],
+        [158, 1, 1, 0],
+        [158, 1, 1, 2],
+        [193, 2, 6, 3],
+        [223, 1, 2, 3],
+        [223, 1, 2, 6],
+        [191, 1, 1, 0],
+        [224, 2, 9, 1],
+        [302, 2, 1, 0],
+        [314, 1, 3, 6],
+        [329, 2, 16, 6],
+        [343, 2, 17, 1],
+        [345, 2, 10, 9],
+        [359, 2, 0, 19],
+        [373, 2, 19, 0],
+        [493, 2, 2, 1],
+        [456, 1, 0, 1],
+        [514, 1, 0, 1],
+        [544, 1, 1, 0],
+        [439, 1, 1, 2],
+        [443, 2, 27, 26],
+        [435, 4, 50331648, 16777217],
+        [561, 2, 0, 27],
+        [413, 2, 5, 1],
+        [192, 1, 0, 1],
+        [250, 2, 1, 3],
+        [258, 2, 2, 1],
+        [545, 2, 14, 12],
+        [12, 1, 83, 255],
+    ];
+    for input in scalar_inputs {
         let offset = u16_at(s, at)? as usize;
         let width = u16_at(s, at + 2)? as usize;
         let old = u32_at(s, at + 4)?;
         let new = u32_at(s, at + 8)?;
+        need([offset as u32, width as u32, old, new] == input)?;
         let accepted = u16_at(s, at + 12)?;
         need(matches!(width, 1 | 2 | 4) && accepted <= 1)?;
         need(width == 4 || (old < 1 << (width * 8) && new < 1 << (width * 8)))?;
@@ -1114,22 +1167,14 @@ fn miniature(raw: &[u8]) -> Result<()> {
         words(&mut expected, &[cmin, cmax]);
         expected.extend([tmin, tmax, feedback, outcome]);
         need(take(s, at, 12)? == expected)?;
-        for trace in tmin..=tmax {
-            need(role_witness(
-                &projection,
-                role,
-                mode,
-                pmin == 1,
-                trace == 1,
-            )?)?;
+        for predicate in 0..=1 {
+            for trace in 0..=1 {
+                need(
+                    role_witness(&projection, role, mode, predicate == 1, trace == 1)?
+                        == ((pmin..=pmax).contains(&predicate) && (tmin..=tmax).contains(&trace)),
+                )?;
+            }
         }
-        need(!role_witness(
-            &projection,
-            role,
-            mode,
-            pmin != 1,
-            tmin == 1,
-        )?)?;
         at += 12;
     }
     need(u16_at(s, at)? == 4)?;
@@ -1257,7 +1302,395 @@ fn miniature(raw: &[u8]) -> Result<()> {
         need(row == expected)?;
         at += 32;
     }
-    need(at == s.len())
+    need(at == 1120)?;
+    connected_miniature(take(s, at, 2160)?, mini)?;
+    role_fields(take(s, at + 2160, 101)?, &projection, s)?;
+    assertion_bridge(take(s, at + 2261, 142)?, mini, package)?;
+    need(at + 2403 == s.len())
+}
+
+fn connected_miniature(raw: &[u8], mini: &[u8]) -> Result<()> {
+    let mut expected = vec![];
+    layout(
+        &mut expected,
+        &[
+            (0, 1),
+            (1, 4),
+            (5, 2),
+            (7, 1),
+            (8, 1),
+            (9, 1),
+            (10, 1),
+            (11, 1),
+            (12, 1),
+            (13, 4),
+            (17, 1),
+            (18, 2),
+            (20, 2),
+            (22, 2),
+            (24, 2),
+        ],
+    );
+    words(&mut expected, &[5]);
+    for row in [
+        [13, 1, 9, 1],
+        [13, 2, 10, 1],
+        [13, 3, 11, 1],
+        [14, 2, 22, 2],
+        [13, 14, 24, 2],
+    ] {
+        expected.extend(row);
+    }
+    need(take(raw, 0, 84)? == expected && u16_at(raw, 84)? == 7)?;
+    let variants: [(&[[u32; 4]], &[u8]); 7] = [
+        (&[], b"N11RN12RN1RCNCA21CA11CR"),
+        (&[[512, 1, 2, 3]], b"NCA21CNCA11C"),
+        (&[[512, 1, 2, 3], [514, 1, 0, 1]], b"NCA11C"),
+        (&[[542, 1, 3, 2], [544, 1, 1, 0]], b"NCACA21C"),
+        (&[[467, 2, 2, 16], [573, 2, 8, 22]], b"N11RN12R"),
+        (&[[573, 2, 8, 9]], b"NCNRC"),
+        (&[], b"N2CA2CA2CACA1"),
+    ];
+    let mut at = 86;
+    for (patches, schedule) in variants {
+        need(u16_at(raw, at)? as usize == patches.len())?;
+        at += 2;
+        let mut changed = mini.to_vec();
+        let mut previous_end = 0;
+        for &[offset, width, old, new] in patches {
+            let (offset, width) = (offset as usize, width as usize);
+            need(
+                u16_at(raw, at)? as usize == offset
+                    && u16_at(raw, at + 2)? as usize == width
+                    && u32_at(raw, at + 4)? == old
+                    && u32_at(raw, at + 8)? == new
+                    && offset >= previous_end,
+            )?;
+            need(take(&changed, offset, width)? == &old.to_be_bytes()[4 - width..])?;
+            changed[offset..offset + width].copy_from_slice(&new.to_be_bytes()[4 - width..]);
+            previous_end = offset + width;
+            at += 12;
+        }
+        let projection = gb_content::stream_validation(&changed).map_err(|_| SemanticError)?;
+        need(u16_at(raw, at)? as usize == schedule.len())?;
+        at += 2;
+        let mut state = gb_content::new_run(&projection);
+        for input in schedule {
+            let row = take(raw, at, 26)?;
+            let (op, action) = match input {
+                b'N' => (0, [0, 0, 0, 0]),
+                b'A' => (2, [0, 0, 0, 0]),
+                b'1' => (1, [1, 0, 0, 1]),
+                b'2' => (1, [1, 0, 0, 2]),
+                b'R' => (1, [2, 0, 0, 0]),
+                b'C' => (1, [3, 0, 0, 0]),
+                _ => return Err(SemanticError),
+            };
+            need(row[0] == op && row[1..5] == action)?;
+            let mut last = 0;
+            match op {
+                0 => state = gb_content::new_run(&projection),
+                1 => (state, last) = gb_content::step(&projection, state, &action),
+                _ => {
+                    state = gb_content::advance_committed(&projection, &state)
+                        .map_err(|_| SemanticError)?
+                }
+            }
+            let view = gb_content::run_state_view(&state);
+            let node = projection
+                .records()
+                .iter()
+                .find(|r| r.record_id() == view.current_node_id())
+                .ok_or(SemanticError)?;
+            let P::LessonNode {
+                response_shape,
+                answer_mode,
+                flags,
+                ..
+            } = node.payload()
+            else {
+                return Err(SemanticError);
+            };
+            let selections = if view.phase() == 2 {
+                let response = view.committed_response();
+                need(
+                    response.len() >= 3
+                        && response[0] == *response_shape
+                        && response.len() == 3 + 2 * usize::from(u16_at(response, 1)?),
+                )?;
+                response[3..]
+                    .chunks_exact(2)
+                    .map(|p| u16::from_be_bytes([p[0], p[1]]))
+                    .collect::<Vec<_>>()
+            } else {
+                view.selection_buffer().to_vec()
+            };
+            need(
+                selections.len() <= 2
+                    && u16_at(row, 5)? == view.current_node_id()
+                    && row[7..13]
+                        == [
+                            view.phase(),
+                            last,
+                            *response_shape,
+                            *answer_mode,
+                            *flags,
+                            selections.len() as u8,
+                        ]
+                    && u16_at(row, 13)? == selections.first().copied().unwrap_or(0)
+                    && u16_at(row, 15)? == selections.get(1).copied().unwrap_or(0)
+                    && row[17] == view.outcome()
+                    && u16_at(row, 18)? == view.feedback_ref()
+                    && u16_at(row, 20)? == view.next_node_ref()
+                    && u16_at(row, 22)? == view.global_remaining()
+                    && u16_at(row, 24)? == view.local_remaining(),
+            )?;
+            at += 26;
+        }
+    }
+    need(at == raw.len())
+}
+
+fn role_fields(raw: &[u8], projection: &ContentProjection, supplement: &[u8]) -> Result<()> {
+    let mut expected = vec![];
+    words(&mut expected, &[2]);
+    for (offset, min, max, kind) in [(8, 2, 3, 10), (10, 8, 9, 12)] {
+        words(&mut expected, &[offset]);
+        expected.extend([min, max]);
+        words(&mut expected, &[kind]);
+    }
+    words(&mut expected, &[3]);
+    for (id, kind) in [(0, 0), (19, 10), (25, 12)] {
+        if id != 0 {
+            need(
+                projection
+                    .records()
+                    .iter()
+                    .any(|r| r.record_id() == id && r.kind() == kind),
+            )?;
+        }
+        words(&mut expected, &[id]);
+        expected.push(u8::from(id != 0));
+    }
+    words(&mut expected, &[6]);
+    for (min, max) in [(0, 0), (0, 1), (1, 1)] {
+        for presence in 0..=1 {
+            expected.extend([
+                min,
+                max,
+                presence,
+                u8::from(min <= presence && presence <= max),
+            ]);
+        }
+    }
+    words(&mut expected, &[3]);
+    for id in [26, 27, 28] {
+        let record = projection
+            .records()
+            .iter()
+            .find(|r| r.record_id() == id)
+            .ok_or(SemanticError)?;
+        let P::LessonNode {
+            role,
+            answer_mode,
+            cases,
+            predicate_result_ref,
+            passive_trace_ref,
+            ..
+        } = record.payload()
+        else {
+            return Err(SemanticError);
+        };
+        let bounds = take(supplement, 676, 72)?
+            .chunks_exact(12)
+            .find(|r| r[..2] == [*role, *answer_mode])
+            .ok_or(SemanticError)?;
+        for (reference, kind, min, max) in [
+            (*predicate_result_ref, 10, bounds[2], bounds[3]),
+            (*passive_trace_ref, 12, bounds[8], bounds[9]),
+        ] {
+            need((min..=max).contains(&u8::from(reference != 0)))?;
+            if reference != 0 {
+                need(
+                    projection
+                        .records()
+                        .iter()
+                        .any(|r| r.record_id() == reference && r.kind() == kind),
+                )?;
+            }
+        }
+        let accepted = cases.iter().filter(|case| case.case_class == 1).count() as u16;
+        let minimum = u16_at(bounds, 4)?;
+        let maximum = u16_at(bounds, 6)?;
+        let within = accepted >= minimum && cases.len() <= usize::from(maximum);
+        need(within)?;
+        words(
+            &mut expected,
+            &[
+                id,
+                u16::from(*role),
+                u16::from(*answer_mode),
+                accepted,
+                cases.len() as u16,
+                minimum,
+                maximum,
+                u16::from(within),
+            ],
+        );
+    }
+    exact(raw, expected)
+}
+
+// Finite DEFINE validation of the observed closure. No recipe VM is invoked.
+fn observed_complement(package: &RecipePackageV1) -> Result<()> {
+    let expanded = crate::recipe_wire_v2::expand_recipe_package_v2(&package.encoded, 8)
+        .map_err(|_| SemanticError)?;
+    let (tables, recipes) = wire_frames(&expanded)?;
+    let table = tables.get(&19).ok_or(SemanticError)?;
+    let mut expected = vec![];
+    words(&mut expected, &[19]);
+    expected.extend([2, 0]);
+    longs(&mut expected, &[8, 1, 1]);
+    expected.push(255);
+    need(*table == expected)?;
+    let recipe = recipes.get(&101).ok_or(SemanticError)?;
+    need(
+        recipe.len() == 292
+            && u16_at(recipe, 0)? == 101
+            && u16_at(recipe, 2)? == 0
+            && u16_at(recipe, 4)? == 1
+            && u16_at(recipe, 6)? == 2
+            && u32_at(recipe, 8)? == 7
+            && u32_at(recipe, 12)? == 6,
+    )?;
+    for (at, id, kind, width) in [(32, 1, 2, 8), (44, 1, 5, 16), (56, 2, 2, 8)] {
+        let mut descriptor = vec![];
+        words(&mut descriptor, &[id]);
+        descriptor.extend([kind, 0]);
+        longs(&mut descriptor, &[width, 1]);
+        need(take(recipe, at, 12)? == descriptor)?;
+    }
+    let nodes: [(u8, u8, u32, &[u16], u16); 7] = [
+        (2, 4, 8, &[], 19),
+        (1, 0, 8, &[], 0),
+        (21, 2, 8, &[2, 3], 0),
+        (13, 2, 8, &[1, 4], 0),
+        (24, 5, 16, &[], 0),
+        (5, 5, 16, &[6], 1),
+        (5, 5, 16, &[5], 2),
+    ];
+    for (i, (opcode, kind, width, args, aux)) in nodes.into_iter().enumerate() {
+        let mut node = vec![0u8; 32];
+        node[..2].copy_from_slice(&((i + 1) as u16).to_be_bytes());
+        node[2] = opcode;
+        node[3] = kind;
+        node[4..8].copy_from_slice(&width.to_be_bytes());
+        node[8..10].copy_from_slice(&(args.len() as u16).to_be_bytes());
+        for (j, arg) in args.iter().enumerate() {
+            node[10 + 2 * j..12 + 2 * j].copy_from_slice(&arg.to_be_bytes());
+        }
+        node[18..20].copy_from_slice(&aux.to_be_bytes());
+        need(take(recipe, 68 + 32 * i, 32)? == node)?;
+    }
+    Ok(())
+}
+
+fn assertion_bridge(raw: &[u8], mini: &[u8], package: &RecipePackageV1) -> Result<()> {
+    observed_complement(package)?;
+    let mut bridge = vec![];
+    words(&mut bridge, &[1, 2, 19, 18, 101]);
+    bridge.push(0);
+    words(&mut bridge, &[17, 2]);
+    bridge.extend([1, 1]);
+    words(&mut bridge, &[10, 4]);
+    bridge.push(1);
+    need(take(raw, 0, 22)? == bridge && u16_at(raw, 22)? == 4)?;
+    let descriptors = [(87, 1, 5u32), (100, 1, 1), (145, 1, 1), (314, 1, 3)];
+    for (i, (offset, width, old)) in descriptors.into_iter().enumerate() {
+        let at = 24 + 8 * i;
+        need(
+            u16_at(raw, at)? == offset
+                && u16_at(raw, at + 2)? == width
+                && u32_at(raw, at + 4)? == old,
+        )?;
+    }
+    need(u16_at(raw, 56)? == 4)?;
+    for (i, replacements) in [
+        [255u32, 1, 1, 254],
+        [255, 2, 2, 253],
+        [255, 2, 2, 254],
+        [255, 1, 1, 253],
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let row = take(raw, 58 + 21 * i, 21)?;
+        let mut changed = mini.to_vec();
+        for (j, ((offset, width, old), new)) in
+            descriptors.into_iter().zip(replacements).enumerate()
+        {
+            let (offset, width) = (usize::from(offset), usize::from(width));
+            need(
+                u32_at(row, j * 4)? == new
+                    && take(&changed, offset, width)? == &old.to_be_bytes()[4 - width..],
+            )?;
+            changed[offset..offset + width].copy_from_slice(&new.to_be_bytes()[4 - width..]);
+        }
+        let projection = gb_content::stream_validation(&changed).map_err(|_| SemanticError)?;
+        let payload = |id| {
+            projection
+                .records()
+                .iter()
+                .find(|r| r.record_id() == id)
+                .map(|r| r.payload())
+                .ok_or(SemanticError)
+        };
+        need(matches!(
+            payload(19)?,
+            P::PredicateResult {
+                predicate_binding_ref: 18,
+                subject_opaque_data_ref: 17,
+                result_atom_vector_ref: 10
+            }
+        ))?;
+        need(matches!(
+            payload(18)?,
+            P::SemanticBinding {
+                binding_class: 2,
+                argument: 16,
+                auxiliary: 7,
+                ..
+            }
+        ))?;
+        let P::OpaqueData {
+            data_binding_ref: 16,
+            data,
+        } = payload(17)?
+        else {
+            return Err(SemanticError);
+        };
+        let P::AtomVector {
+            atom_schema_ref: 7,
+            atoms,
+        } = payload(10)?
+        else {
+            return Err(SemanticError);
+        };
+        need(data.len() == 1 && atoms.len() == 1 && data[0] <= 255 && atoms[0] <= 255)?;
+        let by_id = frames(&changed)?;
+        need(
+            by_id.get(&17).ok_or(SemanticError)?.get(8 + 2) == Some(&(data[0] as u8))
+                && by_id.get(&10).ok_or(SemanticError)?.get(8 + 4) == Some(&(atoms[0] as u8)),
+        )?;
+        let computed = (data[0] as u8) ^ 255;
+        need(
+            row[16] == 1
+                && u16_at(row, 17)? == 0
+                && row[19] == computed
+                && row[20] == u8::from(u32::from(computed) == atoms[0]),
+        )?;
+    }
+    need(raw.len() == 142)
 }
 fn position_local(raw: &[u8]) -> Result<()> {
     need(raw.len() == 408 && u16_at(raw, 0)? == 2)?;
@@ -1332,7 +1765,7 @@ fn position_local(raw: &[u8]) -> Result<()> {
     layout(&mut expected, &[(0, 2), (2, 66), (68, 1)]);
     need(take(raw, 394, 14)? == expected)
 }
-fn twelfth(raw: &[u8]) -> Result<()> {
+fn twelfth(raw: &[u8], package: &RecipePackageV1) -> Result<()> {
     for i in 0..3 {
         need(
             u16_at(raw, i * 6)? == i as u16
@@ -1384,18 +1817,18 @@ fn twelfth(raw: &[u8]) -> Result<()> {
         words(&mut expected, &[(i + 1) as u16, *n, *fixed]);
     }
     need(take(raw, 18, 188)? == expected)?;
-    miniature(take(raw, 206, 1703)?)?;
+    miniature(take(raw, 206, 4106)?, package)?;
     for i in 0..10 {
-        let r = take(raw, 1909 + i * 8, 8)?;
+        let r = take(raw, 4312 + i * 8, 8)?;
         need(u16_at(r, 0)? > 0 && u16_at(r, 6)? <= 14)?;
     }
     let mut expected = vec![];
     for row in [[3, 5, 8], [3, 5, 7], [8, 1, 9], [8, 1, 8]] {
         words(&mut expected, &row);
     }
-    need(take(raw, 1989, 24)? == expected)?;
+    need(take(raw, 4392, 24)? == expected)?;
     for i in 0..2 {
-        let frame = take(raw, 2013 + i * 18, 18)?;
+        let frame = take(raw, 4416 + i * 18, 18)?;
         need(
             u16_at(frame, 0)? > 0
                 && u16_at(frame, 2)? == 8
@@ -1405,8 +1838,8 @@ fn twelfth(raw: &[u8]) -> Result<()> {
                 && u16_at(frame, 10)? == 2 + i as u16
                 && u16_at(frame, 12)? == 1,
         )?;
-        let reference = u16_at(raw, 2049 + i * 2)?;
-        let row = take(raw, 2053 + i * 12, 12)?;
+        let reference = u16_at(raw, 4452 + i * 2)?;
+        let row = take(raw, 4456 + i * 12, 12)?;
         need(u32_at(row, 0)? == if i == 0 { 100 } else { 200 })?;
         need(
             u16_at(row, 4)? == u16_at(frame, 0)?
@@ -1417,17 +1850,17 @@ fn twelfth(raw: &[u8]) -> Result<()> {
         )?;
     }
     need(
-        u16_at(raw, 2077 + 151)? == u16_at(raw, 2053 + 12 + 6)?
-            && u16_at(raw, 2077 + 390)? == u16_at(raw, 2053 + 6)?,
+        u16_at(raw, 4480 + 151)? == u16_at(raw, 4456 + 12 + 6)?
+            && u16_at(raw, 4480 + 390)? == u16_at(raw, 4456 + 6)?,
     )?;
-    position_local(take(raw, 2077, 408)?)
+    position_local(take(raw, 4480, 408)?)
 }
 /// Reparse the immutable input bytes; cached logical package fields are not trusted.
 pub fn validate_definitions(
     values: &[&[u8]],
     package: &RecipePackageV1,
 ) -> Result<ContextCommitments> {
-    const WIDTHS: [usize; 12] = [16, 64, 306, 296, 236, 228, 636, 544, 464, 478, 314, 2485];
+    const WIDTHS: [usize; 12] = [16, 64, 306, 296, 236, 228, 636, 544, 464, 478, 314, 4888];
     need(values.len() == 12)?;
     for (value, width) in values.iter().zip(WIDTHS) {
         need(value.len() == width)?;
@@ -1438,7 +1871,7 @@ pub fn validate_definitions(
     ninth(values[8], &package)?;
     tenth(values[9], a, b, &package)?;
     eleventh(values[10], a)?;
-    twelfth(values[11])?;
+    twelfth(values[11], &package)?;
     Ok(ContextCommitments {
         fact12: values[11].to_vec(),
     })
@@ -1502,8 +1935,8 @@ fn required_claims(raw: &[u8], c: &[u8]) -> Result<()> {
         }
         words(&mut expected, &[owner, offset as u16, value, kind]);
     }
-    need(take(c, 1909, 80)? == expected)?;
-    let suffix = &c[2077..];
+    need(take(c, 4312, 80)? == expected)?;
+    let suffix = &c[4480..];
     let id = u16_at(suffix, 22)?;
     let p = projection
         .records()
@@ -1558,11 +1991,11 @@ fn moves(raw: &[u8]) -> Result<Vec<gb_chess::Move>> {
 }
 fn all_claims(raw: &[u8], c: &[u8], bodies: &BTreeMap<u32, Vec<u8>>) -> Result<bool> {
     let (projection, frames) = check_context(raw, 1, c)?;
-    let suffix = &c[2077..];
+    let suffix = &c[4480..];
     let mut bodies_complete = true;
     for i in 0..2 {
-        let carried = take(c, 2013 + i * 18, 18)?;
-        let row = take(c, 2053 + i * 12, 12)?;
+        let carried = take(c, 4416 + i * 18, 18)?;
+        let row = take(c, 4456 + i * 12, 12)?;
         let sid = u32_at(row, 0)?;
         let binding = u16_at(row, 4)?;
         let subject = u16_at(row, 6)?;
@@ -1668,5 +2101,172 @@ impl ContextCommitments {
             },
         };
         ContextProof { required, all }
+    }
+}
+
+#[cfg(test)]
+mod connected_tests {
+    use super::*;
+    fn content_input() -> &'static (Vec<u8>, RecipePackageV1) {
+        static INPUT: std::sync::OnceLock<(Vec<u8>, RecipePackageV1)> = std::sync::OnceLock::new();
+        INPUT.get_or_init(|| {
+            let package = decode_recipe_package_v2(
+                &crate::teaching_recipe_v2::build_teaching_recipe_package().unwrap(),
+                8,
+            )
+            .unwrap();
+            (
+                crate::route_v2::content_teaching(&package).unwrap(),
+                package,
+            )
+        })
+    }
+
+    #[test]
+    fn scalar_schedule_cannot_be_replaced_by_another_valid_consequence() {
+        let (value, package) = content_input();
+        let mut changed = value.clone();
+        changed[585..599].copy_from_slice(&value[599..613]);
+        assert!(miniature(&changed, package).is_err());
+    }
+
+    #[test]
+    fn assertion_recipe_id_does_not_admit_a_substituted_complement_closure() {
+        let (_, package) = content_input();
+        observed_complement(package).unwrap();
+        let expanded =
+            crate::recipe_wire_v2::expand_recipe_package_v2(&package.encoded, 8).unwrap();
+        let (tables, recipes) = wire_frames(&expanded).unwrap();
+        let table_at = tables[&19].as_ptr() as usize - expanded.as_ptr() as usize;
+        let recipe_at = recipes[&101].as_ptr() as usize - expanded.as_ptr() as usize;
+        for (at, byte) in [(table_at + 16, 254), (recipe_at + 68 + 3 * 32 + 2, 11)] {
+            let mut changed = expanded.clone();
+            changed[at] = byte;
+            let compact = crate::recipe_wire_v2::encode_recipe_package_v2(&changed, 8).unwrap();
+            let observed = decode_recipe_package_v2(&compact, 8).unwrap();
+            assert!(observed_complement(&observed).is_err());
+        }
+    }
+
+    fn word(raw: &[u8], at: usize) -> u16 {
+        u16::from_be_bytes(raw[at..at + 2].try_into().unwrap())
+    }
+
+    fn connected_rows(value: &[u8]) -> Vec<Vec<usize>> {
+        assert_eq!(value.len(), 4106, "connected evidence must be carried");
+        let mut at = 1703 + 84;
+        assert_eq!(word(value, at), 7);
+        at += 2;
+        let mut variants = Vec::new();
+        for expected in [23, 12, 6, 8, 8, 5, 13] {
+            at += 2 + usize::from(word(value, at)) * 12;
+            assert_eq!(word(value, at), expected);
+            at += 2;
+            variants.push((0..usize::from(expected)).map(|i| at + 26 * i).collect());
+            at += usize::from(expected) * 26;
+        }
+        assert_eq!(at, 3863);
+        variants
+    }
+
+    #[test]
+    fn connected_controls_separate_shape_flags_phase_and_remaining_budgets() {
+        let (value, package) = content_input();
+        let rows = connected_rows(value);
+        let row =
+            |variant: usize, index: usize| &value[rows[variant][index]..rows[variant][index] + 26];
+        // Same mode, independently changed shape preserves order rather than sorting.
+        assert_eq!(&row(0, 17)[9..17], &[2, 2, 0, 2, 0, 1, 0, 2]);
+        assert_eq!(&row(1, 5)[9..17], &[3, 2, 0, 2, 0, 2, 0, 1]);
+        assert_eq!(&row(2, 5)[9..17], &[3, 2, 1, 2, 0, 1, 0, 1]);
+        // Identical duplicate-selection histories distinguish only flag 0/1.
+        for index in 0..6 {
+            assert_eq!(&row(1, 6 + index)[..8], &row(2, index)[..8]);
+            assert_eq!(&row(1, 6 + index)[22..26], &row(2, index)[22..26]);
+        }
+        assert_eq!(&row(1, 10)[8..17], &[6, 3, 2, 0, 1, 0, 1, 0, 0]);
+        assert_eq!(&row(2, 4)[8..17], &[1, 3, 2, 1, 2, 0, 1, 0, 1]);
+        assert_eq!(&row(1, 11)[12..17], &[1, 0, 1, 0, 0]);
+        assert_eq!(&row(2, 5)[12..17], &[2, 0, 1, 0, 1]);
+        assert_eq!(&row(3, 7)[9..17], &[2, 3, 0, 2, 0, 1, 0, 2]);
+        // Duplicate/capacity results occur both ACTIVE and exhausted; RESET then differs.
+        for (index, result) in [(2, 6), (6, 7)] {
+            assert_eq!(&row(0, index)[7..9], &[3, result]);
+            assert_eq!(&row(4, index)[7..9], &[1, result]);
+            assert_eq!(&row(0, index + 1)[7..9], &[3, 9]);
+            assert_eq!(&row(4, index + 1)[7..9], &[1, 2]);
+            assert_eq!(row(4, index + 1)[12], 0);
+        }
+        assert_eq!(&row(0, 22)[7..9], &[2, 8]);
+        assert_eq!(&row(5, 1)[22..26], &[0, 8, 0, 1]);
+        assert_eq!(&row(5, 4)[22..26], &[0, 7, 0, 0]);
+        // Rejected loops refresh only local budget; eventual advancement caps it at one.
+        assert_eq!(&row(6, 3)[22..26], &[0, 6, 0, 2]);
+        assert_eq!(&row(6, 11)[22..26], &[0, 1, 0, 1]);
+        assert_eq!(&row(6, 12)[7..9], &[3, 1]);
+        assert_eq!(&row(6, 12)[22..26], &[0, 0, 0, 0]);
+        miniature(value, package).unwrap();
+    }
+
+    #[test]
+    fn sequence_repeat_permission_requires_the_carried_flag() {
+        let (value, package) = content_input();
+        let rows = connected_rows(value);
+        let mut changed = value.clone();
+        // Substitute the complete flag-on history while preserving the
+        // declared flag-off state, including consequences after selection.
+        for (&to, &from) in rows[1][6..].iter().zip(&rows[2]) {
+            assert_eq!(&value[to..to + 5], &value[from..from + 5]);
+            changed[to..to + 26].copy_from_slice(&value[from..from + 26]);
+            changed[to + 11] = value[to + 11];
+        }
+        assert_ne!(&changed, value);
+        assert!(miniature(&changed, package).is_err());
+    }
+
+    #[test]
+    fn connected_admission_binds_all_states_and_exact_ordered_inputs() {
+        let (value, package) = content_input();
+        let rows = connected_rows(value);
+        for (i, at) in rows.iter().flatten().enumerate() {
+            let mut changed = value.clone();
+            // Cover every transition and rotate through every consequence byte.
+            changed[at + 5 + i % 21] ^= 1;
+            assert!(miniature(&changed, package).is_err(), "state {i}");
+        }
+        // Duplicating an individually valid state cannot replace a scheduled input.
+        for (to, from) in [
+            (rows[0][6], rows[0][2]),
+            (rows[0][3], rows[0][11]),
+            (rows[1][4], rows[1][3]),
+        ] {
+            let mut changed = value.clone();
+            changed[to..to + 26].copy_from_slice(&value[from..from + 26]);
+            assert!(miniature(&changed, package).is_err());
+        }
+        for at in [1703, 1767, 1788, 2394, 3863, 3878, 3890, 3914] {
+            let mut changed = value.clone();
+            changed[at] ^= 1;
+            assert!(miniature(&changed, package).is_err(), "extension byte {at}");
+        }
+    }
+
+    #[test]
+    fn structurally_valid_assertions_can_disagree_with_the_observed_complement() {
+        let (value, package) = content_input();
+        connected_rows(value);
+        let start = 3964 + 58;
+        for (index, computed, agrees) in [(0, 1, 1), (1, 2, 1), (2, 1, 0), (3, 2, 0)] {
+            let at = start + index * 21;
+            assert_eq!(&value[at + 16..at + 21], &[1, 0, 0, computed, agrees]);
+            let mut changed = value.clone();
+            changed[at + 20] ^= 1;
+            assert!(miniature(&changed, package).is_err());
+        }
+        for at in [3964, 3973, 3979, 3983, 3986, 3990, 4022] {
+            let mut changed = value.clone();
+            changed[at] ^= 1;
+            assert!(miniature(&changed, package).is_err());
+        }
     }
 }

@@ -2053,11 +2053,11 @@ fn verify_owners() -> Result<()> {
         for (raw, expected) in [
             (
                 &include_bytes!("../../../spec/profile-policy-v2.toml")[..],
-                "9eaec2db363649ec2f8799867cecd4fed64d15ead5a64ab63564d670a2662804",
+                "be2d4705d61f217a4de684888d3b277b0a4e2c7c32abfc6a5f218238044702e1",
             ),
             (
                 &include_bytes!("../../../spec/damage-policy-v2.toml")[..],
-                "8284c96f0b8b5f53b28d0575341d9deb5f96a98d886e134579e14d67dc7430e0",
+                "96b485d33e0648b6f9b0171cd5b736ecdd466bcfbd61bd3cf31df6c7b289f766",
             ),
             (
                 &include_bytes!("../../../spec/profile-limits-v2.toml")[..],

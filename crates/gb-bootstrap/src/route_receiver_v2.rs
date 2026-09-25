@@ -180,7 +180,7 @@ fn tables(raw: &[u8]) -> Option<BTreeMap<u16, &[u8]>> {
     Some(rows)
 }
 fn definition_shape(fact: u16, payload: &[u8]) -> bool {
-    let lengths = [16, 64, 306, 296, 236, 228, 636, 544, 464, 478, 314, 2485];
+    let lengths = [16, 64, 306, 296, 236, 228, 636, 544, 464, 478, 314, 4888];
     if !(1..=12).contains(&fact)
         || payload.len() != 14 + lengths[usize::from(fact - 1)]
         || u16_at(payload, 0) != Some(fact)
@@ -200,9 +200,9 @@ fn definition_shape(fact: u16, payload: &[u8]) -> bool {
             || u16_at(value, 14) != Some(29)
             || u16_at(value, 16) != Some(29)
             || u32_at(value, 206) != Some(575)
-            || u32_at(value, 785) != Some(1120)
+            || u32_at(value, 785) != Some(3523)
             || u16_at(value, 789) != Some(48)
-            || u16_at(value, 2077) != Some(2)
+            || u16_at(value, 4480) != Some(2)
         {
             return false;
         }

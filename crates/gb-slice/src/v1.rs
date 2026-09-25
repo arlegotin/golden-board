@@ -307,7 +307,12 @@ pub fn compile_slice_v1(
         serde_json::from_slice(declaration).map_err(|_| error("bad_json", "declaration"))?;
     let object = closed(
         &value,
-        &["schema", "legacy_declaration_sha256", "lesson_records"],
+        &[
+            "schema",
+            "legacy_declaration_sha256",
+            "selected_game_ordinals",
+            "lesson_records",
+        ],
     )?;
     if object["schema"].as_str() != Some("golden-board.m2-slice/v1") {
         return Err(error("schema", "declaration"));
@@ -316,7 +321,29 @@ pub fn compile_slice_v1(
     {
         return Err(error("input_digest", "legacy_declaration_sha256"));
     }
+    let selected = array(&object["selected_game_ordinals"], 64)?
+        .iter()
+        .map(|v| unsigned(v, 63))
+        .collect::<Result<Vec<_>, _>>()?;
+    let excluded = [24, 28, 32, 34, 35, 38, 44, 52, 58, 61, 63];
+    if selected
+        .iter()
+        .copied()
+        .ne((0..64).filter(|id| !excluded.contains(id)))
+    {
+        return Err(error("game_selection", "selected_game_ordinals"));
+    }
     let historical = compile_slice_v0(legacy)?;
+    let game_payloads = selected
+        .into_iter()
+        .map(|ordinal| {
+            historical
+                .game_payloads
+                .get(ordinal as usize)
+                .cloned()
+                .ok_or_else(|| error("game_selection", "selected_game_ordinals"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
     let rows = array(&object["lesson_records"], LESSON_RECORDS_MAX)?;
     if rows.is_empty() {
         return Err(error("record_count", "lesson_records"));
@@ -413,9 +440,9 @@ pub fn compile_slice_v1(
     }
     assignments.push(section);
     let mut all_records = required_records[..required_records.len() - 1].to_vec();
-    let mut opaque_refs = Vec::with_capacity(74);
+    let mut opaque_refs = Vec::with_capacity(63);
     for (namespace, first_section, payloads) in [
-        (2, 100, &historical.game_payloads),
+        (2, 100, &game_payloads),
         (3, 200, &historical.fixture_payloads),
     ] {
         for (ordinal, data) in payloads.iter().enumerate() {
@@ -460,7 +487,7 @@ pub fn compile_slice_v1(
             atom_schema_ref: 1,
             rows: 1,
             columns: 1,
-            cells: vec![74],
+            cells: vec![63],
         },
     )?;
     let region_set = append(
@@ -492,7 +519,7 @@ pub fn compile_slice_v1(
                     name_text_ref: payload_text,
                     storage: 2,
                     type_code: 9,
-                    count: 74,
+                    count: 63,
                 },
             ],
         },
@@ -618,7 +645,7 @@ pub fn compile_slice_v1(
         all_stream,
         required_projection,
         all_projection,
-        game_payloads: historical.game_payloads,
+        game_payloads,
         fixture_payloads: historical.fixture_payloads,
         assignments,
         tier_roots,

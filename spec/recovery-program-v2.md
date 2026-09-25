@@ -120,7 +120,10 @@ inputs. All supplied derived metadata is ignored. Its checked final state has:
 length at16384:u16, cursor16386:u16, next unit16388:u32, previous section16392:u32,
 target16396:u32, found16400:u8, factor16401:u8, first16402:u32, last16406:u32,
 key16410:20 bytes, header-admitted16430:u8. The raw inventory remains unchanged.
-It initializes cursor8, next unit1, and recomputes header admission; successful
+It initializes cursor8, next unit1, and recomputes header admission, including
+inventory version2, zero reserved prefix and exactly53 game ordinals as owned
+by bootstrap-v2. Table25's finite miniature carries the same prefix count;
+it still does not constitute a complete admitted inventory. Successful
 completion requires found1 and cursor equal to length. The output is the whole
 checked state, not merely the selected result fields.
 

@@ -93,11 +93,14 @@ class RecoveryTransfer(unittest.TestCase):
             raise AssertionError('source group enumeration does not exhaust carrier')
         cls.selected = {}
         for factor in (1, 2, 5):
+            # Use a noninitial fragment with a following group for the
+            # ownership/conflict checks. Three groups suffice; requiring four
+            # accidentally made this test depend on retaining a longer game.
             section, groups, _ = next(value for value in cls.sections.values()
                 if value[0].factor == factor
                 and value[0].section_type == (4 if factor == 2 else 3)
-                and len(value[1]) >= 4)
-            cls.selected[factor] = groups[2]
+                and len(value[1]) >= 3)
+            cls.selected[factor] = groups[1]
 
     def setUp(self):
         self.charged_steps = 0

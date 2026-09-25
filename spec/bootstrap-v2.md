@@ -9,8 +9,8 @@ Candidate-ready claim. The 2048-square / 512 KiB scope ceiling remains fixed.
 ## Storage and required closure
 
 The revised logical content is slice-v1. Required body sections are exactly
-16, 17 and 18; the all tier additionally includes 100..163 and 200..210.
-Every required teaching page remains in the required closure. All 64 games
+16, 17 and 18; the all tier additionally includes 100..152 and 200..210.
+Every required teaching page remains in the required closure. All 53 selected games
 remain complete and byte-exact. Changing these sets requires revising this
 owner, not accepting an arbitrary inventory declaration.
 
@@ -22,7 +22,9 @@ reserved bytes 26..29 and decoded byte 191 are zero. Physical interior pad
 is separately owned and may be nonzero.
 
 The inventory section and payload use version 2. The prefix, 20-byte entry
-and dependency encoding remain those of inventory v1. Entry byte 10 is one;
+and dependency encoding remain those of inventory v1, except the u16
+`game_ordinal_count` at prefix bytes6..7 is exactly53. Reserved bytes4..5
+remain zero. Historical inventory versions0/1 still require64. Entry byte 10 is one;
 flags bit 0 denotes an ordinal, bits 1..3 are the literal factor 1, 2 or 5,
 and bits 4..7 are zero. CRC32C check ID is one throughout. The inventory
 payload itself is at most 16,384 bytes and declares its exact own length.
@@ -31,9 +33,9 @@ zero-length capacity need creates no probe section.
 
 The exact factor-five / closure-128 set is `{1,2,3,16,17,18}`. Inventory 1
 has type 1/version 2/no dependencies. Tiers 2/3 have type 2/version 0;
-their dependencies are respectively exactly `(16,17,18)` and all 78 body
+their dependencies are respectively exactly `(16,17,18)` and all 67 body
 IDs in sorted order. Every body has type 3/version 0 or 1/no dependencies.
-Sections 100..163 carry ordinals 0..63 respectively; no other section carries
+Sections 100..152 carry ordinals 0..52 respectively; no other section carries
 an ordinal. All other bodies have factor one/closure 129. Unknown body IDs,
 missing bodies or extra required IDs reject the inventory.
 

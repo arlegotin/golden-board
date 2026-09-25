@@ -681,19 +681,123 @@ impl DamageCorpusV2 {
         s.payload = payload;
         self.replace_envelope(id, &s.envelope().map_err(|_| CorpusError::Construction)?)
     }
+
+    fn optional_codec_baseline(&self) -> Result<(crate::carrier::LogicalSection, Vec<u8>)> {
+        for original in &self.core.sections {
+            if (
+                original.section_type,
+                original.section_version,
+                original.closure_class,
+            ) != (crate::SECTION_CONTENT_BODY, 0, 129)
+            {
+                continue;
+            }
+            let packed = crate::body_codec_v1::encode_lzss(&original.payload)
+                .map_err(|_| CorpusError::Construction)?;
+            if packed.len() < 6 || packed.len() >= original.payload.len() {
+                continue;
+            }
+            let mut section = original.clone();
+            section.section_version = 1;
+            section.payload = packed;
+            let envelope = section.envelope().map_err(|_| CorpusError::Construction)?;
+            let old = original.envelope().map_err(|_| CorpusError::Construction)?;
+            if envelope.len().div_ceil(157) != old.len().div_ceil(157) {
+                continue;
+            }
+            need(
+                crate::body_codec_v1::decode_body(1, &section.payload)
+                    .map_err(|_| CorpusError::Construction)?
+                    == original.payload,
+            )?;
+            let mut inventory = crate::bootstrap_v2::decode_inventory(&self.section(1)?.payload)
+                .map_err(|_| CorpusError::Construction)?;
+            let entry = inventory
+                .entries
+                .iter_mut()
+                .find(|e| e.section_id == section.section_id)
+                .ok_or(CorpusError::Construction)?;
+            entry.section_version = 1;
+            entry.logical_payload_length = section.payload.len() as u32;
+            let payload = crate::bootstrap_v2::encode_inventory(&inventory)
+                .map_err(|_| CorpusError::Construction)?;
+            need(payload.len() == self.section(1)?.payload.len())?;
+            return Ok((section, payload));
+        }
+        Err(CorpusError::Construction)
+    }
+
+    fn replace_optional_codec_payload(
+        &self,
+        baseline: &crate::carrier::LogicalSection,
+        inventory_payload: Vec<u8>,
+        payload: Vec<u8>,
+    ) -> Result<Vec<UnitEntry>> {
+        let original = self.section(baseline.section_id)?;
+        need(
+            (
+                baseline.section_type,
+                baseline.section_version,
+                baseline.closure_class,
+            ) == (crate::SECTION_CONTENT_BODY, 1, 129)
+                && original.section_version == 0
+                && payload.len() == baseline.payload.len()
+                && crate::body_codec_v1::decode_body(1, &baseline.payload)
+                    .map_err(|_| CorpusError::Construction)?
+                    == original.payload,
+        )?;
+        let mut changed = baseline.clone();
+        changed.payload = payload;
+        let envelope = changed.envelope().map_err(|_| CorpusError::Construction)?;
+        let old = original.envelope().map_err(|_| CorpusError::Construction)?;
+        need(envelope.len().div_ceil(157) == old.len().div_ceil(157))?;
+        let blocks = crate::fragment_envelope(
+            8,
+            baseline.section_id,
+            0,
+            baseline.section_type,
+            1,
+            &envelope,
+        )
+        .map_err(|_| CorpusError::Construction)?;
+        let mut entries = self.replace_payload(1, inventory_payload)?;
+        let mut count = 0;
+        for unit in self
+            .core
+            .units
+            .iter()
+            .filter(|u| u.section_id == baseline.section_id)
+        {
+            let block = blocks
+                .get(usize::from(unit.fragment_index))
+                .ok_or(CorpusError::Construction)?;
+            entries[unit.physical_unit_id as usize - 1].bytes =
+                crate::candidate::encode_eh_unit(block).to_vec();
+            count += 1;
+        }
+        need(count == blocks.len() * usize::from(baseline.copy_count))?;
+        Ok(entries)
+    }
     fn boundary(&self, n: usize) -> Result<Generated> {
         if n < 14 {
-            let closure = if n < 7 { 128 } else { 129 };
-            let s = self
-                .core
-                .sections
-                .iter()
-                .find(|s| {
-                    s.section_type == crate::SECTION_CONTENT_BODY
-                        && s.section_version == 1
-                        && s.closure_class == closure
-                })
-                .ok_or(CorpusError::Construction)?;
+            let (s, inventory_payload) = if n < 7 {
+                (
+                    self.core
+                        .sections
+                        .iter()
+                        .find(|s| {
+                            s.section_type == crate::SECTION_CONTENT_BODY
+                                && s.section_version == 1
+                                && s.closure_class == 128
+                        })
+                        .ok_or(CorpusError::Construction)?
+                        .clone(),
+                    None,
+                )
+            } else {
+                let (section, payload) = self.optional_codec_baseline()?;
+                (section, Some(payload))
+            };
             let k = n % 7;
             let mut payload = s.payload.clone();
             need(payload.len() >= 6)?;
@@ -713,6 +817,11 @@ impl DamageCorpusV2 {
                     payload[..start.len()].copy_from_slice(start);
                 }
             }
+            let entries = if let Some(inventory_payload) = inventory_payload {
+                self.replace_optional_codec_payload(&s, inventory_payload, payload)?
+            } else {
+                self.replace_payload(s.section_id, payload)?
+            };
             return Ok((
                 "OBS_UNITS",
                 "compressed-body-mutants",
@@ -720,9 +829,7 @@ impl DamageCorpusV2 {
                     scalar("case_ordinal", k as u64),
                     scalar("section_id", u64::from(s.section_id)),
                 ],
-                d(damage::serialize_obs_units(
-                    &self.replace_payload(s.section_id, payload)?,
-                ))?,
+                d(damage::serialize_obs_units(&entries))?,
             ));
         }
         if n < 20 {

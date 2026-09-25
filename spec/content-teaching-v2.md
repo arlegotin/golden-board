@@ -29,14 +29,25 @@ real content, local traces, rejection loops and forward accepted edges.
 
 ## Framing and exact charge
 
-The fact-12 replacement value is `u32 miniature_bytes || miniature || u32
+The expanded teaching value is `u32 miniature_bytes || miniature || u32
 supplement_bytes || supplement`, all big-endian. The supplement contains the
-four blocks below in order, each preceded by its u16 row count. It is exactly
-1120 bytes: `4*2 + 48*14 + 6*12 + 4*12 + 10*32`.
-The complete framed value is **1703 bytes**. Replacing the former 301-byte
-excerpt and 12-byte ROOT costs 1390 bytes; adding `(2,29,29)` as a six-byte
-context row makes the net route delta **1396 bytes per sector**. Existing
+four original blocks below in order, each preceded by its u16 row count,
+followed by the connected trajectories, role grounding and assertion bridge
+defined below. It is exactly **3523 bytes**: the unchanged1120-byte original
+blocks plus2160+101+142. The complete framed value is **4106 bytes**.
+The original1703-byte expansion replaced the former301-byte
+excerpt and12-byte ROOT at a cost of1390 bytes; adding `(2,29,29)` as a six-byte
+context row made the original net route delta1396 bytes per sector. This
+coordinated extension adds2403 expanded bytes, for a net expanded delta3799. Existing
 actual-stream context, framing, reference and namespace bridges remain.
+
+The complete framed value is carried directly in fact12, without a body-codec
+wrapper. Teaching accessibility takes priority over anthology quantity. The
+capacity review may reduce the selected game subset to retain direct teaching;
+it must preserve the required lessons, physical protection, reserve and size
+limits. Review older teaching dependencies by the same criterion: directly
+carry material when doing so removes an unexplained or circular prerequisite.
+No minimum anthology count overrides that learning requirement.
 
 These are finite numeric relationships, not a second bytecode or a production
 parser dispatch table. Scalar replacement uses the already grounded indexed
@@ -202,6 +213,139 @@ both retain-first and replace-last interpretations of SINGLE. This is a
 material teaching correction, adding 64 bytes per sector; it changes neither
 content-v0 behavior nor the participant's deliverables. Frozen earlier trials
 retain their original bytes and results.
+
+## Connected control trajectories: 2160 bytes
+
+The original four tables remain exact. This extension exposes the intermediate
+states and controlled variants missing in trial16. It is a finite table of
+experiments using the existing runtime, not a new bytecode or interpreter.
+The complete histories begin at the ordinary ROOT and carry every advance;
+there is no hidden start-node shortcut or replenishment of global budget.
+
+First carry the ordinary offset/width layout `L` for each26-byte transition row:
+`(0,1),(1,4),(5,2),(7,1),(8,1),(9,1),(10,1),(11,1),(12,1),
+(13,4),(17,1),(18,2),(20,2),(22,2),(24,2)` (62 bytes including count).
+Then count5 and five four-u8 links `(record_kind,payload_offset,row_offset,width)`:
+`(13,1,9,1),(13,2,10,1),(13,3,11,1),(14,2,22,2),(13,14,24,2)`.
+These link declared controls/initial budgets to observed state fields. Remaining
+budgets subsequently decrease; after advancement local budget is capped by
+remaining global budget. These links do not claim equality at every state.
+
+The remaining2076 bytes are count7 followed by seven variants. Each has
+`patch_count:u16`, that many `(offset:u16,width:u16,old:u32,new:u32)` rows,
+`transition_count:u16`, then26-byte transition rows. Every variant starts from
+the same575-byte miniature. Apply its exact ordered, nonoverlapping scalar
+replacements and require whole-stream admission before any execution.
+
+Transition row fields are `operation:u8, action:4bytes, node:u16, phase:u8,
+last_result:u8, shape:u8, mode:u8, flags:u8, selection_count:u8,
+selection_ids:2*u16, outcome:u8, feedback:u16, next:u16,
+global_remaining:u16, local_remaining:u16`. Unused selection slots are zero;
+committed selections come from the canonical response, other selections from
+the current buffer. Operation0 starts a new ROOT run, operation1 performs its
+four-byte action, operation2 advances the preceding committed state. Operations
+0/2 carry a zero action and zero last-result sentinel (no action occurred).
+These numbers label finite observed transitions; they are not content actions.
+
+For the following exact input schedule, `N` is operation0, `A` operation2,
+`1`/`2` are SELECT region1/2, `R` RESET, and `C` COMMIT. The latter four use
+operation1 and existing action bytes01000001/01000002/02000000/03000000.
+
+| Variant | Scalar replacements `(offset,width,old,new)` | Complete transition schedule |
+|---:|---|---|
+|0|none|N 1 1 R; N 1 2 R; N 1 R C; N C A 2 1 C A 1 1 C R|
+|1|(512,1,2,3)|N C A 2 1 C; N C A 1 1 C|
+|2|(512,1,2,3), (514,1,0,1)|N C A 1 1 C|
+|3|(542,1,3,2), (544,1,1,0)|N C A C A 2 1 C|
+|4|(467,2,2,16), (573,2,8,22)|N 1 1 R; N 1 2 R|
+|5|(573,2,8,9)|N C; N R C|
+|6|none|N 2 C A 2 C A 2 C A C A 1|
+
+Counts are23,12,6,8,8,5,13 (75 transitions total); there are eight patches.
+Semicolons improve readability only; the following N starts the next run.
+Derive all state fields from the actual complete runtime in each language and
+independently recompute them at observation admission. Bind these exact inputs,
+not just arbitrary transitions whose outputs happen to match.
+
+Variants1/2 carry the identical `N C A 1 1 C` history at node27 with
+shape3/mode2 and flags0/1. With flags0 the second selection returns DUPLICATE
+and preserves one region; with flags1 it returns SELECTED and retains both.
+Their budgets and phases match, and their final committed responses differ.
+Variant1 also retains `N C A 2 1 C` to demonstrate order with flags0. Thus
+always permitting repetition for shape3 disagrees with carried evidence.
+
+These traces separate shape from mode, sequence repetition from flags,
+capacity from duplicate handling, specific results from phase, state counts
+from transcript matching, local reset from global persistence, and remaining
+global budget from the declared local maximum. Variant4's duplicate/capacity
+results remain ACTIVE and the next RESET executes; variant0's exhausted states
+ignore later actions with result9. A committed state ignores actions with
+result8. Variant6 reaches node27 with global/local1 despite its declared local3,
+then exhausts with last-result1. Correct final bytes alone cannot replace any
+of these intermediate-state checks.
+
+## Role-field grounding: 101 bytes
+
+Append three counted tables, followed by a counted case table:
+
+1. Count2, rows `(node_payload_offset:u16,role_min_byte:u8,role_max_byte:u8,
+   target_kind:u16)`: `(8,2,3,10),(10,8,9,12)`. Role offsets address the
+   existing12-byte role rows; they identify the predicate and trace intervals.
+2. Count3, rows `(reference:u16,presence:u8)`: `(0,0),(19,1),(25,1)`.
+   Nonzero references have the respective assertion/trace types in the miniature.
+3. Count6, rows `(minimum,maximum,presence,within):4*u8`:
+   `(0,0,0,1),(0,0,1,0),(0,1,0,1),(0,1,1,1),(1,1,0,0),(1,1,1,1)`.
+   `within` means satisfying this inclusive interval, not whole-stream validity.
+4. Count3, rows `(node,role,mode,accepted_cases,total_cases,accepted_min,
+   total_max,within):8*u16`: `(26,5,1,2,3,1,4096,1)`,
+   `(27,5,2,0,0,0,0,1)`, `(28,4,3,0,0,0,0,1)`.
+
+Predicate/trace bounds apply to presence; the case minimum counts accepted
+cases while its maximum counts all cases. Derive actual counts/types from
+the miniature. Check all24 predicate/trace combinations for the six allowed
+role/mode rows through otherwise-typed complete authoring, including rejected
+combinations. Preserve the nine forbidden role/mode checks in source building.
+
+## Typed assertion direction: 142 bytes
+
+The existing miniature has structurally typed opaque subjects and scalar
+assertions, without a global executable interpretation. Append a finite bridge
+to the already carried byte-complement recipe101. This correspondence applies
+only to the four patched examples below; it does not globally register a
+namespace, execute opaque data, or assign a program to the actual query's
+32-byte subject.
+
+Count1 precedes the20-byte bridge:
+`context:u16=2, assertion:u16=19, predicate_binding:u16=18, recipe:u16=101,
+input_descriptor:u8=0, subject:u16=17, subject_payload_offset:u16=2,
+input_bytes:u8=1, output_descriptor:u8=1, result_vector:u16=10,
+vector_payload_offset:u16=4, result_bytes:u8=1`.
+Descriptor0 on the output side is STATUS16; descriptor1 is the BITS8 result.
+Thus subject bytes supply an input and the vector supplies a claimed output.
+The opaque subject itself is data, not the executable recipe.
+
+Count4 precedes shared `(offset:u16,width:u16,old:u32)` replacement descriptors:
+`(87,1,5),(100,1,1),(145,1,1),(314,1,3)`. Each case starts from the original
+miniature and makes all four replacements, including no-ops. Then count4 and
+four21-byte rows `(replacements:4*u32,structurally_accepted:u8,status:u16,
+computed:u8,agrees:u8)`:
+
+```text
+255 1 1 254   1 0 1 1
+255 2 2 253   1 0 2 1
+255 2 2 254   1 0 1 0
+255 1 1 253   1 0 2 0
+```
+
+The result schema's single enum entry and vector atom change together.
+Independently check typed links, whole-stream admission, observed recipe-port
+types and byte complement. Source builders execute recipe101 and compare to
+XOR255. Observation admission checks the observed101's exact seven-node
+complement closure/table19 and independently applies XOR255, as finite DEFINE
+adapter validation; it adds no hidden VM invocation or VM charge. Its nodes,
+descriptors and table must match the carried complement, not merely its ID.
+Both incorrect assertions remain structurally valid. Neither structural
+acceptance nor the lesson's packed case result proves assertion truth.
 
 ## Claim and remaining check
 

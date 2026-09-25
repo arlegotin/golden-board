@@ -6,6 +6,7 @@ The workflow, private staging, retained-file reads and failure ordering are real
 from contextlib import ExitStack, contextmanager
 from io import StringIO
 from pathlib import Path
+import shutil
 import sys
 import tempfile
 import unittest
@@ -41,6 +42,7 @@ class WorkflowExecutionV2Tests(unittest.TestCase):
         self.pair_failure = False
         self.linux_failure = False
         self.assembly_failure = False
+        self.qualification_failure = False
         self.assembly_report = self.report
         self.write('spec/gate8-policy-v2.toml', self.policy_raw)
         self.write('source-marker', self.source)
@@ -124,12 +126,24 @@ class WorkflowExecutionV2Tests(unittest.TestCase):
         def state(*_):
             return ('ready' if self.published else self.state), b'fixture initial roadmap\n'
 
+        def complete(root,policy,before,report,source):
+            self.assertEqual((root,policy,before,report,source),
+                (self.repo,self.policy,b'fixture initial roadmap\n',self.report,self.source))
+            self.events.append('completion')
+            self.state='complete'
+
+        def qualify(*_):
+            if self.qualification_failure:
+                raise ValueError('fixture-qualification-failed')
+
         with ExitStack() as stack:
             replacements = {
                 'ROOT': self.repo, 'admit_transition_v2': state,
                 'build_source_projection_v2': initial, 'validate_source_projection_v2': freeze,
                 'run_checked_v2': components, '_build_native_binary': build,
                 'pair_v2': pair, '_linux_execution': linux, 'assemble_v2': assemble,
+                'admit_release_qualification_v2': qualify,
+                'publish_completion_v2': complete,
             }
             for name, value in replacements.items():
                 stack.enter_context(patch.object(coordinator, name, value))
@@ -186,6 +200,7 @@ class WorkflowExecutionV2Tests(unittest.TestCase):
                 if mode != 'full':
                     expected.append('linux')
                 expected.append('assembly-generate' if mode == 'bootstrap' else 'assembly-check')
+                if mode == 'release':expected.append('completion')
                 self.assertEqual(self.events, expected)
                 self.assertEqual(self.published, mode == 'bootstrap')
 
@@ -196,6 +211,20 @@ class WorkflowExecutionV2Tests(unittest.TestCase):
                 with self.fixture(), self.assertRaisesRegex(ValueError, 'workflow-state'):
                     coordinator.workflow_v2(mode)
                 self.assertEqual(self.events, [])
+
+    def test_release_rejects_unqualified_review_before_expensive_work(self):
+        self.state='ready'
+        self.qualification_failure=True
+        with self.fixture(), self.assertRaisesRegex(ValueError,'fixture-qualification-failed'):
+            coordinator.workflow_v2('release')
+        self.assertEqual(self.events,[])
+
+    def test_completed_release_is_read_only_and_repeatable(self):
+        self.state='complete'
+        with self.fixture():coordinator.workflow_v2('release')
+        self.assertEqual(self.events,['source-snapshot','components','build','native',
+            'linux','assembly-check'])
+        self.assertEqual(self.state,'complete')
 
     def test_native_source_disagreement_prevents_linux_and_assembly(self):
         self.change_during = 'native'
@@ -214,6 +243,25 @@ class WorkflowExecutionV2Tests(unittest.TestCase):
         with self.fixture(), self.assertRaisesRegex(ValueError, 'fixture-source-changed'):
             coordinator.workflow_v2('full')
         self.assertFalse(self.published)
+
+    def test_later_source_owned_pending_roadmap_is_not_mistaken_for_ready(self):
+        from tools.m2 import reopen_participant_revision as transition
+        tail = self.owner['lifecycle']['pre_ready_tail'].encode()
+        archive = (b'| Roadmap revision | 11 |\n| Project state | In progress |\n'
+            b'| Current milestone | M2 \xe2\x80\x94 Full-carrier bootstrap and transport feasibility |\n'
+            b'Old normative text.\n## 13. Project status\n'
+            b'| M2 \xe2\x80\x94 Full-carrier bootstrap and transport feasibility | In progress | '
+            + tail + b' |\n## 14. Adversarial stress matrix\n')
+        current = archive.replace(b'Old normative text.', b'Current frozen normative text.')
+        archive_path = self.repo/'archive/pending/docs/roadmap.md'
+        archive_path.parent.mkdir(parents=True)
+        archive_path.write_bytes(archive)
+        self.write('docs/roadmap.md', current)
+        self.repo.joinpath(self.owner['authority']['report_path']).unlink()
+        shutil.rmtree(self.repo/self.owner['authority']['gate8_root'])
+        with patch.object(transition, 'ARCHIVE', 'archive'), patch.object(
+                transition, '_load_package', return_value=None):
+            self.assertEqual(coordinator.admit_transition_v2(self.repo,self.policy),('pending',current))
 
 
 if __name__ == '__main__':

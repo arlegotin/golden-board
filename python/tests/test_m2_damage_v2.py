@@ -26,7 +26,7 @@ class RevisedDamageObservations(unittest.TestCase):
     def test_counts_domains_and_lazy_case_identity(self):
         corpus = self.corpus
         units=corpus.mapping.units
-        self.assertEqual((corpus.side,corpus.width,units),(2040,112,1908))
+        self.assertEqual((corpus.side,corpus.width,units),(2048,128,1858))
         self.assertEqual(corpus.family_counts,(16,4,256,128,units,21,4*units,415))
         self.assertEqual(sum(corpus.family_counts),840+5*units)
         self.assertEqual(corpus.boundary_count,21)
@@ -88,9 +88,38 @@ class RevisedDamageObservations(unittest.TestCase):
                     blocks.append(result.decoded)
             _,raw = bootstrap.assemble_semantic_copy(blocks,8)
             envelope = bootstrap.decode_section_envelope(raw)
-            self.assertEqual(len(envelope.payload),len(corpus.sections[section_id].payload))
+            baseline = (body_codec_v1.encode_lzss(corpus.sections[section_id].payload)
+                if ordinal>=7 else corpus.sections[section_id].payload)
+            self.assertEqual(len(envelope.payload),len(baseline))
+            if ordinal>=7:
+                self.assertEqual(section_id,200)
+                self.assertEqual(body_codec_v1.decode_body(1,baseline),corpus.sections[section_id].payload)
+                self.assertEqual((len(raw)+156)//157,len(blocks))
             with self.subTest(case=case.case_id), self.assertRaises(ValueError):
                 body_codec_v1.decode_body(1,envelope.payload)
+
+    def test_optional_codec_baseline_is_valid_before_each_codec_mutation(self):
+        from golden_board import body_codec_v1, bootstrap_v2
+        from golden_board.m2_damage_oracle_v2 import DamageOracleV2
+        from dataclasses import replace
+        corpus = self.corpus
+        section,payload = corpus._optional_codec_baseline()
+        self.assertEqual(section.section_id,200)
+        self.assertEqual(body_codec_v1.decode_body(1,section.payload),corpus.sections[200].payload)
+        inventory = bootstrap_v2.decode_inventory(payload)
+        changed = [entry for entry,old in zip(inventory.entries,corpus.inventory.entries,strict=True) if entry!=old]
+        self.assertEqual(len(changed),1)
+        old = next(entry for entry in corpus.inventory.entries if entry.section_id==200)
+        self.assertEqual(changed[0],replace(old,section_version=1,logical_payload_length=len(section.payload)))
+        raw = corpus._units(corpus._optional_codec_replacements(section,payload,section.payload))
+        case = replace(corpus.boundary_case(7),observation=raw)
+        oracle = DamageOracleV2(corpus)
+        clean = oracle.evaluate(corpus.case('D5',0))
+        baseline = oracle._evaluate_observation(case)
+        self.assertEqual(baseline.artifact_state,'exact')
+        self.assertEqual((baseline.required_stream,baseline.all_stream),(clean.required_stream,clean.all_stream))
+        with self.assertRaises(ValueError):
+            corpus._section_replacements(200,bootstrap.encode_section_envelope(section))
 
     def test_compact_and_tier_targets_are_changed_without_extra_bytes(self):
         corpus = self.corpus

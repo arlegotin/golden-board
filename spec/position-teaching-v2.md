@@ -24,9 +24,9 @@ Concatenate these components in order; offsets below are within the suffix.
 | 20..26 | 6 | `(context=0,matrix_record=43,output_length=67)` as u16 |
 | 26..82 | 56 | count9:u16, then the nine extraction triples below, all u16 |
 | 82..149 | 67 | pure Position extracted from MATRIX43 and checked by replay |
-| 149..161 | 12 | `(context=1,opaque_record=717,tagged_start=22,tagged_length=68,position_start=23,position_length=67)` as u16 |
-| 161..229 | 68 | exact OPAQUE717 data bytes `[22,90)` |
-| 229..296 | 67 | exact OPAQUE717 data bytes `[23,90)`, checked by replay |
+| 149..161 | 12 | `(context=1,opaque_record=695,tagged_start=22,tagged_length=68,position_start=23,position_length=67)` as u16 |
+| 161..229 | 68 | exact OPAQUE695 data bytes `[22,90)` |
+| 229..296 | 67 | exact OPAQUE695 data bytes `[23,90)`, checked by replay |
 | 296..314 | 18 | Move16 bit fields `L((10,6),(4,6),(1,3),(0,1))`; pairs mean least-significant-bit index and width |
 | 314..388 | 74 | count12:u16, then the twelve six-byte Move16 rows below |
 | 388..394 | 6 | `(context=1,opaque_record=589,subject_length=69)` as u16 |
@@ -63,7 +63,7 @@ independent replay. Existing required matrices33/43/53/63/73 provide absent0,
 21→20,43→42,45→44, and expiry to0. This suffix ties their displayed field to
 canonical byte offset66; it does not redefine nominal versus effective target.
 
-OPAQUE717 is section200's actual namespace3/code1 fixture. Its full90-byte
+OPAQUE695 is section200's actual namespace3/code1 fixture. Its full90-byte
 subject is version0, kind1; prior byte length12 and six Move16 values; subject
 length2 and move `1060`; expected length68; variant1 and Position67. Parse the
 lengths and require exact EOF before extracting either carried result. Replay

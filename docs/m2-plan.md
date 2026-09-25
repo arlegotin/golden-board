@@ -15,6 +15,21 @@ below are historical evidence, not current gate outcomes. M0/M1 and the
 [`spec/m2-participant-revision-transition-v1.md`](../spec/m2-participant-revision-transition-v1.md).
 Fresh production evidence and affected human validation remain pending.
 
+**Current profile 8 / slice-v1 content scope:** Roadmap Section 5.1 authorizes
+53 complete selected games so that clear teaching, including earlier material,
+takes precedence over anthology quantity. `spec/slice-v1.md` owns the exact
+selection from the independently validated full 64-game v0 source set and its
+dense artifact ordinals `0..52`. Preserve selected game bytes and relative order,
+original ordinal 0, every required teaching page, protection, reserve and the
+512 KiB physical ceiling. The source anthology, its lock/hash, completed M0/M1
+compilation and identities, historical slice-v0 and all frozen results remain
+unchanged. This current scope supersedes all-64 packing/count instructions in
+the historical packets below, including their completion summaries; exact
+accounting and atomic completeness apply to all 53 selected games. The
+[teaching-space review](../studies/m2/teaching-space-review-v2.md) records the
+authorized tradeoff and local arithmetic. Independent current verification
+remains pending; these instructions claim no new gate or participant result.
+
 **Goal:** Execute M2 on the current branch and leave a bounded, independently
 reproducible proof that an elite technical recipient unit can recover a real
 generic content stream from the full raw-bit carrier, while a fresh
@@ -76,22 +91,25 @@ provisional trial → feedback. Do not execute steps 3–6's exhaustive work mer
 to enable another trial. First satisfy the focused readiness and freeze rules
 in `spec/m2-participant-trials-v1.md`, using the actual clean carrier, every
 handed-out observation, independent Python/Rust comparisons and affected
-regressions. A learner may follow a successful provisional technical recovery
-on its exact recovered stream. Existing participants may provide formative
-feedback; unchanged-candidate retry limits still apply to fresh blind trials.
+regressions. A learner may follow exact independently recovered clean lesson
+bytes while G6 remains open. Existing participants may provide formative
+feedback; the historical one-shot retry limit does not cap the current group's
+sustained work.
 
-The trajectory review through trial13 identifies the complete recovery chain,
-not another isolated example, as the current repair. Its implementation is
-tracked in [`the complete recovery plan`](superpowers/plans/2026-09-23-m2-complete-recovery.md).
+The [trajectory review through trial 16](../studies/m2/technical-trajectory-review.md)
+supports preserving the complete recovery chain implemented under
+[`the recovery plan`](superpowers/plans/2026-09-23-m2-complete-recovery.md).
 Active carried programs derive physical ownership from inventory, construct
 all raw observations, form the complete candidate union, then check conflicts
-and identity. Production recovery uses those same admitted programs. Canonical
-wire2 keeps their complete closures within the unchanged carrier ceiling;
-historical encodings and participant evidence remain unchanged. Preserve all64
-games unless an actual measured benefit warrants a separate content decision.
-After focused verification, use the smallest useful formative transfer with
-an already exposed collaborator before another fresh qualifying handoff. A
-correct owner implementation or example replay is not recipient acquisition.
+and identity. Production recovery uses those same admitted programs. The current
+[connected content repair](superpowers/plans/2026-09-24-m2-connected-content-repair.md)
+addresses the demonstrated control/reference confounds and intermediate states
+together. Keep its complete teaching direct and apply the authorized 53-game
+selection; measure the complete carrier and independently verify its current
+bytes. Historical encodings and participant evidence remain unchanged. After
+focused verification, use the smallest useful formative transfer with an
+already exposed collaborator before another fresh qualifying handoff. A correct
+owner implementation or example replay is not recipient acquisition.
 
 The exhaustive production sequence below is the final stable-candidate barrier,
 after the required provisional trials succeed. A trial success is pending until
@@ -111,8 +129,10 @@ no owner threshold and records no production gate outcome.
 
 1. Preserve and verify the prepared historical tuple under the archive-first
    transition owner. Apply that exact transition before primary source
-   replacement. Its revision-11 `In progress` roadmap is the initial authority;
-   do not change its normative bytes or infer authority from generated files.
+   replacement. Its revision-11 `In progress` roadmap remains the archived
+   initial authority; do not rewrite that preserved tuple. Current explicitly
+   authorized scope changes are owned by the live roadmap and bound into fresh
+   source evidence. Do not infer authority from generated files.
 2. Complete the reviewed source owners, independent implementations, bounded
    tests, neutral templates and exact recovered-stream bundles. Resolve source
    defects before the freeze. Use the complete finding ledger at
@@ -206,7 +226,7 @@ M2 is complete only when all of these are true together:
   and amended content owners are closed and have live consumers;
 - four complete shell routes and both recipe interpreters satisfy the
   knowledge-use, held-out, ablation, headroom, and bounded-work gates;
-- the real M2 `ContentStream`, slice, all sixty-four atomic games, inventory,
+- the real M2 `ContentStream`, slice, all selected complete atomic games, inventory,
   capacity/reserve/load-probe sections, and carrier ownership reconcile exactly;
 - the simple extended-Hamming/copy path and stronger `RS(255,191)` path use the
   same common grammar, semantic envelope, mapping family, damage policy, and
@@ -1113,6 +1133,23 @@ without rewriting tracked evidence.
 friendly participants. P8 exhaustive verification may follow a successful
 provisional trial; final qualification still depends on it. The historical
 administrative wording below does not override the active no-forms policy.
+
+**Current P9 rule:** Follow the open-ended technical condition in
+`spec/m2-participant-trials-v1.md`, which supersedes the historical checklist
+below. Use one fixed group of two or three fresh people who can work
+asynchronously, take repeated attempts and share artifact-derived discoveries.
+One member's reproducible solution closes a required part; the group must
+connect every part in one raw-symbol-to-content account. There is no human-time
+ceiling or saved-method cutoff. Preserve all attempts and partial results.
+The frozen packet, observation-local bytes, fail-closed D result, bounded
+decoder resources and all final automated gates remain required. Trial 18's
+later diagnostic work is strong feasibility evidence, but its original
+one-shot result is not retroactively relabeled as a pass. The exact recovered
+clean stream may support a learner trial while G6 remains open; M2 closure
+still requires both gates and final reconciliation.
+
+Sections 16.1–16.3 below are retained as the earlier administrative design,
+not instructions for the current M2 group trial.
 
 **Purpose:** Test the actual hardest claim with one elite individual or fixed
 elite team while allowing realistic trial, error, collaboration, and multiple

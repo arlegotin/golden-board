@@ -47,6 +47,9 @@ class DevelopmentOwners(unittest.TestCase):
         raw = build_teaching_recipe_package()
         package = decode_recipe_package_v2(raw, 8).logical
         self.assertEqual(policy.obs_units_resource_profiles[0][2], sha256(raw).hexdigest())
+        active = tuple(row for row in policy.program_resources if row.profile_version==8)
+        self.assertEqual(tuple(row.recipe_id for row in active),(30,113,202))
+        self.assertTrue(all(row.package_sha256==sha256(raw).hexdigest() for row in active))
         by_id = {r.recipe_id:r for r in package.recipes}
         self.assertEqual(policy.obs_units_resource_profiles[0][3:],
                          (by_id[30].primitive_steps, by_id[30].peak_live_scratch_bytes))

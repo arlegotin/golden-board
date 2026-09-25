@@ -1,4 +1,4 @@
-Use your unchanged saved method and adapter on each observation separately.
+Work on each observation separately, revising your method as needed.
 channels.json names only the storage channel for each file. Save code, commands,
 actual outputs and a short account for each input in answers/heldout/a/ through d/.
 Do not fill unavailable data from the clean observation or another result.
@@ -10,4 +10,5 @@ For generic_record, return its complete record bytes, their SHA-256 and your
 explanation of its fields and references. For chess_transition, return the
 recorded move bytes and resulting position, identifying the representation
 you used. Detailed output conventions are available only as explicit help.
-Keep unsupported conclusions and any later method changes explicit.
+Keep unsupported conclusions and method changes explicit. You may revisit any
+observation and take further attempts without a fixed human-time limit.

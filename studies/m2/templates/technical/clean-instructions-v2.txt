@@ -6,6 +6,6 @@ your reading. Trying ideas, wrong starts and backtracking are welcome.
 Save working code, the command needed to run it, notes and actual outputs
 in answers/clean/ outside this input folder. Keep uncertainties and rival
 interpretations in your own words. An unfinished reproducible result is useful.
-Read the saved-method stages in opening.md before declaring readiness.
-Tell the owner when your recovery method is ready to be preserved unchanged
-for those stages. No extra form is needed.
+Read the continuation in opening.md. Tell the owner when you have a useful
+clean result and want the storage descriptions. You may revisit this work
+later; no extra form is needed.

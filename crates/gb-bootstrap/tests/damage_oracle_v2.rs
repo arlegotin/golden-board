@@ -29,6 +29,32 @@ fn fixture() -> &'static DamageCorpusV2 {
 }
 
 #[test]
+fn optional_codec_cases_preserve_valid_inventory_and_required_stream() {
+    let corpus = fixture();
+    let oracle = SemanticOracleV2::new(corpus);
+    let clean = corpus.case("D5", 0).unwrap();
+    let clean = oracle.project("D5", 0, clean.bytes()).unwrap();
+    for ordinal in 7..14 {
+        let case = corpus.case("B0", ordinal).unwrap();
+        let value = oracle.project("B0", ordinal, case.bytes()).unwrap();
+        assert_eq!(value.artifact_state(), ArtifactState::Degraded);
+        assert_eq!(value.required_stream(), clean.required_stream());
+        assert!(value.all_stream().is_none());
+        assert!(
+            value
+                .section_states()
+                .contains(&(1, SectionState::Verified))
+        );
+        assert!(
+            value
+                .section_states()
+                .contains(&(200, SectionState::Verified))
+        );
+        assert_eq!(value.wrong_accepts(), 2);
+    }
+}
+
+#[test]
 fn complete_source_oracle_owns_selection_render_and_resource_rows() {
     use gb_bootstrap::damage_oracle_v2::FullOracleV2;
     let corpus = fixture();
@@ -111,7 +137,7 @@ fn source_oracle_scans_actual_routes_and_closes_rejection_events() {
             assert!(audit.ledger.row(Kernel::ShellRead).calls > 0);
         } else if count > 0 {
             assert!(audit.ledger.resource().primitive_steps > 0);
-            assert!(audit.paths.iter().all(|p| p.profile == 8 && p.width == 112));
+            assert!(audit.paths.iter().all(|p| p.profile == 8 && p.width == 128));
         } else {
             assert_eq!(audit.ledger.row(Kernel::RecipeParse).calls, 4);
             assert_eq!(audit.ledger.resource().primitive_steps, 0);
@@ -119,8 +145,7 @@ fn source_oracle_scans_actual_routes_and_closes_rejection_events() {
     }
     let donor = corpus.case("D7", 10).unwrap();
     let audit = scanner.scan_owned("D7", 10, donor.bytes()).unwrap();
-    // W128 donor rows112..115 intersect the left W112 prefix as well as
-    // replacing the top route; the two unaffected right/bottom routes remain.
+    // The W128 donor replaces only the top route of the W128 carrier.
     assert_eq!(
         audit
             .paths
@@ -128,7 +153,7 @@ fn source_oracle_scans_actual_routes_and_closes_rejection_events() {
             .filter(|p| p.profile == 8)
             .map(|p| p.sector)
             .collect::<Vec<_>>(),
-        vec![1, 2]
+        vec![1, 2, 3]
     );
     let foreign = audit
         .paths
@@ -139,7 +164,7 @@ fn source_oracle_scans_actual_routes_and_closes_rejection_events() {
     assert_eq!(foreign[0].width, 128);
     assert_eq!(
         foreign[0].hypothesis.mapping_sha256,
-        "7f2f3f2a9bd9238668b3fefc78f31ae2ac4a0fa58acaab2793b24ca4d3c2369c"
+        "57f054eea229b9b013673a767a91065e9ff25077714bb5e8d218b03b973ca29b"
     );
 }
 #[test]
@@ -151,7 +176,7 @@ fn clean_and_permuted_observations_establish_both_typed_streams() {
     assert_eq!(value.artifact_state(), ArtifactState::Exact);
     assert_eq!(value.wrong_accepts(), 0);
     assert_eq!(value.required_stream().unwrap().len(), 42432);
-    assert_eq!(value.all_stream().unwrap().len(), 55664);
+    assert_eq!(value.all_stream().unwrap().len(), 53039);
     assert!(
         value
             .section_states()
@@ -169,7 +194,7 @@ fn checked_malformed_content_has_transport_diagnostics_but_no_invalid_stream() {
         let case = corpus.case("B0", ordinal).unwrap();
         let value = oracle.project("B0", ordinal, case.bytes()).unwrap();
         assert!(value.reauthored_boundary());
-        assert_eq!(value.wrong_accepts(), 1);
+        assert_eq!(value.wrong_accepts(), if ordinal == 7 { 2 } else { 1 });
         assert!(value.all_stream().is_none());
         assert_eq!(value.required_stream().is_some(), matches!(ordinal, 7 | 17));
         assert_eq!(
@@ -290,7 +315,7 @@ fn admitted_bootstrap_context_retains_five_physical_positions_before_inventory()
     for ordinal in [0, 11, 16, 401, 402, 414] {
         let case = corpus.case("D7", ordinal).unwrap();
         let value = oracle.project("D7", ordinal, case.bytes()).unwrap();
-        assert_eq!(value.fragments().len(), 1925, "D7-{ordinal}");
+        assert_eq!(value.fragments().len(), 1858, "D7-{ordinal}");
         for (index, row) in value.fragments()[..5].iter().enumerate() {
             assert_eq!(row.input_id, index as u32 + 1);
             assert_eq!(

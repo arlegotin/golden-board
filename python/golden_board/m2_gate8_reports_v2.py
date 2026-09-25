@@ -548,27 +548,17 @@ def validate_candidate_ready_report_v2(raw,*args,**kwargs):
     return manifest.validate_canonical_manifest(raw)
 
 
-def render_candidate_ready_roadmap_v2(policy, roadmap_raw, report_raw):
-    """Render status-last bytes only; caller must admit the complete report."""
-    owner = _document(policy)
-    report = _report_shape(report_raw, owner)
+def _pending_roadmap_v2(owner, roadmap_raw):
     require(type(roadmap_raw) is bytes and 0 < len(roadmap_raw) <= 8388608
         and roadmap_raw.endswith(b'\n') and b'\r' not in roadmap_raw, 'roadmap-bytes')
     normative = roadmap_normative_sha256(roadmap_raw)
-    virtual = [r for r in report['spec_policy_limit_source_lock_identities']
-               if type(r) is dict and r.get('name') == 'roadmap-normative-v0']
-    require(virtual == [dict(kind='normative_owner',name='roadmap-normative-v0',sha256=normative)], 'roadmap-source')
     lines = roadmap_raw.splitlines(keepends=True)
     require(lines.count(b'| Roadmap revision | 11 |\n') == 1
         and sum(line.startswith(b'| Roadmap revision | ') for line in lines) == 1, 'roadmap-revision')
     before = b'| Project state | In progress |\n'
-    after = b'| Project state | Candidate ready |\n'
     milestone = '| Current milestone | M2 — Full-carrier bootstrap and transport feasibility |\n'.encode()
     row_before = '| M2 — Full-carrier bootstrap and transport feasibility | In progress | '.encode()
-    row_after = ('| M2 — Full-carrier bootstrap and transport feasibility | '+owner['lifecycle']['m2_status']+' | ').encode()
     tail = owner['lifecycle']['pre_ready_tail'].encode()
-    replacement = owner['lifecycle']['candidate_ready_tail'].format(
-        candidate_id=owner['candidate_id'],report_sha256=digest(report_raw)).encode()
     matches = [i for i,line in enumerate(lines) if line.startswith(row_before)]
     require(lines.count(before) == 1 and lines.count(milestone) == 1 and len(matches) == 1
         and sum(line.startswith(b'| Project state | ') for line in lines) == 1
@@ -577,7 +567,30 @@ def render_candidate_ready_roadmap_v2(policy, roadmap_raw, report_raw):
                 for line in lines) == 1, 'roadmap-duplicate-milestone')
     offset = sum(map(len,lines[:matches[0]]))
     require(roadmap_raw.index(b'## 13. Project status') < offset < roadmap_raw.index(b'## 14. Adversarial stress matrix'), 'roadmap-status-location')
-    lines[matches[0]] = lines[matches[0]].replace(row_before,row_after,1).replace(tail,replacement,1)
+    return lines, matches[0], normative
+
+
+def validate_pending_roadmap_v2(policy, roadmap_raw):
+    """Admit a live In-progress roadmap independently of the historical archive."""
+    _pending_roadmap_v2(_document(policy), roadmap_raw)
+
+
+def render_candidate_ready_roadmap_v2(policy, roadmap_raw, report_raw):
+    """Render status-last bytes only; caller must admit the complete report."""
+    owner = _document(policy)
+    report = _report_shape(report_raw, owner)
+    lines, match, normative = _pending_roadmap_v2(owner, roadmap_raw)
+    virtual = [r for r in report['spec_policy_limit_source_lock_identities']
+               if type(r) is dict and r.get('name') == 'roadmap-normative-v0']
+    require(virtual == [dict(kind='normative_owner',name='roadmap-normative-v0',sha256=normative)], 'roadmap-source')
+    before = b'| Project state | In progress |\n'
+    after = b'| Project state | Candidate ready |\n'
+    row_before = '| M2 — Full-carrier bootstrap and transport feasibility | In progress | '.encode()
+    row_after = ('| M2 — Full-carrier bootstrap and transport feasibility | '+owner['lifecycle']['m2_status']+' | ').encode()
+    tail = owner['lifecycle']['pre_ready_tail'].encode()
+    replacement = owner['lifecycle']['candidate_ready_tail'].format(
+        candidate_id=owner['candidate_id'],report_sha256=digest(report_raw)).encode()
+    lines[match] = lines[match].replace(row_before,row_after,1).replace(tail,replacement,1)
     result = b''.join(lines).replace(before,after,1)
     require(roadmap_normative_sha256(result) == normative, 'roadmap-normative-preservation')
     return result
@@ -586,3 +599,31 @@ def render_candidate_ready_roadmap_v2(policy, roadmap_raw, report_raw):
 def validate_candidate_ready_roadmap_v2(policy, before_raw, after_raw, report_raw):
     require(type(after_raw) is bytes and after_raw == render_candidate_ready_roadmap_v2(
         policy,before_raw,report_raw), 'roadmap-transition-binding')
+
+
+def recover_pending_roadmap_v2(policy, ready_raw, report_raw):
+    """Invert only report-bound status edits, then require an exact round trip."""
+    owner = _document(policy)
+    _report_shape(report_raw, owner)
+    require(type(ready_raw) is bytes and 0 < len(ready_raw) <= 8388608
+        and ready_raw.endswith(b'\n') and b'\r' not in ready_raw, 'roadmap-bytes')
+    lines = ready_raw.splitlines(keepends=True)
+    before = b'| Project state | In progress |\n'
+    after = b'| Project state | Candidate ready |\n'
+    row_before = '| M2 — Full-carrier bootstrap and transport feasibility | In progress | '.encode()
+    row_after = ('| M2 — Full-carrier bootstrap and transport feasibility | '+owner['lifecycle']['m2_status']+' | ').encode()
+    tail = owner['lifecycle']['pre_ready_tail'].encode()
+    replacement = owner['lifecycle']['candidate_ready_tail'].format(
+        candidate_id=owner['candidate_id'],report_sha256=digest(report_raw)).encode()
+    matches = [i for i,line in enumerate(lines) if line.startswith(row_after)]
+    require(lines.count(after) == 1 and len(matches) == 1
+        and sum(line.startswith(b'| Project state | ') for line in lines) == 1
+        and sum(line.startswith('| M2 — Full-carrier bootstrap and transport feasibility | '.encode())
+                for line in lines) == 1
+        and ready_raw.count(replacement) == 1
+        and lines[matches[0]].endswith(replacement+b' |\n'), 'roadmap-ready-precondition')
+    lines[matches[0]] = lines[matches[0]].replace(row_after,row_before,1).replace(replacement,tail,1)
+    pending = b''.join(lines).replace(after,before,1)
+    validate_pending_roadmap_v2(policy,pending)
+    validate_candidate_ready_roadmap_v2(policy,pending,ready_raw,report_raw)
+    return pending

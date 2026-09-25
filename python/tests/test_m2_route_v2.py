@@ -41,17 +41,17 @@ class RevisedRoute(unittest.TestCase):
             self.assertEqual(statuses, {0, 4, 11})
 
     def test_shell_accounting_fits_with_unchanged_headroom(self):
-        images = build_route_images_v2(self.compiled, 2040, 112)
+        images = build_route_images_v2(self.compiled, 2048, 128)
         self.assertEqual(images.instruction_cells, sum(len(p)*8 for p in self.prefixes))
         self.assertEqual(images.headroom_cells, max((images.instruction_cells+19)//20, 1024))
         for sector, prefix in zip(images.sectors, self.prefixes):
-            self.assertEqual(len(sector.data)*8, 112*(2040-112))
+            self.assertEqual(len(sector.data)*8, 128*(2048-128))
             self.assertEqual(sector.data[:len(prefix)], prefix)
             self.assertEqual(sum(s.cell_count for s in sector.spans), len(sector.data)*8)
             self.assertGreaterEqual(sector.headroom_cells, 256)
 
     def test_all_framed_examples_receive_example_space_in_the_ledger(self):
-        images=build_route_images_v2(self.compiled,2040,112)
+        images=build_route_images_v2(self.compiled,2048,128)
         for sector,prefix in zip(images.sectors,self.prefixes,strict=True):
             records=validate_route_prefix_v2(prefix,self.compiled,sector.sector_id)
             framed=sum((8+len(row.payload))*8 for row in records if row.kind in (2,3))

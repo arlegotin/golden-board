@@ -110,8 +110,8 @@ class PositionTeaching(unittest.TestCase):
         mutants.extend((original[:-1],original+b'\0'))
         for packet in mutants:
             candidate = self.rewrite(False,{
-                716:replace(records[716],auxiliary=len(packet)),
-                717:replace(records[717],data=tuple(packet))})
+                694:replace(records[694],auxiliary=len(packet)),
+                695:replace(records[695],data=tuple(packet))})
             candidate = replace(candidate,fixture_payloads=(packet,*candidate.fixture_payloads[1:]))
             with self.subTest(packet=packet.hex()), self.assertRaises(ValueError):
                 build_position_teaching_v2(candidate)

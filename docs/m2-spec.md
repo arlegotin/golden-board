@@ -15,6 +15,27 @@ below are historical evidence, not current gate outcomes. M0/M1 and the
 [`spec/m2-participant-revision-transition-v1.md`](../spec/m2-participant-revision-transition-v1.md).
 Fresh production evidence and affected human validation remain pending.
 
+**Current anthology and teaching scope:** Roadmap Section 5.1 authorizes
+exactly 53 complete selected games for active profile 8 / slice-v1. Teaching
+quality takes precedence over anthology quantity for older material and new
+repairs alike. The exact ordinal selection and content assignment are owned by
+[`spec/slice-v1.md`](../spec/slice-v1.md) and its declaration. Both independent
+implementations must validate the full 64-game source set before selection,
+retain selected GameBytes unchanged and in relative order, and use dense
+artifact ordinals `0..52`, with original ordinal 0 still first.
+
+This explicitly supersedes the active-candidate count and no-subset wording
+in Sections 10.3, 13.3 and 13.4 and historical all-64 packing instructions
+elsewhere below. Their exact-byte accounting, atomicity, inventory completeness,
+damage, protection and reserve obligations apply to the complete selected set;
+averages, partial games and estimated payloads remain forbidden. It does not
+change `docs/64_games.md`, its source lock/hash, M0/M1, v0 source grammar,
+the 64-game source compilation or game-set identity, historical slice-v0,
+frozen candidates, or original participant results. The
+[teaching-space review](../studies/m2/teaching-space-review-v2.md) records the
+scope decision and bounded local measurements. Independent current checks and
+complete-carrier verification remain pending; no gate result is claimed.
+
 For this revision, the active source, evidence and lifecycle binding is
 [`spec/m2-participant-revision-promotion-v2.toml`](../spec/m2-participant-revision-promotion-v2.toml),
 with the exact report/bundle contract in
@@ -31,10 +52,12 @@ permits a frozen provisional blind trial after focused source/clean/held-out
 checks, before exhaustive damage, Gate8 or release. Failed trials return directly
 to repair. Successful technical and exact-stream learner trials remain pending
 until the same stable candidate passes every final automated gate and its trial
-bindings reconcile. This explicitly supersedes release-before-exposure ordering
-in the historical sections below, without changing final thresholds, freshness,
-assistance, saved-method checkpoints or retry limits. No names, dates, timers,
-agreements or new participant forms are introduced.
+bindings reconcile. The current M2 technical condition is the prospective
+open-ended group rule in that specification: it replaces the historical
+saved-method cutoff, human-time ceiling and unchanged-retry limit. Carrier,
+damage, exact-output and final automated requirements stay intact. Earlier
+participant results retain their original classifications. No names, dates,
+timers, agreements or new participant forms are introduced.
 
 The active complete recovery composition is owned by
 [`spec/recovery-program-v2.md`](../spec/recovery-program-v2.md), with its neutral
@@ -2040,6 +2063,11 @@ repair, rank, or disambiguate bytes.
 
 ### 13.4 Realistic game use without M3 overreach
 
+The following all-64 rule records the historical slice-v0 scope. The current
+profile 8 / slice-v1 authorization above replaces its game count and no-subset
+restriction with the complete owned 53-game selection and dense ordinals
+`0..52`; its exact accounting and atomic-record requirements remain mandatory.
+
 Because the sixty-four canonical game payloads already exist and are small, M2
 packs all of them into individually inventoried atomic content-body sections in
 `m2_all`. The capacity ledger uses their exact byte-identical M1 payloads and
@@ -2625,9 +2653,8 @@ Before exposure, freeze and hash:
 - recipient-unit membership and the neutral pre-run eligibility/freshness
   descriptions from Section 16.2 (not the post-seal profile inventory);
 - allowed tools, information condition, facilitation/think-aloud mode;
-- the seven-day/16-unit-active-hour total window, with a clean-phase cap of 12
-  unit-active hours and five elapsed days so later work remains inside the
-  total;
+- the open-ended current M2 human-work condition and bounded local decoder
+  resource limits;
 - all clean and held-out questions/observations, neutral later-channel storage
   schemas/mechanics fixtures, adapter boundary, and release order;
 - evaluator expected bytes/states kept outside the participant share;
@@ -2639,18 +2666,11 @@ evaluator manifest appears in participant-visible files.
 
 ### 16.5 Sessions and time accounting
 
-The unit chooses the number and length of sessions within 16 hours of
-**unit-active time** and seven elapsed days, beginning at first successful
-challenge-file access. Unit-active time is the union of
-intervals in which at least one member reads, reasons, codes, inspects output,
-or discusses the task; parallel teammates do not multiply this clock.
-
-**Person-time** is the sum of each member's active intervals and is reported
-descriptively. Breaks, unrelated time, and evaluator-caused setup repair are
-excluded and logged. Unattended computation is separately logged with command,
-input/checkpoint, elapsed time, and the decoder's frozen operation/resource
-count. It remains inside the elapsed window and cannot bypass machine work
-ceilings.
+The current M2 technical group chooses its own number and length of sessions.
+It has no human-time or attempt ceiling. Members may work asynchronously and
+share artifact-derived findings. Ordinary notes and runnable versions show how
+the final result developed; no clock log is required. Each decoder execution
+remains within the frozen machine-work and output bounds.
 
 Membership is fixed. Notes and source may persist across sessions. A new member,
 outside-unit help, task-specific search, or solution-bearing cross-unit contact
@@ -2676,18 +2696,16 @@ A safe response to a confirmation request is: “The observation and your
 ordinary tools are the available evidence; I cannot confirm an interpretation.”
 No hidden help is traded for a favorable time result.
 
-### 16.7 Clean checkpoint and held-outs
+### 16.7 Clean exploration and held-outs
 
 For the active revision, pre-exposure automated readiness and provisional
 qualification follow `spec/m2-participant-trials-v1.md`. Full release is not an
-entry requirement. The saved-method boundary and staged information below remain
-mandatory; the active no-timers/no-forms participant policy supersedes historical
-administrative clock wording.
+entry requirement. The current open-ended group rule supersedes the historical
+one-shot saved-method and administrative clock wording in this section.
 
-The unit first receives only the clean `OBS_BITS` reconstruction question. When
-it declares the decoder ready—or at the first of 12 unit-active hours or five
-elapsed days—the facilitator makes **checkpoint A** by copying and SHA-256
-hashing:
+Each member first receives only the clean `OBS_BITS` reconstruction question.
+When a member has a useful clean result, preserve the runnable version and
+actual output before releasing the storage descriptions to that member:
 
 - decoder core/source and dependency-free run instructions;
 - derivation notes and artifact-specific choice table;
@@ -2695,14 +2713,12 @@ hashing:
 - recovered stream/section states; and
 - open-ended tool/document/help/prior-knowledge account.
 
-The initial question MUST disclose the whole saved-method task before the unit
-declares readiness: develop a general recovery method supported by the artifact,
-including damaged or missing data and explicit uncertainty/failure; preserve
-that method; add only a thin storage adapter after later file formats are
-released; then run the unchanged method and saved adapter on new observations.
-It must make clear that later substantive changes are useful diagnostic work,
-not a replacement result for the saved method. Sustained effort, multiple
-sessions and revisiting the artifact's own checks and examples remain welcome.
+The initial question MUST disclose the whole task: develop a recovery method
+supported by the artifact, including damaged or missing data and explicit
+uncertainty/failure; retain learned rules; use later observations to test and
+improve the method; and preserve earlier versions and their outputs. Sustained
+effort, multiple sessions and revisiting the artifact's own checks and examples
+remain welcome.
 This is advance task disclosure, not an artifact-specific hint. It supplies no
 geometry, ownership, selected code, recovery procedure, format, damage operator,
 case, answer or readiness feedback. The later schemas, mechanics fixtures and
@@ -2712,22 +2728,18 @@ This prospective clarification does not change scoring or reclassify any
 historical round. Both preview and production packagers copy the same technical
 instruction templates; a private duplicate may not change the task wording.
 
-No correctness feedback is given. Only after checkpoint A does the facilitator
+No correctness feedback is given. After useful clean work does the facilitator
 release the pre-frozen neutral storage schemas and tiny nonsemantic mechanics
 fixtures for later `OBS_MATRIX` and `OBS_UNITS` inputs. They were sealed before
 initial exposure but withheld so they could not cue matrix/unit discovery. They
 contain no candidate dimensions, actual operator, damage coordinates, profile
 parameter, selector, or expected result.
 
-If necessary, the unit may now add or change only a thin input-adapter file
-that converts those documented storage forms into the observation types its
-checkpoint-A core already declared. Adapter work counts as active time. The
-core, derivation, recovered clean bytes/states, and artifact-specific logic stay
-byte-identical; a substantive change makes the held-out result diagnostic.
-The facilitator reviews only that narrow boundary, then seals **checkpoint B**
-over core plus adapter before any actual held-out is shown.
+The member may build an adapter and revise its method. Preserve that version
+before the actual held-outs are shown so the information sequence is visible.
+This is an exploration record, not a cutoff on later improvements.
 
-All held-outs are then released together. The checkpoint-B program must:
+All held-outs are then released together. The group's final reproducible work must:
 
 - answer pre-frozen generic-record and chess-transition selectors against the
   already recovered clean stream;
@@ -2740,20 +2752,18 @@ The four damage observations are separately named and carry their predeclared
 channel. They do not reveal expected classification, operator label, clean
 pre-damage values, evaluator-only placement/coordinates, hash, or answer beyond
 the coordinates, erasure markers, or unit IDs inherently present in that named
-channel. There is no intermediate correctness feedback. A core/adapter changed
-after actual release remains useful diagnostic evidence; it cannot
-retroactively pass either checkpointed gate.
-
-Clean work, adapter work, selectors, held-outs, and the final account all stay
-inside the same 16-unit-active-hour/seven-day total. Reaching the checkpoint-A
-cap without a gating-ready clean submission is an unresolved clean-phase
-result; later work may continue diagnostically but cannot escape the clock.
+channel. There is no intermediate owner correctness feedback. Members may revise
+their work after seeing a case. One member's evidenced solution closes that
+part for the group, but the final group account must connect all parts into
+one complete raw-symbol-to-content recovery. No member has to solve every part
+alone. If no member solves a part when the group chooses to stop, that part is
+unresolved; do not manufacture a pass from unrelated partial outputs.
 
 ### 16.8 Required final account
 
 The unit submits:
 
-- runnable checkpointed source and exact command;
+- runnable final source and exact command, with earlier versions retained;
 - canonical matrix/transform, grouping, map, and extracted bytes;
 - per-section states and `m2_required`/`m2_all` availability;
 - required held-out outputs/rejections;
@@ -2762,8 +2772,7 @@ The unit submits:
   alternatives rejected and how, and prior/unresolved status;
 - rejected hypotheses and surviving rival interpretations;
 - tools and generic documentation used;
-- all assistance, accidental exposure, and outside communication; and
-- unit-active time, person-time, session count, and unattended computation.
+- any answer-bearing assistance or outside solution source.
 
 The evaluator computes developer-specific hashes afterward. A unit is never
 failed for not knowing an untaught project identity domain.
@@ -2793,15 +2802,18 @@ A successful predeclared provisional blind trial can qualify after complete
 automated verification of its matching final candidate; it need not be repeated
 solely because those checks ran later. Preserve its source/package, expected
 results and conditions and reconcile them under `spec/m2-participant-trials-v1.md`.
-Until then its result is pending. Formative or helped work cannot be relabeled,
-and changing the workflow does not reset an exhausted unchanged-candidate retry.
+Until then its result is pending. Historical saved-method rounds and helped
+work cannot be relabeled under the new prospective group condition.
 
-A result-bearing round passes only when all roadmap tasks succeed within the
-envelope, the evaluator reproduces the submitted outputs, critical hints are
-zero, unresolved conventions/rivals are zero, and no member's exact-profile
-prior supplied an untaught step.
+A current M2 group round passes only when every roadmap task has at least one
+artifact-evidenced, reproducible solution in the group, those parts connect in
+one complete raw-symbol-to-content account, the evaluator reproduces the
+submitted outputs, no owner critical hint or outside solution supplied a step,
+and no surviving rival defeats the final interpretation. Unresolved role
+semantics outside the frozen generic-record/chess-transition query are useful
+feedback for G7; they do not silently add a new G6 test.
 
-M2 requires one qualifying fresh-unit pass after the latest material
+M2 requires one qualifying fresh-group pass after the latest material
 recipient-visible change. It is not rigidly tied to the first person approached:
 
 - a no-show/withdrawal before exposure may be rescheduled or replaced;
@@ -2812,21 +2824,19 @@ recipient-visible change. It is not rigidly tied to the first person approached:
 - a hinted, contaminated, or answer-revealed round may continue diagnostically;
 - an ambiguity or missing teaching step requires candidate revision and a new
   fresh unit;
-- after one otherwise valid unresolved round on an unchanged candidate, one
-  further fresh unchanged-candidate unit is allowed only after a factual
-  difference in the units/conditions, the prediction that difference tests,
-  and a stop rule are recorded before exposure; and
-- two valid unresolved rounds on the unchanged candidate require redesign,
-  scope narrowing, or an open gate—not open-ended recruitment until success.
+- members may continue trying and revising on the same observed material
+  without a fixed human-time or attempt ceiling; and
+- if all members choose to stop with the same unresolved part, record that
+  failure and diagnose the representation before another group is recruited.
 
 A passing first unit with material exact-profile prior requires another fresh
 unit. A material bootstrap/profile change after a pass also requires another.
-A redesign resets the unchanged-candidate retry count only when it addresses a
-recorded failure mechanism and materially changes recipient-visible evidence;
-cosmetic bytes or wording do not. The first failure remains visible even if the
-retry passes. The first fresh `no_material_prior` pass on the latest bundle is
-the qualifying round; after it exists, any further unchanged-bundle work is
-diagnostic rather than another opportunity to choose a preferred success.
+A redesign addresses the recorded failure mechanism and materially changes
+recipient-visible evidence; cosmetic bytes do not erase a failure. The first
+complete fresh-group `no_material_prior` result on the latest bundle is the
+qualifying round after final reconciliation. Every member's attempts remain
+visible in the group record; partial successes cannot be cherry-picked while
+other members' unresolved results are hidden.
 
 Every exposed round with continuing data permission remains in the final
 history, including failures, withdrawals, invalid environments, and diagnostic
@@ -3169,6 +3179,12 @@ administrative-count arrays, qualifying IDs `none`, and human gate 9
 `not_evaluated`. The v2 pilot object is exactly `validation-pending`. This
 binding introduces no human-success schema, form, timer or additional
 participant phase; fresh affected human validation remains necessary for M2.
+The later M2 completion status uses the compact reviewed qualification record
+and release-last roadmap transition in `spec/m2-participant-trials-v1.md`.
+It does not alter or relabel this frozen automated report; the historical R3
+in-report human-summary rule below does not govern the revised completion
+status. The separate source-bound record and retained trial evidence carry
+the human result without participant names, dates or a new questionnaire.
 The historical participation and completed-trial material below is preserved,
 not reissued as revised participant instructions.
 
@@ -3909,7 +3925,7 @@ eligibility.
 | chess dependency/static term audit | no hidden rule/constants/answers |
 | ordinary versus label-suppressed full semantic paths | same available actions, semantic commits, evaluator predicates, and content events; no required natural-language/Unicode/font dependency |
 | two chess cores on slice expectations | exact agreement before packing |
-| all packed game sections | M1 identities/scores and ordinal `0..63` unchanged |
+| all packed game sections | retained M1 game identities/scores unchanged; every selected dense artifact ordinal present (`0..52` for current profile 8 / slice-v1; historical sets remain `0..63`) |
 
 ### 21.8 Reproducibility, repository, and Linux
 

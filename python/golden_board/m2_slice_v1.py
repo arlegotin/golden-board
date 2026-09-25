@@ -8,6 +8,9 @@ from . import canonical_manifest as manifest, content as c
 from .m2_slice import (SliceAtomicAssignment, SliceCompilation, SliceError,
                        SliceTierRoot, compile_slice_v0, _content_frames)
 
+SELECTED_GAME_ORDINALS = tuple(i for i in range(64)
+    if i not in (24,28,32,34,35,38,44,52,58,61,63))
+
 
 def _fail(path):
     raise SliceError('invalid_slice_v1', path)
@@ -76,11 +79,16 @@ def compile_slice_v1(declaration, legacy_declaration, content_fixture,
                      chess_fixture, game_set, content_spec, constants, curriculum):
     """Compile v1 without trusting generated content or a retained carrier."""
     row = manifest.validate_canonical_manifest(declaration)
-    _object(row, ('schema', 'legacy_declaration_sha256', 'lesson_records'), 'declaration')
+    _object(row, ('schema', 'legacy_declaration_sha256', 'selected_game_ordinals', 'lesson_records'), 'declaration')
     if row['schema'] != 'golden-board.m2-slice/v1' or row['legacy_declaration_sha256'] != hashlib.sha256(legacy_declaration).hexdigest():
         _fail('source_binding')
+    selected = _array(row['selected_game_ordinals'], 'selected_game_ordinals')
+    if (any(type(i) is not int for i in selected)
+            or tuple(selected) != SELECTED_GAME_ORDINALS):
+        _fail('selected_game_ordinals')
     legacy = compile_slice_v0(legacy_declaration, content_fixture, chess_fixture,
                               game_set, content_spec, constants, curriculum)
+    games = tuple(legacy.game_payloads[i] for i in selected)
     logical = _array(row['lesson_records'], 'lesson_records')
     if not 1 <= len(logical) <= 4096:
         _fail('lesson_records')
@@ -132,7 +140,7 @@ def compile_slice_v1(declaration, legacy_declaration, content_fixture,
         return record_id
 
     payload_ids = []
-    for namespace, start, payloads in ((2, 100, legacy.game_payloads), (3, 200, legacy.fixture_payloads)):
+    for namespace, start, payloads in ((2, 100, games), (3, 200, legacy.fixture_payloads)):
         for ordinal, payload in enumerate(payloads):
             binding_id = add(c.ContentSemanticBinding(1, namespace, ordinal + 1, 1, len(payload)))
             payload_id = add(c.ContentOpaqueData(binding_id, tuple(payload)))
@@ -144,10 +152,10 @@ def compile_slice_v1(declaration, legacy_declaration, content_fixture,
     label = add(c.ContentText('0'))
     payload_label = add(c.ContentText('1'))
     limitation = add(c.ContentText('Inspecting raw records alone does not establish their chess meaning.'))
-    matrix = add(c.ContentMatrix(1, 1, 1, (74,)))
+    matrix = add(c.ContentMatrix(1, 1, 1, (len(payload_ids),)))
     regions = add(c.ContentRegionSet(matrix, (c.ContentRegion(1, 0, 0, 1, 0, 1, 1),)))
     schema = add(c.ContentFieldSchema((c.ContentFieldSpec(label, 2, 4, 1),
-                                     c.ContentFieldSpec(payload_label, 2, 9, 74))))
+                                     c.ContentFieldSpec(payload_label, 2, 9, len(payload_ids)))))
     library = add(c.ContentTuple(schema, (c.ContentRecordRefFieldValue((matrix,)),
                                         c.ContentRecordRefFieldValue(tuple(payload_ids)))))
     feedback = add(c.ContentFeedback(5, library, 0))
@@ -168,7 +176,7 @@ def compile_slice_v1(declaration, legacy_declaration, content_fixture,
                 for index in assignment.record_ids), all_frames[all_root])) != stream:
         _fail('section_coverage')
     return SliceCompilation(required, hashlib.sha256(required).hexdigest(), required_view,
-        stream, hashlib.sha256(stream).hexdigest(), view, legacy.game_payloads,
+        stream, hashlib.sha256(stream).hexdigest(), view, games,
         legacy.fixture_payloads, tuple(assignments), legacy.capacity_prototypes,
         (SliceTierRoot(2, 'm2_required', 0, required_view.root_record_id),
          SliceTierRoot(3, 'm2_all', 0, all_root)), legacy.chess_fixture_cases,

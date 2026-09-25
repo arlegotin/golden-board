@@ -147,8 +147,8 @@ fn complete_tree_regenerates_physical_and_actual_recovery_premises() {
     .unwrap();
     assert!(proof.passed());
     assert_eq!(proof.physical_evidence().rows().len(), 8);
-    assert_eq!(proof.recovery_provenance().bodies().len(), 78);
+    assert_eq!(proof.recovery_provenance().bodies().len(), 67);
     assert_eq!(proof.recovery_provenance().required_stream().len(), 42432);
-    assert_eq!(proof.recovery_provenance().all_stream().len(), 55664);
-    assert_eq!(proof.recovery_provenance().first_use().len(), 129618);
+    assert_eq!(proof.recovery_provenance().all_stream().len(), 53039);
+    assert_eq!(proof.recovery_provenance().first_use().len(), 492885);
 }

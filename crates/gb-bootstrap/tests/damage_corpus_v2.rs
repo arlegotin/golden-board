@@ -122,6 +122,84 @@ fn checked_boundaries_reauthor_exactly_one_section_and_preserve_group_shapes() {
         let observation = corpus.case("B0", ordinal).unwrap();
         let changed = ObsUnits::parse(observation.bytes()).unwrap();
         assert_eq!(clean.entries.len(), changed.entries.len());
+        if (7..14).contains(&ordinal) {
+            let mut envelopes = BTreeMap::<u32, BTreeMap<u16, Vec<u8>>>::new();
+            let mut altered = std::collections::BTreeSet::new();
+            for ((old, actual), before) in clean
+                .entries
+                .iter()
+                .zip(&changed.entries)
+                .zip(&clean_common)
+            {
+                assert_eq!(old.physical_unit_id, actual.physical_unit_id);
+                let after = common(actual, 8);
+                assert_eq!(
+                    (after.section_id, after.fragment_index, after.fragment_count),
+                    (
+                        before.section_id,
+                        before.fragment_index,
+                        before.fragment_count
+                    )
+                );
+                if old.bytes != actual.bytes {
+                    altered.insert(after.section_id);
+                }
+                if let Some(previous) = envelopes
+                    .entry(after.section_id)
+                    .or_default()
+                    .insert(after.fragment_index, after.payload.clone())
+                {
+                    assert_eq!(previous, after.payload);
+                }
+            }
+            assert_eq!(altered, [1, 200].into_iter().collect());
+            let envelopes = envelopes
+                .into_iter()
+                .map(|(id, fragments)| (id, fragments.into_values().flatten().collect::<Vec<_>>()))
+                .collect::<BTreeMap<_, _>>();
+            let original = clean_common
+                .iter()
+                .filter(|b| b.section_id == 200)
+                .fold(BTreeMap::new(), |mut m, b| {
+                    m.insert(b.fragment_index, b.payload.clone());
+                    m
+                })
+                .into_values()
+                .flatten()
+                .collect::<Vec<_>>();
+            let original = gb_bootstrap::decode_section(&original).unwrap();
+            let packed = gb_bootstrap::body_codec_v1::encode_lzss(&original.payload).unwrap();
+            assert_eq!(
+                gb_bootstrap::body_codec_v1::decode_body(1, &packed).unwrap(),
+                original.payload
+            );
+            let body = gb_bootstrap::decode_section(&envelopes[&200]).unwrap();
+            assert_eq!(
+                (body.section_version, body.payload.len()),
+                (1, packed.len())
+            );
+            assert!(gb_bootstrap::body_codec_v1::decode_body(1, &body.payload).is_err());
+            let inventory = gb_bootstrap::decode_section(&envelopes[&1]).unwrap();
+            let inventory =
+                gb_bootstrap::bootstrap_v2::decode_inventory(&inventory.payload).unwrap();
+            let target = inventory
+                .entries
+                .iter()
+                .find(|e| e.section_id == 200)
+                .unwrap();
+            assert_eq!(
+                (target.section_version, target.logical_payload_length),
+                (1, packed.len() as u32)
+            );
+            let mut valid = envelopes.clone();
+            let mut baseline = body;
+            baseline.payload = packed;
+            valid.insert(200, gb_bootstrap::encode_section(&baseline).unwrap());
+            let recovered = gb_bootstrap::bootstrap_v2::recover_content(&valid).unwrap();
+            assert!(recovered.required_bytes.is_some());
+            assert!(recovered.all_bytes.is_some());
+            continue;
+        }
         let mut target = None;
         let mut fragments = BTreeMap::new();
         let mut changed_count = 0;
@@ -245,7 +323,7 @@ fn compact_mutants_change_exact_fields_in_all_four_complete_prefixes() {
         let actual = unpack(corpus.case("D7", 408 + n).unwrap().bytes());
         let mut expected = clean.clone();
         for sector in 0..4 {
-            let mut prefix = extract_prefix(&clean, side, 112, sector);
+            let mut prefix = extract_prefix(&clean, side, 128, sector);
             let p = package(&prefix);
             let mut recipe = p + 64;
             for _ in 0..u16::from_be_bytes(prefix[p + 18..p + 20].try_into().unwrap()) {
@@ -301,10 +379,10 @@ fn compact_mutants_change_exact_fields_in_all_four_complete_prefixes() {
                 _ => unreachable!(),
             }
             for bit in 0..prefix.len() * 8 {
-                let (row, col) = gb_bootstrap::sector_cell_at(side, 112, sector, bit).unwrap();
+                let (row, col) = gb_bootstrap::sector_cell_at(side, 128, sector, bit).unwrap();
                 expected[row * side + col] = (prefix[bit / 8] >> (7 - bit % 8)) & 1;
             }
-            assert_eq!(extract_prefix(&actual, side, 112, sector), prefix);
+            assert_eq!(extract_prefix(&actual, side, 128, sector), prefix);
             let length = u32::from_be_bytes(prefix[p - 4..p].try_into().unwrap()) as usize;
             assert!(
                 gb_bootstrap::recipe_wire_v2::decode_recipe_package_v2(&prefix[p..p + length], 8)
@@ -334,21 +412,21 @@ fn donor_conflict_uses_complete_source_built_prefix_at_width128() {
     .unwrap();
     let count = donor.sectors[0].route_prefix_cells as usize;
     assert_eq!(count / 8, 27714);
-    assert!(count > 112 * (usize::from(side) - 112));
+    assert!(count <= 128 * (usize::from(side) - 128));
     let mut expected = clean.clone();
     let mut interior_changes = 0;
     for bit in 0..count {
         let (row, col) = gb_bootstrap::sector_cell_at(usize::from(side), 128, 0, bit).unwrap();
         let flat = row * usize::from(side) + col;
         expected[flat] = donor.sectors[0].bits[bit];
-        if (112..usize::from(side) - 112).contains(&row)
-            && (112..usize::from(side) - 112).contains(&col)
+        if (128..usize::from(side) - 128).contains(&row)
+            && (128..usize::from(side) - 128).contains(&col)
             && expected[flat] != clean[flat]
         {
             interior_changes += 1;
         }
     }
-    assert!(interior_changes > 0);
+    assert_eq!(interior_changes, 0);
     assert_eq!(actual, expected);
 }
 
@@ -382,7 +460,7 @@ fn undercoverage_reauthors_only_inventory_and_preserves_observed_unit_count() {
     let actual = unpack(corpus.case("B0", 20).unwrap().bytes());
     let clean = ObsUnits::parse(corpus.case("D5", 0).unwrap().bytes()).unwrap();
     let side = clean_bits.len().isqrt();
-    let width = 112;
+    let width = 128;
     let interior = side - 2 * width;
     let mapping = gb_bootstrap::mapping_v2::derive(side as u16, width as u16).unwrap();
     let mut inventory = BTreeMap::new();

@@ -182,7 +182,13 @@ impl<'a> FullOracleV2<'a> {
         ledger.release_transients()?;
         let result = render(channel, &mut selected, &mut context.hypotheses, &mut ledger)?;
         let sidecar = resource_sidecar(channel, raw, &result, &ledger)?;
-        let semantic = super::SemanticOracleV2::new(self.scanner.source)
+        let semantic_oracle = super::SemanticOracleV2::new(self.scanner.source);
+        if family == "B0" && (7..14).contains(&ordinal) {
+            semantic_oracle
+                .validate_optional_codec_baseline(&selected.sections)
+                .map_err(|_| ScanError::Source)?;
+        }
+        let semantic = semantic_oracle
             .finish(
                 selected.state,
                 selected.sections,

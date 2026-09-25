@@ -4,7 +4,7 @@ from . import bootstrap as base
 from .body_codec_v1 import decode_body
 
 REQUIRED_BODIES = (16, 17, 18)
-ALL_BODIES = (*REQUIRED_BODIES, *range(100, 164), *range(200, 211))
+ALL_BODIES = (*REQUIRED_BODIES, *range(100, 153), *range(200, 211))
 SPINE = frozenset((1, 2, 3, *REQUIRED_BODIES))
 PAYLOAD_MAX = 16_384
 
@@ -27,14 +27,14 @@ def decode_inventory_entry_header(data):
             or (closure == 128) != (sid in SPINE)
             or (factor == 5) != (sid in SPINE)
             or not 1 <= size <= PAYLOAD_MAX or deps > base.DEPENDENCY_MAX
-            or (has_ordinal and (kind != 3 or not 100 <= sid < 164 or ordinal != sid - 100))
+            or (has_ordinal and (kind != 3 or not 100 <= sid < 153 or ordinal != sid - 100))
             or (not has_ordinal and ordinal != 0xffff)
-            or has_ordinal != (100 <= sid < 164)):
+            or has_ordinal != (100 <= sid < 153)):
         _reject('inventory_v2.entry')
     if sid == 1:
         valid = kind == 1 and version == 2 and deps == 0
     elif sid in (2, 3):
-        valid = kind == 2 and version == 0 and deps == (3 if sid == 2 else 78)
+        valid = kind == 2 and version == 0 and deps == (3 if sid == 2 else 67)
     elif sid in ALL_BODIES:
         valid = kind == 3 and version in (0, 1) and deps == 0
         if sid not in SPINE:

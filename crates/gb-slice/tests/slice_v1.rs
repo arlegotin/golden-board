@@ -72,9 +72,16 @@ fn declaration() -> Value {
     json!({
         "schema":"golden-board.m2-slice/v1",
         "legacy_declaration_sha256": format!("{:x}",Sha256::digest(legacy().declaration)),
+        "selected_game_ordinals":selected_ordinals(),
         "lesson_records":payloads.into_iter().enumerate().map(|(i,(kind,payload))|
             json!({"record_id":i+1,"kind":kind,"payload":payload})).collect::<Vec<_>>()
     })
+}
+
+fn selected_ordinals() -> Vec<usize> {
+    (0..64)
+        .filter(|id| ![24, 28, 32, 34, 35, 38, 44, 52, 58, 61, 63].contains(id))
+        .collect()
 }
 
 fn raw(value: &Value) -> Vec<u8> {
@@ -98,8 +105,12 @@ fn independently_compiles_shared_teaching_and_atomic_canonical_games() {
     let compiled = compile_slice_v1(&raw(&declaration()), legacy()).unwrap();
     let historical = compile_slice_v0(legacy()).unwrap();
     assert_eq!(compiled.required_projection().records().len(), 13);
-    assert_eq!(compiled.all_projection().records().len(), 171);
-    assert_eq!(compiled.game_payloads(), historical.game_payloads());
+    assert_eq!(compiled.all_projection().records().len(), 149);
+    let retained: Vec<_> = selected_ordinals()
+        .into_iter()
+        .map(|i| historical.game_payloads()[i].clone())
+        .collect();
+    assert_eq!(compiled.game_payloads(), retained);
     assert_eq!(compiled.fixture_payloads(), historical.fixture_payloads());
     assert_eq!(
         compiled.capacity_prototypes(),
@@ -110,14 +121,14 @@ fn independently_compiles_shared_teaching_and_atomic_canonical_games() {
     for id in 1..13 {
         assert_eq!(required[&id], all[&id]);
     }
-    assert_eq!(compiled.assignments().len(), 76);
+    assert_eq!(compiled.assignments().len(), 65);
     assert_eq!(compiled.assignments()[0].closure(), Closure::Required);
     assert_eq!(compiled.assignments()[0].section_id(), 16);
     assert_eq!(
         compiled.assignments()[0].record_ids(),
         &(1..13).collect::<Vec<_>>()
     );
-    for (ordinal, payload) in historical.game_payloads().iter().enumerate() {
+    for (ordinal, payload) in retained.iter().enumerate() {
         let assignment = &compiled.assignments()[ordinal + 1];
         assert_eq!(assignment.section_id(), 100 + ordinal as u16);
         assert_eq!(assignment.closure(), Closure::AllOnly);
@@ -156,6 +167,48 @@ fn independently_compiles_shared_teaching_and_atomic_canonical_games() {
         rebuilt.extend_from_slice(root.frame());
         assert_eq!(rebuilt, stream);
     }
+}
+
+#[test]
+fn selected_games_require_exact_source_ordinals_before_dense_reindexing() {
+    let original = declaration();
+    compile_slice_v1(&raw(&original), legacy()).unwrap();
+    let mut variants = vec![
+        json!(null),
+        json!(true),
+        json!([]),
+        json!((0..64).collect::<Vec<_>>()),
+    ];
+    for (index, replacement) in [
+        (0, json!(true)),
+        (0, json!(1)),
+        (1, json!(0)),
+        (24, json!(24)),
+        (52, json!(63)),
+    ] {
+        let mut list = original["selected_game_ordinals"].clone();
+        list[index] = replacement;
+        variants.push(list);
+    }
+    let mut reversed = original["selected_game_ordinals"]
+        .as_array()
+        .unwrap()
+        .clone();
+    reversed.reverse();
+    variants.push(json!(reversed));
+    for selected in variants {
+        let mut changed = original.clone();
+        changed["selected_game_ordinals"] = selected;
+        let encoded = serde_json::to_vec(&changed).unwrap();
+        let encoded = canonicalize_manifest(&encoded).unwrap_or(encoded);
+        assert!(compile_slice_v1(&encoded, legacy()).is_err());
+    }
+    let mut missing = original;
+    missing
+        .as_object_mut()
+        .unwrap()
+        .remove("selected_game_ordinals");
+    assert!(compile_slice_v1(&raw(&missing), legacy()).is_err());
 }
 
 #[test]
@@ -200,7 +253,7 @@ fn library_payload_is_reachable_by_neutral_inspection_without_scoring_a_match() 
         RecordPayload::Tuple { field_values, .. } => {
             assert_eq!(field_values.len(), 2);
             match &field_values[1] {
-                gb_content::FieldValue::RecordRefs(references) => assert_eq!(references.len(), 74),
+                gb_content::FieldValue::RecordRefs(references) => assert_eq!(references.len(), 63),
                 _ => panic!("library tuple must reference payloads"),
             }
         }

@@ -80,7 +80,7 @@ def build_position_teaching_v2(compiled: SliceCompilation) -> PositionTeachingV2
     required = _project(compiled.required_content_bytes,compiled.required_content_sha256,compiled.required_projection)
     all_records = _project(compiled.content_bytes,compiled.content_sha256,compiled.projection)
     _require(type(compiled.atomic_assignments) is tuple and len(compiled.atomic_assignments) <= 4095, 'assignments.bound')
-    _require(type(compiled.game_payloads) is tuple and len(compiled.game_payloads) == 64
+    _require(type(compiled.game_payloads) is tuple and len(compiled.game_payloads) == 53
              and type(compiled.fixture_payloads) is tuple and len(compiled.fixture_payloads) == 10, 'subjects.count')
     game = _subject(compiled,all_records,100,2,1,compiled.game_payloads[0],(588,589))
     _require(len(game) == 69 and int.from_bytes(game[:2],'big') == 33 and game[-1] == 0, 'game.shape')
@@ -99,7 +99,7 @@ def build_position_teaching_v2(compiled: SliceCompilation) -> PositionTeachingV2
     _require(first_position == replayed and first_position[-3:] == bytes((1,15,21)), 'matrix.replay')
     _require(matrix.cells[25:27] == (21,20), 'matrix.target_relation')
 
-    packet = _subject(compiled,all_records,200,3,1,compiled.fixture_payloads[0],(716,717))
+    packet = _subject(compiled,all_records,200,3,1,compiled.fixture_payloads[0],(694,695))
     prior,subject,expected_start,tagged = _fixture_parts(packet,1)
     _require(len(packet) == 90 and len(prior) == 12 and subject == bytes.fromhex('1060')
              and expected_start == 22 and len(tagged) == 68 and tagged[0] == 1, 'fixture.example')
@@ -110,7 +110,7 @@ def build_position_teaching_v2(compiled: SliceCompilation) -> PositionTeachingV2
     promotions = []
     promotion_prior = None
     for ordinal in range(3,7):
-        binding = 716+2*ordinal
+        binding = 694+2*ordinal
         packet = _subject(compiled,all_records,200+ordinal,3,ordinal+1,
             compiled.fixture_payloads[ordinal],(binding,binding+1))
         prior,subject,_,_ = _fixture_parts(packet,ordinal+1)
@@ -150,7 +150,7 @@ def build_position_teaching_v2(compiled: SliceCompilation) -> PositionTeachingV2
     result = b''.join((
         _u16((2,)),_layout(((0,64),(64,1),(65,1),(66,1))),_u16((0,43,67)),
         _u16((len(extraction),))+_u16(v for row in extraction for v in row),first_position,
-        _u16((1,717,22,68,23,67)),tagged,fixture_position,
+        _u16((1,695,22,68,23,67)),tagged,fixture_position,
         _layout(((10,6),(4,6),(1,3),(0,1))),bytes(move_rows),
         _u16((1,589,len(game))),_layout(((0,2),(2,2*len(game_moves)),(len(game)-1,1))),
     ))

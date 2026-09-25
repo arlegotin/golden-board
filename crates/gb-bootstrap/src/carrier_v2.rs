@@ -304,7 +304,7 @@ fn section(
         check_id: CHECK_CRC32C,
         copy_count: factor,
         dependencies: deps,
-        game_ordinal: if (100..=163).contains(&id) {
+        game_ordinal: if (100..=152).contains(&id) {
             Some((id - 100) as u8)
         } else {
             None
@@ -313,8 +313,19 @@ fn section(
     })
 }
 
+pub(crate) fn encode_body_v2(raw: &[u8]) -> Result<(u16, Vec<u8>)> {
+    let compressed = crate::body_codec_v1::encode_lzss(raw).map_err(|_| CarrierError::Section)?;
+    // All actual body envelopes are dependency-free: header plus CRC costs22.
+    // Byte savings alone never justify an extra decoding step at equal cell cost.
+    if (22 + compressed.len()).div_ceil(157) < (22 + raw.len()).div_ceil(157) {
+        Ok((1, compressed))
+    } else {
+        Ok((0, raw.to_vec()))
+    }
+}
+
 pub fn derive_capacity(slice: &SliceCompilation) -> Result<Capacity> {
-    require(slice.assignments().len() == 78 && slice.tier_roots().len() == 2)?;
+    require(slice.assignments().len() == 67 && slice.tier_roots().len() == 2)?;
     for (stream, projection) in [
         (slice.required_stream(), slice.required_projection()),
         (slice.all_stream(), slice.all_projection()),
@@ -330,7 +341,7 @@ pub fn derive_capacity(slice: &SliceCompilation) -> Result<Capacity> {
     let mut sections = Vec::new();
     let mut raw_sum = 0;
     let mut stored_sum = 0;
-    let expected: Vec<u32> = (16..=18).chain(100..=163).chain(200..=210).collect();
+    let expected: Vec<u32> = (16..=18).chain(100..=152).chain(200..=210).collect();
     require(
         slice
             .assignments()
@@ -355,8 +366,7 @@ pub fn derive_capacity(slice: &SliceCompilation) -> Result<Capacity> {
         let required = [16, 17, 18].contains(&id);
         require((assignment.closure() == Closure::Required) == required)?;
         raw_sum += body.len() as u64;
-        let (version, stored) =
-            crate::body_codec_v1::encode_body(&body).map_err(|_| CarrierError::Section)?;
+        let (version, stored) = encode_body_v2(&body)?;
         stored_sum += stored.len() as u64;
         sections.push(section(
             id,
@@ -912,6 +922,25 @@ pub fn verify_clean_carrier(slice: &SliceCompilation, raw: &[u8], width: u16) ->
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn profile8_keeps_raw_bodies_when_compression_saves_no_fragment() {
+        for length in [100, 134, 135] {
+            let raw = vec![0; length];
+            assert_eq!(crate::body_codec_v1::encode_body(&raw).unwrap().0, 1);
+            assert_eq!(encode_body_v2(&raw).unwrap(), (0, raw));
+        }
+        let raw = vec![0; 136];
+        let (version, stored) = encode_body_v2(&raw).unwrap();
+        assert_eq!(version, 1);
+        assert_eq!((22 + stored.len()).div_ceil(157), 1);
+        assert_eq!((22 + raw.len()).div_ceil(157), 2);
+        assert_eq!(
+            crate::body_codec_v1::decode_body(version, &stored).unwrap(),
+            raw
+        );
+        assert!(encode_body_v2(&vec![0; 16385]).is_err());
+    }
     #[test]
     fn capacity_projection_rejects_unknown_keys_wrong_types_order_and_totals() {
         let raw = neutral_manifest().unwrap();
