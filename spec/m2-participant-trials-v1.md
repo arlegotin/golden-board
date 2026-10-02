@@ -80,10 +80,10 @@ candidate. The ordinary fresh-trial, readiness, assistance and retry rules still
 apply; neither a cosmetic edit nor formative success resets an exhausted retry.
 
 The historical connected-content application is the
-[connected content repair](../docs/superpowers/plans/2026-09-24-m2-connected-content-repair.md),
+[connected content repair](content-teaching-v2.md),
 owned by [the content teaching specification](content-teaching-v2.md). Both
-implementations and their focused teaching regressions are complete. The next
-formative handoff uses participant16 and the same content query. Its frozen
+implementations and their focused teaching regressions are complete. That historical
+formative handoff used participant16 and the same content query. Its frozen
 readiness and check results belong in
 `artifacts/quiz/17-connected-content-formative/owner/`; install and expose that
 packet only after all required finite checks pass. This protocol records no
@@ -269,7 +269,37 @@ only byte-verified archived canonical outputs. Original participant submissions
 and earlier history remain untouched. Four incidental Finder metadata files
 were preserved separately under
 `artifacts/history/m2-v2-finder-metadata-before-provisional-trials-v1` and are
-not gate evidence. Source replacement proceeds under In-progress authority.
+not gate evidence. M2.5 retains that incident inventory and prunes its incidental
+metadata bytes under the post-qualification rule below. Source replacement
+proceeded under In-progress authority.
 The next trial still requires a material recovery-teaching repair; this workflow
 edit by itself does not make the exhausted unchanged candidate ready for another
 fresh participant.
+
+
+## Completed-checkpoint lifecycle and post-qualification retention
+
+After final release and reviewed human qualification, the completed result may
+be preserved under the completed-checkpoint contract in `spec/gate8-execution-v2.md`.
+Later current-milestone displays do not rewrite its frozen completion record.
+This prospective retention rule permits cleanup of redundant/generated trial
+working material after every attempt's information condition, assistance,
+trajectory, outcome and consequential learning is retained in the canonical
+`studies/m2/participant-learnings-v1.md`. Failed, assisted and diagnostic work
+retain those labels; retrospective cleanup cannot change acceptance.
+
+Incidental Finder metadata outside immutable manifest-owned evidence may be
+discarded once its directory-contamination incident is recorded. Historical
+incident inventories are records, not requirements to retain those metadata bytes.
+
+Keep the qualification unchanged, its six exact trial-20 preimages, both exact
+packet inventories, all three final members' authored methods and substantive
+accounts, original observations and the adopted independent recovery/query
+method with its required retained profiles and decisive results. Reproduce the
+retained method locally before deleting redundant material. Preserve actual
+participant consent/retention terms and private handling; no raw publication is
+implied. Historical tuple manifests record their original tuples. Superseded
+unbound generated copies may be compacted only after retaining original
+manifests/reports, unique source preimages and invalidation reasons; documented
+compaction does not claim the complete old tuple remains installed. The pinned
+pre-participant archive and five tracked clarification archives remain exact.

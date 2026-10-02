@@ -1,19 +1,22 @@
 # M2 full-carrier bootstrap and transport feasibility implementation plan
 
+This is the completed M2 historical execution record. Current status lives only in [roadmap Section 13](roadmap.md#13-project-status--sole-mutable-authority).
+
 | Field | Value |
 |---|---|
 | Prepared | 2026-08-20 |
 | Roadmap | Revision 11, M2 participant-driven semantic and transport revision |
 | Execution contract | [`docs/m2-spec.md`](m2-spec.md) |
 | Baseline | `0feaf4b559f48507f2457e6d203f25c969a98589` (`m2` branch) |
-| Plan status | In progress; Gates 1–8 reopened; prior R3 results are historical |
+| Plan status | Historical execution record; see roadmap for status |
 
-**Revision 11 current scope:** M2 is In progress; Gates 1–8 reopen for the
+**Revision 11 historical execution scope:** M2 reopened Gates 1–8 for the
 participant-driven semantic and transport revision. Prior R3 descriptions
 below are historical evidence, not current gate outcomes. M0/M1 and the
 512 KiB ceiling are unchanged. The archive-first transition is owned by
 [`spec/m2-participant-revision-transition-v1.md`](../spec/m2-participant-revision-transition-v1.md).
-Fresh production evidence and affected human validation remain pending.
+That revision subsequently qualified; its exact completed source/evidence is
+preserved under [checkpoint-v1](../studies/m2/checkpoint-v1.json).
 
 **Current profile 8 / slice-v1 content scope:** Roadmap Section 5.1 authorizes
 53 complete selected games so that clear teaching, including earlier material,
@@ -26,9 +29,10 @@ compilation and identities, historical slice-v0 and all frozen results remain
 unchanged. This current scope supersedes all-64 packing/count instructions in
 the historical packets below, including their completion summaries; exact
 accounting and atomic completeness apply to all 53 selected games. The
-[teaching-space review](../studies/m2/teaching-space-review-v2.md) records the
-authorized tradeoff and local arithmetic. Independent current verification
-remains pending; these instructions claim no new gate or participant result.
+[teaching-space review](../studies/m2/participant-learnings-v1.md#teaching-space-and-53-game-selection) records the
+authorized tradeoff and local arithmetic. Verification was pending when this
+scope was introduced; the subsequent completed verification and qualification
+are preserved under [checkpoint-v1](../studies/m2/checkpoint-v1.json).
 
 **Goal:** Execute M2 on the current branch and leave a bounded, independently
 reproducible proof that an elite technical recipient unit can recover a real
@@ -84,7 +88,7 @@ the architecture.
 default. New dependencies require a concrete smaller implementation than a
 bounded local implementation and must work in locked offline checks.
 
-## Revision 11 integration sequence
+## Historical revision 11 integration sequence
 
 **Default during participant-driven revision:** repair → focused checks → frozen
 provisional trial → feedback. Do not execute steps 3–6's exhaustive work merely
@@ -96,13 +100,15 @@ bytes while G6 remains open. Existing participants may provide formative
 feedback; the historical one-shot retry limit does not cap the current group's
 sustained work.
 
-The [trajectory review through trial 16](../studies/m2/technical-trajectory-review.md)
-supports preserving the complete recovery chain implemented under
-[`the recovery plan`](superpowers/plans/2026-09-23-m2-complete-recovery.md).
+The [trajectory review through trial 16](../studies/m2/participant-learnings-v1.md#attempt-history)
+supports preserving the complete recovery chain; its normative composition is
+owned by [recovery-program-v2](../spec/recovery-program-v2.md). The retired
+execution plan remains at frozen commit `5d9254d2f6b755013d7d0b86ea7e935e8ee08257`,
+path `docs/superpowers/plans/2026-09-23-m2-complete-recovery.md`.
 Active carried programs derive physical ownership from inventory, construct
 all raw observations, form the complete candidate union, then check conflicts
 and identity. Production recovery uses those same admitted programs. The current
-[connected content repair](superpowers/plans/2026-09-24-m2-connected-content-repair.md)
+[connected content repair](../spec/content-teaching-v2.md)
 addresses the demonstrated control/reference confounds and intermediate states
 together. Keep its complete teaching direct and apply the authorized 53-game
 selection; measure the complete carrier and independently verify its current
@@ -117,7 +123,9 @@ that barrier and exact source/package/evaluation reconciliation pass. This
 sequence change does not make the currently unresolved carrier eligible for an
 unchanged third fresh attempt; first repair its documented teaching gap.
 
-This section is the current implementation sequence. The R1/R2/R3 packets
+This section records the original implementation sequence, which subsequently
+completed. The [checkpoint](../studies/m2/checkpoint-v1.json) preserves that
+result; this sequence is not pending M3 work. The R1/R2/R3 packets
 below remain preserved execution history; their old candidate/report paths,
 metric sets and verifier-only reopen are not instructions to regenerate a
 current result. Read the exact revision owners in
@@ -171,9 +179,10 @@ no owner threshold and records no production gate outcome.
    and use the short owner instructions; no new names, dates, timers, agreements
    or administrative quiz are required. Never manufacture a human result.
 
-The independent implementations and focused/development comparisons are
-tracked in
-[`docs/superpowers/plans/2026-09-16-m2-participant-revision.md`](superpowers/plans/2026-09-16-m2-participant-revision.md).
+The independent implementations and focused/development comparisons were
+tracked in `docs/superpowers/plans/2026-09-16-m2-participant-revision.md`,
+retained at frozen commit `5d9254d2f6b755013d7d0b86ea7e935e8ee08257`. Read it with
+`git show 5d9254d2f6b755013d7d0b86ea7e935e8ee08257:docs/superpowers/plans/2026-09-16-m2-participant-revision.md`.
 That ledger is not roadmap authority and does not turn incomplete production
 or human work into a checked milestone. The 512 KiB ceiling, M0/M1 truth and
 existing technical/learner thresholds remain unchanged.

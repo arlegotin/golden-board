@@ -1,19 +1,22 @@
 # M2 full-carrier bootstrap and transport feasibility specification
 
+This is the completed M2 contract. Current status lives only in [roadmap Section 13](roadmap.md#13-project-status--sole-mutable-authority).
+
 | Field | Value |
 |---|---|
-| Status | In progress; Gates 1–8 reopened; prior R3 results are historical |
+| Status | Completed-baseline contract; original R3 results are historical |
 | Roadmap | Revision 11, M2 participant-driven semantic and transport revision |
 | Repository baseline | `0feaf4b559f48507f2457e6d203f25c969a98589` (`m2` branch) |
 | Prepared | 2026-08-20 |
 | Scope | Raw-symbol discovery, bootstrap notation, protected transport comparison, provisional full carrier, early technical reconstruction, and learner representation feasibility |
 
-**Revision 11 current scope:** M2 is In progress; Gates 1–8 reopen for the
+**Revision 11 historical execution scope:** M2 reopened Gates 1–8 for the
 participant-driven semantic and transport revision. Prior R3 descriptions
 below are historical evidence, not current gate outcomes. M0/M1 and the
 512 KiB ceiling are unchanged. The archive-first transition is owned by
 [`spec/m2-participant-revision-transition-v1.md`](../spec/m2-participant-revision-transition-v1.md).
-Fresh production evidence and affected human validation remain pending.
+That revision subsequently qualified; its exact completed source/evidence is
+preserved under [checkpoint-v1](../studies/m2/checkpoint-v1.json).
 
 **Current anthology and teaching scope:** Roadmap Section 5.1 authorizes
 exactly 53 complete selected games for active profile 8 / slice-v1. Teaching
@@ -32,9 +35,11 @@ averages, partial games and estimated payloads remain forbidden. It does not
 change `docs/64_games.md`, its source lock/hash, M0/M1, v0 source grammar,
 the 64-game source compilation or game-set identity, historical slice-v0,
 frozen candidates, or original participant results. The
-[teaching-space review](../studies/m2/teaching-space-review-v2.md) records the
-scope decision and bounded local measurements. Independent current checks and
-complete-carrier verification remain pending; no gate result is claimed.
+[teaching-space review](../studies/m2/participant-learnings-v1.md#teaching-space-and-53-game-selection) records the
+scope decision and bounded local measurements. Checks and complete-carrier
+verification were pending when this scope was introduced; their subsequent
+completion and qualification are preserved under
+[checkpoint-v1](../studies/m2/checkpoint-v1.json).
 
 For this revision, the active source, evidence and lifecycle binding is
 [`spec/m2-participant-revision-promotion-v2.toml`](../spec/m2-participant-revision-promotion-v2.toml),
@@ -4135,3 +4140,10 @@ platform.
 - [ ] `scripts/check release` and report-staleness checks pass once more; and
 - [ ] only then is roadmap M2 marked complete with date, preferred/finalist IDs,
   and report hash.
+
+
+**Post-qualification retention:** The prospective retention clause in
+[participant trials](../spec/m2-participant-trials-v1.md#completed-checkpoint-lifecycle-and-post-qualification-retention)
+owns private cleanup after qualification. Preserve actual consent/retention terms,
+the exact final qualification proof and the honest nonidentifying attempt history.
+This permits redundant working-output removal; it grants no publication permission.

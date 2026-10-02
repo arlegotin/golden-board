@@ -140,8 +140,8 @@ After a successful `release` with the reviewed, source-bound qualification
 record defined in `spec/m2-participant-trials-v1.md`, the coordinator may
 atomically replace only the mutable roadmap status rows with M2 Complete and
 M3 current-milestone rows. Its exact inverse must recover the same
-Candidate-ready roadmap and report-bound pending bytes. Future full/release
-checks admit that terminal status only when the qualification record, current
+Candidate-ready roadmap and report-bound pending bytes. Full/release of the frozen
+checkpoint admit that terminal status only when the qualification record, frozen
 bundle-file inventories, report, Gate8 tree and source projection still match.
 The automated report's pending-human fields remain a truthful description of
 its own prequalification stage; the separate reviewed record and release-last
@@ -274,3 +274,47 @@ pending roadmap was restored before removing only the matching generated
 outputs. The tracked record now uses the owning literal, and a component
 preflight test admits that actual record. Fresh bootstrap and release must
 recompute against this corrected source before M2 completion.
+
+
+## Completed M2 checkpoint and subsequent development
+
+M2 completed at source commit `5d9254d2f6b755013d7d0b86ea7e935e8ee08257`.
+`studies/m2/checkpoint-v1.json` is a canonical closed object, at most 8192 bytes,
+with keys `schema,source_commit,source_projection_sha256,report_sha256,
+qualification_sha256,candidate_manifest_sha256,transition_manifest_sha256,
+verifier_acquisition_sha256`. Schema is `golden-board.m2-completed-checkpoint/v1`;
+the commit and seven identities are the exact completed tuple, not configurable
+new candidate identities. The adapter admits this one checkpoint only.
+
+Completed-checkpoint admission is historical retained-evidence integrity. It
+must reconstruct the original ordinary Git source locally, validate its entire
+source projection and original completed roadmap, hash the complete installed
+candidate and Gate8 inventories against the report-bound generated manifest and
+four receipts, admit the original Linux/cross-language bindings and both packet
+inventories, verify the six human-qualification preimages, and admit every file
+and directory of the pinned transition archive. Missing, extra, corrupt, linked
+or mode-mismatched evidence rejects. The descriptor alone never establishes a
+result. Admission runs no producer, bootstrap, damage replay, Linux job or release.
+
+Live development may add or consolidate documents, advance the roadmap, or build
+M3 without rewriting this checkpoint. This does not broaden the source exclusions
+or relax any original computation, acceptance condition, transport bound or gate.
+The original exact inverse remains the contract for the original completed
+roadmap; it is not applied to later live milestone displays. Source-changing
+full/release runs cannot reuse historical receipts or human qualification for
+the new source. The existing earliest-milestone/reopening rules govern material
+recipient, bootstrap, interpretation, transport or acceptance changes.
+
+`tools/m2/verify_gate8_v2.py checkpoint` checks retained evidence.
+`restore-checkpoint --destination /absolute/fresh/path` restores that source and
+its exact required ignored evidence from this local checkout, without network or
+quarantine. The seven legacy Linux refresh snapshots and R1/R2 policy owners
+needed by original component tests are restored from their admitted transition
+archive preimages, with original modes and directory inventories. The destination
+must be absent and its parent real. Original full,
+Linux and release runners remain available in that restored ordinary repository;
+their results describe that frozen source. A fresh development checkout can run
+focused source/code checks without ignored M2 evidence. To check/reproduce M2,
+restore the retained candidate, Gate8, transition archive, acquisition receipt and
+six qualification preimages at their documented original paths first. Missing
+local preimages fail precisely; ordinary checks never acquire or regenerate them.

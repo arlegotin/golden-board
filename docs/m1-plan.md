@@ -1,5 +1,7 @@
 # M1 chess truth, source grammar, and assessment blueprint implementation plan
 
+This is the completed M1 historical execution record. Current status lives only in [roadmap Section 13](roadmap.md#13-project-status--sole-mutable-authority).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use
 > `superpowers:executing-plans` to implement this plan packet by packet.
 

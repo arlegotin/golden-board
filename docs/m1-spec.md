@@ -1,8 +1,10 @@
 # M1 chess truth, source grammar, and assessment blueprint specification
 
+This is the completed M1 contract. Current status lives only in [roadmap Section 13](roadmap.md#13-project-status--sole-mutable-authority).
+
 | Field | Value |
 |---|---|
-| Status | Ready for execution |
+| Status | Completed-baseline contract |
 | Date | 2026-08-14 |
 | Roadmap | Revision 5, M1 |
 | Branch | `m1` |

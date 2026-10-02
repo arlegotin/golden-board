@@ -22,6 +22,11 @@ fail() {
     exit 1
 }
 
+if [ -e "$ROOT/studies/m2/checkpoint-v1.json" ] || \
+    [ -L "$ROOT/studies/m2/checkpoint-v1.json" ]; then
+    fail 'completed M2: use restore-checkpoint for the original Linux runner; current focused checks use live source'
+fi
+
 new_private_directory() {
     directory=$(mktemp -d "${TMPDIR:-/tmp}/golden-board-linux.XXXXXX") || return 1
     chmod 700 "$directory" || return 1
@@ -124,7 +129,7 @@ case "$host_snapshot_sha256" in
 esac
 
 # A partial revised transition must reject in v2, never enter the old path.
-if grep -F -x '| Roadmap revision | 11 |' "$ROOT/docs/roadmap.md" >/dev/null || \
+if awk -F '|' '$2 == " Roadmap revision " && $3 + 0 >= 11 { found=1 } END { exit !found }' "$ROOT/docs/roadmap.md" || \
     [ -e "$ROOT/artifacts/history/m2-pre-participant-revision-v1" ] || \
     [ -L "$ROOT/artifacts/history/m2-pre-participant-revision-v1" ]; then
     exec sh "$SCRIPT_DIR/verify-v2.sh" "$ROOT" "$host_snapshot_sha256" "$image_id"

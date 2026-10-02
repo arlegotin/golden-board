@@ -22,6 +22,8 @@ from golden_board import canonical_manifest as manifest
 from golden_board.m2_gate8_policy_v2 import load_gate8_policy_v2
 from golden_board.m2_source_v2 import build_source_projection_v2,read_source_file_v2,validate_source_projection_v2
 from golden_board.m2_gate8_receipts_v2 import admit_producer_receipt_v2
+from golden_board.m2_checkpoint_v1 import (
+    admit_completed_m2_checkpoint_v1, materialize_completed_m2_checkpoint_v1)
 from tools.m2 import generate_gate8_v2 as producer
 from tools.m2 import reopen_participant_revision as transition
 
@@ -602,6 +604,11 @@ def _linux_execution(work,policy,source,native):
 
 def workflow_v2(mode):
     require(mode in ('bootstrap','full','release') and Path.cwd()==ROOT,'workflow')
+    # This live checkout has moved beyond the exact completed source. Its old
+    # receipts cannot qualify new source. The restored repository runs the
+    # original coordinator and preserves every original gate.
+    require(not os.path.lexists(ROOT/'studies/m2/checkpoint-v1.json'),
+        'completed source: use checkpoint for integrity or restore-checkpoint for original full/release')
     policy=load_gate8_policy_v2(read_source_file_v2(ROOT,'spec/gate8-policy-v2.toml')[0])
     state,before=admit_transition_v2(ROOT,policy)
     require((state=='pending') if mode=='bootstrap' else state in ('ready','complete'),
@@ -641,6 +648,9 @@ def workflow_v2(mode):
 
 
 def parse_arguments(args):
+    if args == ['checkpoint']:return ('checkpoint',)
+    if len(args)==3 and args[:2]==['restore-checkpoint','--destination']:
+        return 'restore-checkpoint',producer.absolute_path(Path(args[2]))
     if len(args)==1 and args[0] in ('bootstrap','full','release'):return (args[0],)
     if len(args)==3 and args[:2]==['linux-input','--native-receipts']:
         return 'linux-input',producer.absolute_path(Path(args[2]))
@@ -661,6 +671,11 @@ def main(args=None):
         parsed=parse_arguments(list(sys.argv[1:] if args is None else args))
         if parsed[0]=='pair':pair_v2(*parsed[1:])
         elif parsed[0]=='linux-input':linux_input_v2(parsed[1])
+        elif parsed[0]=='checkpoint':
+            admit_completed_m2_checkpoint_v1(ROOT)
+            print('M2 completed checkpoint: retained source/evidence integrity verified; no gates rerun.')
+        elif parsed[0]=='restore-checkpoint':
+            print(materialize_completed_m2_checkpoint_v1(ROOT,parsed[1]))
         else:workflow_v2(parsed[0])
         return 0
     except (ValueError,OSError,KeyError,TypeError) as error:

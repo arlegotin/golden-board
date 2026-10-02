@@ -1,86 +1,100 @@
-# M2 participant learnings and revision status
+# M2 results, participant trajectory and inherited lessons
 
-This ledger accounts for all 31 findings from the original technical answers,
-both technical continuations, and the visual learner trial. It records repairs
-and their evidence limits; it adds no gate or participant administration.
-“Closed in source” means the revised bytes or handout implement the repair,
-not that a new carrier or independent learner has passed. Important, potentially
-profound, benign material can reasonably require sustained effort, wrong starts
-and revisiting examples. No names, dates, consent flow or reconstructed timing
-are needed here.
+M2 demonstrated full-carrier transport and teaching feasibility for one fresh
+three-person asynchronous technical group and one fresh individual learner.
+The group recovered clean/A/B/C exactly, answered the content query, and
+explicitly refused D; the learner made 194 commands and 65 commitments and
+answered all 12 final judgments correctly. The immutable
+[qualification](qualification-v2.json), [checkpoint](checkpoint-v1.json) and
+[automated report](../../reports/m2-feasibility-v2.json) bind those results.
+[Roadmap Section 13](../../docs/roadmap.md#13-project-status--sole-mutable-authority)
+alone owns current milestone status.
 
-The [trajectory review through trial 16](technical-trajectory-review.md) audits
-recurrence across these rounds. It supersedes any implication in the sequential
-next-work notes that another local example plus focused checks is sufficient
-reason to recruit again. The ownership/composition problem was already known
-before trials 11–13. Review the complete teaching path and the communicated
-readiness boundary before choosing the next repair; historical outcomes and
-qualification rules remain unchanged.
+The accepted profile uses side 2048, shell width 128, a 524,288-byte physical
+bitplane, 1,858 protected units, 42,432 required / 53,039 all-stream bytes,
+and 9,213 reserve payload bytes. It carries 53 complete games from the unchanged
+64-game source. Existing evidence covers 10,130 D0–D7 observations, 21 separate
+B0 cases, four KATs and independent native/Linux Python/Rust reproduction with
+zero wrong accepts. These are preserved historical results, not checks rerun
+by this document or M2.5.
 
-The approved [complete recovery repair](../../docs/superpowers/plans/2026-09-23-m2-complete-recovery.md)
-now replaces the active110/111 demonstrations with a general carried procedure:
-inventory establishes physical ownership; all original observations produce
-local and repetition candidates; complete bytes establish conflict; expected
-identity then establishes acceptance. The production receiver invokes the same
-admitted procedures. Ordinary examples derive their inputs instead of accepting
-unexplained classifier flags. Canonical wire2 fits this complete connection
-while preserving all64 games and the future-authoring/reserve promises in that
-earlier repair. The subsequent connected-content repair selects53 complete games
-to prioritize direct teaching; the full source anthology remains unchanged.
-The descriptions of110/111 below remain the history of what those participants
-actually saw, not the current active program set.
+The dimensions/profile are provisional. M3 owns complete content and formative
+integration, M4 the actual-content selection/rerun, M5 final technical/learner
+validation, and M6 the public explorer. One group and one learner do not
+establish population efficacy, universal acquisition or complete graph learning.
+The automated report intentionally retains its original human-pending fields;
+the later qualification and release-last roadmap transition established completion.
 
-The opening now discloses the complete saved-method task before readiness,
-while retaining sustained effort, experiments and backtracking. The
-[two-observation formative transfer](../../spec/m2-formative-transfer-v2.md)
-has succeeded with an already exposed collaborator. Case a must recover its actual transport
-object: matching content streams alone can miss an optional object's failure.
-No further interpretation of an opaque object's meaning is required. Prior
-exposure remains formative, and a local example or owner replay still cannot
-establish fresh acquisition. All earlier technical and learner findings below
-remain in scope; none is erased by this transport repair.
+Read the [attempt history](#attempt-history), [lessons for-m3](#lessons-for-m3),
+[31 original findings](#complete-finding-ledger),
+[C01–C11 obligations](#carried-technical-validation-obligations), and
+[teaching/selection rationale](#teaching-space-and-53-game-selection).
+The detailed repair sections below are historical development records. Their
+pending states, development hashes, older geometry and 55,664-byte all-stream
+figure describe those earlier checkpoints. They are not current results or
+instructions to repeat qualification. Exact retired reviews/plans remain in the
+frozen Git source; referenced private working paths may have been compacted.
+The [retained-evidence map](../../docs/m2.5-closeout.md) identifies installed proof.
 
-The completed local continuation is preserved at
-[`14-complete-recovery-formative`](../../artifacts/quiz/14-complete-recovery-formative/README.md):
-full clean artifact first, then two unseen full matrices, using the participant
-from round 13. Its owner evidence freezes the actual observations, source,
-independent preflight and three complete receiver comparisons. The
-[answer review](../../artifacts/quiz/14-complete-recovery-formative/review/ANALYSIS.md)
-now independently reproduces the unchanged saved method and its actual outputs.
-The subsequent ordinary fresh technical trial on the same carrier is preserved at
-[`15-fresh-technical-complete-recovery`](../../artifacts/quiz/15-fresh-technical-complete-recovery/README.md).
-Its original submitted method is explicitly unfinished; the
-[trial-15 review](../../artifacts/quiz/15-fresh-technical-complete-recovery/review/ANALYSIS.md)
-and [same-participant continuation](../../artifacts/quiz/15-fresh-technical-complete-recovery/continue/README.md)
-preserve that checkpoint. The completed diagnostic continuation now reproduces
-complete live recovery and exposes a different, concrete content-teaching rival;
-see the continuation finding below. Trial 14 remains successful formative
-transfer. Neither result establishes fresh complete acquisition.
+## Attempt history
 
-The [trial-16 review](../../artifacts/quiz/16-fresh-technical-content-control/review/ANALYSIS.md)
-reproduces complete expected clean/A/B recovery with the unchanged method and
-exact requested query bytes. Its original C/D and control interpretation remain
-unresolved at that checkpoint. The assisted
-[continuation](../../artifacts/quiz/16-fresh-technical-content-control/review-continue/ANALYSIS.md)
-now closes unit recovery/refusal on known inputs and demonstrates the remaining
-content confounds. It does not qualify the original declared-ready result.
+Folders are attempts and continuations, not independent people. Preserve each
+information condition; diagnostic help cannot retroactively qualify an earlier attempt.
 
-The complete trajectory recheck supports the
-[connected content repair](../../docs/superpowers/plans/2026-09-24-m2-connected-content-repair.md),
-owned in [the content teaching specification](../../spec/content-teaching-v2.md).
-Both language implementations and focused teaching regressions are complete.
-The [teaching-space review](teaching-space-review-v2.md) records measured fit;
-the frozen formative packet's owner evidence records final handout readiness.
-Preserve the successful recovery connection and all earlier findings, then use
-focused checks and formative feedback before another fresh trial. Exhaustive
-qualification remains deferred until the required human results succeed.
+| Attempt | What advanced | Outcome and information boundary |
+|---|---|---|
+| 01 | Partial raw-symbol, route and recipe investigation. | No complete independent clean decoder. |
+| 02 | Continued discovery and redundancy hypotheses. | Same continuing investigation; incomplete. |
+| 03 | Further route/recipe experiments. | Incomplete; no independent pass. |
+| 04 | Partial primitives and inspection. | Supplied matrix ABI contradicted the actual file; rejection was justified. |
+| 05 | Clean/damaged/query recovery through continuations. | Critical guidance and an early reviewer-modified copy; useful repair evidence, assisted. |
+| 06 | Geometry discovered independently; primitives/examples worked. | Geometry/composition help followed; wrong grouping and repetition survived primitive success. |
+| 07 | Learner prototype: 45 pages, 134 commands, seven commitments, 12/12 practice finals. | Formative earlier curriculum; not the later 65-page qualification. |
+| 08 | Clean/query progress and physical repetition after guidance. | Assisted; no fresh independent damaged recovery. |
+| 09 | Revised 65-page learner packet prepared after the earlier prototype. | Handoff remained pending; technical participants’ twelve predictions were semantic evidence, not a fresh chess-naive learner result. |
+| 10 | Strong independent clean/query recovery, 64 games and 4,915 plies. | Saved method omitted damaged integration; later autonomous CRC recovery used a different scope. |
+| 11 | Clean/content success and executable group-decision examples. | Actual physical ownership and original-observation composition remained disconnected. |
+| 12 | More physical context and corrected primitive examples. | Continuation exposed a control-field interpretation error; clean success did not close composition. |
+| 13 | Construction/erasure examples executed; continuation recovered a real fragment. | Clean method omitted physical ownership; continuation still missed complete five-copy membership/conflict. |
+| 14 | The same learned method transferred to two unseen full matrices, with exact optional/content/conflict handling. | Successful formative transfer by an already exposed collaborator. |
+| 15 | Clean/A/query/examples reproduced exactly. | Original submission explicitly unfinished, never declared ready. Diagnostic continuation later closed live recovery and exposed a replace-last content rival. |
+| 16 | Fresh unchanged method recovered clean/A/B/query exactly. | C/D unsupported; assisted continuation closed unit recovery and isolated correlated content fields/missing intermediate states. |
+| 17 | Connected-content formative investigation of the 75-state schedule and independent control variations. | Exposed collaborator; formative evidence, not a fresh pass. Some owner replays lacked NumPy; do not invent those executions. |
+| 18 | Fresh clean/A/B/query succeeded. | Frozen method left C/D unresolved; neutral diagnostic continuation recovered C and refused D. Original attempt remains unresolved. |
+| 19 | Fixed-pair packet prepared. | Never exposed; no participant result. |
+| 20 | Fresh open three-person group integrated observation-local clean/A/B/C, D refusal and exact query; fresh learner 12/12. | Qualifying under prospectively declared open asynchronous collaboration, with all member accounts retained. |
 
-Historical evidence remains under `artifacts/quiz/` (`Q` below): `ANALYSIS.md`,
-the original `01-start`–`04-wrap-up` answers, every `05-continue` and `06-fresh`
-stage's answers/analysis and saved replay, and `07-learner`'s answer, verification
-and assessment audit. The detailed local audit is
-`artifacts/work/participant-revision/all-participant-findings.md`. Original
-submissions and exposed packets are not rewritten to match this revision.
+## Lessons for M3
+
+Teach physical ownership before decoded identity. Start from original observations,
+gather every local/repetition candidate, compare complete bytes for conflict, then
+admit expected identity. A working primitive or clean carrier cannot demonstrate
+that a learner has composed this procedure on damaged observations.
+
+Expose intermediate states and vary correlated fields independently. The old
+examples allowed wrong control/reference interpretations to predict the same
+final answer. Ground prerequisites before use; preserve an acyclic dependency
+order and demonstrate subject/result direction, field presence and both budget
+boundaries. The connected 75-state schedule includes the same duplicate-selection
+history with flags 0 and 1, separating repetition permission from other controls.
+
+Distinguish retained decoder procedures from retained message bytes. A saved
+procedure may carry addressing, codec and checksum rules; each observation must
+supply its own recovered payload. CRC-valid agreeing copies with unsupported
+headers still reject. D's explicit refusal is evidence of the boundary, not
+an invitation to repair the input into a pass.
+
+Choose direct teaching over anthology quantity. Preserve successful compression
+where its prerequisite is grounded; prefer raw bodies when the protected fragment
+cost is equal. Review the complete teaching path after recurrence, rather than
+adding one narrow example for each symptom and recruiting again.
+
+Keep readiness explicit: sustained investigation and an expressly unfinished
+submission are allowed; readiness freezes a substantive complete method for
+transfer. Record help, exposure, retries and changed group conditions honestly.
+Use formative investigation before fresh acquisition and exhaustive qualification
+only on a stable candidate. Preserve assessment cue controls and do not equate
+software checks or one 12/12 learner score with general efficacy.
 
 ## Trial 14: the complete connection transfers to new observations
 
@@ -313,14 +327,14 @@ remain, no game reduction is yet justified, and M2 stays In progress.
 
 ### Coordinated repair decision after reviewing every technical round
 
-The [trajectory recheck](technical-trajectory-review.md) preserves all 31
+The [trajectory recheck](participant-learnings-v1.md#attempt-history) preserves all 31
 findings below and the technical continuations through trial 16. The repeated
 recovery-composition omission through trial 13 is distinct from the fresh matrix
 transfer in trial 16; trial 15's original non-readiness is also distinct from a
 failed complete method. Later assisted recovery and owner probes remain
 diagnostic. Neither folder counts nor example counts establish fresh success.
 
-The [repair plan](../../docs/superpowers/plans/2026-09-24-m2-connected-content-repair.md)
+The [repair plan](../../spec/content-teaching-v2.md)
 and [smallest teaching owner](../../spec/content-teaching-v2.md) define the
 implemented whole bounded control/reference repair: independently
 varied shape/mode/flags, active intermediate states, separate local/global
@@ -336,7 +350,7 @@ observation. This addresses the observed knowledge/interface boundary before
 readiness, without changing the saved-method checkpoint or supplying a solution.
 Past packets and the assistance needed for trial 16's continuation stay fixed.
 
-The [teaching-space review](teaching-space-review-v2.md) records the direct
+The [teaching-space review](participant-learnings-v1.md#teaching-space-and-53-game-selection) records the direct
 teaching design, review of older encodings and the local 53-game capacity
 arrangement, preserving the full source anthology. Rust's final finite preflight
 passes with all22 files; final cross-language and handout outcomes are retained
@@ -954,7 +968,7 @@ in `artifacts/work/participant-revision/technical-carried-repairs.md`; the ID
 ledger above preserves every obligation even when those local work artifacts
 are not distributed.
 
-## Current validation and integration boundary
+## Historical validation and integration boundary
 
 The current source freshly compiles 65 pages: 46 teaching, seven practice and
 12 externally evaluated final pages. Required ROOT/entry are 588/12; all
@@ -1118,7 +1132,7 @@ The separate recovery provenance binds those exact inputs. This closes the
 development recovered-byte link for those finite checks; it does not establish
 complete Gate5, a damage pass or fresh human acquisition.
 
-## Current source-integration checkpoint
+## Historical source-integration checkpoint
 
 The later bounded re-audit covered all 31 rows against the actual revised kit
 at `artifacts/work/participant-revision/participant-bundle-rust-v2/` and its
@@ -1155,3 +1169,152 @@ or release success is claimed by those tests. The archive-first production
 transition, complete frozen current evidence, fresh native/Linux Gate8 and
 composed release remain separate required work. The revised source documents
 preserve `In progress`; no historical human result is relabeled.
+
+## Teaching space and 53-game selection
+
+## Direct teaching and earlier dependencies
+
+The complete direct miniature and connected consequences occupy 4,106 bytes.
+With the other context, reference and Position/Move16 material, fact 12 occupies
+4,888 bytes. Each complete route prefix occupies 27,827 bytes. These are exact
+construction sizes; the finite preflight also checks the complete carrier fit.
+The new teaching is not placed behind a body-codec wrapper to preserve games.
+A subsequent independent review found that the initial69-state design still
+allowed a simple wrong interpretation: every sequence permits repetitions,
+regardless of its flag. A bounded runtime mutant reproduced the initial teaching
+unchanged. The final75-state schedule keeps the ordering witness and adds the
+same complete duplicate-selection history with flags0 and flags1, adding156
+explicit bytes per route. This addresses the remaining confound before exposure;
+it does not claim that testing can establish a human's understanding.
+
+The review also considered the earlier compact representations. Unsigned
+base-128 scalars are grounded by literal numeric examples before the compact
+recipe interface uses them; recipe operations and their dependencies are
+grounded before execution. See [fact 3 and the interface layouts](../../spec/route-definitions-v2.md)
+and [first-use requirements](../../spec/first-use-v2.md). This dependency order
+must remain acyclic. Correct host execution alone cannot supply a missing
+carried prerequisite.
+
+Large content-body decompression has already transferred in technical work,
+including the independently reproduced clean recovery in trials 10 and 16.
+Their assistance and saved-method boundaries remain as recorded in the
+[attempt history](#attempt-history). The demonstrated current
+failures concern content controls, correlated fields and intermediate states;
+they do not establish a general body-decompression failure.
+
+A bounded comparison nevertheless found a useful simplification: prefer raw
+body storage when it uses the same number of physical fragments as compression.
+In the reviewed body set, this exposes fixture sections 200–206 directly,
+adds 107 stored payload bytes and adds no EH-protected units. The number of
+body decompressions falls from ten to three. The criterion concerns measured
+physical fragment cost, not a hardcoded exception for those seven fixtures.
+Raw and compressed forms must reconstruct identical complete content bytes.
+
+Making all required teaching bodies raw would add 940 protected units in the
+same bounded comparison. That expansion does not target the observed failure
+and cannot be justified merely by a preference for uncompressed bytes. Keep the
+grounded compression for those large bodies now, preserving every required
+lesson and its protection. Revisit that choice if formative evidence exposes
+an unreadable dependency, circularity or substantive decoding obstacle. The
+owner's priority applies equally to such an earlier teaching defect; game
+quantity is not a reason to leave one unresolved.
+
+## Why 53 games
+
+The local capacity probe uses side 2048, shell width 128 and a maximum of 1,858
+physical units. The raw square bitplane is 524,288 bytes, exactly 512 KiB;
+the four-byte observation count header is separate from that physical ceiling.
+
+| Selection in curation order | Mandatory units | Result of the local arithmetic probe |
+|---|---:|---|
+| All 64 games | 1,893 | Exceeds the physical unit ceiling. |
+| First ten removals, leaving 54 | 1,854 | No admissible inventory/load fixed point; the nominal four-unit gap alone does not establish fit. |
+| First eleven removals, leaving 53 | 1,852 | Six load units with a 920-byte payload fill the admissible arrangement, totaling 1,858 units. |
+
+The inventory, tier and reserve effects make fit depend on the complete
+arrangement. Subtracting game payload lengths or counting unused units alone
+would miss the failed 54-game case. The 53-game arrangement is also reproduced
+by the final Rust finite preflight. Its bitplane remains524288 bytes, with
+the separate4-byte observation header,1858 units and9213 bytes of reserve.
+Required learner content remains exactly 42,432 bytes. Teaching protection,
+future-authoring allowance, reserve requirements and the physical ceiling are
+not weakened to obtain this result.
+
+## Curation and exact selection
+
+The editorial review read every game's educational focus and explanation in
+the [local anthology](../../docs/64_games.md), with its score and length metadata.
+It used no engine ranking or new historical claim. The criterion is the
+additional artistic and teaching value of each game within this particular
+collection: preserve distinctive visible ideas, defense and draws, endgame and
+positional variety, and concise combinations. Competitive circumstances and
+celebrity carry less weight because descriptive source metadata is absent from
+the artifact. These are judgments about selection, not claims that the removed
+games lack beauty or instructional value.
+
+The eleven removals below follow that ranking. Source numbers are the anthology's
+one-based headings. Source and original canonical ordinals are zero-based.
+The original mapping was reconstructed from
+[`source-compilation-v0.json`](../../reports/source-compilation-v0.json) and the
+complete sorted bytes checked against
+[`game-set-v0.bin`](../../reports/game-set-v0.bin).
+
+| Rank | Source # | Source ordinal | Original canonical ordinal | Game | Selection reason |
+|---:|---:|---:|---:|---|---|
+| 1 | 43 | 42 | 61 | Kasparov–Karpov, 1987 | Long technical conversion; its exceptional match circumstances are unavailable in the artifact. Retained positional games give clearer contrasts. |
+| 2 | 62 | 61 | 63 | Carlsen–Nepomniachtchi, 2021 | The 271-ply endurance game is the largest record. Removing it loses a distinctive queen/rook struggle, but preserves space for direct teaching; #60 retains Carlsen and #18/#50/#32 retain endgame and defensive variety. |
+| 3 | 57 | 56 | 58 | Topalov–Anand, 2010 | Central counterattack overlaps retained examples; match pressure contributes unavailable context. |
+| 4 | 52 | 51 | 38 | Kramnik–Kasparov, 2000 | Precise defense and conversion overlap #14, #18 and #24. Keep #54 as a modern technical endgame. |
+| 5 | 64 | 63 | 34 | Ding–Gukesh, 2024 | Central passers and coordinated attack overlap #23; retain Ding's more distinctive quiet-move finish in #63. |
+| 6 | 28 | 27 | 24 | Tal–Fischer, 1959 | Exchange-sacrifice initiative is well represented; retain Tal's more distinctive #30. |
+| 7 | 48 | 47 | 32 | Kasparov–Anand, 1995 | Preparation-led attack overlaps retained sacrifices, while preparation's historical significance is unavailable in the artifact. |
+| 8 | 56 | 55 | 44 | Kramnik–Anand, 2008 | Rook-lift preparation overlaps #49; retain Anand's concentrated coordination in #58. |
+| 9 | 46 | 45 | 35 | Karpov–Topalov, 1994 | Pressure becoming attack overlaps #33/#37; retain Karpov's distinctive restriction in #40. |
+| 10 | 36 | 35 | 28 | Fischer–Panno, 1970 | Quiet coordination is represented by #19/#39/#59/#63. Fischer's other retained games preserve both attack and positional play. |
+| 11 | 22 | 21 | 52 | Euwe–Alekhine, 1935 | Passed-pawn attack overlaps #15/#23; retain Euwe's defensive reversal in #24. |
+
+The selected set is original canonical ordinals `0..63` excluding:
+
+```text
+24, 28, 32, 34, 35, 38, 44, 52, 58, 61, 63
+```
+
+All 53 selected GameBytes remain complete and byte-identical, in the same
+relative canonical order. Selection does not truncate games or remove moves.
+Subset wire ordinals and enclosing content records are rebuilt under the
+active selection owner; original ordinals above identify the source games.
+The unchanged [64-game anthology](../../docs/64_games.md) remains the repository
+source, and its original full compilation and historical milestone records
+retain their original meaning.
+
+Preserve source #39, Gaprindashvili–Servaty, original canonical ordinal 0: its
+concise double-rook sacrifice is a strong artistic exemplar and keeping it
+preserves the existing technical query's game. Also retained are all three
+draws (#16/#32/#55), endgame geometry #18/#50, restriction #17/#40, king march
+#45, unusual castling #61, and the distinct women's games #39/#47/#53.
+#54 retains Kramnik and a modern technical ending. This balances the attack-heavy
+collection instead of selecting solely by length or reducing it to mating
+miniatures. Source #41, the next candidate in the ranking, remains because the
+53-game probe already supplies the selected development fit.
+
+
+## Final qualification and release reconciliation
+
+Trial 20's frozen methods and participant/learner packet bytes remained unchanged
+through final automated reconciliation. Receiver scratch accounting was corrected
+for completed route descriptors during later route discovery; three D7 mutant
+observations then matched independent Python/Rust result and resource bytes.
+Subsequent release checks exposed a shard partition-test assumption, an obsolete
+hardcoded physical-witness tuple and an extra `test` word in qualification source
+reconciliation. Each passing tuple was archived before repair; none of those
+failed releases was called completion. The final report, source projection,
+four receipts and reviewed qualification are preserved together in the completed
+checkpoint. Its original final release—not an M2.5 rerun—closed M2.
+
+All three technical members' authored methods, notes and final accounts remain
+private. The adopted person-2 method keeps source, required retained profiles,
+original observations, clean/A/B/C recovered envelopes/applications, query bytes,
+D's partial outputs and strict refusal, plus its labelled incorrect-mask
+diagnostic. Redundant expanded planes, repeated slot dumps and replay copies may
+be removed only after their preservation/reproduction checks. The six exact
+qualification preimages and both packet inventories stay bound unchanged.
