@@ -3,6 +3,7 @@
 usage() {
     printf '%s\n' \
         'usage: scripts/check fast' \
+        '       scripts/check checkpoint' \
         '       scripts/check focused source' \
         '       scripts/check focused identity' \
         '       scripts/check focused chess' \
@@ -18,7 +19,7 @@ usage() {
 }
 
 case "$#:$1" in
-    1:fast|1:full|1:linux|1:release|1:components) mode=$1 ;;
+    1:fast|1:full|1:linux|1:release|1:components|1:checkpoint) mode=$1 ;;
     2:focused)
         case "$2" in
             source|identity|chess|curriculum|content|transport|damage|repo) mode=$2 ;;
@@ -55,7 +56,7 @@ run_check() {
 
 revision_v2() {
     { [ -f "$ROOT/docs/roadmap.md" ] && \
-        grep -F -x '| Roadmap revision | 11 |' "$ROOT/docs/roadmap.md" >/dev/null; } || \
+        awk -F '|' '$2 == " Roadmap revision " && $3 + 0 >= 11 { found=1 } END { exit !found }' "$ROOT/docs/roadmap.md"; } || \
         [ -e "$ROOT/artifacts/history/m2-pre-participant-revision-v1" ] || \
         [ -L "$ROOT/artifacts/history/m2-pre-participant-revision-v1" ]
 }
@@ -332,6 +333,8 @@ repo() {
         python.tests.test_foundation.RootCheckCLI \
         python.tests.test_m2_linux_execution_v2 \
         python.tests.test_m2_check_execution_v2 \
+        python.tests.test_m2_checkpoint_v1.CompletedCheckpointV1Tests.test_live_source_cannot_reuse_completed_release \
+        python.tests.test_m2_checkpoint_v1.CompletedCheckpointV1Tests.test_live_linux_requires_frozen_restoration_before_runtime_launch \
         python.tests.test_constants.ConstantsCodegen
 }
 
@@ -492,6 +495,7 @@ release() {
 }
 
 case "$mode" in
+    checkpoint) exec "$GB_PYTHON" tools/m2/verify_gate8_v2.py checkpoint ;;
     identity) identity ;;
     chess) chess ;;
     source) source_full ;;

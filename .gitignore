@@ -4,6 +4,7 @@ __pycache__/
 *.py[cod]
 target/
 artifacts/*
+!artifacts/README.md
 !artifacts/history/
 artifacts/history/*
 !artifacts/history/m2-r3-pre-d7-mapping-clarification/

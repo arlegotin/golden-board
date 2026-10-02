@@ -2238,7 +2238,8 @@ class RepoContract(unittest.TestCase):
         r3_design = ROOT / "docs/m2-r3-design.md"
         decisions = ROOT / "docs/decisions.md"
         report = ROOT / "reports/m2-feasibility-v0.json"
-        if re.search(r"^\| Roadmap revision \| 11 \|$", roadmap, re.MULTILINE):
+        revision = re.search(r"^\| Roadmap revision \| ([0-9]+) \|$", roadmap, re.MULTILINE)
+        if revision is not None and int(revision.group(1)) >= 11:
             from golden_board.m2_gate8_policy_v2 import load_gate8_policy_v2
             revision_policy = load_gate8_policy_v2(
                 (ROOT / "spec/gate8-policy-v2.toml").read_bytes()

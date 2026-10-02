@@ -1,12 +1,16 @@
 # M2 R3 pre-result redesign freeze
 
+Historical R3 v7 design and freeze. Its exact accepted context is in the pinned
+pre-participant archive; the active completed v1 checkpoint is linked from
+[roadmap Section 13](roadmap.md#13-project-status--sole-mutable-authority).
+
 | Field | Value |
 |---|---|
-| Status | Gates 1–7 remain exact for the sole R3 v7 candidate; prior Gate-8 evidence is superseded only by the acquired Linux verifier provenance refresh and its Gate-8 rerun is pending |
+| Status | Historical design/freeze; current status belongs to the roadmap |
 | Roadmap | Revision 10, M2 Linux verifier provenance refresh |
 | Date | 2026-08-21 |
 | Trigger | No R2 candidate survived through gate 6 |
-| Active candidate | `eh72-hier-r5-r2-r1-crc32c-v0` |
+| Historical candidate | `eh72-hier-r5-r2-r1-crc32c-v0` |
 | Wire profile version | 7 |
 
 ## 1. Scope and non-result boundary

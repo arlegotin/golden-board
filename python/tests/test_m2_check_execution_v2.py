@@ -102,6 +102,13 @@ if os.environ.get('TEST_FAIL') and os.environ['TEST_FAIL'] in ' '.join(sys.argv[
             '--phase','pre-gate8-clean','--candidate-root'])
         self.assertFalse(any('tools/m2/verify_gate8_v2.py' in c for c in self.calls()))
 
+    def test_later_roadmap_revision_dispatches_v2_without_local_archive(self):
+        self.roadmap.write_text('| Roadmap revision | 12 |\n')
+        result=self.run_check('full')
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn(['python','tools/m2/verify_gate8_v2.py','full'],self.calls())
+        self.assertFalse(any('tools/m2/generate_gate8.py' in c for c in self.calls()))
+
     def test_components_stop_on_child_failure(self):
         result=self.run_check('components',TEST_FAIL='python.tests.test_chess_oracle')
         self.assertNotEqual(result.returncode,0)

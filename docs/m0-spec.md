@@ -1,8 +1,10 @@
 # M0 foundation and source reconnaissance specification
 
+This is the completed M0 contract. Current status lives only in [roadmap Section 13](roadmap.md#13-project-status--sole-mutable-authority).
+
 | Field | Value |
 |---|---|
-| Status | Draft for execution |
+| Status | Completed-baseline contract |
 | Date | 2026-08-14 |
 | Roadmap | Revision 2, M0 |
 | Branch | `m0` |

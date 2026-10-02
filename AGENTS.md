@@ -18,6 +18,13 @@ M1's executable contract and plan are
 M2's executable contract and plan are
 [`docs/m2-spec.md`](docs/m2-spec.md) and [`docs/m2-plan.md`](docs/m2-plan.md).
 
+Completed M2 evidence and its offline restoration are mapped in
+[`docs/m2.5-closeout.md`](docs/m2.5-closeout.md); inherited study knowledge is in
+[`studies/m2/participant-learnings-v1.md`](studies/m2/participant-learnings-v1.md).
+Use `scripts/check checkpoint` for historical integrity. Original full/Linux/release
+reproduction uses the documented restored frozen repository. Do not rerun M2's
+production campaign merely because development documents or caches changed.
+
 M2 iteration defaults to **fix → focused checks → frozen provisional participant
 trial → feedback**. Run exhaustive damage/native/Linux/release verification
 after the required trials succeed on a stable candidate, not before every
@@ -29,6 +36,7 @@ Root checks:
 
 ```sh
 scripts/check fast
+scripts/check checkpoint
 scripts/check focused source
 scripts/check focused identity
 scripts/check focused chess

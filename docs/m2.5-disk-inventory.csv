@@ -1,0 +1,144 @@
+type,path,allocated_bytes,logical_bytes,file_count,tracked_file_count,proposed_treatment
+directory,.,16196378624,14490924420,553619,613,measured checkout; nested rows overlap
+directory,artifacts,7210741760,5539417152,461941,133,mixed A/B/C: inspect child rows; prune verified redundant generation and retain exact accepted/history/proof closure
+directory,artifacts/candidates,239423488,237935182,586,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0,62767104,62632506,79,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/candidates/eh72-r3-crc32c-v0,60907520,60784456,76,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/candidates/eh72-hier-r5-r2-r1-lzss-crc32c-v1,59015168,57953021,359,0,C: retain exact accepted/protected evidence
+directory,artifacts/candidates/eh72-r2-crc32c-v0,56733696,56565199,72,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/gate8,10633216,10499386,47,0,C: retain exact accepted/protected evidence
+directory,artifacts/gate8/receipts,212992,202974,4,0,C: retain exact accepted/protected evidence
+directory,artifacts/gate8/bundles,10149888,10041020,38,0,C: retain exact accepted/protected evidence
+directory,artifacts/quiz,5498109952,3849429054,453077,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/07-learner,843776,790832,25,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/03-tests,9179136,9153216,9,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/09-revised-learner-v2,4096,2324,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/19-fresh-technical-pair-connected-content,10162176,10063328,35,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/02-adapter,28672,14026,5,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/16-fresh-technical-content-control,943456256,478783090,123516,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/01-start,573440,535975,11,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/15-fresh-technical-complete-recovery,352174080,315661090,12224,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/17-connected-content-formative,137756672,122159590,4666,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/14-complete-recovery-formative,436006912,272846231,47956,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/organizer,5210112,5092581,53,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/10-fresh-technical-v2,235450368,145865538,24795,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/06-fresh,38203392,32654169,1668,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/20-open-technical-group,1319587840,970352319,95542,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/05-continue,23343104,22559681,293,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/08-revised-technical-v2,627306496,482783981,38470,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/12-physical-recovery-technical-v2,213762048,197742661,5383,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/18-fresh-technical-connected-content,300466176,153168436,39382,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/13-construction-technical-v2,458014720,271402854,49757,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/04-wrap-up,20480,10325,4,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/quiz/11-recovery-technical-v2,386514944,357749170,9279,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/private,4096,144,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/private/m2-pilots,4096,144,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/linux,81743872,80135568,505,0,mixed: keep acquisition/required owner preimages; process redundant refresh output
+directory,artifacts/linux/gate8-clean-linux-test-refresh-v0,11677696,11447922,72,0,mixed: keep acquisition/required owner preimages; process redundant refresh output
+directory,artifacts/linux/gate8-provenance-fixture-refresh-v0,11677696,11447926,72,0,mixed: keep acquisition/required owner preimages; process redundant refresh output
+directory,artifacts/linux/gate8-candidate-ready-provenance-input-refresh-v0,11677696,11447939,72,0,mixed: keep acquisition/required owner preimages; process redundant refresh output
+directory,artifacts/linux/verifier-refresh-c1ef7213-v0,11673600,11447605,72,0,mixed: keep acquisition/required owner preimages; process redundant refresh output
+directory,artifacts/linux/gate8-candidate-ready-runtime-test-refresh-v0,11677696,11447935,72,0,mixed: keep acquisition/required owner preimages; process redundant refresh output
+directory,artifacts/linux/gate8-candidate-ready-test-refresh-v0,11677696,11447926,72,0,mixed: keep acquisition/required owner preimages; process redundant refresh output
+directory,artifacts/linux/gate8-candidate-ready-clean-snapshot-refresh-v0,11677696,11447937,72,0,mixed: keep acquisition/required owner preimages; process redundant refresh output
+directory,artifacts/history,1380712448,1361309594,7722,133,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/history/m2-v2-before-partition-test-repair-v1,159830016,157966616,999,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/history/m2-pre-participant-revision-v1,494280704,484454009,3301,0,C: retain exact accepted/protected evidence
+directory,artifacts/history/m2-r3-pre-gate6-convergence-clarification,2830336,2802652,12,12,C: retain exact accepted/protected evidence
+directory,artifacts/history/m2-r1-candidates,57257984,57029082,78,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/history/m2-r3-pre-local-check-reflection-clarification,62869504,62721896,85,85,C: retain exact accepted/protected evidence
+directory,artifacts/history/m2-v2-before-qualification-literal-repair-v1,158388224,155876029,1020,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/history/m2-r2-candidates,118587392,118262126,167,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/history/m2-v2-finder-metadata-before-provisional-trials-v1,45056,31864,5,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/history/m2-r3-pre-independence-witness-clarification,2818048,2791370,12,12,C: retain exact accepted/protected evidence
+directory,artifacts/history/m2-r3-pre-d7-mapping-clarification,2789376,2764577,12,12,C: retain exact accepted/protected evidence
+directory,artifacts/history/m2-v2-before-provisional-trials-v1,159834112,157969611,999,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,artifacts/history/m2-r3-pre-damage-artifact-schema-clarification,2793472,2766558,12,12,C: retain exact accepted/protected evidence
+directory,artifacts/history/m2-v2-before-physical-witness-test-repair-v1,158388224,155873204,1020,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,tools,1867776,1737150,67,41,retain source/history/offline setup; negligible savings
+directory,tools/linux,102400,80406,9,8,retain source/history/offline setup; negligible savings
+directory,tools/m2,1765376,1656744,58,33,retain source/history/offline setup; negligible savings
+directory,crates,3932160,3650484,127,127,retain source/history/offline setup; negligible savings
+directory,.pytest_cache,24576,8485,5,0,A: generated cache; remove only while idle
+directory,studies,479232,350348,41,41,retain source/history/offline setup; negligible savings
+directory,python,16412672,15622149,376,166,retain source/history/offline setup; negligible savings
+directory,python/tests,6696960,6288856,206,93,retain source/history/offline setup; negligible savings
+directory,python/golden_board,9715712,9333293,170,73,retain source/history/offline setup; negligible savings
+directory,target,8926289920,8898877704,89025,0,A: generated cache; remove only while idle
+directory,target/release,242364416,240708013,522,0,A: generated cache; remove only while idle
+directory,target/release/.fingerprint,1183744,81505,286,0,A: generated cache; remove only while idle
+directory,target/release/examples,5357568,5352739,4,0,A: generated cache; remove only while idle
+directory,target/release/deps,203776000,203421314,156,0,A: generated cache; remove only while idle
+directory,target/release/build,8183808,8008031,61,0,A: generated cache; remove only while idle
+directory,target/debug,8683917312,8658167543,88501,0,A: generated cache; remove only while idle
+directory,target/debug/.fingerprint,4075520,313497,984,0,A: generated cache; remove only while idle
+directory,target/debug/incremental,1862893568,1853953649,7028,0,A: generated cache; remove only while idle
+directory,target/debug/examples,142630912,141993811,314,0,A: generated cache; remove only while idle
+directory,target/debug/deps,7164051456,7144042673,80086,0,A: generated cache; remove only while idle
+directory,target/debug/build,13774848,13581652,79,0,A: generated cache; remove only while idle
+directory,.ruff_cache,20480,1320,5,0,A: generated cache; remove only while idle
+directory,spec,1335296,1226176,61,61,retain source/history/offline setup; negligible savings
+directory,docs,1081344,1043419,17,17,retain source/history/offline setup; negligible savings
+directory,.venv,987136,908440,37,0,retain source/history/offline setup; negligible savings
+directory,scripts,24576,23459,1,1,retain source/history/offline setup; negligible savings
+directory,.git,26140672,21304100,1777,0,retain source/history/offline setup; negligible savings
+directory,.superpowers,5263360,5060607,106,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+directory,.cache,12288,1743,6,0,retain source/history/offline setup; negligible savings
+directory,inputs,4096,3829,1,1,retain source/history/offline setup; negligible savings
+directory,reports,962560,953827,4,4,retain source/history/offline setup; negligible savings
+directory,conformance,737280,709577,11,11,retain source/history/offline setup; negligible savings
+file,target/debug/deps/libgb_bootstrap-ac47553c7e5398d5.rlib,194793472,194791672,1,0,A: generated cache; remove only while idle
+file,target/debug/deps/libgb_bootstrap-3db477b08863f407.rlib,185548800,185547016,1,0,A: generated cache; remove only while idle
+file,target/debug/incremental/gb_bootstrap-2hdxapwh543nl/s-hmlfvoyjv2-1pctp8l-558ishxf4kp0pk5xhn0puvk23/dep-graph.bin,102326272,102326068,1,0,A: generated cache; remove only while idle
+file,target/debug/incremental/gb_bootstrap-2hdxapwh543nl/s-hmlfw90lyh-0tnonw9-dgjnb19ypk9orywj2kythzvdi/dep-graph.bin,101748736,101748669,1,0,A: generated cache; remove only while idle
+file,target/debug/incremental/gb_bootstrap-1xetn8jzqeyxk/s-hmnbaeccig-1rerdb0-9k06ub8pl0ig5kn6rnjxgos7b/dep-graph.bin,99430400,99430232,1,0,A: generated cache; remove only while idle
+file,target/debug/incremental/gb_bootstrap-1xetn8jzqeyxk/s-hmnhfbrrin-119nbrb-9k06ub8pl0ig5kn6rnjxgos7b/dep-graph.bin,99393536,99390491,1,0,A: generated cache; remove only while idle
+file,target/debug/deps/libgb_bootstrap-b4b9268eb1a88ca3.rlib,80130048,80126104,1,0,A: generated cache; remove only while idle
+file,target/debug/deps/libgb_bootstrap-24dc199b9f440263.rlib,76410880,76410264,1,0,A: generated cache; remove only while idle
+file,target/debug/incremental/gb_bootstrap-2hdxapwh543nl/s-hmlfvoyjv2-1pctp8l-558ishxf4kp0pk5xhn0puvk23/query-cache.bin,65425408,65424736,1,0,A: generated cache; remove only while idle
+file,target/debug/incremental/gb_bootstrap-2hdxapwh543nl/s-hmlfw90lyh-0tnonw9-dgjnb19ypk9orywj2kythzvdi/query-cache.bin,63037440,63035296,1,0,A: generated cache; remove only while idle
+file,target/debug/incremental/gb_bootstrap-1xetn8jzqeyxk/s-hmnbaeccig-1rerdb0-9k06ub8pl0ig5kn6rnjxgos7b/query-cache.bin,59908096,59906977,1,0,A: generated cache; remove only while idle
+file,target/debug/incremental/gb_bootstrap-1xetn8jzqeyxk/s-hmnhfbrrin-119nbrb-9k06ub8pl0ig5kn6rnjxgos7b/query-cache.bin,59830272,59829095,1,0,A: generated cache; remove only while idle
+file,target/debug/deps/gb_bootstrap-e077391850ca6b58,49963008,49962048,1,0,A: generated cache; remove only while idle
+file,target/debug/deps/gb_bootstrap-22cc25556307793a,46227456,46226448,1,0,A: generated cache; remove only while idle
+file,target/debug/incremental/gb_bootstrap-0x9ykj0inrlxk/s-hllycvvdl4-19t70wy-7o0d8u1w4llgegtf3es9t8998/dep-graph.bin,45916160,45912936,1,0,A: generated cache; remove only while idle
+file,target/debug/incremental/gb_bootstrap-0x9ykj0inrlxk/s-hlncjp6fd3-16nqqyp-4t7rs1fuqb10tye8ww9y7fs6q/dep-graph.bin,45912064,45908741,1,0,A: generated cache; remove only while idle
+file,target/debug/deps/gb_m2_gate8_v2-94d605cf558b6fed,36782080,36781968,1,0,A: generated cache; remove only while idle
+file,target/debug/gb-m2-gate8-v2,36556800,36554160,1,0,A: generated cache; remove only while idle
+file,target/debug/deps/gb_m2_gate8_v2-b7a4aa68a044a5e7,36556800,36554160,1,0,A: generated cache; remove only while idle
+file,target/debug/incremental/gb_bootstrap-1rj59z397v7px/s-hmkiagop7c-0x556aj-6k36lgosj5b1c38pvbr8exoer/dep-graph.bin,34959360,34959073,1,0,A: generated cache; remove only while idle
+file,artifacts/quiz/16-fresh-technical-content-control/review-continue/evidence/continuation-before.json,11161600,11158248,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/13-construction-technical-v2/follow-up/restored-work.zip,8482816,8481180,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/13-construction-technical-v2/review/answers-inventory.json,8372224,8370150,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/16-fresh-technical-content-control/answers-continue/FILE_SHA256.json,7831552,7827955,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/analysis-next/replay/a/codeword-log.json,7315456,7314354,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/answers-continue/next/a/codeword-log.json,7315456,7314354,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/answers-continue/repetition/a/individual-codeword-log.json,7315456,7314354,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/analysis-repetition/replay/a/individual-codeword-log.json,7315456,7314354,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/analysis-next/replay/b/codeword-log.json,7311360,7308308,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/answers-continue/next/b/codeword-log.json,7311360,7308308,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/answers-continue/repetition/b/individual-codeword-log.json,7311360,7308308,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/analysis-repetition/replay/b/individual-codeword-log.json,7311360,7308308,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/analysis-next/replay/clean/codeword-log.json,7270400,7269821,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/analysis-next/replay/d/codeword-log.json,7270400,7269821,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/answers-continue/next/clean/codeword-log.json,7270400,7269821,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/answers-continue/next/d/codeword-log.json,7270400,7269821,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/answers-continue/repetition/clean/individual-codeword-log.json,7270400,7269821,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/answers-continue/repetition/d/individual-codeword-log.json,7270400,7269821,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/analysis-repetition/replay/clean/individual-codeword-log.json,7270400,7269821,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/analysis-repetition/replay/d/individual-codeword-log.json,7270400,7269821,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/analysis-next/replay/c/codeword-log.json,7266304,7266005,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/answers-continue/next/c/codeword-log.json,7266304,7266005,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/answers-continue/repetition/c/individual-codeword-log.json,7266304,7266005,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/08-revised-technical-v2/analysis-repetition/replay/c/individual-codeword-log.json,7266304,7266005,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/14-complete-recovery-formative/review/evidence/submission-before.json,7045120,7043038,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/20-open-technical-group/answers/person-2/adapter/manifest.sha256,6602752,6601186,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/16-fresh-technical-content-control/review/evidence/answers-before.json,6455296,6452882,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/16-fresh-technical-content-control/review-continue/files.json,5296128,5293074,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/13-construction-technical-v2/answers/heldout/inventory.sha256,5079040,5078466,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/20-open-technical-group/answers/person-1/heldout/b/attempt03_audited/packet_evidence.json,4915200,4914273,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/20-open-technical-group/answers/person-1/heldout/b/attempt02/packet_evidence.json,4915200,4914273,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/20-open-technical-group/answers/person-1/heldout/a/attempt03_audited/packet_evidence.json,4890624,4886564,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/20-open-technical-group/answers/person-1/heldout/a/attempt02/packet_evidence.json,4890624,4886564,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/20-open-technical-group/answers/person-1/heldout/c/attempt03_audited/packet_evidence.json,4784128,4784040,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"
+file,artifacts/quiz/20-open-technical-group/answers/person-1/heldout/c/attempt02/packet_evidence.json,4784128,4784040,1,0,"B: extract knowledge/proof, reconcile retention and consumers before pruning"

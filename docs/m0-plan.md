@@ -1,5 +1,7 @@
 # M0 foundation and source reconnaissance implementation plan
 
+This is the completed M0 historical execution record. Current status lives only in [roadmap Section 13](roadmap.md#13-project-status--sole-mutable-authority).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use
 > `superpowers:subagent-driven-development` (recommended) or
 > `superpowers:executing-plans` to implement this plan task-by-task. Steps use

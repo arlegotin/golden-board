@@ -6,13 +6,14 @@ remaining recoverable under a declared accidental-damage model. The claim is
 deliberately narrow: the finished artifact will be judged only against its
 specified recipient model, source, tests, and validation evidence.
 
-The project is pre-artifact and has not yet demonstrated its reconstruction or
-learning claims. Current milestone status is maintained only in
+M0–M2 established the source/chess foundation and a qualified full-carrier
+feasibility checkpoint. Complete content and final artifact validation are later
+work. Current milestone status is maintained only in
 [roadmap Section 13](docs/roadmap.md#13-project-status--sole-mutable-authority).
 
 ## Bootstrap
 
-M0 and M1 use these exact project tools:
+Project development and the M2 checkpoint use these exact tools:
 
 - [uv 0.11.29](https://github.com/astral-sh/uv/releases/tag/0.11.29);
 - CPython 3.14.6, selected by `.python-version`; and
@@ -38,6 +39,7 @@ is:
 
 ```sh
 scripts/check fast
+scripts/check checkpoint
 scripts/check focused source
 scripts/check focused identity
 scripts/check focused chess
@@ -46,6 +48,7 @@ scripts/check focused content
 scripts/check focused transport
 scripts/check focused damage
 scripts/check focused repo
+scripts/check components
 scripts/check linux
 scripts/check full
 scripts/check release
@@ -61,7 +64,8 @@ scripts/check linux
 ```
 
 The verifier is pinned to `linux/arm64` and the Debian 13 slim digest recorded
-by M0. Verification runs `scripts/check full` with container networking off,
+by M0. In the restored frozen M2 repository, verification runs `scripts/check full`
+with container networking off,
 without host language caches, from a disposable reconstruction of the current
 HEAD, index, worktree, deletions, and nonignored untracked files. If the image
 or its local acquisition evidence is missing, the command fails and prints the
@@ -94,15 +98,40 @@ PYTHONPATH="$PWD/python" uv run --locked --offline --no-python-downloads \
   python -c 'import os,tempfile; from pathlib import Path; s=Path("artifacts/source-doctor.candidate.json"); d=Path("reports/source-doctor.json"); d.parent.mkdir(exist_ok=True); f=tempfile.NamedTemporaryFile(dir=d.parent,delete=False); p=f.name; f.write(s.read_bytes()); f.close(); os.replace(p,d)'
 ```
 
+## M2 checkpoint and M3 handoff
+
+Start with [M2 results and inherited lessons](studies/m2/participant-learnings-v1.md)
+and [the cleanup/evidence map](docs/m2.5-closeout.md). `scripts/check checkpoint`
+hashes the retained completed source/evidence without rerunning production gates.
+It rejects missing evidence. A fresh clone has source and tracked reports, but
+must restore the documented private evidence before this historical check.
+
+To restore the original ordinary repository for explicit M2 reproduction:
+
+```sh
+PYTHONPATH=python uv run --locked --offline --no-python-downloads python \
+  tools/m2/verify_gate8_v2.py restore-checkpoint --destination /absolute/fresh/path
+```
+
+That directory contains the original source, roadmap, candidate, Gate8, acquisition
+receipt, transition archive, required legacy snapshots/policy owners and
+qualification preimages. Full/Linux/release use
+their original runners there. Live full/release rejects reuse of M2's old result;
+current focused checks continue to check development source. Material recipient
+or transport changes follow the existing reopening rules.
+
+For M3 development, run the affected focused checks; `scripts/check components`
+runs the complete code/component suites without launching the M2 producer campaign.
+
 ## Repository map
 
 - `docs/roadmap.md` — product contract, milestone gates, and status authority
 - `docs/m0-spec.md` — M0 implementation contract
-- `docs/m0-plan.md` — ordered M0 execution plan
+- `docs/m0-plan.md` — historical M0 execution record
 - `docs/m1-spec.md` — M1 execution contract and design rationale
-- `docs/m1-plan.md` — flexible, ordered M1 execution plan
+- `docs/m1-plan.md` — historical M1 execution record
 - `docs/m2-spec.md` — M2 execution contract and design rationale
-- `docs/m2-plan.md` — flexible, ordered M2 execution plan
+- `docs/m2-plan.md` — historical M2 execution record
 - `docs/sources.md` — retained reference ledger and rights limits
 - `docs/64_games.md` — authoritative, immutable-for-M0 anthology input
 - `inputs/source-lock.toml` — exact input and reference receipts
@@ -110,5 +139,19 @@ PYTHONPATH="$PWD/python" uv run --locked --offline --no-python-downloads \
 - `conformance/` — hand-authored shared identity, chess, source, and content fixtures
 - `python/` and `crates/` — independent identity, chess, source, and content implementations
 - `reports/` — retained source-doctor and agreed source-compilation evidence
-- `scripts/check` — M0/M1 root check dispatcher
+- `scripts/check` — current focused checks and checkpoint/reproduction entry points
 - `AGENTS.md` — concise repository safety rules
+
+
+- [M2 results and learnings](studies/m2/participant-learnings-v1.md) — canonical study narrative, all attempts and 31 findings/C01–C11
+- [M2 qualification](studies/m2/qualification-v2.json) — immutable reviewed human result
+- [M2 checkpoint](studies/m2/checkpoint-v1.json) — exact completed source/evidence identities
+- [M2.5 closeout](docs/m2.5-closeout.md) — retained private evidence, disk recovery and restoration
+- `artifacts/` — required frozen evidence and documented private study proof; generation work is disposable
+
+`spec/gate8-policy-v2.toml` and `spec/gate8-execution-v2.md` own current M2
+evidence entry points; `spec/bootstrap-v2.md`, `spec/recovery-provenance-v2.md`,
+`spec/content-teaching-v2.md` and `spec/slice-v1.md` own the active recipient,
+recovery, teaching and selected content contracts. Older v0/v1 owners remain
+where these contracts or conformance checks inherit them; version age alone
+does not make a file obsolete.

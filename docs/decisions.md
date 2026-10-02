@@ -57,3 +57,26 @@ The prior validated v2 tuple is archived before source edits under
 to the existing In-progress roadmap. Original submissions are unchanged. This
 workflow change itself runs focused checks, not another exhaustive release;
 the next task is the documented recovery-teaching repair.
+
+
+## 2026-10-02 — Preserve completed M2 before M3
+
+M2.5 preserves the exact accepted Git source and complete evidence closure instead
+of regenerating costly results after prose/working-output cleanup. Historical
+checkpoint admission and later live development have explicit scopes. Missing
+actual preimages reject; old receipts cannot qualify new source. The original
+full/release computations remain available in the restored frozen repository.
+
+Canonical participant learning is [one study narrative](../studies/m2/participant-learnings-v1.md).
+Private redundant working output is pruned after proof/trajectory preservation;
+the pinned transition and tracked clarification archives remain exact. M1 agent
+scratch is retired after rationale triage: identity domain separation prevents
+cross-type hash aliases; raw-source fixtures preserve exact byte-span/rejection
+precedence; chess rejection guards must not mask self-check/terminal semantics;
+and failed content operations roll back atomically. Those conclusions belong to
+existing identity, source, chess and content owners/tests, not another agent-log
+hierarchy. Review commits and retired plans remain available in Git.
+
+The 53-game choice pays for connected direct teaching under unchanged protection,
+reserve and 512 KiB constraints. The [curation appendix](../studies/m2/participant-learnings-v1.md#teaching-space-and-53-game-selection)
+preserves all eleven removal judgments; the original 64-game source stays locked.
