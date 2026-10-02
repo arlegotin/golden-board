@@ -1,5 +1,11 @@
 [workspace]
-members = ["crates/gb-foundation", "crates/gb-chess", "crates/gb-content"]
+members = [
+    "crates/gb-foundation",
+    "crates/gb-chess",
+    "crates/gb-content",
+    "crates/gb-bootstrap",
+    "crates/gb-slice",
+]
 resolver = "3"
 
 [workspace.package]

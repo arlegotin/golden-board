@@ -19,12 +19,15 @@ from . import canonical_manifest
 
 
 MAX_SOURCE_BYTES = 1_048_576
+MAX_SOURCE_LOCK_BYTES = 16_384
+MAX_SOURCE_LOCK_STRING_BYTES = 1_024
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 _ID = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
+_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}\Z")
 
 
 class LockError(ValueError):
-    """The source lock is outside the closed M0 schema."""
+    """The source lock is outside the closed project schema."""
 
 
 class InputError(OSError):
@@ -83,6 +86,9 @@ _REFERENCE_ROLES = {
     "nist-fips-180-4": "hash_definition",
     "nist-sha-byte-vectors-archive": "known_answer_container",
     "nist-sha256-short-message-vectors": "known_answer_source",
+    "etsi-en-301-192-v1-8-1": "rs_parameter_source",
+    "rfc-9260": "crc32c_parameter_source",
+    "ecma-182": "crc64_parameter_source",
 }
 
 
@@ -95,6 +101,12 @@ def _exact_keys(value: object, keys: set[str], label: str) -> dict[str, object]:
 def _text(value: object, label: str) -> str:
     if type(value) is not str or not value:
         raise LockError(f"invalid {label}")
+    try:
+        byte_length = len(value.encode("utf-8"))
+    except UnicodeEncodeError as error:
+        raise LockError(f"invalid {label}") from error
+    if byte_length > MAX_SOURCE_LOCK_STRING_BYTES:
+        raise LockError(f"oversized {label}")
     return value
 
 
@@ -125,12 +137,14 @@ def _contained_path(root: Path, value: object) -> str:
 
 
 def parse_source_lock(data: bytes, root: Path) -> LockedSource:
+    if type(data) is not bytes or len(data) > MAX_SOURCE_LOCK_BYTES:
+        raise LockError("source lock exceeds 16384-byte limit")
     try:
         document = tomllib.loads(data.decode("utf-8"))
     except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
         raise LockError("invalid source lock TOML") from error
     document = _exact_keys(document, {"schema", "source", "reference"}, "lock")
-    if document["schema"] != "golden-board.source-lock/v0":
+    if _text(document["schema"], "lock schema") != "golden-board.source-lock/v0":
         raise LockError("unsupported source lock schema")
 
     sources = document["source"]
@@ -138,9 +152,15 @@ def parse_source_lock(data: bytes, root: Path) -> LockedSource:
     if type(sources) is not list or len(sources) != 1 or type(references) is not list:
         raise LockError("invalid source/reference entries")
     source = _exact_keys(sources[0], _SOURCE_KEYS, "source")
-    if source["id"] != "anthology" or source["role"] != "authoritative_input":
+    if (
+        _text(source["id"], "source id") != "anthology"
+        or _text(source["role"], "source role") != "authoritative_input"
+    ):
         raise LockError("invalid authoritative source")
-    if source["encoding"] != "utf-8" or source["newline"] != "lf":
+    if (
+        _text(source["encoding"], "source encoding") != "utf-8"
+        or _text(source["newline"], "source newline") != "lf"
+    ):
         raise LockError("invalid source encoding profile")
 
     ids = {"anthology"}
@@ -152,18 +172,28 @@ def parse_source_lock(data: bytes, root: Path) -> LockedSource:
             raise LockError("duplicate or invalid source id")
         ids.add(identifier)
         seen_references.add(identifier)
-        if reference["role"] != _REFERENCE_ROLES.get(identifier):
+        role = _text(reference["role"], "reference role")
+        if role != _REFERENCE_ROLES.get(identifier):
             raise LockError("invalid reference class")
-        for key in ("title", "version", "locator", "accessed"):
+        for key in ("title", "version"):
             _text(reference[key], f"reference {key}")
+        locator = _text(reference["locator"], "reference locator")
+        if not locator.startswith("https://"):
+            raise LockError("invalid reference locator")
+        accessed = _text(reference["accessed"], "reference accessed")
+        if _DATE.fullmatch(accessed) is None:
+            raise LockError("invalid reference accessed date")
         _size(reference["bytes"], "reference bytes")
         _digest(reference["sha256"], "reference sha256")
-        if reference["retention"] != "receipt_only":
+        if _text(reference["retention"], "reference retention") != "receipt_only":
             raise LockError("invalid reference retention")
-        if reference["redistribution"] != "not_established":
+        if (
+            _text(reference["redistribution"], "reference redistribution")
+            != "not_established"
+        ):
             raise LockError("invalid reference redistribution status")
     if seen_references != set(_REFERENCE_ROLES):
-        raise LockError("missing or unexpected M0 reference")
+        raise LockError("missing or unexpected reference")
 
     return LockedSource(
         path=_contained_path(root, source["path"]),
@@ -173,10 +203,49 @@ def parse_source_lock(data: bytes, root: Path) -> LockedSource:
 
 
 def load_source_lock(root: Path) -> LockedSource:
+    path = root / "inputs/source-lock.toml"
     try:
-        data = (root / "inputs/source-lock.toml").read_bytes()
+        before = path.lstat()
     except OSError as error:
         raise LockError("cannot read source lock") from error
+    if (
+        stat.S_ISLNK(before.st_mode)
+        or not stat.S_ISREG(before.st_mode)
+        or before.st_size > MAX_SOURCE_LOCK_BYTES
+    ):
+        raise LockError("source lock is not a bounded regular file")
+
+    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as error:
+        raise LockError("cannot open source lock safely") from error
+    try:
+        opened = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(opened.st_mode)
+            or (before.st_dev, before.st_ino) != (opened.st_dev, opened.st_ino)
+            or opened.st_size > MAX_SOURCE_LOCK_BYTES
+        ):
+            raise LockError("source lock changed or is not a bounded regular file")
+        chunks: list[bytes] = []
+        total = 0
+        while total <= MAX_SOURCE_LOCK_BYTES:
+            chunk = os.read(
+                descriptor,
+                min(4_096, MAX_SOURCE_LOCK_BYTES + 1 - total),
+            )
+            if not chunk:
+                break
+            chunks.append(chunk)
+            total += len(chunk)
+        data = b"".join(chunks)
+    except OSError as error:
+        raise LockError("source lock read failed") from error
+    finally:
+        os.close(descriptor)
+    if len(data) > MAX_SOURCE_LOCK_BYTES:
+        raise LockError("source lock exceeds 16384-byte limit")
     return parse_source_lock(data, root)
 
 

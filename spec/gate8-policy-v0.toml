@@ -1,0 +1,1049 @@
+schema = "golden-board.m2-gate8-policy/v0"
+policy_version = 0
+status = "pre-gate8-frozen"
+candidate_id = "eh72-hier-r5-r2-r1-crc32c-v0"
+activation = "only-after-the-active-candidate-has-exact-pass-results-for-gates-1-through-7"
+outcome_values_present = false
+status_scope = "the-current-owner-is-frozen-before-the-reopened-gate8-run;post-result-historical-transition-identities-live-only-in-spec/gate8-verifier-refresh-v0.toml"
+outcome_values_scope = "candidate-gate-selection-human-and-new-gate8-result-values;the-exact-pre-run-local-acquisition-receipt-and-image-identity-are-environment-bindings-not-outcomes"
+canonical_manifest_rule = "spec/identity-v0.md-canonical-manifest-v0-including-one-final-lf"
+hash_rule = "sha256-of-the-complete-named-byte-preimage"
+integer_rule = "unsigned-64-bit-with-checked-arithmetic-unless-a-tighter-bound-is-stated"
+unknown_or_duplicate_keys = "reject"
+partial_or_extra_files = "reject"
+
+[authority]
+purpose = "gate-8-only-evidence-path-schema-preimage-selection-bundle-linux-and-report-r3-overlay"
+must_not_reinterpret = "gate-1-through-7-owner-or-evidence-bytes"
+profile_policy_path = "spec/profile-policy-v1.toml"
+profile_limits_path = "spec/profile-limits-v1.toml"
+damage_policy_path = "spec/damage-policy-v1.toml"
+bootstrap_path = "spec/bootstrap-v1.md"
+route_data_path = "spec/route-data-v1.json"
+promotion_path = "spec/m2-r3-owner-promotion-v1.toml"
+verifier_refresh_path = "spec/gate8-verifier-refresh-v0.toml"
+owner_kat_path = "conformance/m2-r3-owner-v1.json"
+candidate_root = "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0"
+damage_root = "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/damage"
+gate8_root = "artifacts/gate8"
+report_path = "reports/m2-feasibility-v0.json"
+selection_policy_inheritance = "spec/profile-policy-v1.toml-base-selection-rules-except-only-the-v7-active-candidate-is-enumerated"
+
+[phase_paths]
+candidate_root_rule = "unchanged-gates-1-through-7-allowlist-only;no-gate8-file-may-be-written-below-candidate-root"
+gate8_storage = "ignored-reproducible-working-evidence-never-a-normative-owner"
+tracked_gate8_outputs = ["reports/m2-feasibility-v0.json"]
+gate8_exact_files = [
+  "artifacts/gate8/evidence-source-v0.json",
+  "artifacts/gate8/generated-evidence-v0.json",
+  "artifacts/gate8/linux-attestation-v0.json",
+  "artifacts/gate8/selection-v0.json",
+  "artifacts/gate8/eh72-hier-r5-r2-r1-crc32c-v0/cross-language-manifest.json",
+  "artifacts/gate8/projections/damage-inventory-v7.json",
+  "artifacts/gate8/projections/geometry-equivalence-v7.json",
+  "artifacts/gate8/projections/grammar-state-manifest-v7.json",
+  "artifacts/gate8/projections/known-answer-manifest-v7.json",
+  "artifacts/gate8/projections/m2-all.content-v0.bin",
+  "artifacts/gate8/projections/parameter-manifest-v7.json",
+  "artifacts/gate8/projections/profile-limits-v7.json",
+  "artifacts/gate8/projections/recipe-manifest-v7.json",
+  "artifacts/gate8/projections/semantic-content-v7.json",
+  "artifacts/gate8/projections/shell-manifest-v7.json",
+  "artifacts/gate8/projections/side-search-v7.json",
+  "artifacts/gate8/projections/technical-heldout-classes-v0.json",
+  "artifacts/gate8/projections/runner-semantic-path-v0.json",
+  "artifacts/gate8/projections/work-scratch-ledger-v7.json",
+  "artifacts/gate8/bundles/learner-v0.json",
+  "artifacts/gate8/bundles/technical-v0.json",
+  "artifacts/gate8/receipts/linux-python.json",
+  "artifacts/gate8/receipts/linux-rust.json",
+  "artifacts/gate8/receipts/native-python.json",
+  "artifacts/gate8/receipts/native-rust.json",
+]
+gate8_dynamic_files = "only-regular-nonsymlink-nonhardlink-files-named-by-one-technical-or-learner-bundle-file-row-below-artifacts/gate8/bundles/technical-or-learner"
+gate8_dynamic_file_count = 44
+gate8_dynamic_aggregate_bytes_max = 67108864
+gate8_total_regular_file_count = 69
+gate8_total_bytes_max = 83886080
+write_rule = "stage-complete-tree-validate-all-bytes-and-cross-bindings-fsync-then-create-if-absent;check-mode-never-writes"
+existing_mismatch = "reject-without-overwrite"
+
+[path_grammar]
+rule = "nonempty-printable-ascii-repository-relative-posix-path-at-most-255-bytes"
+forbidden = "leading-slash-backslash-empty-dot-dotdot-component-or-trailing-slash"
+file_type = "regular-file-only-no-symlink-hardlink-or-special-file"
+mode_values = ["100644", "100755"]
+hash_format = "64-lowercase-hex"
+id_format = "[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
+
+[owner_projection]
+schema = "golden-board.m2-owner-projection/v0"
+key_order = ["projection_id", "schema", "source_rows"]
+source_row_keys = ["byte_length", "path", "sha256"]
+source_row_order = "path-bytewise-ascending-unique"
+source_row_preimage = "complete-raw-bytes-of-the-checked-repository-relative-path"
+row_limit = 32
+canonical_bytes_max = 1048576
+projection_id_must_match_role_table = true
+
+[[owner_projection.role]]
+role_id = "parameter_manifest"
+projection_id = "parameter-manifest-v7"
+path = "artifacts/gate8/projections/parameter-manifest-v7.json"
+source_paths = ["spec/profile-policy-v1.toml", "spec/profile-limits-v1.toml", "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/candidate-manifest.json"]
+
+[[owner_projection.role]]
+role_id = "known_answer_manifest"
+projection_id = "known-answer-manifest-v7"
+path = "artifacts/gate8/projections/known-answer-manifest-v7.json"
+source_paths = ["conformance/m2-r3-owner-v1.json", "spec/route-data-v1.json"]
+
+[[owner_projection.role]]
+role_id = "shell_manifest"
+projection_id = "shell-manifest-v7"
+path = "artifacts/gate8/projections/shell-manifest-v7.json"
+source_paths = ["spec/bootstrap-v1.md", "spec/route-data-v1.json", "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/candidate-manifest.json"]
+
+[[owner_projection.role]]
+role_id = "recipe_manifest"
+projection_id = "recipe-manifest-v7"
+path = "artifacts/gate8/projections/recipe-manifest-v7.json"
+source_paths = ["spec/bootstrap-v1.md", "spec/route-data-v1.json"]
+
+[[owner_projection.role]]
+role_id = "grammar_state_manifest"
+projection_id = "grammar-state-manifest-v7"
+path = "artifacts/gate8/projections/grammar-state-manifest-v7.json"
+source_paths = ["spec/profile-policy-v1.toml", "spec/damage-policy-v1.toml", "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/semantic-envelope.json", "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/candidate-manifest.json"]
+
+[[owner_projection.role]]
+role_id = "work_scratch_ledger"
+projection_id = "work-scratch-ledger-v7"
+path = "artifacts/gate8/projections/work-scratch-ledger-v7.json"
+source_paths = ["spec/profile-limits-v1.toml", "spec/route-data-v1.json", "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/capacity-ledger.json"]
+
+[[owner_projection.role]]
+role_id = "profile_limits_derivation"
+projection_id = "profile-limits-v7"
+path = "artifacts/gate8/projections/profile-limits-v7.json"
+source_paths = ["spec/profile-policy-v1.toml", "spec/damage-policy-v1.toml", "spec/bootstrap-v1.md", "spec/route-data-v1.json", "spec/profile-limits-v1.toml", "spec/m2-r3-owner-promotion-v1.toml"]
+
+[[owner_projection.role]]
+role_id = "side_search_policy"
+projection_id = "side-search-v7"
+path = "artifacts/gate8/projections/side-search-v7.json"
+source_paths = ["spec/profile-policy-v1.toml", "spec/profile-limits-v1.toml", "spec/route-data-v1.json", "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/candidate-manifest.json", "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/capacity-ledger.json"]
+
+[generated_role_preimages]
+content_stream_role = "content_stream"
+content_stream_name = "m2_all"
+content_stream_path = "artifacts/gate8/projections/m2-all.content-v0.bin"
+content_stream_preimage = "exact-generated-m2_all-content-v0-stream-bytes"
+vertical_slice_role = "vertical_slice"
+vertical_slice_name = "slice-v0"
+vertical_slice_path = "studies/m2/slice-v0.json"
+vertical_slice_preimage = "complete-raw-file-bytes"
+semantic_envelope_role = "semantic_envelope"
+semantic_envelope_name = "capacity-envelope-v1"
+semantic_envelope_path = "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/semantic-envelope.json"
+semantic_envelope_preimage = "complete-canonical-manifest-file-bytes"
+selection_role = "selection_recomputation"
+selection_name = "selection-v0"
+selection_path = "artifacts/gate8/selection-v0.json"
+selection_preimage = "complete-canonical-manifest-file-bytes"
+linux_role = "linux_attestation"
+linux_name = "linux-v0"
+linux_path = "artifacts/gate8/linux-attestation-v0.json"
+linux_preimage = "complete-canonical-manifest-file-bytes"
+technical_bundle_role = "technical_bundle"
+technical_bundle_name = "technical-v0"
+technical_bundle_path = "artifacts/gate8/bundles/technical-v0.json"
+technical_bundle_preimage = "complete-canonical-manifest-file-bytes"
+learner_bundle_role = "learner_bundle"
+learner_bundle_name = "learner-v0"
+learner_bundle_path = "artifacts/gate8/bundles/learner-v0.json"
+learner_bundle_preimage = "complete-canonical-manifest-file-bytes"
+
+[candidate_gate_role_preimages]
+candidate_name = "eh72-hier-r5-r2-r1-crc32c-v0"
+gate_order = [1, 2, 3, 4, 5, 6, 7, 8]
+gate1_roles = ["parameter_manifest", "known_answer_manifest"]
+gate2_roles = ["shell_manifest", "recipe_manifest"]
+gate3_roles = ["grammar_state_manifest"]
+gate4_roles = ["work_scratch_ledger"]
+gate5_roles = ["carrier", "ownership_ledger", "capacity_ledger", "density_ledger"]
+gate6_roles = ["damage_manifest", "damage_D0", "damage_D1", "damage_D2", "damage_D3", "damage_D4", "damage_D5", "damage_D6", "damage_D7"]
+gate7_roles = ["independence_proof"]
+gate8_roles = ["cross_language_manifest"]
+carrier_path = "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/carrier.obs-bits"
+ownership_ledger_path = "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/ownership-ledger.json"
+capacity_ledger_path = "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/capacity-ledger.json"
+density_ledger_path = "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/density-ledger.json"
+damage_manifest_path = "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/damage/damage-manifest.json"
+damage_family_path_formula = "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/damage/damage-{family_id}.json"
+independence_proof_path = "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/damage/independence-proof.json"
+cross_language_manifest_path = "artifacts/gate8/eh72-hier-r5-r2-r1-crc32c-v0/cross-language-manifest.json"
+gate1_through_4_role_rule = "hash-the-complete-canonical-owner-projection-named-by-the-matching-owner-projection-role-row"
+gate5_through_8_role_rule = "hash-the-complete-raw-bytes-at-the-exact-path-named-above"
+damage_family_order = ["D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"]
+
+[semantic_content_projection]
+schema = "golden-board.m2-gate8-semantic-content/v0"
+path = "artifacts/gate8/projections/semantic-content-v7.json"
+key_order = ["candidate_id", "common_plain_blocks_sha256", "content_stream_sha256", "schema", "section_envelopes_sha256", "semantic_envelope_sha256"]
+candidate_id = "eh72-hier-r5-r2-r1-crc32c-v0"
+content_stream_sha256_preimage = "exact-generated-m2_all-content-v0-stream-bytes"
+semantic_envelope_sha256_preimage = "complete-canonical-semantic-envelope-file-bytes"
+section_envelopes_order = "section-id-ascending-over-the-exact-138-selected-sections"
+section_envelopes_preimage = "ascii-golden-board:m2:gate8:section-envelopes:v0-then-nul-then-u64-be-count-then-for-each-row-u32-be-section-id-u64-be-byte-length-exact-section-envelope-bytes"
+common_plain_blocks_order = "section-id-ascending-then-fragment-index-ascending-over-each-semantic-copy-0-logical-group-once-never-per-physical-replica"
+common_plain_blocks_preimage = "ascii-golden-board:m2:gate8:common-plain-blocks:v0-then-nul-then-u64-be-count-then-for-each-row-u32-be-section-id-u32-be-fragment-index-u64-be-191-exact-common-plain-block-bytes"
+common_plain_block_bytes = 191
+section_count = 138
+logical_group_count = 1279
+canonical_bytes_max = 1048576
+
+[damage_inventory]
+schema = "golden-board.m2-gate8-damage-inventory/v0"
+path = "artifacts/gate8/projections/damage-inventory-v7.json"
+key_order = ["candidate_id", "file_rows", "schema"]
+file_row_keys = ["byte_length", "path", "sha256"]
+path_base = "artifacts/candidates/eh72-hier-r5-r2-r1-crc32c-v0/damage"
+path_in_manifest = "relative-to-path-base"
+file_order = "relative-path-bytewise-ascending-unique"
+root_files = ["damage-manifest.json"]
+family_files = ["damage-D0.json", "damage-D1.json", "damage-D2.json", "damage-D3.json", "damage-D4.json", "damage-D5.json", "damage-D6.json", "damage-D7.json"]
+shard_counts_by_family = [1, 1, 2, 3, 11, 1, 41, 3]
+shard_name_formula = "damage-{family_id}-cases-{zero-padded-four-digit-shard-ordinal}.json"
+file_count = 72
+excluded_files = ["independence-proof.json"]
+generation = "each-of-python-and-rust-in-each-environment-runs-all-owned-operators-cases-and-decoder-paths-and-renders-every-canonical-root-family-and-shard-byte-string-transiently"
+retained_evidence_use = "comparison-target-only-never-a-generated-value-source"
+streaming = "allowed-to-hash-each-complete-canonical-file-without-retaining-observation-bytes"
+shortcuts = "reading-only-root-or-family-hashes-or-rehashing-retained-gate6-files-does-not-satisfy-generation"
+per_file_bytes_max = 1048576
+aggregate_bytes_max = 67108864
+canonical_bytes_max = 1048576
+
+[cross_language_manifest]
+schema = "golden-board.m2-cross-language/v0"
+path = "artifacts/gate8/eh72-hier-r5-r2-r1-crc32c-v0/cross-language-manifest.json"
+key_order = ["artifact_rows", "candidate_id", "candidate_manifest_sha256", "schema", "summary"]
+artifact_row_keys = ["artifact_id", "native_python_sha256", "native_rust_sha256", "linux_python_sha256", "linux_rust_sha256", "result"]
+artifact_ids = ["semantic-content-projection", "candidate-manifest", "carrier", "ownership-ledger", "capacity-ledger", "density-ledger", "damage-bundle-inventory", "independence-proof"]
+artifact_order = "exact-artifact-ids-order"
+producer_order = ["native-python", "native-rust", "linux-python", "linux-rust"]
+result_values = ["pass", "fail"]
+row_pass_rule = "all-four-sha256-values-byte-identical"
+row_failure_rule = "any-difference-is-fail-never-majority-or-preferred-implementation"
+summary_keys = ["artifact_count", "result"]
+summary_artifact_count = 8
+summary_pass_rule = "all-eight-complete-rows-pass"
+complete_rows_required_on_failure = true
+candidate_manifest_preimage = "complete-canonical-candidate-manifest-bytes-generated-independently-not-read-from-retained-candidate-root"
+candidate_manifest_sha256_field = "sha256-of-the-canonical-gate1-through7-candidate-under-test-manifest;host-assembly-uses-the-validated-retained-authority-candidate-byte-string-while-clean-phase-check-and-linux-verification-use-their-own-independently-regenerated-byte-identical-candidate;this-field-does-not-select-one-of-four-receipt-values-remains-defined-when-the-candidate-manifest-row-fails-and-is-never-read-from-the-report"
+carrier_preimage = "complete-OBS_BITS-bytes-generated-independently-not-read-from-retained-candidate-root"
+ownership_ledger_preimage = "complete-canonical-ownership-ledger-bytes-generated-independently-not-read-from-retained-candidate-root"
+capacity_ledger_preimage = "complete-canonical-capacity-ledger-bytes-generated-independently-not-read-from-retained-candidate-root"
+density_ledger_preimage = "complete-canonical-density-ledger-bytes-generated-independently-not-read-from-retained-candidate-root"
+semantic_content_preimage = "complete-semantic-content-projection-bytes"
+damage_inventory_preimage = "complete-damage-inventory-projection-bytes-derived-from-an-independent-full-corpus-render"
+independence_proof_preimage = "complete-canonical-proof-bytes-independently-recomputed-after-the-full-corpus-render"
+gate8_pass_rule = "manifest-summary-pass-and-each-implementation-validator-independently-recomputes-every-row"
+failure_persistence = "candidate-specific-complete-manifest-retained-in-ignored-gate8-tree-and-candidate-eliminated"
+canonical_bytes_max = 1048576
+
+[producer_receipt]
+schema = "golden-board.m2-gate8-producer-receipt/v0"
+key_order = ["artifact_rows", "candidate_id", "producer_id", "schema"]
+artifact_row_keys = ["artifact_id", "sha256"]
+artifact_ids = ["semantic-content-projection", "candidate-manifest", "carrier", "ownership-ledger", "capacity-ledger", "density-ledger", "damage-bundle-inventory", "independence-proof"]
+artifact_order = "exact-artifact-ids-order"
+producer_ids = ["native-python", "native-rust", "linux-python", "linux-rust"]
+path_formula = "artifacts/gate8/receipts/{producer_id}.json"
+preimage_rule = "every-hash-is-produced-from-that-producers-independent-complete-generation-in-the-named-environment-never-from-another-receipt-or-the-retained-candidate"
+implementation_independence = "each-producer-must-complete-with-the-other-language-runtime-binary-library-receipt-output-and-status-unavailable;no-producer-invokes-reads-waits-for-or-gates-success-on-another-producer"
+python_generation = "native-python-and-linux-python-run-the-python-candidate-operators-production-decoder-and-python-owned-oracle-and-boundary-validations-only;the-existing-cross-coupled-gate6-run_damage-entrypoint-does-not-satisfy-this-producer"
+rust_generation = "native-rust-and-linux-rust-run-the-rust-candidate-operators-production-decoder-and-rust-owned-boundary-validations-only"
+legacy_package_generation = "each-producer-independently-rebuilds-the-profile-version-2-3-4-5-and6-recipient-package-fixtures-from-the-exact-frozen-v0-owner-bytes-using-that-producers-own-language-implementation;invoking-the-other-language-or-reading-a-retained-archive-package-carrier-or-receipt-as-a-generation-preimage-is-forbidden"
+legacy_route_prefix_generation = "only-the-profile-version-3-route-prefix-consumed-by-the-owned-d7-route-conflict-operator-is-generated;legacy-route-prefixes-for-profile-versions-2-4-5-and6-are-not-applicable-and-must-not-be-required-or-invented"
+python_legacy_fixture_builder = "the-python-producer-must-use-a-bounded-python-v0-recipient-package-builder-for-profile-versions-2-through6-and-route-prefix-builder-for-profile-version-3-only;the-existing-generate_candidates-_emit_package-path-through-the-rust-dump_eh_package-example-does-not-satisfy-this-producer"
+d7_route_conflict_fixture = "the-python-producer-independently-builds-the-exact-profile-version-3-route-prefix-and-recipient-package-from-v0-owners-and-applies-the-owned-route-conflict-operator-to-its-independently-regenerated-v7-candidate;no-archived-v3-carrier-is-an-input"
+retained_legacy_fixture_use = "comparison-only-after-the-complete-independent-byte-string-is-generated;never-a-source-preimage-or-a-substitute-for-an-unimplemented-language-local-builder"
+internal_disagreement = "a-producers-own-generator-decoder-oracle-or-boundary-disagreement-is-a-producer-tooling-failure-and-emits-no-receipt;cross-producer-differences-remain-complete-receipt-rows-for-cross_language_manifest-and-are-never-suppressed-by-an-earlier-cross-language-call"
+stdout_rule = "cli-emits-no-evidence-on-stdout;success-is-exit-zero-and-one-staged-canonical-receipt-at-the-exact-path"
+cli_modes = ["generate", "check"]
+generate_rule = "write-one-complete-staged-receipt-only-after-the-producer-self-validates-all-eight-preimages"
+check_rule = "regenerate-in-bounded-temporary-storage-compare-exact-existing-receipt-and-write-nothing"
+cross_assembly_rule = "validate-all-four-complete-receipts-then-project-their-columns-into-cross_language_manifest;receipts-are-not-report-evidence-roles"
+linux_receipt_host_directory = "one-new-private-empty-host-temporary-directory-created-with-mode-0700-outside-the-source-snapshot"
+linux_receipt_container_mount = "/gate8-output"
+linux_receipt_mount_mode = "read-write-output-only-while-the-complete-source-snapshot-remains-read-only"
+linux_receipt_allowed_names = ["linux-python.json", "linux-rust.json"]
+linux_receipt_return_rule = "each-container-producer-atomically-creates-only-its-exact-allowed-canonical-receipt-in-/gate8-output;host-rejects-missing-extra-link-special-or-preexisting-entries;initial-gate8-assembly-may-stage-the-validated-bytes-as-new-outputs-while-candidate-ready-standalone-and-release-require-exact-byte-equality-with-the-retained-linux-receipts-and-write-nothing"
+linux_stdout_rule = "no-receipt-or-evidence-bytes-on-stdout-or-stderr"
+canonical_bytes_max = 1048576
+
+[producer_cli]
+python_entrypoint = "tools/m2/generate_gate8.py"
+rust_entrypoint = "gb-m2-gate8"
+rust_binary_path = "crates/gb-bootstrap/src/bin/gb-m2-gate8.rs"
+subcommand = "producer"
+argv_order = ["producer", "--mode", "{generate-or-check}", "--producer-id", "{producer-id}", "--candidate-root", "{absolute-candidate-root}", "--output-dir", "{absolute-output-directory}"]
+python_producer_ids = ["native-python", "linux-python"]
+rust_producer_ids = ["native-rust", "linux-rust"]
+source_root = "current-working-directory-is-the-read-only-complete-source-snapshot-root"
+candidate_root = "absolute-existing-empty-private-mode-0700-work-root-unique-to-this-producer-id;the-producer-internally-generates-and-validates-its-own-complete-gates1-through7-tree-there-before-computing-the-receipt;no-producer-root-is-shared-and-the-authority-live-candidate-root-is-never-read"
+candidate_root_cleanup = "return-the-work-root-to-exact-empty-state-before-every-successful-return-and-before-a-check-mismatch-return;on-an-earlier-error-best-effort-remove-generated-entries-without-following-links;the-work-root-is-never-evidence-or-an-output"
+output_directory = "absolute-existing-private-mode-0700-directory;every-present-entry-must-be-an-allowed-name-and-a-validated-regular-canonical-receipt;links-special-files-and-unrecognized-names-reject"
+output_name = "{producer-id}.json"
+native_allowed_names = ["native-python.json", "native-rust.json", "linux-python.json", "linux-rust.json"]
+linux_allowed_names = ["linux-python.json", "linux-rust.json"]
+directory_phase_rule = "generate-requires-output-name-absent-and-check-requires-output-name-present;either-mode-allows-any-subset-of-the-other-environment-allowed-names;only-assembly-requires-the-complete-four-name-set"
+generate_side_effects = "atomically-create-exactly-output-name-below-output-directory-after-complete-validation;preserve-already-validated-other-producer-receipts-and-create-no-other-files"
+check_side_effects = "regenerate-into-private-bounded-memory-or-temporary-storage-compare-the-complete-existing-output-name-bytes-and-write-nothing"
+stdout = "empty"
+stderr = "empty-on-success;on-failure-at-most-16384-bytes-of-printable-ascii-diagnostic-with-no-evidence-bytes"
+exit_codes = [0, 2, 3]
+exit_0 = "complete-success"
+exit_2 = "invalid-arguments-owner-source-or-input"
+exit_3 = "generation-validation-or-check-mismatch"
+unknown_option_positional_argument_or_producer_for_entrypoint = "reject-before-generation"
+
+[assembly_cli]
+entrypoint = "tools/m2/generate_gate8.py"
+subcommand = "assemble"
+argv_order = ["assemble", "--mode", "{generate-or-check}", "--candidate-root", "{absolute-candidate-root}", "--receipt-dir", "{absolute-receipt-directory}", "--output-dir", "{absolute-gate8-directory}", "--report-out", "{absolute-report-path}"]
+candidate_root = "absolute-existing-empty-private-mode-0700-work-root-unique-to-this-assembly;the-assembler-internally-regenerates-and-validates-a-complete-gates1-through7-tree-there-and-never-reads-or-reuses-a-producer-or-authority-live-root"
+candidate_root_cleanup = "return-the-work-root-to-exact-empty-state-before-every-successful-return-and-before-a-check-mismatch-return;on-an-earlier-error-best-effort-remove-generated-entries-without-following-links;the-work-root-is-never-evidence-or-an-output"
+receipt_directory = "absolute-existing-private-directory-containing-exactly-the-four-producer-receipt-names"
+output_directory = "absolute-canonical-target-path-representing-artifacts/gate8;absent-in-generate-and-an-existing-private-mode-0700-directory-in-check"
+report_output = "absolute-path-representing-reports/m2-feasibility-v0.json-outside-output-directory"
+canonical_target_rule = "both-modes-require-output-directory-and-report-output-to-be-the-lexically-and-physically-exact-source-root/artifacts/gate8-and-source-root/reports/m2-feasibility-v0.json-targets-with-existing-ancestors-regular-directories-and-no-link-or-alias-component;alternate-targets-reject-before-generation"
+generate_precondition = "output-directory-and-report-output-are-both-absent-and-their-exact-parent-directories-exist-with-no-link-alias-or-special-component"
+generate_rule = "stage-and-validate-the-complete-exact-gate8-tree-report-and-prospective-roadmap-transition;install-the-gate8-tree-then-the-report-last-within-generated-evidence-as-authority-then-advance-the-mutable-roadmap-status-last-exactly-as-roadmap_transition;never-write-the-source-candidate-root"
+check_rule = "regenerate-in-private-bounded-storage-and-compare-the-complete-existing-output-directory-and-report-output;write-nothing"
+stdout_stderr_exit_codes = "same-as-producer_cli"
+unknown_option_or_positional_argument = "reject-before-generation"
+availability = "host-initial-assembly-and-host-candidate-ready-verification-only;clean-linux-candidate-ready-uses-candidate_ready_linux_cli-with-the-transient-native-input"
+
+[phase_check_cli]
+entrypoint = "tools/m2/generate_gate8.py"
+subcommand = "phase-check"
+argv_order = ["phase-check", "--phase", "pre-gate8-clean", "--candidate-root", "{absolute-candidate-root}"]
+phase_values = ["pre-gate8-clean"]
+candidate_root = "absolute-existing-empty-private-mode-0700-work-root"
+presence_precondition = "tracked-report-and-every-phase_paths-gate8-file-are-absent"
+operation = "internally-regenerate-and-strictly-validate-the-complete-exact-gates1-through7-tree-from-the-current-source-snapshot-then-discard-it"
+cleanup = "return-candidate-root-to-exact-empty-state-before-success;on-error-best-effort-remove-generated-entries-without-following-links"
+forbidden_outputs = "no-receipt-gate8-report-candidate-damage-or-source-write"
+stdout = "empty"
+stderr = "empty-on-success;on-failure-at-most-16384-bytes-printable-ascii-with-no-evidence-bytes"
+exit_codes = [0, 2, 3]
+unknown_option_or_positional_argument = "reject-before-generation"
+
+[linux_verification_input]
+schema = "golden-board.m2-gate8-linux-verification-input/v0"
+host_directory = "one-new-private-empty-host-temporary-directory-created-mode-0700-outside-the-source-snapshot-gate8-tree-and-report-tree"
+container_mount = "/gate8-native-input"
+container_mount_mode = "read-only"
+file_names = ["input-manifest.json", "native-python.json", "native-rust.json"]
+manifest_name = "input-manifest.json"
+manifest_key_order = ["candidate_id", "evidence_source_projection_sha256", "native_receipt_rows", "schema"]
+native_receipt_row_keys = ["byte_length", "path", "producer_id", "sha256"]
+native_producer_order = ["native-python", "native-rust"]
+native_receipt_paths = ["native-python.json", "native-rust.json"]
+evidence_source_projection_sha256_preimage = "complete-canonical-m2-evidence-source-v0-bytes-independently-rendered-from-the-final-source-snapshot-before-any-gate8-or-report-output"
+native_receipt_row_preimage = "complete-raw-byte-string-from-exactly-one-owned-linux_entry_mode:freshly-emitted-by-the-matching-native-producer-during-the-composed-release-run-or-the-exact-retained-candidate-ready-native-receipt-strictly-validated-by-the-docker-only-standalone-preparation"
+manifest_preimage = "complete-canonical-four-key-object-and-two-rows-above-including-one-final-lf"
+host_creation_rule = "the-selected-linux_entry_mode-supplies-the-two-native-receipts;linux_input_cli-validates-them-binds-the-independent-source-projection-and-installs-the-exact-three-file-directory-before-the-verification-container-starts"
+host_cleanup_rule = "remove-the-private-directory-after-the-linux-verifier-returns;it-is-never-retained-copied-to-gate8-or-used-as-a-source-projection-entry"
+container_admission = "require-exact-three-name-set-byte-lengths-raw-hashes-producer-ids-receipt-schemas-candidate-id-and-source-projection-binding-before-any-linux-producer-or-assembly-work;links-hardlinks-special-files-subdirectories-and-extra-or-missing-entries-reject"
+native_receipt_substitution = "forbidden;the-container-consumes-the-two-exact-mounted-native-receipt-byte-strings-and-never-derives-copies-or-synthesizes-a-native-producer-row-from-linux-or-report-data"
+manifest_bytes_max = 1048576
+receipt_bytes_max = 1048576
+aggregate_bytes_max = 3145728
+
+[candidate_ready_linux_provenance_input]
+host_path = "artifacts/linux/verifier-v0.env"
+container_mount = "/gate8-verifier-input"
+container_mount_mode = "read-only-file"
+byte_length = 378
+sha256 = "sha256:315f9021f83ee8c6640af6ea6bcd58387287bcef42e7b27eaaf5f76b2187f6a2"
+source_role = "the-exact-already-admitted-linux_acquisition_receipt-whose-image-id-platform-contract-base-and-current-Dockerfile-are-independently-validated-by-tools/linux/verify.sh-before-the-execution-snapshot-is-created"
+snapshot_role = "ignored-run-provenance-input-neither-an-execution-snapshot-entry-nor-an-evidence-source-projection-entry-nor-a-four-producer-receipt"
+installation_order = "after-execution-snapshot-verification-and-before-any-candidate-ready-producer-or-full-work-copy-only-the-exact-mounted-bytes-to-artifacts/linux/verifier-v0.env-in-the-disposable-materialized-root"
+installation_admission = "source-mount-and-installed-path-must-each-be-one-regular-nonsymlink-nonhardlink-file-with-exact-byte-length-raw-sha256-and-canonical-seven-line-bytes;destination-and-parent-alias-or-preexistence-reject;require-byte-for-byte-equality-after-copy"
+post_installation_check = "independently-recompute-the-complete-execution-snapshot-manifest-and-require-its-execution-snapshot-identity-remains-exactly-equal-to-the-pre-installation-host-and-container-identity-proving-the-ignored-provenance-input-did-not-enter-the-snapshot"
+cleanup = "the-installed-copy-exists-only-in-the-disposable-verification-root-and-is-destroyed-with-that-container;the-read-only-source-mount-is-never-written-retained-or-added-to-the-three-file-linux_verification_input"
+
+[linux_input_cli]
+entrypoint = "tools/m2/generate_gate8.py"
+subcommand = "prepare-linux-input"
+argv_order = ["prepare-linux-input", "--mode", "{release-fresh-or-standalone-retained}", "--native-python-receipt", "{absolute-native-python-receipt}", "--native-rust-receipt", "{absolute-native-rust-receipt}", "--output-dir", "{absolute-output-directory}"]
+mode_values = ["release-fresh", "standalone-retained"]
+source_root = "current-working-directory-is-the-complete-host-source-snapshot-root"
+release_fresh_native_receipts = "two-distinct-absolute-existing-regular-nonsymlink-nonhardlink-files-freshly-emitted-by-the-matching-native-producers-with-distinct-private-work-roots-during-this-composed-release-run"
+standalone_retained_native_receipts = "exact-artifacts/gate8/receipts/native-python.json-and-native-rust.json-from-the-complete-candidate-ready-tree;the-docker-only-preparation-strictly-validates-both-complete-receipts-without-reading-the-report-or-any-other-retained-gate8-value"
+mode_mismatch = "reject;release-fresh-must-not-read-retained-gate8-receipts-and-standalone-retained-must-not-relabel-copy-or-synthesize-a-native-receipt"
+output_directory = "absolute-existing-empty-private-mode-0700-directory-outside-source-gate8-report-and-candidate-roots"
+operation = "validate-both-receipts-independently-render-the-exact-evidence-source-projection-render-linux_verification_input-manifest-and-atomically-create-the-exact-three-file-set"
+execution_environment = "release-fresh-runs-after-the-host-language-producers-inside-the-composed-release;standalone-retained-runs-inside-the-pinned-network-off-verifier-image-so-tools/linux/verify.sh-needs-only-git-and-the-declared-container-runtime"
+stdout = "empty"
+stderr = "empty-on-success;on-failure-at-most-16384-bytes-printable-ascii-with-no-evidence-bytes"
+exit_codes = [0, 2, 3]
+unknown_option_or_positional_argument = "reject-before-generation"
+
+[linux_entry_modes]
+pre_gate8_standalone = "scripts/check-linux-requires-no-native-receipts-and-runs-the-clean-container-full-which-invokes-phase_check_cli"
+candidate_ready_standalone = "scripts/check-linux-and-tools/linux/verify.sh-remain-git-plus-declared-container-runtime-only;they-use-linux_input_cli-mode-standalone-retained-inside-the-pinned-network-off-verifier-image-to-strictly-validate-only-the-two-retained-native-receipts-and-create-the-source-bound-transient-input"
+candidate_ready_release = "scripts/check-release-first-runs-host-full-which-independently-generates-and-validates-fresh-native-python-and-native-rust-receipts-in-private-storage;the-release-orchestrator-uses-linux_input_cli-mode-release-fresh-and-passes-that-source-bound-transient-input-to-the-following-clean-linux-run"
+common_linux_work = "both-candidate-ready-paths-pass-the-separate-strictly-admitted-read-only-candidate_ready_linux_provenance_input-without-adding-it-to-the-source-bound-three-file-linux_verification_input;after-snapshot-equality-is-reproved-they-generate-fresh-linux-python-and-linux-rust-receipts-in-the-container-and-run-candidate_ready_linux_cli-to-derive-and-validate-the-complete-gate8-report-closure-before-the-tracked-report-read-barrier"
+standalone_scope = "diagnostic-rerun-only;retained-native-receipts-are-explicit-input-evidence-not-a-claim-of-fresh-native-reproduction-and-never-authorize-assembly-or-report-generation-on-the-host"
+release_scope = "the-composed-release-is-the-only-candidate-ready-command-that-establishes-fresh-native-and-fresh-linux-four-producer-reproduction-in-one-run"
+report_authority = "neither-mode-may-use-the-tracked-report-or-any-derived-report-field-to-validate-supply-or-reconstruct-a-native-receipt"
+
+[candidate_ready_linux_cli]
+entrypoint = "tools/m2/generate_gate8.py"
+subcommand = "verify-linux"
+argv_order = ["verify-linux", "--candidate-root", "{absolute-candidate-root}", "--native-input-dir", "/gate8-native-input", "--linux-output-dir", "/gate8-output", "--gate8-work-root", "{absolute-gate8-work-root}"]
+candidate_root = "absolute-existing-empty-private-mode-0700-work-root-unique-to-this-verification"
+gate8_work_root = "a-second-distinct-absolute-existing-empty-private-mode-0700-work-root"
+native_input_directory = "exact-read-only-linux_verification_input-container-mount"
+linux_output_directory = "exact-read-write-producer_receipt-linux-mount-initially-empty-and-containing-exactly-linux-python.json-and-linux-rust.json-after-the-two-linux-producers-complete"
+source_binding = "independently-render-the-current-m2-evidence-source-v0-and-require-its-complete-byte-hash-equal-the-native-input-manifest-binding"
+candidate_generation = "internally-regenerate-and-strictly-validate-one-complete-gates1-through7-tree-in-candidate-root-without-reading-live-candidate-or-retained-gate8"
+receipt_composition = "validate-the-two-mounted-native-receipts-and-two-fresh-linux-output-receipts-then-copy-those-four-exact-byte-strings-into-private-bounded-memory-or-a-third-private-temporary-directory;never-synthesize-or-relabel-a-receipt"
+derivation = "derive-and-strictly-validate-every-fixed-and-dynamic-gate8-file-plus-the-complete-report-in-gate8-work-root-from-current-owners-source-candidate-the-four-actual-producer-receipts-and-the-separately-mounted-exact-linux-acquisition-receipt-installed-at-its-ignored-owner-path-only-after-execution-snapshot-equality-is-reproved"
+tracked_report_read_barrier = "do-not-open-read-map-hash-or-pass-reports/m2-feasibility-v0.json-to-any-generator-until-the-complete-derived-report-byte-string-and-recursive-gate8-closure-are-sealed-and-validated"
+comparison = "after-the-read-barrier-require-the-derived-report-bytes-equal-the-complete-tracked-report-bytes;require-every-derived-gate8-file-byte-string-be-recursively-bound-by-its-canonical-manifest-bundle-row-cross-row-and-generated-evidence-identity-in-that-independently-derived-report"
+retained_gate8_use = "forbidden;the-ignored-live-artifacts/gate8-tree-is-absent-in-clean-linux-and-is-never-an-expected-value-source-or-comparison-input"
+cleanup = "return-candidate-root-and-gate8-work-root-to-exact-empty-state-before-success-or-check-mismatch;best-effort-link-safe-cleanup-on-earlier-error;linux-output-retains-only-its-two-receipts-for-host-return"
+stdout = "empty"
+stderr = "empty-on-success;on-failure-at-most-16384-bytes-printable-ascii-with-no-evidence-bytes"
+exit_codes = [0, 2, 3]
+unknown_option_or_positional_argument = "reject-before-generation"
+
+[profile_tuple_identity]
+schema = "golden-board.m2-profile-tuple/v1"
+key_order = ["local_check_id", "mapping_id", "physical_replica_counts", "profile_id", "profile_version", "schema", "section_check_id", "semantic_copy_count", "transport_id"]
+profile_id = "eh72-hier-r5-r2-r1-crc32c-v0"
+profile_version = 7
+transport_id = "eh72-hier-repetition-v0"
+section_check_id = "crc32c-v0"
+local_check_id = "crc32c-v0"
+mapping_id = "affine-slot-then-interior-v1"
+semantic_copy_count = 1
+physical_replica_counts = [1, 2, 5]
+tuple_identity = "sha256-of-complete-canonical-manifest-serialization-of-this-exact-object-including-one-final-lf"
+policy_identity = "sha256-of-complete-raw-spec/profile-policy-v1.toml-bytes"
+
+[candidate_metric_projection]
+schema = "golden-board.m2-profile-metric-row/v0"
+key_order = ["operation_kind_count", "table_count", "table_bytes", "graph_nodes", "graph_edges", "dependency_depth", "recipe_cells", "worked_example_cells", "held_out_example_cells", "shell_cells", "convention_count", "plain_bits", "protected_bits", "reserve_bits", "total_bits", "robustness_ppm", "worst_case_work_units", "scratch_bytes", "remaining_reserve_bytes"]
+operation_kind_count = "count-distinct-executed-opcode-values-in-the-validated-recipient-package"
+table_count = "profile-limits-v1-route_package-recipient_package_table_count"
+table_bytes = "profile-limits-v1-route_package-recipient_package_table_payload_bytes"
+graph_nodes = "profile-limits-v1-route_package-recipient_package_node_count"
+graph_edges = "profile-limits-v1-route_package-recipient_package_edge_count"
+dependency_depth = "maximum-node-count-on-any-validated-value-or-control-dependency-path-in-the-recipient-package-counting-both-endpoints"
+recipe_cells = "capacity-ledger-ledger-shell_recipe_cells"
+worked_example_cells = "8-times-sum-profile-limits-v1-route_package-worked_record_bytes_by_sector"
+held_out_example_cells = "8-times-sum-profile-limits-v1-route_package-held_out_record_bytes_by_sector"
+shell_cells = "4-times-shell-width-times-parenthesized-side-minus-shell-width"
+convention_count = "route-data-v1-facts-array-length"
+plain_bits = "logical-group-count-times-191-times-8"
+protected_bits = "profile-limits-v1-selected_manifestation-protected_cells"
+reserve_bits = "profile-limits-v1-semantic_capacity-reserve_payload_bytes-times-8"
+total_bits = "profile-limits-v1-selected_manifestation-cells"
+robustness_ppm = "profile-policy-v0-robustness-formula;for-this-v7-corpus-the-exact-promised-bound-is-present-in-D2-D3-or-D6-so-the-minimum-remaining-bound-and-final-value-are-zero"
+worst_case_work_units = "capacity-ledger-ledger-worst_case_work_units"
+scratch_bytes = "capacity-ledger-ledger-scratch_bytes"
+remaining_reserve_bytes = "profile-limits-v1-policy_ceiling-carrier_bytes-minus-profile-limits-v1-selected_manifestation-carrier_bytes"
+checked_cross_source_equality = true
+unknown_metrics = "reject"
+
+[candidate_row]
+key_order = ["candidate_id", "tuple_identity", "policy_identity", "complexity_class", "metrics", "hard_gates", "disposition", "reason_code", "reason"]
+candidate_id = "eh72-hier-r5-r2-r1-crc32c-v0"
+complexity_class = "C1"
+metric_keys = ["operation_kind_count", "table_count", "table_bytes", "graph_nodes", "graph_edges", "dependency_depth", "recipe_cells", "worked_example_cells", "held_out_example_cells", "shell_cells", "convention_count", "plain_bits", "protected_bits", "reserve_bits", "total_bits", "robustness_ppm", "worst_case_work_units", "scratch_bytes", "remaining_reserve_bytes"]
+hard_gate_keys = ["profile-and-cross-language-kat", "bootstrap-recipe-shell", "common-grammar-atomic-state", "generated-resource-limits", "provisional-capacity", "damage-zero-wrong-accept", "physical-independence", "native-linux-reproducibility", "preferred-human-feasibility"]
+hard_gate_values = ["pass", "fail", "not_evaluated"]
+disposition_values = ["eliminated", "retained", "preferred"]
+candidate_ready_disposition = "preferred"
+candidate_ready_reason_code = "sole-candidate-pass"
+candidate_ready_reason = "Sole active R3 candidate passed automated gates 1 through 8."
+gate9_before_human_evidence = "not_evaluated"
+
+[selection]
+schema = "golden-board.m2-selection/v0"
+path = "artifacts/gate8/selection-v0.json"
+key_order = ["candidate_rows", "cross_language_manifest_sha256", "profile_policy_sha256", "provisional_preferred_id", "retained_finalist_ids", "schema", "selection_steps"]
+candidate_rows_schema = "golden-board.m2-candidate-rows/v0"
+candidate_rows_key_order = ["candidate_rows", "schema"]
+candidate_rows_sha256_preimage = "complete-canonical-candidate-rows-object-including-one-final-lf"
+selection_row_schema = "golden-board.m2-selection-row/v0"
+selection_row_keys = ["step", "surviving_before", "outcome", "evidence_sha256"]
+step_order = ["gate-filter", "lowest-complexity-class", "near-minimum-band", "rank", "top-two", "preference"]
+surviving_before = "ordered-unique-profile-id-array-in-profile-policy-candidate-order;empty-allowed-only-after-an-earlier-no-passing-result"
+outcome = "ordered-unique-profile-id-array-in-profile-policy-candidate-order-or-literal-no-passing-result"
+evidence_schema = "golden-board.m2-selection-step-evidence/v0"
+evidence_key_order = ["candidate_rows_sha256", "cross_language_manifest_sha256", "outcome", "profile_policy_sha256", "schema", "step", "surviving_before"]
+evidence_sha256_preimage = "complete-canonical-selection-step-evidence-object-including-one-final-lf"
+row_count = 6
+candidate_ready_retained_ids = ["eh72-hier-r5-r2-r1-crc32c-v0"]
+candidate_ready_preferred_id = "eh72-hier-r5-r2-r1-crc32c-v0"
+no_passing_retained_ids = []
+no_passing_preferred_id = "none"
+selection_after_all_gate8_rows = true
+selection_before_gate8 = "reject"
+unknown_or_legacy_ordinal_rule_fields = "reject"
+canonical_bytes_max = 1048576
+
+[damage_row]
+key_order = ["candidate_id", "family_id", "manifest_sha256", "guarantee_id", "result", "wrong_accept_count"]
+family_order = ["D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"]
+manifest_preimage = "complete-raw-canonical-bytes-of-the-matching-damage-{family_id}.json-family-manifest-never-the-root-manifest-or-a-shard"
+root_binding = "each-family-manifest-damage_manifest_identity-must-equal-the-admitted-root-damage-manifest-summary-manifest_identity"
+guarantee_source = "matching-family-manifest-guarantee_id"
+result_source = "matching-family-manifest-summary-result"
+wrong_accept_source = "matching-family-manifest-summary-wrong_accept_count"
+
+[bundle_common]
+file_row_keys = ["role_id", "path", "mode", "byte_length", "sha256"]
+release_row_keys = ["ordinal", "release_id", "participant_role_ids"]
+participant_path_prefix = "participant/"
+evaluator_path_prefix = "evaluator/"
+participant_evaluator_role_sets_disjoint = true
+participant_file_rows_rule = "exactly-one-row-per-declared-participant-role-in-declared-role-order"
+evaluator_file_rows_rule = "exactly-one-row-per-declared-evaluator-role-in-declared-role-order"
+release_rows_rule = "ordinal-contiguous-from-zero-in-declared-release-order;each-participant-role-exactly-once;no-evaluator-role"
+manifest_participant_visibility = false
+evaluator_hash_participant_visibility = false
+file_bytes_max = 4161602
+largest_required_file_roles = ["technical:unknown-error-observation", "technical:known-erasure-observation"]
+largest_required_file_formula = "OBS_MATRIX-u16-be-side-2040-followed-by-exactly-2040-times2040-cell-state-bytes-equals-2-plus2040-times2040-equals4161602"
+other_required_file_rule = "each-of-the-other-42-exact-dynamic-role-preimages-is-strictly-smaller-than4161602;any-role-at-or-above-the-cap-without-being-byte-identical-to-one-of-the-two-owned-largest-preimages-rejects"
+file_row_count_max = 256
+aggregate_file_bytes_max = 67108864
+aggregate_bound_rule = "sum-the-exact-44-regular-dynamic-file-byte-lengths-with-checked-u64-arithmetic-and-require-at-most67108864;the-two-largest-files-consume8323204-and-leave58785660-for-the-other42-so-the-aggregate-cap-remains-unchanged"
+manifest_bytes_max = 1048576
+unknown_roles_or_files = "reject"
+file_row_path_domain = "relative-to-the-owning-bundle-file_root-never-repository-relative"
+manifest_path_excluded_from_file_rows = true
+mode_default = "100644"
+mode_override_rule = "a-role-listed-in-the-owning-bundle-role_modes-table-uses-that-literal-mode;every-unlisted-role-uses-mode_default;unknown-overrides-reject"
+tracked_template_rule = "complete-raw-bytes-of-the-exact-named-studies/m2/templates-path;the-template-is-a-source-projection-entry-and-must-be-regular-nonsymlink-nonhardlink"
+generated_rule = "complete-bytes-of-the-exact-named-generated-preimage-after-independent-recomputation-and-validation"
+
+[technical_bundle]
+schema = "golden-board.m2-technical-bundle/v0"
+bundle_id = "technical-v0"
+path = "artifacts/gate8/bundles/technical-v0.json"
+file_root = "artifacts/gate8/bundles/technical"
+key_order = ["bundle_id", "candidate_id", "evaluator_files", "participant_files", "recipient_condition", "release_rows", "schema"]
+recipient_condition_keys = ["headcount", "mode"]
+recipient_mode = "individual"
+recipient_headcount = 1
+recipient_choice_basis = "pre-gate8-neutral-smallest-authorized-condition-no-human-success-claim-and-no-contact"
+participant_roles = ["participation-note", "neutral-opening-prompt", "allowed-tools", "clean-question", "clean-observation", "export-format", "session-policy", "facilitation-policy", "channel-formats", "channel-mechanics-fixtures", "heldout-question", "content-query", "unknown-error-observation", "known-erasure-observation", "missing-unit-observation", "negative-observation", "final-account-question"]
+evaluator_roles = ["candidate-bindings", "clean-expected", "content-query-expected", "heldout-expected", "success-criteria", "help-taxonomy", "resource-limits"]
+release_ids = ["clean", "adapter", "held-outs", "final-account"]
+release_0_roles = ["participation-note", "neutral-opening-prompt", "allowed-tools", "clean-question", "clean-observation", "export-format", "session-policy", "facilitation-policy"]
+release_1_roles = ["channel-formats", "channel-mechanics-fixtures"]
+release_2_roles = ["heldout-question", "content-query", "unknown-error-observation", "known-erasure-observation", "missing-unit-observation", "negative-observation"]
+release_3_roles = ["final-account-question"]
+exposure = "forbidden-before-complete-bundle-validation"
+human_success_claim = false
+recruitment = "not-a-gate8-action;requires-ordinary-owner-authorization-in-packet-P9"
+mode_override_roles = []
+
+[technical_bundle.role_paths]
+"participation-note" = "participant/participation-note.md"
+"neutral-opening-prompt" = "participant/neutral-opening-prompt.md"
+"allowed-tools" = "participant/allowed-tools.md"
+"clean-question" = "participant/clean-question.md"
+"clean-observation" = "participant/clean-observation.bits"
+"export-format" = "participant/export-format.md"
+"session-policy" = "participant/session-policy.md"
+"facilitation-policy" = "participant/facilitation-policy.md"
+"channel-formats" = "participant/channel-formats.md"
+"channel-mechanics-fixtures" = "participant/channel-mechanics-fixtures.json"
+"heldout-question" = "participant/heldout-question.md"
+"content-query" = "participant/content-query.json"
+"unknown-error-observation" = "participant/unknown-error.observation"
+"known-erasure-observation" = "participant/known-erasure.observation"
+"missing-unit-observation" = "participant/missing-unit.observation"
+"negative-observation" = "participant/negative.observation"
+"final-account-question" = "participant/final-account-question.md"
+"candidate-bindings" = "evaluator/candidate-manifest.json"
+"clean-expected" = "evaluator/clean-decoder-result-v1.json"
+"content-query-expected" = "evaluator/content-query-result-v0.json"
+"heldout-expected" = "evaluator/heldout-expected-v0.json"
+"success-criteria" = "evaluator/success-criteria.md"
+"help-taxonomy" = "evaluator/help-taxonomy.md"
+"resource-limits" = "evaluator/profile-limits-v1.toml"
+
+[technical_bundle.role_preimages]
+"participation-note" = "tracked-template:studies/m2/templates/common/participation-note.md"
+"neutral-opening-prompt" = "tracked-template:studies/m2/templates/technical/neutral-opening-prompt.md"
+"allowed-tools" = "tracked-template:studies/m2/templates/technical/allowed-tools.md"
+"clean-question" = "tracked-template:studies/m2/templates/technical/clean-question.md"
+"clean-observation" = "generated:exact-clean-OBS_BITS-bytes-identical-to-the-preferred-carrier-file"
+"export-format" = "tracked-template:studies/m2/templates/technical/export-format.md"
+"session-policy" = "tracked-template:studies/m2/templates/technical/session-policy.md"
+"facilitation-policy" = "tracked-template:studies/m2/templates/technical/facilitation-policy.md"
+"channel-formats" = "tracked-template:studies/m2/templates/technical/channel-formats.md"
+"channel-mechanics-fixtures" = "tracked-template:studies/m2/templates/technical/channel-mechanics-fixtures.json"
+"heldout-question" = "tracked-template:studies/m2/templates/technical/heldout-question.md"
+"content-query" = "canonical-from-policy:technical_content_query-request"
+"unknown-error-observation" = "generated:exact-named-channel-observation-bytes-for-case-D3-000000"
+"known-erasure-observation" = "generated:exact-named-channel-observation-bytes-for-case-D2-000000"
+"missing-unit-observation" = "generated:exact-named-channel-observation-bytes-for-case-D4-000000"
+"negative-observation" = "generated:exact-named-channel-observation-bytes-for-case-D7-000011"
+"final-account-question" = "tracked-template:studies/m2/templates/technical/final-account-question.md"
+"candidate-bindings" = "generated:complete-canonical-preferred-candidate-manifest-bytes"
+"clean-expected" = "generated:complete-canonical-result-v1-bytes-for-the-clean-OBS_BITS-input"
+"content-query-expected" = "canonical-from-policy:technical_content_query-result"
+"heldout-expected" = "canonical-from-policy:technical_expected-heldout-rows"
+"success-criteria" = "tracked-template:studies/m2/templates/technical/success-criteria.md"
+"help-taxonomy" = "tracked-template:studies/m2/templates/technical/help-taxonomy.md"
+"resource-limits" = "generated:complete-raw-spec/profile-limits-v1.toml-bytes"
+
+[technical_content_query]
+request_schema = "golden-board.m2-technical-content-query/v0"
+request_key_order = ["chess_transition", "generic_record", "schema"]
+generic_record_keys = ["record_id"]
+generic_record_id = 12
+chess_transition_keys = ["game_ordinal", "ply_ordinal"]
+chess_game_ordinal = 0
+chess_ply_ordinal = 0
+result_schema = "golden-board.m2-technical-content-query-result/v0"
+result_key_order = ["chess_transition", "generic_record", "schema"]
+generic_result_keys = ["canonical_record_sha256", "record_id"]
+generic_result_preimage = "exact-complete-content-v0-record-frame-for-record-id-12-as-it-occurs-in-m2_all"
+chess_result_keys = ["game_ordinal", "move_hex", "ply_ordinal", "resulting_position_identity"]
+chess_result_preimage = "game-ordinal-0-from-m2_all-bound-game-set;canonical-first-move-wire-bytes-as-lowercase-even-hex-and-position-v0-identity-after-legal-application-to-the-initial-position"
+
+[technical_expected]
+schema = "golden-board.m2-technical-heldout-expected/v0"
+key_order = ["candidate_id", "heldout_rows", "schema"]
+heldout_row_keys = ["case_id", "channel", "decoder_result_sha256", "expected_artifact_state", "observation_sha256", "role_id"]
+role_order = ["unknown-error-observation", "known-erasure-observation", "missing-unit-observation", "negative-observation"]
+case_ids = ["D3-000000", "D2-000000", "D4-000000", "D7-000011"]
+channel_source = "exact-owned-case-channel"
+observation_preimage = "exact-named-channel-observation-bytes-generated-from-the-owned-case"
+decoder_result_preimage = "complete-canonical-result-v1-bytes-from-the-admitted-decoder-for-that-observation"
+expected_state_source = "exact-owned-family-shard-case-row"
+heldout_class_manifest_schema = "golden-board.m2-technical-heldout-classes/v0"
+heldout_class_manifest_path = "artifacts/gate8/projections/technical-heldout-classes-v0.json"
+heldout_class_key_order = ["candidate_id", "rows", "schema"]
+heldout_class_row_keys = ["case_id", "channel", "role_id"]
+heldout_class_preimage = "canonical-projection-of-the-four-role-case-channel-tuples-without-observation-answer-state-or-operator"
+
+[learner_bundle]
+schema = "golden-board.m2-learner-bundle/v0"
+bundle_id = "learner-v0"
+path = "artifacts/gate8/bundles/learner-v0.json"
+file_root = "artifacts/gate8/bundles/learner"
+key_order = ["bundle_id", "candidate_id", "content_stream_sha256", "evaluator_files", "participant_files", "release_rows", "schema"]
+participant_roles = ["participation-note", "neutral-opening-prompt", "allowed-tools", "session-policy", "learner-condition", "mechanics-fixture", "content-stream", "runner", "label-suppressed-config", "slice-binding", "teaching-practice-order", "facilitation-policy", "heldout-question", "heldout-cases"]
+evaluator_roles = ["candidate-bindings", "mechanics-expected", "semantic-path-expected", "heldout-expected", "success-criteria", "help-taxonomy"]
+release_ids = ["mechanics", "teaching-practice", "held-outs"]
+release_0_roles = ["participation-note", "neutral-opening-prompt", "allowed-tools", "session-policy", "learner-condition", "mechanics-fixture"]
+release_1_roles = ["content-stream", "runner", "label-suppressed-config", "slice-binding", "teaching-practice-order", "facilitation-policy"]
+release_2_roles = ["heldout-question", "heldout-cases"]
+content_stream_sha256_preimage = "exact-participant-content-stream-file-row-bytes-and-equal-generated-content_stream-role-hash"
+learner_mode = "individual"
+learner_headcount = 1
+exposure = "forbidden-before-complete-bundle-validation"
+human_success_claim = false
+mode_override_roles = ["runner"]
+
+[learner_bundle.role_modes]
+"runner" = "100755"
+
+[learner_bundle.role_paths]
+"participation-note" = "participant/participation-note.md"
+"neutral-opening-prompt" = "participant/neutral-opening-prompt.md"
+"allowed-tools" = "participant/allowed-tools.md"
+"session-policy" = "participant/session-policy.md"
+"learner-condition" = "participant/learner-condition.md"
+"mechanics-fixture" = "participant/mechanics-fixture.json"
+"content-stream" = "participant/m2-all.content-v0.bin"
+"runner" = "participant/m2-learner-runner.py"
+"label-suppressed-config" = "participant/label-suppressed-config.json"
+"slice-binding" = "participant/slice-binding.json"
+"teaching-practice-order" = "participant/teaching-practice-order.json"
+"facilitation-policy" = "participant/facilitation-policy.md"
+"heldout-question" = "participant/heldout-question.md"
+"heldout-cases" = "participant/heldout-cases.json"
+"candidate-bindings" = "evaluator/candidate-manifest.json"
+"mechanics-expected" = "evaluator/mechanics-expected.json"
+"semantic-path-expected" = "evaluator/semantic-path-v0.json"
+"heldout-expected" = "evaluator/heldout-expected-v0.json"
+"success-criteria" = "evaluator/success-criteria.md"
+"help-taxonomy" = "evaluator/help-taxonomy.md"
+
+[learner_bundle.role_preimages]
+"participation-note" = "tracked-template:studies/m2/templates/common/participation-note.md"
+"neutral-opening-prompt" = "tracked-template:studies/m2/templates/learner/neutral-opening-prompt.md"
+"allowed-tools" = "tracked-template:studies/m2/templates/learner/allowed-tools.md"
+"session-policy" = "tracked-template:studies/m2/templates/learner/session-policy.md"
+"learner-condition" = "tracked-template:studies/m2/templates/learner/learner-condition.md"
+"mechanics-fixture" = "tracked-template:studies/m2/templates/learner/mechanics-fixture.json"
+"content-stream" = "generated:exact-m2_all-content-v0-stream-bytes"
+"runner" = "generated:complete-raw-tools/m2/learner_runner.py-bytes"
+"label-suppressed-config" = "tracked-template:studies/m2/templates/learner/label-suppressed-config.json"
+"slice-binding" = "canonical-from-policy:learner_slice_binding"
+"teaching-practice-order" = "tracked-template:studies/m2/templates/learner/teaching-practice-order.json"
+"facilitation-policy" = "tracked-template:studies/m2/templates/learner/facilitation-policy.md"
+"heldout-question" = "tracked-template:studies/m2/templates/learner/heldout-question.md"
+"heldout-cases" = "canonical-from-policy:learner_heldout_request-and-require-byte-identical-tracked-template-studies/m2/templates/learner/heldout-cases.json"
+"candidate-bindings" = "generated:complete-canonical-preferred-candidate-manifest-bytes"
+"mechanics-expected" = "tracked-template:studies/m2/templates/learner/mechanics-expected.json"
+"semantic-path-expected" = "generated:complete-canonical-runner-semantic-path-v0-bytes"
+"heldout-expected" = "canonical-from-policy:learner_expected"
+"success-criteria" = "tracked-template:studies/m2/templates/learner/success-criteria.md"
+"help-taxonomy" = "tracked-template:studies/m2/templates/learner/help-taxonomy.md"
+
+[learner_expected]
+schema = "golden-board.m2-learner-expected/v0"
+key_order = ["candidate_id", "content_stream_sha256", "heldout_commitment_sha256", "required_predicate_ids", "schema", "semantic_path_sha256"]
+semantic_path_path = "artifacts/gate8/projections/runner-semantic-path-v0.json"
+semantic_path_owner = "spec/runner-v0.md-section-4"
+semantic_path_root_keys = ["checkpoints", "commitments", "content_stream_sha256", "events", "schema"]
+semantic_path_preimage = "complete-canonical-runner-semantic-path-v0-bytes-including-one-final-lf-independently-regenerated-in-ordinary-and-label-suppressed-modes-and-required-byte-identical"
+heldout_commitment_keys = ["committed_response_hex", "feedback_predicate", "feedback_ref", "next_node_ref", "node_id", "node_predicate", "outcome"]
+heldout_predicate_keys = ["argument", "auxiliary", "binding_class", "namespace_id", "predicate_binding_ref", "predicate_result_ref", "result_atom_vector_ref", "semantic_code", "subject_data_binding_ref", "subject_opaque_data_ref"]
+heldout_commitment_node_id = 28
+heldout_commitment_response_hex = "03000200030001"
+heldout_commitment_outcome = 3
+heldout_commitment_feedback_ref = 24
+heldout_commitment_next_node_ref = 0
+heldout_commitment_predicates = "node_predicate-and-feedback_predicate-are-each-the-exact-heldout_predicate_keys-object-with-every-value-unsigned-zero"
+heldout_commitment_preimage = "complete-canonical-seven-key-final-commitment-object-above-including-one-final-lf-with-no-wrapper-or-schema-field;it-must-equal-commitments-index-3-in-the-owned-semantic-path"
+required_predicate_ids = ["board-side-turn", "movement-capture", "attack-legal-self-check", "special-history-contrast", "passive-trace", "finite-selection", "opaque-record", "label-suppression", "semantic-path-equality"]
+pass_rule = "each-required-predicate-is-mapped-by-the-tracked-success-criteria-template-to-one-or-more-complete-runner-events-or-the-final-heldout-commitment-and-all-mapped-evidence-passes"
+
+[learner_heldout_request]
+schema = "golden-board.m2-learner-heldout-cases/v0"
+key_order = ["case_id", "label_suppressed", "schema", "start_node_id", "start_phase"]
+case_id = "learner-heldout-node-28"
+label_suppressed = true
+start_node_id = 28
+start_phase = "selection"
+preimage = "complete-canonical-five-key-object-above-including-one-final-lf"
+tracked_template_rule = "studies/m2/templates/learner/heldout-cases.json-must-equal-this-exact-preimage;it-contains-no-actions-response-outcome-feedback-predicate-next-node-or-hash-of-answer-evidence"
+
+[learner_slice_binding]
+schema = "golden-board.m2-learner-slice-binding/v0"
+key_order = ["content_stream_sha256", "root_record_id", "schema", "stream_bytes"]
+content_stream_sha256 = "sha256-of-exact-m2_all-content-stream-bytes"
+root_record_id = 182
+stream_bytes = 13644
+preimage = "complete-canonical-object-of-these-four-fields-including-one-final-lf"
+participant_label_rule = "contains-no-source-path-case-name-family-name-semantic-binding-text-expected-answer-or-natural-language-chess-label"
+
+[linux_attestation]
+schema = "m2-linux-attestation-v0"
+path = "artifacts/gate8/linux-attestation-v0.json"
+key_order = ["canonical_bytes_equal", "evidence_source_projection_sha256", "execution_snapshots_equal", "host_full", "image_digest", "ledgers_equal", "linux_full", "platform", "schema", "states_equal"]
+image_evidence_path = "artifacts/linux/verifier-v0.env"
+image_digest = "sha256:1b76a6d672c2d4b875302271f3cd5242200b6dc3d9a8491af611951e498ecd96"
+image_digest_syntax = "literal-sha256-colon-followed-by-64-lowercase-hex"
+image_digest_source = "exact-image_id-value-in-the-strictly-admitted-linux_acquisition_receipt-not-the-base-image-digest-tag-or-a-value-derived-from-the-Dockerfile"
+platform = "linux/arm64"
+host_full = "pass"
+linux_full = "pass"
+execution_snapshots_equal = true
+canonical_bytes_equal = "true-iff-each-retained-cross-language-row-for-semantic-content-projection-candidate-manifest-and-carrier-passes"
+states_equal = "true-iff-each-retained-cross-language-row-for-damage-bundle-inventory-and-independence-proof-passes"
+ledgers_equal = "true-iff-each-retained-cross-language-row-for-ownership-ledger-capacity-ledger-and-density-ledger-passes"
+snapshot_hash_storage = "transient-only-never-inside-attestation-report-or-source-snapshot"
+network = "none"
+inner_command = "scripts/check full"
+canonical_bytes_max = 1048576
+
+[linux_acquisition_receipt]
+schema = "m2-linux-image-v0"
+path = "artifacts/linux/verifier-v0.env"
+byte_length = 378
+sha256 = "sha256:315f9021f83ee8c6640af6ea6bcd58387287bcef42e7b27eaaf5f76b2187f6a2"
+key_order = ["schema", "image", "image_id", "platform", "contract", "base", "dockerfile_sha256"]
+image = "golden-board-verifier:m2-debian13-arm64"
+image_id = "sha256:1b76a6d672c2d4b875302271f3cd5242200b6dc3d9a8491af611951e498ecd96"
+platform = "linux/arm64"
+contract = "m2-linux-verifier-v0"
+base = "debian:13-slim@sha256:3a39a0592364683e6bab97937b72cad5a8fa6dcbbee90edb3bb48c7f8e94f258"
+dockerfile_sha256 = "sha256:ceb93440475f6e56767b27f040b8714926949d242154086dd6a1ac860cc133ea"
+canonical_bytes = "for-each-key-in-key_order-emit-exact-ascii-key-equals-owned-value-plus-one-lf;for-dockerfile_sha256-only-remove-the-owned-values-leading-literal-sha256-colon-before-emission;no-bom-cr-empty-line-duplicate-extra-key-or-trailing-byte"
+file_admission = "open-once-bounded-to-byte_length-plus1-require-one-regular-nonsymlink-nonhardlink-file-with-exact-byte_length-raw-sha256-canonical_bytes-and-no-alias-to-source-gate8-report-candidate-or-private-work-roots"
+observed_image_admission = "docker-image-inspect-of-the-exact-image-tag-must-return-Id-equal-image_id-Os/Architecture-equal-platform-and-labels-org.golden-board.contract-and-org.golden-board.base-equal-contract-and-base;the-current-raw-tools/linux/Dockerfile-sha256-must-equal-dockerfile_sha256;every-verification-container-uses-network-none-and-the-exact-platform"
+identity_semantics = "image_id-is-the-locally-acquired-Docker-image-identity-and-exact-run-provenance;it-is-not-claimed-to-be-reproducible-from-the-base-and-Dockerfile-alone-and-pinning-apt-package-names-alone-does-not-make-it-so"
+reacquisition = "a-different-image_id-or-any-other-receipt-byte-never-updates-this-file-silently;it-invalidates-candidate-ready-linux-evidence-and-requires-a-new-explicit-spec/gate8-verifier-refresh-v0.toml-owner-transition-before-acquire-may-replace-the-receipt-or-gate8-output"
+
+[local_check_reflection_clarification]
+reason = "gate8-independent-rust-operator-regeneration-found-python-d7-000004-used-an-unowned-domain-literal-while-the-owned-local-wrong-reflection-mutant-requires-the-exact-local-check-domain-plus-the-first-187-common-bytes"
+owner_rule = "damage-policy-v1-now-freezes-the-normal-msb-crc32c-preimage-explicitly;python-and-rust-must-independently-generate-the-rust-discovered-observation-bytes-before-gate6-regeneration"
+archive_root = "artifacts/history/m2-r3-pre-local-check-reflection-clarification"
+archive_manifest = "artifacts/history/m2-r3-pre-local-check-reflection-clarification/archive-files.sha256"
+archive_manifest_sha256 = "sha256:7dce94dd52d2d0cebeac5ef8eea1ba3f2a5cb16175870d4aa627e3e8c6b3a5d5"
+archive_row_count = 84
+archive_candidate_manifest_sha256 = "sha256:285a48661ae3fccecdd57bc4ded66d732c2d6e34798603ad643105a5ceae8493"
+archive_candidate_manifest_identity = "sha256:e50b7e498b04b6bd9fd05e4d399d1ca15f200f113962844ca923caff139d63fc"
+archive_damage_manifest_sha256 = "sha256:a807ae329abf2fd9560147e806ae630add1e040a28a8b965c10cc8c98e5768f8"
+archive_independence_proof_sha256 = "sha256:b5e981d4a2c02e5e94b0a683fec5f8c4463fb01c8619f92a58f595c72173cfcb"
+archive_damage_policy_sha256 = "sha256:c4dbf6677a750126f037e9d5307da850e12f7b8d5f67607edc73aab22e31c294"
+archive_profile_limits_sha256 = "sha256:0848dd2637c9a19991656f2ebb82e3b5109bf3576fdb535693e86d659c87b304"
+archive_promotion_sha256 = "sha256:2f8c9dbe3cf61293986c1322fe5c5cbcc1eb7b1b45e1af9df18c2aefd55d4502"
+archive_python_limits_receipt_sha256 = "sha256:6f76f702956e76cbc07d5c4508fbcdebb9dbc7268e85874278df94d242718564"
+archive_rust_limits_receipt_sha256 = "sha256:12073db51d0feeeca9b4b7e84895941c1a4962d44b649b4b4f16e2a7524e5bae"
+reuse = "history-only-never-a-current-gate-damage-proof-producer-or-selection-input"
+
+[linux_source_surface]
+source_projection_schema = "m2-evidence-source-v0"
+source_projection_path = "artifacts/gate8/evidence-source-v0.json"
+source_projection_rule = "every-regular-nonignored-file-inspected-by-host-full-except-the-three-m2-spec-section-19.2-exclusions"
+live_candidate_and_gate8_roots = "ignored-regenerated-and-therefore-not-source-projection-entries"
+transient_verification_input = "linux_verification_input-is-not-a-source-or-execution-snapshot-entry;its-manifest-must-bind-the-independently-identical-host-and-linux-evidence-source-projection;its-two-native-receipts-are-mode-specific-release-fresh-or-standalone-retained-input-evidence-exactly-as-owned-by-linux_entry_modes"
+required_unignored_history_roots = ["artifacts/history/m2-r3-pre-d7-mapping-clarification", "artifacts/history/m2-r3-pre-damage-artifact-schema-clarification", "artifacts/history/m2-r3-pre-independence-witness-clarification", "artifacts/history/m2-r3-pre-gate6-convergence-clarification", "artifacts/history/m2-r3-pre-local-check-reflection-clarification"]
+history_paths_per_root_max = 128
+history_rule = "every-regular-file-below-each-exact-root-is-a-nonignored-source-projection-entry-and-a-host-linux-snapshot-input;missing-ignored-or-substituted-archive-rejects"
+text_scan_exception = "only-carrier.obs-bits-under-one-of-the-five-exact-roots-may-bypass-the-repository-text-decoder;all-other-files-remain-ordinary-checked-text-or-explicit-binary-inputs"
+release_implementation_order = "scripts/check-release-readme-agents-cli-tests-and-all-gate8-code-land-before-the-final-source-projection-is-rendered"
+
+[gate8_lifecycle]
+phase_order = ["pre-gate8-clean", "candidate-ready"]
+pre_gate8_clean_presence = "reports/m2-feasibility-v0.json-and-every-phase_paths-gate8-file-are-absent"
+pre_gate8_clean_full = "host-and-linux-scripts/check-full-validate-the-complete-source-snapshot-and-invoke-phase_check_cli-to-independently-regenerate-validate-and-discard-gates1-through7-without-requiring-a-report-or-gate8-generated-file"
+candidate_regeneration_root = "one-new-private-empty-temporary-directory-passed-explicitly-to-every-candidate-damage-proof-generator-decoder-and-check;no-hardcoded-live-candidate-path-read-may-satisfy-the-run"
+candidate_regeneration_result = "complete-exact-gates1-through7-tree-validated-in-temporary-storage-then-discarded-without-writing-source-candidate-or-gate8-paths"
+partial_presence = "reject"
+candidate_ready_presence = "tracked-report-exists-and-the-complete-exact-gate8-fixed-and-manifest-owned-dynamic-tree-exists"
+candidate_ready_full = "host-scripts/check-full-regenerates-native-facts-and-the-complete-gate8-report-closure-in-bounded-private-storage;the-clean-linux-full-run-receives-the-source-bound-linux_verification_input-plus-the-separate-exact-read-only-candidate_ready_linux_provenance_input-generates-only-its-two-linux-receipts-and-invokes-candidate_ready_linux_cli;both-derive-before-reading-the-tracked-report-and-require-their-complete-derived-report-bytes-equal-it"
+candidate_ready_verifier_refresh = "spec/gate8-verifier-refresh-v0.toml-first-reopens-to-an-exact-report-absent-In-progress-state;ordinary-assembly_cli-generate-then-installs-the-regenerated-tree-report-and-Candidate-ready-roadmap-authority-last;ordinary-acquire-check-full-linux-and-release-never-overwrite-a-receipt-tree-report-or-roadmap"
+bootstrap_sequence = "land-all-code-release-command-tests-and-tracked-templates;require-pre-gate8-clean;render-source-projection;run-native-producers;run-the-real-clean-linux-producers-over-the-same-source-projection;assemble-and-validate-gate8-tree-and-report;then-run-candidate-ready-release"
+attestation_stability = "the-complete-execution-snapshot-hash-is-compared-transiently-and-not-serialized-so-the-same-attestation-bytes-remain-valid-when-the-excluded-report-and-ignored-gate8-working-tree-are-installed"
+release_mode = "candidate-ready-only"
+release_pre_report_result = "reject"
+final_source_projection_rule = "must-be-rendered-after-release-implementation-and-all-tracked-templates-land-and-before-any-gate8-output-or-report-is-installed;linux_verification_input-and-all-private-work-roots-are-transient-excluded-nonsource-inputs-bound-back-to-these-exact-projection-bytes"
+refresh_source_projection_rule = "a-verifier-refresh-renders-one-new-projection-only-after-the-complete-owner-doc-implementation-command-and-test-change-set-lands-and-the-exact-reopen-transition-in-spec/gate8-verifier-refresh-v0.toml-completes;the-prior-projection-is-a-transition-precondition-only-and-never-an-expected-new-value"
+
+[tracked_templates]
+root = "studies/m2/templates"
+presence = "all-exact-paths-required-before-final-source-projection-and-bundle-generation"
+content_rule = "neutral-reusable-uninstantiated-bytes-only;no-person-identity-answer-or-result-bearing-human-data"
+paths = [
+  "studies/m2/templates/common/participation-note.md",
+  "studies/m2/templates/learner/allowed-tools.md",
+  "studies/m2/templates/learner/facilitation-policy.md",
+  "studies/m2/templates/learner/heldout-cases.json",
+  "studies/m2/templates/learner/heldout-question.md",
+  "studies/m2/templates/learner/help-taxonomy.md",
+  "studies/m2/templates/learner/label-suppressed-config.json",
+  "studies/m2/templates/learner/learner-condition.md",
+  "studies/m2/templates/learner/mechanics-expected.json",
+  "studies/m2/templates/learner/mechanics-fixture.json",
+  "studies/m2/templates/learner/neutral-opening-prompt.md",
+  "studies/m2/templates/learner/session-policy.md",
+  "studies/m2/templates/learner/success-criteria.md",
+  "studies/m2/templates/learner/teaching-practice-order.json",
+  "studies/m2/templates/technical/allowed-tools.md",
+  "studies/m2/templates/technical/channel-formats.md",
+  "studies/m2/templates/technical/channel-mechanics-fixtures.json",
+  "studies/m2/templates/technical/clean-question.md",
+  "studies/m2/templates/technical/export-format.md",
+  "studies/m2/templates/technical/facilitation-policy.md",
+  "studies/m2/templates/technical/final-account-question.md",
+  "studies/m2/templates/technical/heldout-question.md",
+  "studies/m2/templates/technical/help-taxonomy.md",
+  "studies/m2/templates/technical/neutral-opening-prompt.md",
+  "studies/m2/templates/technical/session-policy.md",
+  "studies/m2/templates/technical/success-criteria.md",
+]
+path_order = "bytewise-ascending-unique"
+source_projection = "every-path-is-a-nonignored-source-projection-entry"
+
+[tracked_gate8_tools]
+paths = ["tools/m2/learner_runner.py"]
+learner_runner_rule = "one-regular-executable-independent-stdlib-only-file-with-no-repository-relative-import-or-runtime-repository-dependency"
+presence = "required-before-final-source-projection-bundle-generation-and-gate8-production"
+source_projection = "each-path-is-a-nonignored-source-projection-entry"
+bundle_preimage = "complete-raw-file-bytes"
+
+[implementation_surface]
+current_required_paths = ["crates/gb-bootstrap/src/gate8_v1.rs", "python/golden_board/m2_gate8.py", "python/tests/test_m2_gate8.py", "python/tests/test_m2_gate8_policy.py", "python/tests/test_m2_learner_runner.py", "spec/gate8-policy-v0.toml", "spec/gate8-verifier-refresh-v0.toml"]
+candidate_ready_additional_required_paths = ["crates/gb-bootstrap/src/bin/gb-m2-gate8.rs", "tools/m2/generate_gate8.py", "tools/m2/learner_runner.py"]
+candidate_ready_template_paths = "exact-tracked_templates-paths"
+tracked_template_count = 26
+tracked_gate8_support_count = 27
+tracked_gate8_support_formula = "tracked-template-count-plus-tracked-gate8-tools-path-count"
+candidate_ready_rule = "every-current-and-additional-required-path-and-every-template-path-is-a-nonignored-regular-nonsymlink-nonhardlink-positive-length-source-projection-entry;tools/m2/generate_gate8.py-and-tools/m2/learner_runner.py-are-mode-100755-and-rust-source-is-mode-100644"
+pre_gate8_clean_rule = "candidate-ready-additional-paths-and-templates-may-be-absent-only-before-release-implementation;Gate8-production-source-projection-or-report-generation-rejects-unless-the-complete-candidate-ready-surface-is-present"
+
+[report_r3_overlay]
+selection_row_source = "selection.selection_row_keys-and-step_order-in-this-policy"
+damage_row_source = "damage_row-in-this-policy"
+candidate_row_source = "candidate_row-profile_tuple_identity-and-candidate_metric_projection-in-this-policy"
+profile_limits_source = "spec/profile-limits-v1.toml"
+profile_limits_derivation_source = "owner-projection-role-profile_limits_derivation"
+side_search_source = "owner-projection-role-side_search_policy"
+cross_language_source = "cross_language_manifest-in-this-policy"
+technical_bundle_source = "technical_bundle-in-this-policy"
+learner_bundle_source = "learner_bundle-in-this-policy"
+linux_source = "linux_attestation-in-this-policy"
+technical_round_summaries_before-human-validation = []
+learner_round_summaries_before-human-validation = []
+qualifying_technical_round_id_before-human-validation = "none"
+qualifying_learner_round_id_before-human-validation = "none"
+accepted_limitations = ["Final transport dimensions remain provisional until the M4 actual-content rerun.", "Technical and learner validation is pending."]
+normative_owner_paths = ["docs/m0-spec.md", "docs/m1-spec.md", "docs/m2-spec.md", "roadmap-normative-v0", "inputs/source-lock.toml", "conformance/registry.toml", "spec/identity-v0.md", "spec/chess-v0.md", "spec/source-v0.md", "spec/content-v0.md", "spec/curriculum-v0.toml", "spec/constants-v0.toml", "docs/m2-r3-design.md", "spec/bootstrap-v1.md", "spec/profile-policy-v1.toml", "spec/damage-policy-v1.toml", "spec/route-data-v1.json", "spec/profile-limits-v1.toml", "spec/m2-r3-owner-promotion-v1.toml", "conformance/m2-r3-owner-v1.json", "spec/runner-v0.md", "spec/slice-v0.md", "spec/gate8-policy-v0.toml", "spec/gate8-verifier-refresh-v0.toml"]
+normative_owner_row_order = "kind-then-name-bytewise-ascending-after-replacing-roadmap-normative-v0-with-the-virtual-roadmap-projection"
+v0_transport_owner_rows_in_report = "replaced-by-the-v1-and-gate8-owner-paths-above;historical-v0-owners-remain-bound-indirectly-through-promoted-v1-base-and-archive-admission"
+permitted_administrative_counts_before_human_validation = []
+provisional_capacity_profile_limits = "raw-sha256-of-spec/profile-limits-v1.toml"
+
+[pilot_envelope]
+source = "docs/m2-spec.md-section-19.3-shapes-with-the-exact-r3-field-derivations-below"
+unknown_or_missing_fields = "reject"
+
+[pilot_envelope.geometry_equivalence]
+schema = "golden-board.m2-geometry-equivalence/v0"
+path = "artifacts/gate8/projections/geometry-equivalence-v7.json"
+key_order = ["admitted_N_S_pairs", "schema"]
+pair_keys = ["N", "S"]
+admitted_N_S_pairs = ["N=side-times-side,S=side-from-the-preferred-candidate-manifest"]
+pair_order = "N-then-S-ascending-unique"
+equivalence_proof_sha256_preimage = "complete-canonical-geometry-equivalence-file-bytes"
+
+[pilot_envelope.technical_invariance]
+raw_geometry_observed_N = "preferred-candidate-manifest-side-times-side"
+raw_geometry_observed_S = "preferred-candidate-manifest-side"
+raw_geometry_admitted_N_S_pairs = "geometry-equivalence-admitted_N_S_pairs"
+raw_geometry_equivalence_proof_sha256 = "raw-sha256-of-complete-geometry-equivalence-file"
+shell_W = "preferred-candidate-manifest-shell_width"
+shell_complete_bytes_sha256_preimage = "ascii-golden-board:m2:pilot:shell-route-bytes:v0-then-nul-then-u64-be-4-then-for-sector-id-0-through3-u64-be-byte-length-and-the-exact-complete-decoded-route-prefix-byte-string"
+shell_complete_cells_sha256_preimage = "ascii-golden-board:m2:pilot:shell-cells:v0-then-nul-then-u64-be-shell-cell-count-then-the-exact-shell-cell-bits-in-full-matrix-row-major-coordinate-order-msb-packed-with-zero-tail"
+shell_sector_ownership_sha256_preimage = "canonical-manifest-v0-object-with-exact-keys-schema,shell_rows;schema-golden-board.m2-shell-ownership-projection/v0;shell_rows-exactly-the-preferred-ownership-ledger-shell_rows"
+bootstrap_framing_sha256_preimage = "complete-raw-spec/bootstrap-v1.md-bytes"
+bootstrap_dependency_graph_sha256_preimage = "complete-raw-spec/route-data-v1.json-bytes"
+bootstrap_recipe_sha256_preimage = "complete-raw-spec/route-data-v1.json-bytes"
+bootstrap_operation_set_sha256_preimage = "complete-raw-spec/route-data-v1.json-bytes"
+bootstrap_tables_sha256_preimage = "complete-raw-spec/route-data-v1.json-bytes"
+bootstrap_discriminator_sha256_preimage = "complete-raw-spec/route-data-v1.json-bytes"
+bootstrap_grouping_id = "physical-unit-group-contiguous-v1"
+bootstrap_bit_order_id = "msb-first"
+bootstrap_traversal_id = "row-major-square-dihedral-polarity-v0"
+transport_candidate_id = "eh72-hier-r5-r2-r1-crc32c-v0"
+transport_parameter_manifest_sha256 = "parameter_manifest-role-hash"
+transport_common_grammar_sha256_preimage = "complete-raw-spec/bootstrap-v1.md-bytes"
+transport_protected_semantics_sha256_preimage = "complete-raw-spec/profile-policy-v1.toml-bytes"
+transport_state_semantics_sha256_preimage = "complete-raw-spec/damage-policy-v1.toml-bytes"
+mapping_formula_id = "affine-slot-then-interior-v1"
+mapping_parameters_sha256_preimage = "canonical-manifest-v0-object-with-exact-keys-mapping,schema;schema-golden-board.m2-mapping-parameters/v1;mapping-exactly-the-preferred-candidate-manifest-mapping-object"
+mapping_inverse_proof_sha256_preimage = "complete-raw-independence-proof-file-bytes"
+interior_density_min_ppm = 250000
+interior_density_max_ppm = 750000
+interior_tile_density_min_ppm = 125000
+interior_tile_density_max_ppm = 875000
+interior_max_horizontal_run = "max-of-128-and-ceiling-preferred-interior-side-over-4"
+interior_max_vertical_run = "max-of-128-and-ceiling-preferred-interior-side-over-4"
+interior_max_repeated_rows = "max-of-2-and-floor-preferred-interior-side-over-32"
+interior_max_repeated_columns = "max-of-2-and-floor-preferred-interior-side-over-32"
+challenge_export_format_sha256 = "sha256-of-the-technical-bundle-export-format-file-row-bytes"
+challenge_neutral_prompt_sha256 = "sha256-of-the-technical-bundle-neutral-opening-prompt-file-row-bytes"
+challenge_heldout_class_manifest_sha256 = "sha256-of-the-complete-canonical-technical-heldout-classes-file"
+recipient_mode = "technical_bundle-recipient_condition-mode"
+recipient_headcount = "technical_bundle-recipient_condition-headcount"
+recipient_allowed_tools_sha256 = "sha256-of-the-technical-bundle-allowed-tools-file-row-bytes"
+recipient_session_policy_sha256 = "sha256-of-the-technical-bundle-session-policy-file-row-bytes"
+recipient_facilitation_sha256 = "sha256-of-the-technical-bundle-facilitation-policy-file-row-bytes"
+recipient_think_aloud_sha256 = "sha256-of-the-technical-bundle-facilitation-policy-file-row-bytes"
+recipient_active_time_ceiling_seconds = 57600
+recipient_elapsed_time_ceiling_seconds = 604800
+
+[pilot_envelope.learner_invariance]
+content_stream_sha256 = "content_stream-role-hash"
+slice_sha256 = "vertical_slice-role-hash"
+runner_sha256_preimage = "complete-raw-tools/m2/learner_runner.py-bytes"
+label_suppressed_config_sha256 = "sha256-of-the-learner-bundle-label-suppressed-config-file-row-bytes"
+teaching_practice_order_sha256 = "sha256-of-the-learner-bundle-teaching-practice-order-file-row-bytes"
+semantic_path_sha256 = "sha256-of-the-complete-canonical-runner-semantic-path-v0-file"
+facilitation_sha256 = "sha256-of-the-learner-bundle-facilitation-policy-file-row-bytes"
+learner_condition_sha256 = "sha256-of-the-learner-bundle-learner-condition-file-row-bytes"
+time_policy_sha256 = "sha256-of-the-learner-bundle-session-policy-file-row-bytes"
+
+[pilot_envelope.evidence_identities]
+m2_all_content_stream_sha256 = "content_stream-role-hash"
+vertical_slice_sha256 = "vertical_slice-role-hash"
+carrier_sha256 = "preferred-candidate-carrier-role-hash"
+exact_cell_count_ledger_sha256 = "preferred-candidate-capacity_ledger-role-hash"
+ownership_ledger_sha256 = "preferred-candidate-ownership_ledger-role-hash"
+density_ledger_sha256 = "preferred-candidate-density_ledger-role-hash"
+technical_bundle_sha256 = "technical_bundle-role-hash"
+learner_bundle_sha256 = "learner_bundle-role-hash"
+generated_evidence_manifest_sha256 = "sha256-of-the-complete-canonical-generated-evidence-file"
+
+[generated_evidence]
+schema = "m2-generated-evidence-v0"
+path = "artifacts/gate8/generated-evidence-v0.json"
+key_order = ["candidate_evidence", "round_summary_identities", "schema", "shared_identities"]
+shared_role_order = ["content_stream", "vertical_slice", "semantic_envelope", "profile_limits_derivation", "side_search_policy", "evidence_source_projection", "selection_recomputation", "linux_attestation", "technical_bundle", "learner_bundle"]
+candidate_order = ["eh72-hier-r5-r2-r1-crc32c-v0"]
+candidate_identity_keys = ["candidate_id", "identities"]
+identity_row_keys = ["kind", "name", "sha256"]
+candidate_identity_order = "gate-order-then-role-order-from-candidate_gate_role_preimages"
+round_summary_identities_before-human-validation = []
+generated_evidence_manifest_sha256_preimage = "complete-canonical-generated-evidence-file-bytes"
+
+[candidate_ready_report]
+allowed_only_after = "all-gate8-cross-language-linux-selection-and-bundle-evidence-validates"
+retained_finalist_ids = ["eh72-hier-r5-r2-r1-crc32c-v0"]
+provisional_preferred_id = "eh72-hier-r5-r2-r1-crc32c-v0"
+human_gate_state = "not_evaluated"
+human_success_claim = false
+roadmap_state = "Candidate ready — independent validation pending"
+roadmap_state_meaning = "prospective-post-install-status-target-only-not-a-report-field-or-a-report-rendering-precondition"
+roadmap_render_input = "the-exact-live-roadmap-for-the-current-phase:pre-gate8-during-initial-generate-and-final-candidate-ready-during-check-or-linux-verification;the-report-serializes-only-the-common-unsigned-roadmap_revision-and-binds-only-the-common-roadmap_projection-immutable-bytes-so-no-candidate-ready-status-preclaim-is-required-and-both-phases-render-byte-identically"
+report_before_gate8_pass = "forbidden"
+
+[roadmap_projection]
+owner = "docs/m2-spec.md-section-19.2-roadmap-normative-v0"
+mutable_derived_header_row_prefixes = ["| Project state | ", "| Current milestone | "]
+derived_header_row_rule = "before-the-unique-section-13-heading-require-exactly-one-lf-terminated-line-for-each-prefix-with-no-additional-pipe-before-the-literal-space-pipe-line-ending;omit-those-two-complete-lines-from-the-normative-prefix"
+immutable_prefix = "all-other-exact-roadmap-bytes-before-the-unique-section-13-heading-in-original-order"
+immutable_suffix = "all-exact-roadmap-bytes-from-the-unique-section-14-heading-through-eof"
+preimage = "ascii-golden-board:roadmap-normative:v0-then-nul-then-u64-be-immutable-prefix-byte-length-then-immutable-prefix-then-u64-be-immutable-suffix-byte-length-then-immutable-suffix"
+status_invariance = "changing-only-the-two-derived-header-rows-and-bytes-from-section-13-before-section-14-must-not-change-roadmap_normative_sha256;changing-any-other-byte-must-change-it"
+
+[roadmap_transition]
+precondition = "the-live-roadmap-has-revision10-one-derived-header-row-project-state-In-progress-one-current-milestone-M2-row-and-one-section-13-M2-status-In-progress-row-ending-with-the-exact-pre-gate8-terminal-sentence;report-and-gate8-root-are-absent"
+pre_gate8_terminal_sentence = "Revision 10 preserves the R3 candidate and Gates 1–7 while reopening only Gate 8 for the acquired Linux verifier provenance refresh; no current Candidate-ready claim is admitted."
+candidate_ready_terminal_sentence = "The candidate passes gates 1–8 with provisional preferred candidate `{candidate_id}` and tracked report SHA-256 `{report_sha256}`; automated native and clean-Linux evidence passes, while technical and learner validation remains pending."
+status_edit = "replace-only-the-derived-header-project-state-value-In-progress-with-Candidate-ready-and-replace-only-the-section-13-M2-status-value-In-progress-with-Candidate-ready-independent-validation-pending-and-replace-the-unique-pre_gate8_terminal_sentence-with-candidate_ready_terminal_sentence-after-substituting-the-owned-candidate-id-and-lowercase-raw-report-sha256"
+preservation = "roadmap-revision-current-milestone-row-all-other-M2-evidence-and-every-other-roadmap-byte-remain-byte-identical"
+install_order = ["complete-gate8-tree", "tracked-report", "roadmap-status"]
+authority = "roadmap-status-is-last-and-is-the-only-final-candidate-ready-authority;tree-or-report-presence-with-the-pre-gate8-roadmap-is-partial-and-rejects"
+durability = "stage-all-three-targets-validate-the-prospective-final-state-fsync-staged-files-and-directories-install-in-exact-order-fsync-each-parent-and-write-no-other-path"
+rollback = "any-failure-before-roadmap-status-install-removes-only-the-new-tree-and-report-and-preserves-the-exact-precondition-roadmap;failure-installing-or-fsyncing-roadmap-restores-the-exact-precondition-roadmap-and-removes-only-the-new-tree-and-report;never-follow-links-or-overwrite-a-preexisting-target"
+final_admission = "require-the-exact-derived-header-row-| Project state | Candidate ready |-and-one-section-13-M2-row-with-status-Candidate ready — independent validation pending-and-the-terminal-sentence-with-candidate-id-and-the-raw-sha256-of-the-installed-report"
+check_mode = "requires-the-final-admission-state-regenerates-and-byte-compares-tree-and-report-and-writes-neither-roadmap-nor-output"
+
+[admission]
+bounded_read_bytes = 1048577
+canonical_manifest_bytes_max = 1048576
+array_rows_max = 100000
+all_paths_must_match_phase_allowlist = true
+all_hashes_recomputed = true
+all_cross_bindings_recomputed = true
+gate1_through_7_artifacts_read_only = true
+gate8_generation_may_overwrite_candidate_or_damage = false
+report_may_supply_expected_gate8_values = false
+python_rust_disagreement = "gate8-fail-or-tooling-blocker-as-owned-by-the-smallest-artifact-never-vote-or-copy"
+participant_contact_authorized = false
+external_publication_authorized = false
+pre_gate8_clean_full_command = "phase_check_cli-only"
+candidate_ready_linux_full_command = "candidate_ready_linux_cli-only-after-two-fresh-linux-producers-and-admission-of-exactly-one-linux_entry_mode-linux_verification_input"
+linux_native_receipt_source = "release-uses-only-the-two-fresh-native-receipts-from-its-preceding-host-full;standalone-linux-uses-only-the-two-canonical-retained-native-receipts-through-docker-only-strict-input-admission;never-report-another-gate8-file-or-a-linux-column"

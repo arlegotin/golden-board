@@ -1,0 +1,17 @@
+Open index.html in your browser. Everything runs in this folder.
+
+This is an intentional artifact worth exploring. Take the time you need;
+trying ideas, getting things wrong and going back over examples is fine.
+
+Start with Watch example. Make your own selection, press Commit, then Next.
+Fit width and the size buttons adjust the diagrams; scroll when needed.
+Use Export progress to save your work, including when you stop partway.
+
+Send back the exported JSON file. In your own words, also tell us what you
+think the patterns mean and what felt unclear. No particular prose format,
+name, dates or extra form is needed.
+
+An optional Python entry is learner_runner_v1.py. Run it with --help for file
+arguments. Its command file uses {"schema":"golden-board.learner-runner-commands/v0",
+"commands":[{"action_hex":"02000000"}]} for a reset. The JSON output gives the
+final frame and action results. The browser remains the simplest way to explore.

@@ -1,6 +1,7 @@
 # Project source ledger
 
-This ledger says exactly what M0/M1 used and what that evidence does not prove.
+This ledger says exactly what M0/M1 and M2 design used and what that evidence
+does not prove.
 Machine identities are owned by [`inputs/source-lock.toml`](../inputs/source-lock.toml);
 ordinary checks use those frozen receipts and never fetch an external source.
 
@@ -31,6 +32,30 @@ and conformance evidence, so M1 does not add mutable copies to the source lock.
 | American Educational Research Association, American Psychological Association, and National Council on Measurement in Education, *Standards for Educational and Psychological Testing* (2014 edition), [PDF](https://www.testingstandards.net/uploads/7/6/6/4/76643089/standards_2014edition.pdf); National Board of Medical Examiners, *Item-Writing Guide: Constructing Written Test Questions for the Health Sciences*, sixth edition (preface August 2020; PDF cover October 2024), [PDF](https://www.nbme.org/sites/default/files/2021-02/NBME_Item%20Writing%20Guide_R_6.pdf) | Guardrails for a declared blueprint, held-out cases, scoring, response cues, and narrow interpretation | Psychometric equivalence, population inference, or validation of Golden Board's forms | Citations only; no external bytes vendored. |
 | IETF RFC 8949, *Concise Binary Object Representation (CBOR)* (December 2020), [official text](https://www.rfc-editor.org/rfc/rfc8949.html) | Background for definite-length deterministic framing; M1 deliberately uses a much smaller project grammar | CBOR compatibility or a reason to add a CBOR implementation/dependency | Citation only; no external bytes vendored. |
 
+## M2 design references
+
+These references informed [`docs/m2-spec.md`](m2-spec.md) and the roadmap
+revision-6 clarifications. They are design evidence, not Golden Board
+conformance. Exact external artifacts that supply retained M2 implementation
+parameters or known answers must receive source-lock receipts before candidate
+freeze; citations alone are not implementation identities. The three concrete
+parameter sources below are now locked by exact official-artifact receipts;
+ordinary checks continue to use only the receipt metadata and remain offline.
+
+| Source and locator (accessed 2026-08-20) | Design use | Does not establish | Retention |
+|---|---|---|---|
+| NASA, *Golden Record Cover* ([official mission page](https://science.nasa.gov/mission/voyager/golden-record-cover/)) | Supports repeated calibration relations and a decoded consequence that can expose a wrong raster/interpretation | That a Golden Board shell, digital transport, or learner path is decodable | Citation only; no external bytes vendored. |
+| W. Simpson, IETF RFC 1662, *PPP in HDLC-like Framing* (July 1994, [RFC Editor](https://www.rfc-editor.org/rfc/rfc1662.html)) | Negative comparison: flag framing requires bit/octet transparency and solves synchronization absent from exact-length `OBS_BITS` | A Golden Board frame format, or a need for stuffing/sync markers | Citation only; no external bytes vendored. |
+| DENSO WAVE, *What is a QR Code?* and *Error correction feature* ([features](https://www.qrcode.com/en/about/index.html), [error correction](https://www.qrcode.com/en/about/error_correction.html)); GS1, *GS1 DataMatrix Guideline* ([current guideline](https://ref.gs1.org/guidelines/datamatrix/2.5.1/)) | Geometric precedent for asymmetric orientation/timing motifs and the explicit size-versus-correction trade-off | Optical quiet zones, perspective/camera machinery, advertised damage percentages, or a Golden Board decoder | Citations only; no standard bytes or imagery vendored. |
+| Michael W. Busch and Rachel M. Reddick, *Testing SETI Message Designs* ([arXiv:0911.3976](https://arxiv.org/abs/0911.3976)); René Heller, *Decryption of Messages from Extraterrestrial Intelligence Using the Power of Social Media — The SETI Decrypt Challenge* ([arXiv:1706.00653](https://arxiv.org/abs/1706.00653), [published DOI](https://doi.org/10.1017/S1473550417000568)) | Supports substantial iteration, team-aware information conditions, and recording hints, prior knowledge, spoilers, rival interpretations, and stopping points | Golden Board time limits, success rates, exact recipient skills, or independence after cross-unit discussion | Citations only; no challenge payloads vendored. |
+| Richard W. Hamming, *Error Detecting and Error Correcting Codes* ([DOI](https://doi.org/10.1002/j.1538-7305.1950.tb00463.x)); M. Y. Hsiao, *A Class of Optimal Minimum Odd-weight-column SEC-DED Codes* ([DOI](https://doi.org/10.1147/rd.144.0395)); Irving S. Reed and Gustave Solomon, *Polynomial Codes Over Certain Finite Fields* ([DOI](https://doi.org/10.1137/0108018)) | Theory behind the predeclared extended-Hamming and Reed–Solomon candidates | Golden Board field/profile conventions, decoder order, mapping, damage guarantee, or KATs | Citations only; exact project profiles remain locally specified. |
+| ETSI EN 301 192 V1.8.1 (2025-06), *DVB specification for data broadcasting* ([official PDF](https://www.etsi.org/deliver/etsi_en/301100_301199/301192/01.08.01_60/en_301192v010801p.pdf); [`etsi-en-301-192-v1-8-1`](../inputs/source-lock.toml)) | Current concrete starting parameters for full `RS(255,191)`: field polynomial, primitive element, roots, and 64 parity symbols | Golden Board framing, coefficient/parity order, mapping, decoder failure, interleave, checks, or inherited DVB transport | Exact PDF acquired twice with byte-identical results and receipt locked; PDF not vendored; redistribution not established. |
+| IETF RFC 9260 Appendix A, *Stream Control Transmission Protocol* ([official text](https://www.rfc-editor.org/rfc/rfc9260.txt); [`rfc-9260`](../inputs/source-lock.toml)) | Parameter/procedure basis for the exact CRC-32C comparison | Golden Board preimages/storage, generic error probability, authentication, or adoption of SCTP framing | Exact RFC Editor text acquired twice with byte-identical results and receipt locked; text not vendored; redistribution not established. |
+| Ecma International, ECMA-182 first edition (December 1992), *Data interchange on 12,7 mm 48-track magnetic tape cartridges — DLT 1 format* ([standard page](https://ecma-international.org/publications-and-standards/standards/ecma-182/), [official PDF](https://www.ecma-international.org/wp-content/uploads/ECMA-182_1st_edition_december_1992.pdf); [`ecma-182`](../inputs/source-lock.toml)) | Parameter basis for the exact CRC-64/ECMA comparison | Golden Board preimages/storage, generic error probability, authentication, or adoption of DLT 1 tape framing | Exact official PDF acquired twice with byte-identical results and receipt locked; PDF not vendored; redistribution not established. |
+| Philip Koopman and Tridib Chakravarty, *Cyclic Redundancy Code (CRC) Polynomial Selection for Embedded Networks* ([DOI](https://doi.org/10.1109/DSN.2004.1311885)); Mario Blaum, Jehoshua Bruck, and Alexander Vardy, *Interleaving Schemes for Multidimensional Cluster Errors* ([DOI](https://doi.org/10.1109/18.661516), [Caltech record](https://authors.library.caltech.edu/records/t4s49-2nn79/latest)) | Warns that CRC properties depend on protected length and motivates distributing 2D clusters across codewords | A distance result outside evaluated lengths, a `2^-k` claim, or proof that Golden Board's realized map survives D2 | Citations only; the project computes/reports its exact lengths and ownership proof. |
+| Mark C. Fox, K. Anders Ericsson, and Ryan Best, *Do procedures for verbal reporting of thinking have to be reactive?* ([PubMed/DOI](https://pubmed.ncbi.nlm.nih.gov/21090887/)); NIST GCR 15-996, *Technical Basis for User Interface Design of Health IT* ([official PDF](https://nvlpubs.nist.gov/nistpubs/gcr/2015/NIST.GCR.15-996.pdf)) | Supports not requiring directed explanatory think-aloud in result-bearing work, recording help, neutral task direction, and separating formative diagnosis from validation | A Golden Board effect size, medical-device validation, participant count, or need for a formal usability programme | Citations only; Golden Board keeps only the small protocol consequences it needs. |
+| U.S. HHS Office for Human Research Protections, *Informed Consent FAQs* ([official guidance](https://www.hhs.gov/ohrp/regulations-and-policy/guidance/faq/informed-consent/index.html)) | Ethical precedent for understandable disclosure, comprehension, voluntariness, and the ability to stop; motivates one plain participant note | A determination that HHS rules apply, an IRB requirement, or legal advice for this personal project | Citation only; no forms imported. |
+
 ## Boundaries
 
 - The historical PGN guide is not the Golden Board grammar;
@@ -38,8 +63,10 @@ and conformance evidence, so M1 does not add mutable copies to the source lock.
 - M1 design references above remain explanatory citations unless a later
   implementation consumes exact external bytes; such a consumer must first add
   a locked receipt and rights note.
-- CRC, ECC, interleave, transport, and profile material remains only a roadmap
-  reading list until M2 has a concrete consumer and measured choice.
+- M2 design citations remain explanatory unless a promoted implementation tuple
+  or retained KAT consumes exact external bytes. The three parameter-source
+  receipts above satisfy that prerequisite without altering existing M0
+  identities; any further consumed artifact requires the same additive step.
 - References inform decisions; they do not prove Golden Board conformance.
 - Ordinary checks are offline and do not refetch moving pages or frozen files.
 - Local read-only M0/M1 analysis may continue while anthology provenance and

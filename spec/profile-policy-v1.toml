@@ -1,0 +1,540 @@
+schema = "golden-board.profile-policy/v1"
+policy_version = 1
+status_authority = "spec/m2-r3-owner-promotion-v1.toml"
+
+[base]
+path = "artifacts/history/m2-r2-candidates/owners/profile-policy-v0.toml"
+sha256 = "c180c2ad312c21e7559a33d9d6aee7ae5ecdc287e94197061242985c57b02265"
+inheritance = "all-capacity-content-realism-crc-eh72-and-selection-rules-not-explicitly-replaced-below"
+mutable_live_v0_fallback = false
+
+[bindings]
+bootstrap_path = "spec/bootstrap-v1.md"
+bootstrap_sha256 = "e4d0a5667758a753d35603632dee550db7ecb66cf64ee675ce7485531da27dde"
+semantic_envelope_schema = "golden-board.m2-semantic-envelope/v0"
+semantic_envelope_sha256 = "f81e29b04b307b147aec1c2602933c778e1c9198084e5d5c8e4e29cad1bdb0fd"
+curriculum_path = "spec/curriculum-v0.toml"
+curriculum_sha256 = "601b61eb433e8128e39dd8c62baee6ed1f5461f3ac9a2d0182114861f2ddf263"
+slice_path = "studies/m2/slice-v0.json"
+slice_sha256 = "e0e93a02820595661819f12e8b339e2a9a98f97ed58ab08043a40875d3c14767"
+slice_semantic_sha256 = "de7e22f0aa4316d9f32d9435287dd19bd6c04519aae1dc9bd816613f26929671"
+capacity_module_path = "python/golden_board/capacity.py"
+capacity_module_sha256 = "9c70306eaed963c682652b5b61b4cf8136e5652bbaf995cc49a4e1edd12a407d"
+game_set_path = "reports/game-set-v0.bin"
+game_set_sha256 = "e883055cd0417061cf04d596cbca75d039948a987180d26a80bd6d6888f4764e"
+game_set_identity = "ffe37ea482b590eb2b454041c0918d05a85161c8f0c604bbf58cc7b71de87db9"
+source_lock_path = "inputs/source-lock.toml"
+source_lock_sha256 = "f26623408c9d9a40f7c3633f8a623042a25f0c006e085718836e7f383301cb25"
+owner_kat_path = "conformance/m2-r3-owner-v1.json"
+owner_kat_sha256 = "d0a0da9fa62511fc7914ec214b6ba934c470ac669ed765ace29b42da22896ce3"
+
+[promotion_barrier]
+state_source = "spec/m2-r3-owner-promotion-v1.toml-status"
+required_paths = ["spec/route-data-v1.json", "spec/profile-limits-v1.toml"]
+required_bindings = [
+  "route_data_sha256",
+  "recipient_package_sha256",
+]
+required_generated_values = [
+  "side",
+  "shell_width",
+  "unit_population",
+  "slot_multiplier",
+  "slot_inverse_multiplier",
+  "route_prefix_cells_by_sector",
+  "recipient_package_bytes",
+  "recipient_package_node_count",
+  "recipient_package_edge_count",
+  "recipient_package_table_payload_bytes",
+  "recipient_package_primitive_steps",
+  "recipient_package_peak_scratch_bytes",
+  "protected_units",
+  "encoded_transport_bytes",
+]
+close_rule = "all-required-paths-exist-and-two-independent-generators-produce-byte-identical-route-package-static-carrier-owner-projections-and-limit-values-before-status-becomes-pre-result-frozen;static-projections-mean-route-capacity-load-and-schema-only-never-carrier-bytes-candidate-manifest-or-ledgers;this-policy-names-but-does-not-hash-profile-limits-to-preserve-an-acyclic-owner-dag"
+partial_or_zero_sentinel_result = "reject"
+carrier_or_damage_before_close = "reject"
+
+[promotion_generated_schema]
+table = "generated"
+presence = "absent-while-promotion-status-blocked-and-required-while-pre-result-frozen"
+insertion = "immediately-after-promotion-generated-schema-and-before-candidate-set"
+key_order = ["encoded_transport_bytes", "physical_unit_count", "recipient_package_bytes", "recipient_package_edge_count", "recipient_package_node_count", "recipient_package_peak_scratch_bytes", "recipient_package_primitive_steps", "recipient_package_sha256", "route_data_path", "route_data_sha256", "shell_width", "side"]
+route_data_path = "spec/route-data-v1.json"
+unknown_or_partial_generated_table = "reject"
+
+[generated]
+encoded_transport_bytes = 397656
+physical_unit_count = 1841
+recipient_package_bytes = 25930
+recipient_package_edge_count = 1087
+recipient_package_node_count = 699
+recipient_package_peak_scratch_bytes = 6163
+recipient_package_primitive_steps = 80435
+recipient_package_sha256 = "4bd8e0d485ae6e6a65f4edc4ef2aaac9585a2bcd8c4623e44d69f1dad3b0ec8e"
+route_data_path = "spec/route-data-v1.json"
+route_data_sha256 = "94df79d9a3fb01b69014417683a0f48f2222fea9fe991361bc99aa0c30dc663e"
+shell_width = 128
+side = 2040
+
+[candidate_set]
+active_profile_ids = ["eh72-hier-r5-r2-r1-crc32c-v0"]
+active_profile_versions = [7]
+transport_family_ids = ["eh72-hier-repetition-v0"]
+section_check_ids = ["crc32c-v0"]
+local_check_id = "crc32c-v0"
+common_plain_bytes = 191
+common_payload_bytes = 157
+semantic_copy_count = 1
+physical_replica_counts = [1, 2, 5]
+candidate_addition_after_result_allowed = false
+candidate_revision_result = "restart-all-r3-affected-profiles"
+legacy_registry_rows_are_candidates = false
+
+[[registry_profile]]
+id = "eh72-hier-r5-r2-r1-crc32c-v0"
+profile_version = 7
+transport_id = "eh72-hier-repetition-v0"
+section_check_id = "crc32c-v0"
+candidate = true
+fixture = false
+may_establish_r3_artifact = true
+
+[[registry_profile]]
+id = "eh72-r2-crc64-ecma-v0"
+profile_version = 2
+transport_id = "eh72-replicated-v0"
+section_check_id = "crc64-ecma-v0"
+candidate = false
+fixture = true
+may_establish_r3_artifact = false
+
+[[registry_profile]]
+id = "eh72-r3-crc32c-v0"
+profile_version = 3
+transport_id = "eh72-replicated-v0"
+section_check_id = "crc32c-v0"
+candidate = false
+fixture = true
+may_establish_r3_artifact = false
+
+[[registry_profile]]
+id = "eh72-r3-crc64-ecma-v0"
+profile_version = 4
+transport_id = "eh72-replicated-v0"
+section_check_id = "crc64-ecma-v0"
+candidate = false
+fixture = true
+may_establish_r3_artifact = false
+
+[[registry_profile]]
+id = "rs255-191-crc32c-v0"
+profile_version = 5
+transport_id = "rs255-191-v0"
+section_check_id = "crc32c-v0"
+candidate = false
+fixture = true
+may_establish_r3_artifact = false
+
+[[registry_profile]]
+id = "rs255-191-crc64-ecma-v0"
+profile_version = 6
+transport_id = "rs255-191-v0"
+section_check_id = "crc64-ecma-v0"
+candidate = false
+fixture = true
+may_establish_r3_artifact = false
+
+[registry]
+order = [7, 2, 3, 4, 5, 6]
+obs_units_enumeration = "for-each-input-id-numeric-ascending-run-every-registry-procedure-in-registry-order-without-short-circuit"
+legacy_result = "bounded-foreign-profile-diagnostic-only"
+route_conflict_alternate_profile_version = 3
+cross_profile_splice_source_versions = [2, 3, 4, 5, 6]
+archived_profile_version_1_active = false
+
+[transport]
+id = "eh72-hier-repetition-v0"
+complexity_class = 1
+common_input_bytes = 191
+transport_pad_bytes = 1
+transport_pad_value = 0
+data_bytes_per_codeword = 8
+encoded_bytes_per_codeword = 9
+codewords_per_physical_unit = 24
+physical_unit_bytes = 216
+physical_unit_bits = 1728
+code_length_bits = 72
+data_length_bits = 64
+minimum_distance = 4
+hamming_parity_positions = [1, 2, 4, 8, 16, 32, 64]
+overall_parity_position = 72
+bit_order = "msb-first"
+parity = "even"
+eh_erasure_max = 3
+eh_mixed_bound = 3
+eh_mixed_formula = "2e-plus-s-less-than-or-equal-to-3"
+eh_decoder = "bounded-fill-and-known-bit-change-enumeration"
+physical_replica_counts = [1, 2, 5]
+repetition_admissibility = "candidate-bit-b-admissible-if-and-only-if-2-times-known-opposite-count-plus-erased-or-absent-count-is-less-than-factor"
+repetition_nonunique_result = "erasure-into-ordinary-eh72"
+candidate_construction = "all-independently-locally-valid-lanes-union-locally-valid-raw-repetition-result"
+candidate_deduplication = "byte-identical-common-block"
+candidate_acceptance = "exactly-one-distinct-common-block"
+candidate_conflict = "fragment-conflict-no-vote"
+cartesian_or_check_directed_search = false
+maximum_eh_unit_decodes_per_group = 6
+
+[check]
+id = "crc32c-v0"
+check_id = 1
+width_bits = 32
+normal_polynomial = 0x1edc6f41
+reflected_polynomial = 0x82f63b78
+initial = 0xffffffff
+final_xor = 0xffffffff
+reflect_input = true
+reflect_output = true
+stored_order = "big-endian-semantic-integer"
+
+[[profile]]
+id = "eh72-hier-r5-r2-r1-crc32c-v0"
+profile_version = 7
+transport_id = "eh72-hier-repetition-v0"
+section_check_id = "crc32c-v0"
+semantic_copy_count = 1
+complexity_class = 1
+map_id = "affine-slot-then-interior-v1"
+
+[protection_class]
+spine_id = "required-spine"
+replicated_id = "replicated-m2"
+nonreplicated_id = "nonreplicated-m2"
+spine_section_ids = [1, 2, 3, 16]
+spine_closure = "exact-provisional-m2-required-transitive-closure"
+spine_physical_replica_count = 5
+replicated_physical_replica_count = 2
+nonreplicated_physical_replica_count = 1
+semantic_copy_count = 1
+inventory_section_version = 1
+inventory_payload_version = 1
+inventory_copy_count_field = 1
+factor_source = "inventory-v1-flags-bits-1-through-3-then-frozen-owner-class-agreement"
+factor5_outside_spine_result = "reject"
+spine_not_factor5_result = "reject"
+replicated_not_factor2_result = "reject"
+nonreplicated_not_factor1_result = "reject"
+m3_replacement_rule = "same-frozen-capacity-class-and-physical-factor-or-reopen-m2"
+
+[capacity]
+logical_owner = "hash-bound-base-profile-policy-capacity-and-semantic-envelope"
+authoring_payload_bytes = 105277
+reserve_payload_bytes = 7141
+carrier_bytes_max = 524288
+capacity_physical_units = 1095
+reserve_physical_units = 92
+pre_route_projection_spine_logical_groups = 30
+pre_route_projection_spine_physical_units = 150
+pre_route_projection_other_replicated_logical_groups = 442
+pre_route_projection_other_replicated_physical_units = 884
+pre_route_projection_nonreplicated_logical_groups = 431
+pre_route_projection_nonreplicated_physical_units = 431
+pre_route_projection_mandatory_physical_units = 1465
+projection_is_selected_geometry_or_limit = false
+load_rule = "fill-all-residual-whole-unit-capacity-with-factor1-load-probes-then-fixed-pad-tail"
+future_capacity_charge = "physical-factor-multiplies-complete-common-header-payload-local-check-pad-and-parity"
+
+[geometry]
+raw_bits_max = 4194304
+carrier_bytes_max = 524288
+side_min = 64
+side_max = 2048
+side_step = 8
+shell_width_min = 8
+shell_width_max = 128
+shell_width_step = 8
+pair_order = "side-then-width-ascending"
+width_upper_formula = "min-128-floor-side-minus-8-over-2"
+first_fit_rule = "first-complete-v7-route-and-manifestation-fit-in-pair-order"
+final_profile_claim_source = "promotion-manifest-status-equals-pre-result-frozen"
+
+[mapping]
+id = "affine-slot-then-interior-v1"
+encoded_bits_per_physical_unit = 1728
+interior_side_formula = "I-equals-side-minus-twice-shell-width"
+population_formula = "P-equals-I-squared"
+unit_population_formula = "Q-equals-floor-P-over-1728"
+separation_window_formula = "w-equals-max-32-floor-I-over-8"
+cell_multiplier_formula = "a-equals-twice-I-minus-1"
+cell_inverse_formula = "P-minus-twice-I-minus-1"
+cell_offset_formula = "40503-times-7-plus-257-times-shell-width-mod-P"
+unit_offset = 0
+unit_multiplier_search = "smallest-B-in-1-through-Q-minus-1-coprime-to-Q-satisfying-the-exact-row-carry-final-cell-separation-predicate-in-bootstrap-v1-section-5"
+unit_multiplier_table_id = 17
+unit_multiplier_table_type = "UINT8"
+unit_multiplier_table_count = 256
+unit_multiplier_table_index = "interior-side-divided-by-8"
+unit_multiplier_table_generation = "smallest-B-from-exact-predicate-or-zero-for-no-fit"
+unit_multiplier_table_zero_result = "geometry-does-not-fit"
+unit_multiplier_table_independent_reproduction_required = true
+unit_multiplier_table_sha256 = "835717bf400c597a3a9e1b59747f23d93047b6cfab462756fa07d96c5f3eba3f"
+unit_multiplier_table_nonzero_entries = 236
+unit_multiplier_table_distinct_nonzero_values = 24
+unit_multiplier_table_maximum = 217
+unit_multiplier_table_zero_indices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 21, 255]
+geometry_pair_count = 3815
+geometry_pair_fit_count = 3536
+geometry_pair_reject_count = 279
+forward_formula = "slot=(B*(physical_unit_id-1)) mod Q;logical_flat=1728*slot+encoded_bit;physical_flat=(a*logical_flat+offset) mod P"
+inverse_formula = "undo-cell-affine-reject-tail-divmod-by-1728-then-multiply-slot-by-B-inverse-mod-Q"
+physical_coordinate_formula = "row-column-equals-divmod-physical-flat-by-I-plus-shell-width"
+fixed_pad_tail_formula = "P-minus-1728-times-Q"
+independent_inverse_required = true
+damage_seed_participates_in_search = false
+
+[resource_policy]
+checked_integer_width = 64
+section_attempt_ceiling = 4096
+attempt_deduplicate_identical_before_count = true
+attempt_eligibility = "complete-header-dependency-payload-and-declared-check-width-structure"
+attempt_charge_point = "immediately-before-stored-section-check-comparison"
+section_payload_bytes_max = 16384
+dependency_count_max = 4095
+inventory_entry_count_max = 4096
+fragment_payload_bytes = 157
+common_block_bytes = 191
+recipe_encoded_bytes_max = 1048576
+recipe_nodes_max = 65535
+recipe_edges_max = 262140
+recipe_tables_max = 4096
+recipe_table_bytes_max = 1048576
+recipe_primitive_steps_max = 268435456
+recipe_scratch_bytes_max = 16777216
+eh_codeword_invocations_per_lane = 24
+repetition_candidate_per_present_factor2_or5_group = 1
+clean_route_codeword_invocation_formula = "24-times-(physical-lane-count-plus-factor2-or5-logical-group-count)"
+clean_sector_path_count = 4
+cache_changes_logical_charge = false
+exact_route_static_reject_steps_source = "damage-policy-v1-generated-table"
+exact_recipient_package_steps_source = "profile-generated-table"
+exact_recipient_package_scratch_source = "profile-generated-table"
+
+[selection]
+active_candidate_count = 1
+required_automated_gate_ids = [1, 2, 3, 4, 5, 6, 7, 8]
+gate_order = [
+  "profile-and-cross-language-kat",
+  "bootstrap-recipe-shell",
+  "common-grammar-atomic-state",
+  "generated-resource-limits",
+  "provisional-capacity",
+  "damage-zero-wrong-accept",
+  "physical-independence",
+  "native-linux-reproducibility",
+  "preferred-human-feasibility",
+]
+gate7_requires_gate6_pass = true
+first_failure_retained = true
+later_gates_after_failure = "not_evaluated"
+no_passing_result = "explicit-scope-revision"
+
+[lower_bound]
+section_envelope_bytes_formula = "18-plus-4-times-dependency-count-plus-payload-bytes-plus-4"
+fragment_count_formula = "ceil-section-envelope-bytes-over-157"
+semantic_copy_count = 1
+physical_unit_count_formula = "sum-fragment-count-times-owner-physical-replica-count"
+protected_cells_formula = "physical-unit-count-times-1728"
+candidate_favorable_omissions_allowed = ["shell-headroom", "alignment-pad", "load-probe"]
+semantic_or_required_overhead_omission_allowed = false
+elimination_only_when_lower_bound_exceeds_bits_max = true
+
+[manifestation]
+carrier_serialization = "damage-policy-OBS_BITS-u32-be-count-then-msb-packed-row-major-bits"
+protected_group_order = "section-id-ascending-then-fragment-index-ascending"
+replica_order = "replica-index-ascending-within-group"
+physical_unit_ids = "contiguous-one-based-in-group-then-replica-order"
+semantic_copy_id = 0
+inventory_section = "id-1-type-inventory-section-version-1-payload-version-1-closure-128-semantic-copy-count-1-physical-factor-5-empty-dependencies"
+tier_frame_sections = "ids-2-and-3-type-tier-frame-version-0-closure-128-semantic-copy-count-1-physical-factor-5"
+spine_content_section = "id-16-type-content-body-closure-128-semantic-copy-count-1-physical-factor-5"
+capacity_factor = "2-for-replicated-m2-capacity-sections-and-1-for-nonreplicated-m2-capacity-sections"
+reserve_factor = 2
+load_factor = 1
+logical_bit_first = "1728-times-slot"
+protected_unit_bit_order = "encoded-unit-byte-order-then-byte-msb-first"
+worst_case_section_attempts = 1
+
+[candidate_manifest]
+schema = "golden-board.m2-candidate-manifest/v1"
+top_level_keys = [
+  "schema",
+  "profile_policy_sha256",
+  "profile_limits_sha256",
+  "bootstrap_spec_sha256",
+  "route_data_sha256",
+  "recipient_package_sha256",
+  "profile_id",
+  "profile_version",
+  "semantic_envelope_sha256",
+  "side",
+  "shell_width",
+  "mapping",
+  "shell_rows",
+  "section_rows",
+  "unit_rows",
+  "ownership_sha256",
+  "capacity_ledger_sha256",
+  "density_ledger_sha256",
+  "carrier_sha256",
+  "ledger",
+  "manifest_identity",
+]
+mapping_keys = ["id", "interior_side", "population", "unit_population", "unit_multiplier", "unit_inverse_multiplier", "cell_multiplier", "offset", "cell_inverse_multiplier"]
+section_row_keys = ["section_id", "section_type", "closure_class", "check_id", "semantic_copy_count", "physical_replica_count", "copy_class", "dependency_ids", "logical_payload_bytes", "envelope_bytes", "fragment_count"]
+unit_row_keys = ["physical_unit_id", "section_id", "semantic_copy_id", "fragment_index", "replica_index", "physical_replica_count", "slot", "transport_id", "encoded_bytes", "encoded_sha256", "logical_bit_first", "logical_bit_count"]
+section_order = "section-id-ascending"
+unit_order = "physical-unit-id-ascending"
+semantic_copy_count_required = 1
+semantic_copy_id_required = 0
+physical_replica_count_domain = [1, 2, 5]
+replica_index_rule = "zero-through-physical-replica-count-minus-1-exactly-once-per-logical-group"
+slot_rule = "B-times-physical-unit-id-minus-1-mod-Q"
+route_and_package_binding_required = true
+unknown_keys = "reject"
+
+[candidate_manifest.ledger]
+logical_owner_row_keys = ["owner_id", "section_type", "closure_class", "semantic_copy_count", "physical_replica_count", "logical_bytes"]
+logical_owner_bytes_rule = "one-row-per-semantic-section-logical-payload-bytes-not-physically-multiplied-with-factor-recorded-separately"
+physical_byte_charge = "every-envelope-header-payload-section-check-fragment-header-zero-pad-local-check-transport-pad-and-parity-byte-multiplied-by-physical-replica-count"
+envelope_bytes_formula = "sum-over-sections-of-physical-replica-count-times-parenthesized-18-plus-4-times-dependency-count-excluding-payload-and-section-check"
+section_check_bytes_formula = "sum-over-sections-of-physical-replica-count-times-4"
+fragment_header_bytes_formula = "30-times-physical-unit-count"
+fragment_zero_pad_bytes_formula = "157-times-physical-unit-count-minus-sum-over-sections-of-physical-replica-count-times-section-envelope-length"
+local_check_bytes_formula = "4-times-physical-unit-count"
+transport_pad_bytes_formula = "physical-unit-count"
+parity_bytes_formula = "24-times-physical-unit-count"
+codeword_count_formula = "24-times-physical-unit-count"
+protected_byte_reconciliation = "sum-over-sections-of-physical-replica-count-times-logical-payload-plus-ledger-envelope-bytes-plus-ledger-section-check-bytes-plus-fragment-header-plus-fragment-zero-pad-plus-local-check-plus-transport-pad-plus-parity-equals-sum-encoded-unit-bytes"
+scalar_value_type = "u64"
+scalar_value_range = "0..18446744073709551615"
+unused_cells_required = 0
+
+[ownership_ledger]
+schema = "golden-board.m2-ownership-ledger/v1"
+keys = ["schema", "profile_id", "side", "shell_width", "mapping", "shell_rows", "unit_rows", "interior_fixed_pad", "cell_table", "cell_table_sha256"]
+unit_row_keys = ["physical_unit_id", "section_id", "fragment_index", "replica_index", "physical_replica_count", "slot", "logical_bit_first", "logical_bit_count", "mapped_cell_sha256"]
+mapped_cell_sha256_preimage = "concatenate-exactly-1728-interior-local-physical-flat-u32-be-values-in-encoded-bit-order-zero-through-1727-with-no-header"
+unit_cell_rule = "each-unit-row-maps-encoded-bits-zero-through-1727-to-1728-distinct-in-range-physical-flat-values"
+interior_partition = "all-unit-cell-sets-plus-fixed-pad-tail-partition-the-complete-interior"
+unknown_keys = "reject"
+
+[capacity_ledger]
+schema = "golden-board.m2-capacity-ledger/v1"
+keys = ["schema", "profile_id", "carrier_sha256", "section_rows", "unit_rows", "ledger"]
+section_rows_rule = "exact-candidate-manifest-section-rows"
+unit_rows_rule = "exact-candidate-manifest-unit-rows"
+physical_charge_rule = "all-byte-and-cell-columns-reconcile-after-exact-physical-factor"
+unknown_keys = "reject"
+
+[profile_limits]
+schema = "golden-board.profile-limits/v1"
+generation = "componentwise-full-v7-ledger-after-route-and-load-fixed-point-with-policy-ceilings-kept-separate-from-selected-values"
+profile_ids = ["eh72-hier-r5-r2-r1-crc32c-v0"]
+registry_profile_count = 6
+active_profile_count = 1
+generated_values_must_not_be_projected_from_r2 = true
+route_package_required_before_generation = true
+two_independent_derivations_required = true
+toml_serialization = "exact-section-and-key-order-below-basic-strings-decimal-unsigned-integers-one-line-arrays-single-final-lf"
+top_level_key_order = ["schema", "generation", "profile_policy_sha256", "damage_policy_sha256", "bootstrap_spec_sha256", "route_data_sha256", "capacity_module_sha256", "slice_semantic_sha256", "profile_ids"]
+table_order = ["policy_ceiling", "semantic_capacity", "selected_manifestation", "transport", "route_package", "damage", "content", "profile"]
+unknown_or_duplicate_keys = "reject"
+hash_dependency_dag = "bootstrap-to-profile-to-damage;bootstrap-profile-damage-route-to-limits;promotion-hashes-all;profile-and-damage-never-hash-limits"
+
+[profile_limits.policy_ceiling]
+value_class = "predeclared-parser-allocation-or-resource-ceiling-not-selected-manifestation-usage"
+key_order = ["assembled_content_bytes", "carrier_bytes", "dependency_count_per_section", "entry_hypotheses", "inventory_entries", "output_bytes", "raw_bits", "recipe_edges", "recipe_iteration_count", "recipe_nodes", "recipe_package_bytes", "recipe_primitive_steps", "recipe_scratch_bytes", "recipe_table_payload_bytes", "recipe_tables", "recipes", "route_records", "section_attempts", "section_payload_bytes", "shell_sectors", "side", "shell_width"]
+value_sources = "exact-profile-policy-v1-geometry-resource-and-inherited-content-ceilings"
+
+[profile_limits.semantic_capacity]
+value_class = "exact-frozen-semantic-input-projection-and-predeclared-logical-capacity-ceilings-not-physical-manifestation-usage"
+key_order = ["authoring_payload_bytes", "buckets", "content_capacity_before_reserve_bytes", "curriculum_concepts", "curriculum_families", "integrated_tasks", "inventory_payload_ceiling_bytes", "protected_logical_capacity_bytes", "prototype_kinds", "real_content_body_payload_bytes", "real_content_body_sections", "real_slice_payload_excluding_inventory", "reserve_payload_bytes", "reserve_probe_sections", "simulated_sections", "slots", "tier_frame_payload_bytes", "tier_frame_sections"]
+value_sources = "same-hash-bound-capacity-and-slice-inputs-as-v0-with-inventory-ceiling-renamed-to-prevent-confusion-with-selected-inventory"
+
+[profile_limits.selected_manifestation]
+value_class = "exact-first-fit-v7-manifestation-values-not-ceilings"
+key_order = ["carrier_bytes", "cell_inverse_multiplier", "cell_multiplier", "cell_offset", "cells", "dependency_edges", "encoded_transport_bytes", "factor_1_group_count", "factor_2_group_count", "factor_5_group_count", "fixed_pad_cells", "interior_side", "inventory_dependency_count", "inventory_entry_count", "inventory_fragment_count", "inventory_payload_bytes", "load_fragment_counts", "load_payload_bytes", "logical_group_count", "mandatory_physical_unit_count", "maximum_fragments_per_section", "maximum_section_envelope_bytes", "physical_unit_count", "population", "protected_cells", "sector_capacity_bytes", "semantic_copy_count", "separation_window", "shell_width", "side", "slot_inverse_multiplier", "slot_multiplier"]
+source = "byte-identical-route-data-v1-generated-capacity-projection-plus-independent-full-section-ledger"
+reconciliation = "all-route-data-v1-capacity-equalities-plus-section-count-inventory-and-physical-byte-ledgers"
+carrier_bytes_formula = "side-times-side-divided-by-8"
+cells_formula = "side-times-side"
+maximum_section_envelope_bytes_rule = "maximum-over-each-exact-selected-section-of-18-plus-4-times-dependency-count-plus-logical-payload-bytes-plus-check-bytes"
+maximum_fragments_per_section_rule = "maximum-over-each-exact-selected-section-of-ceiling-section-envelope-bytes-divided-by-157"
+
+[profile_limits.transport]
+value_class = "exact-selected-v7-transport-usage-and-clean-path-logical-invocation-counts"
+key_order = ["clean_path_eh_decoder_invocations", "clean_path_repetition_candidate_groups", "clean_path_repetition_symbol_invocations", "encoded_transport_bytes", "eh_codewords_per_physical_unit", "maximum_group_candidates", "physical_replica_counts", "physical_unit_bytes", "physical_units", "profile_tuples"]
+profile_tuples_value = 1
+clean_path_eh_decoder_invocations_formula = "24*(physical_units+factor_2_group_count+factor_5_group_count)"
+clean_path_repetition_candidate_groups_formula = "factor2-group-count-plus-factor5-group-count"
+clean_path_repetition_symbol_invocations_formula = "1728-times-clean-path-repetition-candidate-groups"
+
+[profile_limits.route_package]
+value_class = "exact-selected-route-and-recipient-package-values-not-policy-ceilings"
+key_order = ["held_out_record_bytes_by_sector", "recipe_count", "recipient_package_bytes", "recipient_package_edge_count", "recipient_package_node_count", "recipient_package_peak_scratch_bytes", "recipient_package_primitive_steps", "recipient_package_sha256", "recipient_package_table_count", "recipient_package_table_payload_bytes", "route_example_peak_scratch_bytes_by_sector", "route_example_primitive_steps_by_sector", "route_headroom_cells_by_sector", "route_prefix_cells_by_sector", "route_prefix_sha256_by_sector", "route_records_per_sector", "route_sha256", "worked_record_bytes_by_sector"]
+source = "exact-corresponding-route-data-v1-generated-fields-plus-package-header-and-route-record-count"
+
+[profile_limits.damage]
+value_class = "exact-predeclared-v7-case-and-accepted-observation-size-limits-derived-without-running-d0-through-d7"
+key_order = ["cases", "changed_or_erased_coordinates", "d0_cases", "d1_cases", "d2_cases", "d2_square_side", "d3_cases", "d3_sample_retry_max", "d3_weight", "d3_window_side", "d4_cases", "d5_cases", "d6_cases", "d7_cases", "obs_bits_bytes", "obs_matrix_bytes", "obs_units_bytes", "wrong_accepts"]
+case_formula = "16-plus-4-plus-256-plus-128-plus-Q-plus-21-plus-4-times-Q-plus-408"
+d4_formula = "Q"
+d6_formula = "4-times-Q"
+d3_geometry_source = "selected-interior-side-and-population-with-unchanged-seed-threshold-formulas"
+observation_size_rule = "maximum-valid-channel-serialization-among-the-clean-v7-observation-and-every-predeclared-v7-damage-case;oversize-geometry-boundary-mutants-remain-harness-inputs-but-reject-before-candidate-allocation-or-decode"
+changed_or_erased_coordinates_formula = "selected-side-squared-safe-ceiling"
+d2_square_side_formula = "max-32-floor-selected-interior-side-divided-by-32"
+d3_weight_formula = "max-64-ceiling-selected-population-divided-by-2000"
+d3_window_side_formula = "max-32-floor-selected-interior-side-divided-by-8"
+d3_sample_retry_max_formula = "selected-population-times-64-plus-1024"
+obs_bits_bytes_formula = "4-plus-ceiling-selected-side-squared-divided-by-8"
+obs_matrix_bytes_formula = "2-plus-selected-side-squared"
+obs_units_bytes_formula = "4+(Q-5)*(6+216)+5*(6+255);the-maximum-is-a-cross-profile-splice-from-fixture-version-5-or-6-at-physical-ids-1-through-5"
+
+[profile_limits.content]
+value_class = "unchanged-content-v0-parser-and-run-state-ceilings-not-selected-stream-usage"
+key_order = ["cases_per_node", "control_edges", "enum_entries", "event_budget", "field_schema_fields", "lesson_nodes", "matrix_cells", "opaque_atoms", "payload_bytes", "records", "records_per_non_root_kind", "regions", "run_state_bytes", "selections", "stream_bytes", "text_bytes", "tuple_slots", "vector_atoms"]
+source = "exact-profile-limits-v0-content-table-byte-for-byte-values-reordered-only-by-this-v1-renderer"
+
+[profile_limits.profile_row]
+value_class = "one-exact-selected-v7-row"
+row_order = ["eh72-hier-r5-r2-r1-crc32c-v0"]
+key_order = ["check_bytes", "damage_cases", "encoded_transport_bytes", "fragments_per_semantic_copy", "id", "obs_units_bytes", "physical_replica_counts", "profile_version", "protected_unit_bytes", "protected_units", "section_envelope_bytes", "semantic_copy_count"]
+section_envelope_bytes = "maximum-complete-envelope-byte-length-among-the-exact-138-selected-sections"
+fragments_per_semantic_copy = "maximum-fragment-count-among-the-exact-138-selected-sections"
+
+[profile_limits.reproduction_receipt]
+storage = "the-two-receipt-sha256-values-live-only-in-the-final-promotion-manifest-and-never-inside-profile-limits-v1"
+schema = "golden-board.m2-r3-limits-reproduction/v1"
+key_order = ["implementation_id", "profile_limits_sha256", "route_data_sha256", "schema"]
+implementation_ids = ["python", "rust"]
+preimage = "complete-canonical-manifest-serialization-of-the-exact-four-key-object-including-one-final-LF"
+admission = "recompute-profile-limits-and-route-data-digests-compare-every-receipt-field-then-hash-receipt;receipts-must-differ"
+
+[metric_row]
+schema = "golden-board.m2-profile-metric-row/v0"
+profile_id_domain = ["eh72-hier-r5-r2-r1-crc32c-v0"]
+generated_route_and_resource_values_required = true
+
+[selection_row]
+schema = "golden-board.m2-selection-row/v0"
+candidate_order = ["eh72-hier-r5-r2-r1-crc32c-v0"]
+outcome = "sole-candidate-pass-or-no-passing-result"
+
+[admission]
+unknown_top_level_keys = "reject"
+unknown_nested_keys = "reject"
+duplicate_keys = "reject"
+pending_status_may_generate_carrier = false
+pending_status_may_run_damage = false
+pre_result_frozen_requires_closed_promotion_barrier = true

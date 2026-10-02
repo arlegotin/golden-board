@@ -153,6 +153,10 @@ pub struct Record {
 }
 
 impl Record {
+    pub fn authoring(record_id: u16, payload: RecordPayload) -> Self {
+        Self { record_id, payload }
+    }
+
     pub fn record_id(&self) -> u16 {
         self.record_id
     }
@@ -185,6 +189,122 @@ impl ContentProjection {
     pub fn records(&self) -> &[Record] {
         &self.records
     }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AuthoringReason {
+    BadType,
+    BadValue,
+    BadShape,
+    BadReference,
+    ContentReject,
+}
+
+impl AuthoringReason {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::BadType => "bad_type",
+            Self::BadValue => "bad_value",
+            Self::BadShape => "bad_shape",
+            Self::BadReference => "bad_reference",
+            Self::ContentReject => "content_reject",
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ContentAuthoringError {
+    reason: AuthoringReason,
+    path: String,
+    content_reject_code: Option<u16>,
+}
+
+impl ContentAuthoringError {
+    pub fn reason(&self) -> AuthoringReason {
+        self.reason
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    pub fn content_reject_code(&self) -> Option<u16> {
+        self.content_reject_code
+    }
+}
+
+fn authoring_error(reason: AuthoringReason, path: impl Into<String>) -> ContentAuthoringError {
+    let path = path.into();
+    assert!(!path.is_empty() && path.len() <= 255 && path.is_ascii());
+    ContentAuthoringError {
+        reason,
+        path,
+        content_reject_code: None,
+    }
+}
+
+fn authoring_reject(path: impl Into<String>, code: u16) -> ContentAuthoringError {
+    let mut error = authoring_error(AuthoringReason::ContentReject, path);
+    error.content_reject_code = Some(code);
+    error
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ContentAuthoringProjection {
+    version: u16,
+    records: Vec<Record>,
+}
+
+impl ContentAuthoringProjection {
+    pub fn new(version: u16, records: Vec<Record>) -> Self {
+        Self { version, records }
+    }
+
+    pub fn version(&self) -> u16 {
+        self.version
+    }
+
+    pub fn records(&self) -> &[Record] {
+        &self.records
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ContentProjectionView {
+    version: u16,
+    root_record_id: u16,
+    records: Vec<Record>,
+}
+
+impl ContentProjectionView {
+    pub fn version(&self) -> u16 {
+        self.version
+    }
+
+    pub fn root_record_id(&self) -> u16 {
+        self.root_record_id
+    }
+
+    pub fn records(&self) -> &[Record] {
+        &self.records
+    }
+}
+
+pub fn projection_view(projection: &ContentProjection) -> ContentProjectionView {
+    ContentProjectionView {
+        version: projection.version,
+        root_record_id: projection.root_record_id,
+        records: projection.records.clone(),
+    }
+}
+
+pub fn authoring_from_validated(
+    view: &ContentProjectionView,
+) -> std::result::Result<ContentAuthoringProjection, ContentAuthoringError> {
+    Ok(ContentAuthoringProjection {
+        version: view.version,
+        records: view.records.clone(),
+    })
 }
 
 fn payload_kind(payload: &RecordPayload) -> u16 {
@@ -2721,6 +2841,453 @@ pub fn stream_validation(raw: &[u8]) -> Result<ContentProjection> {
     })
 }
 
+struct AuthorBuffer {
+    data: Vec<u8>,
+}
+
+impl AuthorBuffer {
+    fn new() -> Self {
+        Self { data: Vec::new() }
+    }
+
+    fn put(&mut self, value: &[u8], path: &str) -> std::result::Result<(), ContentAuthoringError> {
+        if value.len() > CONTENT_MAX_STREAM_BYTES as usize - self.data.len() {
+            return Err(authoring_reject(path, CONTENT_LIMIT_EXCEEDED));
+        }
+        self.data.extend_from_slice(value);
+        Ok(())
+    }
+}
+
+fn author_count(value: usize, path: &str) -> std::result::Result<u16, ContentAuthoringError> {
+    u16::try_from(value).map_err(|_| authoring_error(AuthoringReason::BadShape, path))
+}
+
+fn author_atom(
+    value: u32,
+    width: u8,
+    path: &str,
+) -> std::result::Result<Vec<u8>, ContentAuthoringError> {
+    let bytes = value.to_be_bytes();
+    match width {
+        1 if value <= u8::MAX as u32 => Ok(vec![bytes[3]]),
+        2 if value <= u16::MAX as u32 => Ok(bytes[2..].to_vec()),
+        4 => Ok(bytes.to_vec()),
+        1 | 2 => Err(authoring_error(AuthoringReason::BadValue, path)),
+        _ => Err(authoring_error(AuthoringReason::BadReference, path)),
+    }
+}
+
+fn author_schema<'a>(
+    prior: &'a BTreeMap<u16, &'a Record>,
+    reference: u16,
+    path: &str,
+) -> std::result::Result<&'a RecordPayload, ContentAuthoringError> {
+    let Some(record) = prior.get(&reference) else {
+        return Err(authoring_error(AuthoringReason::BadReference, path));
+    };
+    let RecordPayload::AtomSchema { atom_width, .. } = &record.payload else {
+        return Err(authoring_error(AuthoringReason::BadReference, path));
+    };
+    if !matches!(atom_width, 1 | 2 | 4) {
+        return Err(authoring_error(AuthoringReason::BadReference, path));
+    }
+    Ok(&record.payload)
+}
+
+fn author_payload(
+    record: &Record,
+    index: usize,
+    prior: &BTreeMap<u16, &Record>,
+) -> std::result::Result<Vec<u8>, ContentAuthoringError> {
+    let base = format!("records[{index}].payload");
+    let record_path = format!("records[{index}]");
+    let mut output = AuthorBuffer::new();
+    match &record.payload {
+        RecordPayload::Text(text) => output.put(text.as_bytes(), &record_path)?,
+        RecordPayload::AtomSchema {
+            atom_class,
+            atom_width,
+            entries,
+            min_value,
+            max_value,
+            allowed_mask,
+        } => {
+            output.put(&[*atom_class, *atom_width], &base)?;
+            if !matches!(atom_width, 1 | 2 | 4) {
+                return Err(authoring_error(
+                    AuthoringReason::BadValue,
+                    format!("{base}.atom_width"),
+                ));
+            }
+            match *atom_class {
+                ATOM_UNSIGNED => {
+                    if !entries.is_empty() || allowed_mask.is_some() {
+                        return Err(authoring_error(AuthoringReason::BadShape, base));
+                    }
+                    let (Some(minimum), Some(maximum)) = (min_value, max_value) else {
+                        return Err(authoring_error(AuthoringReason::BadShape, base));
+                    };
+                    output.put(&0u16.to_be_bytes(), &base)?;
+                    output.put(
+                        &author_atom(*minimum, *atom_width, &format!("{base}.min_value"))?,
+                        &base,
+                    )?;
+                    output.put(
+                        &author_atom(*maximum, *atom_width, &format!("{base}.max_value"))?,
+                        &base,
+                    )?;
+                }
+                ATOM_ENUM | ATOM_MASK => {
+                    if min_value.is_some()
+                        || max_value.is_some()
+                        || (*atom_class == ATOM_ENUM && allowed_mask.is_some())
+                        || (*atom_class == ATOM_MASK && allowed_mask.is_none())
+                    {
+                        return Err(authoring_error(AuthoringReason::BadShape, base));
+                    }
+                    output.put(
+                        &author_count(entries.len(), &format!("{base}.entries"))?.to_be_bytes(),
+                        &base,
+                    )?;
+                    if let Some(mask) = allowed_mask {
+                        output.put(
+                            &author_atom(*mask, *atom_width, &format!("{base}.allowed_mask"))?,
+                            &base,
+                        )?;
+                    }
+                    for (entry_index, entry) in entries.iter().enumerate() {
+                        let path = format!("{base}.entries[{entry_index}]");
+                        output.put(
+                            &author_atom(entry.code, *atom_width, &format!("{path}.code"))?,
+                            &path,
+                        )?;
+                        output.put(&entry.label_text_ref.to_be_bytes(), &path)?;
+                    }
+                }
+                _ => {
+                    return Err(authoring_error(
+                        AuthoringReason::BadValue,
+                        format!("{base}.atom_class"),
+                    ));
+                }
+            }
+        }
+        RecordPayload::AtomVector {
+            atom_schema_ref,
+            atoms,
+        } => {
+            let RecordPayload::AtomSchema { atom_width, .. } =
+                author_schema(prior, *atom_schema_ref, &format!("{base}.atom_schema_ref"))?
+            else {
+                unreachable!()
+            };
+            output.put(&atom_schema_ref.to_be_bytes(), &base)?;
+            output.put(
+                &author_count(atoms.len(), &format!("{base}.atoms"))?.to_be_bytes(),
+                &base,
+            )?;
+            for (atom_index, atom) in atoms.iter().enumerate() {
+                output.put(
+                    &author_atom(*atom, *atom_width, &format!("{base}.atoms[{atom_index}]"))?,
+                    &base,
+                )?;
+            }
+        }
+        RecordPayload::Matrix {
+            atom_schema_ref,
+            rows,
+            columns,
+            cells,
+        } => {
+            let RecordPayload::AtomSchema { atom_width, .. } =
+                author_schema(prior, *atom_schema_ref, &format!("{base}.atom_schema_ref"))?
+            else {
+                unreachable!()
+            };
+            output.put(&atom_schema_ref.to_be_bytes(), &base)?;
+            output.put(&rows.to_be_bytes(), &base)?;
+            output.put(&columns.to_be_bytes(), &base)?;
+            for (cell_index, cell) in cells.iter().enumerate() {
+                output.put(
+                    &author_atom(*cell, *atom_width, &format!("{base}.cells[{cell_index}]"))?,
+                    &base,
+                )?;
+            }
+        }
+        RecordPayload::FieldSchema { fields } => {
+            output.put(
+                &author_count(fields.len(), &format!("{base}.fields"))?.to_be_bytes(),
+                &base,
+            )?;
+            for field in fields {
+                output.put(&field.name_text_ref.to_be_bytes(), &base)?;
+                output.put(&[field.storage, 0], &base)?;
+                output.put(&field.type_code.to_be_bytes(), &base)?;
+                output.put(&field.count.to_be_bytes(), &base)?;
+            }
+        }
+        RecordPayload::Tuple {
+            field_schema_ref,
+            field_values,
+        } => {
+            let Some(schema_record) = prior.get(field_schema_ref) else {
+                return Err(authoring_error(
+                    AuthoringReason::BadReference,
+                    format!("{base}.field_schema_ref"),
+                ));
+            };
+            let RecordPayload::FieldSchema { fields } = &schema_record.payload else {
+                return Err(authoring_error(
+                    AuthoringReason::BadReference,
+                    format!("{base}.field_schema_ref"),
+                ));
+            };
+            if fields.len() != field_values.len() {
+                return Err(authoring_error(
+                    AuthoringReason::BadShape,
+                    format!("{base}.field_values"),
+                ));
+            }
+            output.put(&field_schema_ref.to_be_bytes(), &base)?;
+            for (field_index, (definition, value)) in fields.iter().zip(field_values).enumerate() {
+                let path = format!("{base}.field_values[{field_index}]");
+                match (definition.storage, value) {
+                    (FIELD_INLINE_ATOM, FieldValue::Atoms(atoms)) => {
+                        if atoms.len() != definition.count as usize {
+                            return Err(authoring_error(AuthoringReason::BadShape, path));
+                        }
+                        let RecordPayload::AtomSchema { atom_width, .. } =
+                            author_schema(prior, definition.type_code, &path)?
+                        else {
+                            unreachable!()
+                        };
+                        for (part, atom) in atoms.iter().enumerate() {
+                            output.put(
+                                &author_atom(*atom, *atom_width, &format!("{path}.atoms[{part}]"))?,
+                                &path,
+                            )?;
+                        }
+                    }
+                    (FIELD_RECORD_REF, FieldValue::RecordRefs(references)) => {
+                        if references.len() != definition.count as usize {
+                            return Err(authoring_error(AuthoringReason::BadShape, path));
+                        }
+                        for reference in references {
+                            output.put(&reference.to_be_bytes(), &path)?;
+                        }
+                    }
+                    _ => return Err(authoring_error(AuthoringReason::BadShape, path)),
+                }
+            }
+        }
+        RecordPayload::RegionSet {
+            surface_matrix_ref,
+            regions,
+        } => {
+            output.put(&surface_matrix_ref.to_be_bytes(), &base)?;
+            output.put(
+                &author_count(regions.len(), &format!("{base}.regions"))?.to_be_bytes(),
+                &base,
+            )?;
+            for region in regions {
+                output.put(&region.region_id.to_be_bytes(), &base)?;
+                output.put(&region.label_ref.to_be_bytes(), &base)?;
+                output.put(&region.row_start.to_be_bytes(), &base)?;
+                output.put(&region.row_end.to_be_bytes(), &base)?;
+                output.put(&region.column_start.to_be_bytes(), &base)?;
+                output.put(&region.column_end.to_be_bytes(), &base)?;
+                output.put(&[region.flags, 0], &base)?;
+            }
+        }
+        RecordPayload::SemanticBinding {
+            binding_class,
+            namespace_id,
+            semantic_code,
+            argument,
+            auxiliary,
+        } => {
+            output.put(&[*binding_class, 0], &base)?;
+            output.put(&namespace_id.to_be_bytes(), &base)?;
+            output.put(&semantic_code.to_be_bytes(), &base)?;
+            output.put(&argument.to_be_bytes(), &base)?;
+            output.put(&auxiliary.to_be_bytes(), &base)?;
+        }
+        RecordPayload::OpaqueData {
+            data_binding_ref,
+            data,
+        } => {
+            let Some(binding_record) = prior.get(data_binding_ref) else {
+                return Err(authoring_error(
+                    AuthoringReason::BadReference,
+                    format!("{base}.data_binding_ref"),
+                ));
+            };
+            let RecordPayload::SemanticBinding {
+                binding_class,
+                argument,
+                ..
+            } = &binding_record.payload
+            else {
+                return Err(authoring_error(
+                    AuthoringReason::BadReference,
+                    format!("{base}.data_binding_ref"),
+                ));
+            };
+            if *binding_class != BINDING_DATA {
+                return Err(authoring_error(
+                    AuthoringReason::BadReference,
+                    format!("{base}.data_binding_ref"),
+                ));
+            }
+            let RecordPayload::AtomSchema { atom_width, .. } =
+                author_schema(prior, *argument, &format!("{base}.data_binding_ref"))?
+            else {
+                unreachable!()
+            };
+            output.put(&data_binding_ref.to_be_bytes(), &base)?;
+            for (data_index, atom) in data.iter().enumerate() {
+                output.put(
+                    &author_atom(*atom, *atom_width, &format!("{base}.data[{data_index}]"))?,
+                    &base,
+                )?;
+            }
+        }
+        RecordPayload::PredicateResult {
+            predicate_binding_ref,
+            subject_opaque_data_ref,
+            result_atom_vector_ref,
+        } => {
+            output.put(&predicate_binding_ref.to_be_bytes(), &base)?;
+            output.put(&subject_opaque_data_ref.to_be_bytes(), &base)?;
+            output.put(&result_atom_vector_ref.to_be_bytes(), &base)?;
+        }
+        RecordPayload::Feedback {
+            feedback_code,
+            display_ref,
+            predicate_result_ref,
+        } => {
+            output.put(&feedback_code.to_be_bytes(), &base)?;
+            output.put(&display_ref.to_be_bytes(), &base)?;
+            output.put(&predicate_result_ref.to_be_bytes(), &base)?;
+        }
+        RecordPayload::PassiveTrace {
+            presentation_ref,
+            region_set_ref,
+            resulting_presentation_ref,
+            limitation_text_ref,
+            actions,
+            expected_outcome,
+            expected_feedback_ref,
+            expected_next_node_ref,
+        } => {
+            output.put(&presentation_ref.to_be_bytes(), &base)?;
+            output.put(&region_set_ref.to_be_bytes(), &base)?;
+            output.put(&resulting_presentation_ref.to_be_bytes(), &base)?;
+            output.put(&limitation_text_ref.to_be_bytes(), &base)?;
+            output.put(
+                &author_count(actions.len(), &format!("{base}.actions"))?.to_be_bytes(),
+                &base,
+            )?;
+            for action in actions {
+                output.put(action, &base)?;
+            }
+            output.put(&[*expected_outcome, 0], &base)?;
+            output.put(&expected_feedback_ref.to_be_bytes(), &base)?;
+            output.put(&expected_next_node_ref.to_be_bytes(), &base)?;
+        }
+        RecordPayload::LessonNode {
+            role,
+            response_shape,
+            answer_mode,
+            flags,
+            presentation_ref,
+            region_set_ref,
+            predicate_result_ref,
+            passive_trace_ref,
+            max_selections,
+            item_event_budget,
+            cases,
+            default_feedback_ref,
+            default_next_node_ref,
+        } => {
+            output.put(&[*role, *response_shape, *answer_mode, *flags], &base)?;
+            output.put(&presentation_ref.to_be_bytes(), &base)?;
+            output.put(&region_set_ref.to_be_bytes(), &base)?;
+            output.put(&predicate_result_ref.to_be_bytes(), &base)?;
+            output.put(&passive_trace_ref.to_be_bytes(), &base)?;
+            output.put(&max_selections.to_be_bytes(), &base)?;
+            output.put(&item_event_budget.to_be_bytes(), &base)?;
+            output.put(
+                &author_count(cases.len(), &format!("{base}.cases"))?.to_be_bytes(),
+                &base,
+            )?;
+            for case in cases {
+                output.put(&[case.case_class, 0], &base)?;
+                output.put(
+                    &author_count(case.region_ids.len(), &format!("{base}.cases"))?.to_be_bytes(),
+                    &base,
+                )?;
+                for region in &case.region_ids {
+                    output.put(&region.to_be_bytes(), &base)?;
+                }
+                output.put(&case.feedback_ref.to_be_bytes(), &base)?;
+                output.put(&case.next_node_ref.to_be_bytes(), &base)?;
+            }
+            output.put(&default_feedback_ref.to_be_bytes(), &base)?;
+            output.put(&default_next_node_ref.to_be_bytes(), &base)?;
+        }
+        RecordPayload::Root {
+            entry_node_ref,
+            global_event_budget,
+        } => {
+            output.put(&entry_node_ref.to_be_bytes(), &base)?;
+            output.put(&global_event_budget.to_be_bytes(), &base)?;
+        }
+    }
+    Ok(output.data)
+}
+
+pub fn encode_content_v0(
+    authoring: &ContentAuthoringProjection,
+) -> std::result::Result<Vec<u8>, ContentAuthoringError> {
+    let count = author_count(authoring.records.len(), "records")?;
+    let mut output = AuthorBuffer::new();
+    output.put(&authoring.version.to_be_bytes(), "version")?;
+    output.put(&count.to_be_bytes(), "records")?;
+    let mut prior = BTreeMap::<u16, &Record>::new();
+    let mut spans = Vec::with_capacity(authoring.records.len().min(u16::MAX as usize));
+    for (index, record) in authoring.records.iter().enumerate() {
+        let path = format!("records[{index}]");
+        let payload = author_payload(record, index, &prior)?;
+        let start = output.data.len();
+        output.put(&record.record_id.to_be_bytes(), &path)?;
+        output.put(&payload_kind(&record.payload).to_be_bytes(), &path)?;
+        output.put(&(payload.len() as u32).to_be_bytes(), &path)?;
+        output.put(&payload, &path)?;
+        spans.push((start, output.data.len()));
+        prior.insert(record.record_id, record);
+    }
+    match stream_validation(&output.data) {
+        Ok(_) => Ok(output.data),
+        Err(error) => {
+            let path = if error.code == CONTENT_BAD_VERSION {
+                "version".to_owned()
+            } else if error.code == CONTENT_BAD_RECORD_COUNT {
+                "records".to_owned()
+            } else {
+                spans
+                    .iter()
+                    .position(|(start, end)| {
+                        *start <= error.raw_start as usize && (error.raw_start as usize) < *end
+                    })
+                    .map_or_else(|| "records".to_owned(), |index| format!("records[{index}]"))
+            };
+            Err(authoring_reject(path, error.code))
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Event {
     node_id: u16,
@@ -2767,6 +3334,106 @@ impl RunState {
     }
     pub fn buffer(&self) -> &[u16] {
         &self.buffer
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RunEventView {
+    node_id: u16,
+    action: [u8; 4],
+    result: u8,
+}
+
+impl RunEventView {
+    pub fn node_id(&self) -> u16 {
+        self.node_id
+    }
+
+    pub fn action(&self) -> &[u8; 4] {
+        &self.action
+    }
+
+    pub fn result(&self) -> u8 {
+        self.result
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RunStateView {
+    current_node_id: u16,
+    global_remaining: u16,
+    local_remaining: u16,
+    phase: u8,
+    outcome: u8,
+    selection_buffer: Vec<u16>,
+    committed_response: Vec<u8>,
+    feedback_ref: u16,
+    next_node_ref: u16,
+    events: Vec<RunEventView>,
+}
+
+impl RunStateView {
+    pub fn current_node_id(&self) -> u16 {
+        self.current_node_id
+    }
+
+    pub fn global_remaining(&self) -> u16 {
+        self.global_remaining
+    }
+
+    pub fn local_remaining(&self) -> u16 {
+        self.local_remaining
+    }
+
+    pub fn phase(&self) -> u8 {
+        self.phase
+    }
+
+    pub fn outcome(&self) -> u8 {
+        self.outcome
+    }
+
+    pub fn selection_buffer(&self) -> &[u16] {
+        &self.selection_buffer
+    }
+
+    pub fn committed_response(&self) -> &[u8] {
+        &self.committed_response
+    }
+
+    pub fn feedback_ref(&self) -> u16 {
+        self.feedback_ref
+    }
+
+    pub fn next_node_ref(&self) -> u16 {
+        self.next_node_ref
+    }
+
+    pub fn events(&self) -> &[RunEventView] {
+        &self.events
+    }
+}
+
+pub fn run_state_view(state: &RunState) -> RunStateView {
+    RunStateView {
+        current_node_id: state.current_node_id,
+        global_remaining: state.global_remaining,
+        local_remaining: state.local_remaining,
+        phase: state.phase,
+        outcome: state.outcome,
+        selection_buffer: state.buffer.clone(),
+        committed_response: state.committed_response.clone(),
+        feedback_ref: state.feedback_ref,
+        next_node_ref: state.next_node_ref,
+        events: state
+            .events
+            .iter()
+            .map(|event| RunEventView {
+                node_id: event.node_id,
+                action: event.action,
+                result: event.result,
+            })
+            .collect(),
     }
 }
 

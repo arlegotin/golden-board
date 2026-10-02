@@ -1,0 +1,6 @@
+These files describe storage for the later observations only.
+Explore how these forms may connect to what you learned from the clean data.
+Save your current adapter or method, its command and ordinary notes in
+answers/adapter/. Tell the owner when you want the actual observations.
+You may keep improving this work afterward; preserve earlier versions and
+explain changes with the evidence that prompted them.

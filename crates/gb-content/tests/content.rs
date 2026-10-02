@@ -7,8 +7,15 @@ use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 
 use gb_content::{
-    ContentProjection, ContentReject, FieldValue, RecordPayload, advance_committed,
-    encode_run_state, new_run, step, stream_validation, validate_run_state,
+    AtomEntry, AuthoringReason, ContentAuthoringProjection, ContentProjection, ContentReject,
+    FieldValue, Record, RecordPayload, Region, advance_committed, authoring_from_validated,
+    encode_content_v0, encode_run_state, new_run, projection_view, run_state_view, step,
+    stream_validation, validate_run_state,
+};
+use gb_foundation::constants::{
+    ACTION_COMMIT, ANSWER_EXTERNAL, ATOM_UNSIGNED, CONTENT_BAD_VERSION, CONTENT_KIND_ATOM_VECTOR,
+    CONTENT_VERSION, FEEDBACK_NEUTRAL, INTERACTION_COMMITTED, REGION_SELECTABLE, RESPONSE_SINGLE,
+    ROLE_PRACTICE,
 };
 use gb_foundation::{ManifestValue as V, parse_manifest, validate_canonical_manifest};
 
@@ -1265,6 +1272,212 @@ fn registered_fixture_inventory_and_generic_base_projection() {
     assert_eq!(
         projection_value(&projection),
         field(base, "projection").clone()
+    );
+}
+
+#[test]
+fn checked_authoring_round_trips_every_payload_and_views_are_exact() {
+    let fixture = fixture();
+    let top = object(&fixture, &["bases", "cases", "recipes", "schema"]);
+    let stream = generic_base(top);
+    let projection = stream_validation(&stream).unwrap();
+    let view = projection_view(&projection);
+    assert_eq!(view.version(), projection.version());
+    assert_eq!(view.root_record_id(), projection.root_record_id());
+    assert_eq!(view.records(), projection.records());
+
+    let authoring = authoring_from_validated(&view).unwrap();
+    assert_eq!(authoring.version(), CONTENT_VERSION as u16);
+    assert_eq!(authoring.records(), projection.records());
+    assert_eq!(encode_content_v0(&authoring).unwrap(), stream);
+    let reparsed = stream_validation(&encode_content_v0(&authoring).unwrap()).unwrap();
+    assert_eq!(projection_view(&reparsed), view);
+
+    let direct = ContentAuthoringProjection::new(
+        CONTENT_VERSION as u16,
+        vec![
+            Record::authoring(
+                1,
+                RecordPayload::AtomSchema {
+                    atom_class: ATOM_UNSIGNED,
+                    atom_width: 1,
+                    entries: Vec::new(),
+                    min_value: Some(0),
+                    max_value: Some(1),
+                    allowed_mask: None,
+                },
+            ),
+            Record::authoring(
+                2,
+                RecordPayload::Matrix {
+                    atom_schema_ref: 1,
+                    rows: 1,
+                    columns: 1,
+                    cells: vec![0],
+                },
+            ),
+            Record::authoring(
+                3,
+                RecordPayload::RegionSet {
+                    surface_matrix_ref: 2,
+                    regions: vec![Region {
+                        region_id: 1,
+                        label_ref: 0,
+                        row_start: 0,
+                        row_end: 1,
+                        column_start: 0,
+                        column_end: 1,
+                        flags: REGION_SELECTABLE,
+                    }],
+                },
+            ),
+            Record::authoring(
+                4,
+                RecordPayload::Feedback {
+                    feedback_code: FEEDBACK_NEUTRAL,
+                    display_ref: 2,
+                    predicate_result_ref: 0,
+                },
+            ),
+            Record::authoring(
+                5,
+                RecordPayload::LessonNode {
+                    role: ROLE_PRACTICE,
+                    response_shape: RESPONSE_SINGLE,
+                    answer_mode: ANSWER_EXTERNAL,
+                    flags: 0,
+                    presentation_ref: 2,
+                    region_set_ref: 3,
+                    predicate_result_ref: 0,
+                    passive_trace_ref: 0,
+                    max_selections: 1,
+                    item_event_budget: 2,
+                    cases: Vec::new(),
+                    default_feedback_ref: 4,
+                    default_next_node_ref: 0,
+                },
+            ),
+            Record::authoring(
+                6,
+                RecordPayload::Root {
+                    entry_node_ref: 5,
+                    global_event_budget: 2,
+                },
+            ),
+        ],
+    );
+    let direct_bytes = encode_content_v0(&direct).unwrap();
+    let direct_view = projection_view(&stream_validation(&direct_bytes).unwrap());
+    assert_eq!(direct_view.version(), direct.version());
+    assert_eq!(direct_view.root_record_id(), 6);
+    assert_eq!(direct_view.records(), direct.records());
+
+    let action = [ACTION_COMMIT, 0, 0, 0];
+    let initial = new_run(&projection);
+    let node_id = initial.current_node_id();
+    let (committed, result) = step(&projection, initial, &action);
+    assert_eq!(result, INTERACTION_COMMITTED);
+    let state_view = run_state_view(&committed);
+    assert_eq!(state_view.current_node_id(), node_id);
+    assert!(state_view.selection_buffer().is_empty());
+    assert_eq!(state_view.events().len(), 1);
+    assert_eq!(state_view.events()[0].node_id(), node_id);
+    assert_eq!(state_view.events()[0].action(), &action);
+    assert_eq!(state_view.events()[0].result(), result);
+    assert_eq!(
+        state_view.committed_response(),
+        &encode_run_state(&committed)[16..19]
+    );
+
+    let select = [1, 0, 0, 1];
+    let (selected, selected_result) = step(&projection, new_run(&projection), &select);
+    let (committed, committed_result) = step(&projection, selected, &action);
+    let state_view = run_state_view(&committed);
+    assert_eq!(
+        state_view.committed_response(),
+        &[RESPONSE_SINGLE, 0, 1, 0, 1]
+    );
+    assert_eq!(state_view.events().len(), 2);
+    assert_eq!(state_view.events()[0].result(), selected_result);
+    assert_eq!(state_view.events()[1].result(), committed_result);
+}
+
+#[test]
+fn authoring_failure_has_stable_reason_path_and_no_partial_result() {
+    let invalid = ContentAuthoringProjection::new(
+        CONTENT_VERSION as u16,
+        vec![Record::authoring(
+            1,
+            RecordPayload::AtomVector {
+                atom_schema_ref: 99,
+                atoms: Vec::new(),
+            },
+        )],
+    );
+    let error = encode_content_v0(&invalid).unwrap_err();
+    assert_eq!(error.reason(), AuthoringReason::BadReference);
+    assert_eq!(error.path(), "records[0].payload.atom_schema_ref");
+    assert_eq!(error.content_reject_code(), None);
+
+    let bad_shape = ContentAuthoringProjection::new(
+        CONTENT_VERSION as u16,
+        vec![Record::authoring(
+            1,
+            RecordPayload::AtomSchema {
+                atom_class: ATOM_UNSIGNED,
+                atom_width: 1,
+                entries: vec![AtomEntry {
+                    code: 1,
+                    label_text_ref: 1,
+                }],
+                min_value: Some(0),
+                max_value: Some(1),
+                allowed_mask: None,
+            },
+        )],
+    );
+    let error = encode_content_v0(&bad_shape).unwrap_err();
+    assert_eq!(error.reason(), AuthoringReason::BadShape);
+    assert_eq!(error.path(), "records[0].payload");
+
+    let bad_value = ContentAuthoringProjection::new(
+        CONTENT_VERSION as u16,
+        vec![Record::authoring(
+            1,
+            RecordPayload::AtomSchema {
+                atom_class: ATOM_UNSIGNED,
+                atom_width: 1,
+                entries: Vec::new(),
+                min_value: Some(256),
+                max_value: Some(256),
+                allowed_mask: None,
+            },
+        )],
+    );
+    let error = encode_content_v0(&bad_value).unwrap_err();
+    assert_eq!(error.reason(), AuthoringReason::BadValue);
+    assert_eq!(error.path(), "records[0].payload.min_value");
+
+    let fixture = fixture();
+    let top = object(&fixture, &["bases", "cases", "recipes", "schema"]);
+    let projection = stream_validation(&generic_base(top)).unwrap();
+    let view = projection_view(&projection);
+    let malformed = ContentAuthoringProjection::new(1, view.records().to_vec());
+    let error = encode_content_v0(&malformed).unwrap_err();
+    assert_eq!(error.reason(), AuthoringReason::ContentReject);
+    assert_eq!(error.path(), "version");
+    assert_eq!(error.content_reject_code(), Some(CONTENT_BAD_VERSION));
+
+    assert_eq!(
+        Record::authoring(
+            1,
+            RecordPayload::AtomVector {
+                atom_schema_ref: 99,
+                atoms: Vec::new(),
+            }
+        )
+        .kind(),
+        CONTENT_KIND_ATOM_VECTOR
     );
 }
 

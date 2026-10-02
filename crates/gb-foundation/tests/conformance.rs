@@ -187,12 +187,17 @@ fn validate_conformance_registry(repository: &Path) -> Result<(), String> {
         let consumers = row["consumers"]
             .as_array()
             .ok_or_else(|| "invalid conformance registry".to_owned())?;
+        let expected_version = if identifier == "m2-r3-owner-v1" {
+            "v1"
+        } else {
+            "v0"
+        };
         if !registry_identifier(identifier)
             || !registry_identifier(specification)
             || path != format!("conformance/{identifier}.json")
             || !identifiers.insert(identifier)
             || !paths.insert(path.to_owned())
-            || row["version"].as_str() != Some("v0")
+            || row["version"].as_str() != Some(expected_version)
             || digest.len() != 64
             || !digest
                 .bytes()

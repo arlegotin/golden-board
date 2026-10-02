@@ -1,0 +1,105 @@
+schema = "golden-board.m2-r3-owner-promotion/v1"
+status = "pre-result-frozen"
+active_candidate_id = "eh72-hier-r5-r2-r1-crc32c-v0"
+active_profile_version = 7
+damage_observation_authorized = true
+
+[r2_evidence]
+owner_root = "artifacts/history/m2-r2-candidates/owners"
+bootstrap_sha256 = "82c25776871ac48184d5a7f15663bcc1d192618d66df72ff5fbf3a252aa564c2"
+profile_policy_sha256 = "c180c2ad312c21e7559a33d9d6aee7ae5ecdc287e94197061242985c57b02265"
+profile_limits_sha256 = "2047141ec25acc71ba45d39e803203b627d4b1c1823c147b4da361da1b189693"
+damage_policy_sha256 = "9cbb185dd5d7d3fec1d4ce4aa978fa77d92e7a4ef272c2f038f0ada769c376e4"
+route_data_sha256 = "965a3e35ceb4b5a92a7715b3fcde20cc3019f8c9d9efa533abd93b051bb86641"
+archive_manifest = "artifacts/history/m2-r2-candidates/owners/archive-files.sha256"
+bound_inputs_manifest = "artifacts/history/m2-r2-candidates/owners/bound-inputs.sha256"
+reuse_as_r3_owner_or_result = false
+
+[[draft_owner]]
+path = "spec/bootstrap-v1.md"
+schema = "golden-board-r3-bootstrap-delta-v1"
+sha256 = "e4d0a5667758a753d35603632dee550db7ecb66cf64ee675ce7485531da27dde"
+
+[[draft_owner]]
+path = "spec/profile-policy-v1.toml"
+schema = "golden-board.profile-policy/v1"
+sha256 = "44215d993e3fdfdd1630c404f1ee969e8abc6e4928fda83365fc6940e5cfd412"
+
+[[draft_owner]]
+path = "spec/damage-policy-v1.toml"
+schema = "golden-board.damage-policy/v1"
+sha256 = "e5fb1eb7ffbe82ac9a422d84542c9c8dc2cfbcaf7bbd105471d986435bfe104c"
+
+[[draft_owner]]
+path = "conformance/m2-r3-owner-v1.json"
+schema = "golden-board.m2-r3-owner-fixtures/v1"
+sha256 = "d0a0da9fa62511fc7914ec214b6ba934c470ac669ed765ace29b42da22896ce3"
+
+[[generated_owner]]
+path = "spec/route-data-v1.json"
+python_reproduction_sha256 = "ca270ddb4c5208d24efb147abbbc04ae79ab0aa7cd88f906501870a1fc99d93e"
+required_fields = ["capacity_projection", "first_fit", "held_out_record_bytes_by_sector", "malformed_corpus_case_count", "malformed_corpus_sha256", "python_reproduction_sha256", "recipe_resource_rows", "recipient_package_bytes", "recipient_package_edge_count", "recipient_package_node_count", "recipient_package_peak_scratch_bytes", "recipient_package_primitive_steps", "recipient_package_sha256", "recipient_package_table_payload_bytes", "reproduction_projection_sha256", "route_data_template_sha256", "route_example_peak_scratch_bytes_by_sector", "route_example_primitive_steps_by_sector", "route_headroom_cells_by_sector", "route_prefix_cells_by_sector", "route_prefix_sha256_by_sector", "route_sha256", "rust_reproduction_sha256", "slot_multiplier_table_sha256", "worked_record_bytes_by_sector"]
+rust_reproduction_sha256 = "395f9765a9bc922311d1eabfc58673b8f079b17c53806d3a80cd4a8dfe6db47f"
+schema = "golden-board.route-data/v1"
+sha256 = "94df79d9a3fb01b69014417683a0f48f2222fea9fe991361bc99aa0c30dc663e"
+state = "independently-reproduced"
+
+[[generated_owner]]
+path = "spec/profile-limits-v1.toml"
+python_reproduction_sha256 = "1928b469e0636e308ede38735ffcf1dbd229cca0940efb4246c1b3ffeb1fe4ca"
+required_fields = ["profile_policy_sha256", "damage_policy_sha256", "bootstrap_spec_sha256", "route_data_sha256", "capacity_module_sha256", "slice_semantic_sha256", "policy_ceiling.raw_bits", "selected_manifestation.side", "selected_manifestation.shell_width", "selected_manifestation.physical_unit_count", "selected_manifestation.encoded_transport_bytes", "selected_manifestation.inventory_payload_bytes", "selected_manifestation.load_fragment_counts", "transport.clean_path_eh_decoder_invocations", "route_package.recipient_package_sha256", "route_package.route_sha256", "damage.cases", "damage.obs_units_bytes", "profile.protected_units", "profile.damage_cases"]
+rust_reproduction_sha256 = "6555165e9136d217c4bc8624309977605fe8c43686261c490f543a0bb5c3e1c6"
+schema = "golden-board.profile-limits/v1"
+sha256 = "4be5f03700b924195b14cf3e832ae0ffc477c7b74fe10450ec6a7eae28210ebf"
+state = "independently-reproduced"
+[algebraic_binding]
+slot_multiplier_table_id = 17
+slot_multiplier_table_sha256 = "835717bf400c597a3a9e1b59747f23d93047b6cfab462756fa07d96c5f3eba3f"
+slot_multiplier_table_independent_reproductions = ["python", "rust"]
+slot_multiplier_table_is_damage_or_carrier_result = false
+
+[freeze_barrier]
+required_draft_owner_count = 4
+required_generated_owner_count = 2
+draft_hashes_may_change_before_freeze = false
+transition = "one-owner-change-updates-all-final-hashes-generated-metrics-and-status-to-pre-result-frozen-in-one-reviewed-change"
+route_fit = "all-four-sectors-route-prefix-plus-headroom-within-capacity-at-selected-first-fit-geometry"
+package_agreement = "python-and-rust-byte-identical-package-route-examples-malformed-corpus-and-metrics"
+limit_agreement = "python-and-rust-byte-identical-full-v7-componentwise-limit-derivation"
+schema_agreement = "python-and-rust-accept-valid-v1-owner-kats-and-reject-every-named-mutant"
+owner_hash_dag = "bootstrap-to-profile-to-damage;bootstrap-profile-damage-route-to-limits;promotion-hashes-all;no-owner-hashes-a-downstream-owner-that-hashes-it-back"
+forbid_zero_or_empty_generated_sentinel = true
+forbid_partial_freeze = true
+forbid_carrier_generation_while_blocked = true
+forbid_d0_through_d7_while_blocked = true
+
+[promotion_render]
+mode = "bounded-all-or-nothing-pre-result-owner-render"
+input_paths = ["spec/bootstrap-v1.md", "spec/profile-policy-v1.toml", "spec/damage-policy-v1.toml", "conformance/m2-r3-owner-v1.json"]
+generated_input_paths = ["spec/route-data-v1.json", "spec/profile-limits-v1.toml"]
+bootstrap_mutation_allowed = false
+profile_mutations = ["replace-bindings-bootstrap-sha256", "insert-exact-promotion-generated-table"]
+damage_mutations = ["replace-bootstrap-sha256", "replace-profile-policy-sha256", "insert-exact-promotion-generated-table"]
+limits_hash_dependency_order = ["bootstrap_spec_sha256", "profile_policy_sha256", "damage_policy_sha256", "route_data_sha256"]
+limits_top_level_binding_order = ["profile_policy_sha256", "damage_policy_sha256", "bootstrap_spec_sha256", "route_data_sha256"]
+promotion_draft_hash_order = ["spec/bootstrap-v1.md", "spec/profile-policy-v1.toml", "spec/damage-policy-v1.toml", "conformance/m2-r3-owner-v1.json"]
+generated_owner_final_key_order = ["path", "python_reproduction_sha256", "required_fields", "rust_reproduction_sha256", "schema", "sha256", "state"]
+generated_owner_final_state = "independently-reproduced"
+final_status = "pre-result-frozen"
+final_damage_observation_authorized = true
+final_draft_hashes_may_change_before_freeze = false
+limits_receipt_schema = "golden-board.m2-r3-limits-reproduction/v1"
+route_receipt_source = "exact-route-data-v1-generated-python-and-rust-reproduction-sha256"
+limits_receipt_source = "sha256-of-two-exact-profile-policy-v1-profile-limits-reproduction-receipts"
+preconditions = ["route-template-package-prefix-projection-and-both-route-receipts-match", "all-eight-malformed-route-members-reject-in-both-implementations", "profile-limits-bytes-and-both-limits-receipts-match", "all-current-input-hashes-match", "profile-and-damage-generated-tables-are-absent", "no-R3-profile-version-7-carrier-or-R3-d0-through-d7-observation-exists"]
+failure_result = "write-nothing-and-remain-blocked"
+write_set = ["spec/profile-policy-v1.toml", "spec/damage-policy-v1.toml", "spec/route-data-v1.json", "spec/profile-limits-v1.toml", "spec/m2-r3-owner-promotion-v1.toml"]
+postcondition = "reparse-all-five-final-files-recompute-entire-hash-dag-and-reject-any-stale-partial-extra-or-cyclic-binding"
+
+[admission]
+unknown_keys = "reject"
+duplicate_keys = "reject"
+draft_owner_hash_mismatch = "reject"
+generated_owner_missing_or_incomplete_while_blocked = "remain-blocked"
+generated_owner_missing_or_incomplete_while_pre_result_frozen = "reject"
+status_values = ["blocked", "pre-result-frozen"]

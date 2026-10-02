@@ -1,0 +1,28 @@
+Use the focused-checked, frozen trial package under
+spec/m2-participant-trials-v1.md. Full release may follow the trial. Preserve
+the exact files, expected results and conditions before exposure; a successful
+blind result stays provisional until matching final automated checks pass.
+An already released matching kit can also be used. Packaging alone is not a pass.
+
+1. Give each member of the fixed two- or three-person group
+   recipient/01-clean/. They can work asynchronously; no joint session or
+   human-time limit is required. Keep later files withheld at first. Save
+   code, commands, notes and actual outputs in each member's own answer folder.
+2. When a member has a useful clean result and asks to continue, give that
+   member recipient/02-adapter/. Keep each earlier version; a revised method
+   is welcome and is judged by its actual evidence.
+3. When that member asks for the observations, give recipient/03-heldouts/.
+   Ask for separate results on a, b, c and d and the content query from
+   actually recovered clean bytes. Other members may reach this stage later.
+4. Let the group share its independently found methods and combine them.
+   Give recipient/04-final-account/ and save one reproducible integrated
+   account and final outputs. For each required part, one member's exact,
+   observation-local solution suffices; the combined account must connect
+   those parts into a complete recovery.
+
+The expected outputs are for your comparison after the group has worked.
+The optional export-format.md supplies conventions; if you give that help,
+note it in the existing answers. Supplied conventions are not independent
+discoveries. An incomplete but reproducible attempt is useful too.
+
+No names, dates, timers, consent forms, eligibility questions or extra quiz.

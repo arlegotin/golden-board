@@ -1,0 +1,13 @@
+*
+!.dockerignore
+!.python-version
+!Cargo.lock
+!Cargo.toml
+!pyproject.toml
+!rust-toolchain.toml
+!uv.lock
+!crates/
+!crates/**
+!tools/
+!tools/linux/
+!tools/linux/**

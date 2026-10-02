@@ -1,0 +1,43 @@
+schema = "golden-board.profile-limits/v2"
+policy_version = 2
+status = "development"
+scope = "policy-ceilings-only; selected-static-limits-and-full-resource-ledger-absent"
+profile_policy_path = "spec/profile-policy-v2.toml"
+damage_policy_path = "spec/damage-policy-v2.toml"
+production_authority = "spec/m2-participant-revision-promotion-v2.toml"
+
+[policy_ceiling]
+raw_bits = 4194304
+carrier_bytes = 524288
+side = 2048
+shell_width = 128
+physical_units = 2389
+inventory_entries = 4096
+inventory_payload_bytes = 16384
+section_payload_bytes = 16384
+decoded_body_bytes = 16384
+dependency_count_per_section = 4095
+section_attempts = 4096
+recipe_package_bytes = 1048576
+recipe_expanded_package_bytes = 1048576
+recipes = 256
+recipe_tables = 4096
+recipe_table_payload_bytes = 1048576
+recipe_nodes = 65535
+recipe_edges = 262140
+recipe_iteration_count = 1048576
+recipe_primitive_steps = 268435456
+recipe_scratch_bytes = 16777216
+route_records = 256
+square_view_hypotheses = 16
+route_path_hypotheses = 64
+content_stream_bytes = 1048576
+content_records = 65535
+observation_frame_bytes = 4194306
+output_bytes = 1048576
+counter_bits = 64
+
+[pending]
+required_projections = ["independent-static-carrier-and-capacity", "complete-route-program-and-adapter-resources", "complete-damage-operator-and-count-derivation", "independent-limits-equality", "production-promotion-binding"]
+generated_tables = "must-be-absent; no-zero-or-empty-hash-sentinel"
+production_admission = false

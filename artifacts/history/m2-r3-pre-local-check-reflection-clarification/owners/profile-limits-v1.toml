@@ -1,0 +1,173 @@
+schema = "golden-board.profile-limits/v1"
+generation = "componentwise-full-v7-ledger-after-route-and-load-fixed-point-with-policy-ceilings-kept-separate-from-selected-values"
+profile_policy_sha256 = "44215d993e3fdfdd1630c404f1ee969e8abc6e4928fda83365fc6940e5cfd412"
+damage_policy_sha256 = "c4dbf6677a750126f037e9d5307da850e12f7b8d5f67607edc73aab22e31c294"
+bootstrap_spec_sha256 = "e4d0a5667758a753d35603632dee550db7ecb66cf64ee675ce7485531da27dde"
+route_data_sha256 = "94df79d9a3fb01b69014417683a0f48f2222fea9fe991361bc99aa0c30dc663e"
+capacity_module_sha256 = "9c70306eaed963c682652b5b61b4cf8136e5652bbaf995cc49a4e1edd12a407d"
+slice_semantic_sha256 = "de7e22f0aa4316d9f32d9435287dd19bd6c04519aae1dc9bd816613f26929671"
+profile_ids = ["eh72-hier-r5-r2-r1-crc32c-v0"]
+
+[policy_ceiling]
+assembled_content_bytes = 1048576
+carrier_bytes = 524288
+dependency_count_per_section = 4095
+entry_hypotheses = 16
+inventory_entries = 4096
+output_bytes = 1048576
+raw_bits = 4194304
+recipe_edges = 262140
+recipe_iteration_count = 1048576
+recipe_nodes = 65535
+recipe_package_bytes = 1048576
+recipe_primitive_steps = 268435456
+recipe_scratch_bytes = 16777216
+recipe_table_payload_bytes = 1048576
+recipe_tables = 4096
+recipes = 256
+route_records = 256
+section_attempts = 4096
+section_payload_bytes = 16384
+shell_sectors = 4
+side = 2048
+shell_width = 128
+
+[semantic_capacity]
+authoring_payload_bytes = 105277
+buckets = 53
+content_capacity_before_reserve_bytes = 135669
+curriculum_concepts = 29
+curriculum_families = 20
+integrated_tasks = 3
+inventory_payload_ceiling_bytes = 16384
+protected_logical_capacity_bytes = 142810
+prototype_kinds = 14
+real_content_body_payload_bytes = 13628
+real_content_body_sections = 77
+real_slice_payload_excluding_inventory = 14008
+reserve_payload_bytes = 7141
+reserve_probe_sections = 1
+simulated_sections = 53
+slots = 4174
+tier_frame_payload_bytes = 380
+tier_frame_sections = 2
+
+[selected_manifestation]
+carrier_bytes = 520200
+cell_inverse_multiplier = 3179087
+cell_multiplier = 3567
+cell_offset = 316417
+cells = 4161600
+dependency_edges = 78
+encoded_transport_bytes = 397656
+factor_1_group_count = 807
+factor_2_group_count = 442
+factor_5_group_count = 30
+fixed_pad_cells = 1408
+interior_side = 1784
+inventory_dependency_count = 78
+inventory_entry_count = 138
+inventory_fragment_count = 20
+inventory_payload_bytes = 3080
+load_fragment_counts = [105, 105, 105, 61]
+load_payload_bytes = [16384, 16384, 16384, 9555]
+logical_group_count = 1279
+mandatory_physical_unit_count = 1465
+maximum_fragments_per_section = 105
+maximum_section_envelope_bytes = 16406
+physical_unit_count = 1841
+population = 3182656
+protected_cells = 3181248
+sector_capacity_bytes = 30592
+semantic_copy_count = 1
+separation_window = 223
+shell_width = 128
+side = 2040
+slot_inverse_multiplier = 921
+slot_multiplier = 2
+
+[transport]
+clean_path_eh_decoder_invocations = 55512
+clean_path_repetition_candidate_groups = 472
+clean_path_repetition_symbol_invocations = 815616
+encoded_transport_bytes = 397656
+eh_codewords_per_physical_unit = 24
+maximum_group_candidates = 6
+physical_replica_counts = [1, 2, 5]
+physical_unit_bytes = 216
+physical_units = 1841
+profile_tuples = 1
+
+[route_package]
+held_out_record_bytes_by_sector = [366, 366, 366, 366]
+recipe_count = 22
+recipient_package_bytes = 25930
+recipient_package_edge_count = 1087
+recipient_package_node_count = 699
+recipient_package_peak_scratch_bytes = 6163
+recipient_package_primitive_steps = 80435
+recipient_package_sha256 = "4bd8e0d485ae6e6a65f4edc4ef2aaac9585a2bcd8c4623e44d69f1dad3b0ec8e"
+recipient_package_table_count = 13
+recipient_package_table_payload_bytes = 1470
+route_example_peak_scratch_bytes_by_sector = [6163, 6163, 6163, 6163]
+route_example_primitive_steps_by_sector = [15134, 15134, 15134, 15134]
+route_headroom_cells_by_sector = [11637, 11637, 11636, 11636]
+route_prefix_cells_by_sector = [232728, 232728, 232728, 232728]
+route_prefix_sha256_by_sector = ["a3a9ac59b857af3904d2bff998bd96c36ccba4d8a97180ad8e0e9d4434b92395", "4da3722a786890647ece291a3fbcb14ba9f2c6a847c13088f2c47792a52c861a", "7c55f1be66239d4c48a0760217a31d0cd36b30a8d04ac91c17a67315a04c4fbb", "5daca7964260360c62877969618e5756a946ee2d5f2b2d78756e29f5c63d44a1"]
+route_records_per_sector = 52
+route_sha256 = "a3a6c9fc8a67d5cc36d0d75f74464fbeac2819d7b6bd8048206aa19d6cbd7922"
+worked_record_bytes_by_sector = [366, 366, 366, 366]
+
+[damage]
+cases = 10038
+changed_or_erased_coordinates = 4161600
+d0_cases = 16
+d1_cases = 4
+d2_cases = 256
+d2_square_side = 55
+d3_cases = 128
+d3_sample_retry_max = 203691008
+d3_weight = 1592
+d3_window_side = 223
+d4_cases = 1841
+d5_cases = 21
+d6_cases = 7364
+d7_cases = 408
+obs_bits_bytes = 520204
+obs_matrix_bytes = 4161602
+obs_units_bytes = 408901
+wrong_accepts = 0
+
+[content]
+cases_per_node = 4096
+control_edges = 16384
+enum_entries = 4096
+event_budget = 65535
+field_schema_fields = 256
+lesson_nodes = 4096
+matrix_cells = 65535
+opaque_atoms = 4096
+payload_bytes = 1048576
+records = 65535
+records_per_non_root_kind = 4096
+regions = 4096
+run_state_bytes = 466958
+selections = 4096
+stream_bytes = 1048576
+text_bytes = 4096
+tuple_slots = 4096
+vector_atoms = 65535
+
+[[profile]]
+check_bytes = 4
+damage_cases = 10038
+encoded_transport_bytes = 397656
+fragments_per_semantic_copy = 105
+id = "eh72-hier-r5-r2-r1-crc32c-v0"
+obs_units_bytes = 408901
+physical_replica_counts = [1, 2, 5]
+profile_version = 7
+protected_unit_bytes = 216
+protected_units = 1841
+section_envelope_bytes = 16406
+semantic_copy_count = 1
