@@ -194,6 +194,9 @@ class ObservationDecoderV2(old.ObservationDecoder):
                             count*(8+2*profile.protected_unit_bytes))
         return super()._extract_units(cells,profile,width,mapping)
 
+    def _route_discovery_progress(self, count):
+        self._meter.retain('view-routes',128*count)
+
     def _expected_units(self, profile, inventory):
         count = sum(((18+4*len(e.dependencies)+e.logical_payload_length+(4 if e.check_id == 1 else 8)+156)//157)
                     *(e.physical_replica_count if inventory.version >= 1 else e.copy_count)

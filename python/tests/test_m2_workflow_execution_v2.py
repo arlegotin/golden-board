@@ -5,8 +5,10 @@ The workflow, private staging, retained-file reads and failure ordering are real
 """
 from contextlib import ExitStack, contextmanager
 from io import StringIO
+import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -55,6 +57,16 @@ class WorkflowExecutionV2Tests(unittest.TestCase):
         target = self.repo / path
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(raw)
+
+    def test_release_build_overrides_ambient_rustc_with_pinned_compiler(self):
+        expected=subprocess.check_output(['rustup','which','--toolchain','1.97.1','rustc'],
+            text=True).strip()
+        with patch.dict(os.environ,{'RUSTC':'/untrusted/ambient/rustc'}):
+            environment=coordinator.rust_build_environment_v2()
+        self.assertEqual(environment['RUSTC'],expected)
+        self.assertEqual(environment['CARGO_INCREMENTAL'],'0')
+        self.assertEqual(subprocess.check_output([environment['RUSTC'],'--version'],
+            text=True).split()[1],'1.97.1')
 
     def mutate(self, phase):
         if self.change_during == phase:

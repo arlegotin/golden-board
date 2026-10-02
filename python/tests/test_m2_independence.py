@@ -199,6 +199,18 @@ class M2IndependenceProof(unittest.TestCase):
                     candidate_raw
                 )["schema"]
                 if schema == "golden-board.m2-candidate-manifest/v2":
+                    static = canonical_manifest.validate_canonical_manifest(
+                        (base / "static-limits.json").read_bytes()
+                    )
+                    self.assertEqual(static["profile_id"], base.name)
+                    selected = static["selected_manifestation"]
+                    side = selected["side"]
+                    interior = side - 2 * selected["shell_width"]
+                    units = selected["physical_units"]
+                    groups_1, groups_2, groups_5 = selected["factor_group_counts"]
+                    self.assertEqual(selected["cells"], side * side)
+                    self.assertEqual(selected["population"], interior * interior)
+                    self.assertEqual(selected["protected_cells"], 1728 * units)
                     physical = canonical_manifest.validate_canonical_manifest(
                         m2_physical_v2.build_physical_evidence_v2(
                             candidate_raw,
@@ -209,8 +221,12 @@ class M2IndependenceProof(unittest.TestCase):
                     )
                     self.assertEqual(
                         tuple(row["witness_count"] for row in physical["predicate_rows"]),
-                        (3_297_856, 4_161_600, 863_744, 3_297_024,
-                         4_161_600, 2_688_768, 58_776, 1_098),
+                        (interior * interior, side * side,
+                         side * side - interior * interior, 1728 * units,
+                         side * side, 1728 * (groups_2 + 10 * groups_5),
+                         6 * (256 + 5 * units),
+                         groups_1 + groups_2 + groups_5
+                         + selected["inventory_dependency_count"] + 4 + 1),
                     )
                     for row in physical["predicate_rows"]:
                         with self.subTest(predicate=row["predicate_id"]):

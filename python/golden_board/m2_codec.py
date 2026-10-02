@@ -490,7 +490,7 @@ def _eh_erasures(values: Iterable[int]) -> tuple[int, ...]:
     return tuple(sorted(value - 1 for value in result))
 
 
-def eh72_decode(observed: bytes, erasures: Iterable[int] = ()) -> Recovery:
+def _eh72_decode_exhaustive(observed: bytes, erasures: Iterable[int] = ()) -> Recovery:
     if type(observed) is not bytes or len(observed) != 9:
         raise CodecError("eh72-codeword-length")
     # The public EH coordinate is the frozen code position in 1..72.  Only the
@@ -526,6 +526,88 @@ def eh72_decode(observed: bytes, erasures: Iterable[int] = ()) -> Recovery:
     ]
     state = "verified" if not erased and encoded == observed else "recovered"
     return Recovery(state, _bits_to_bytes(data_bits), constructions)
+
+
+def _eh72_syndrome_tables() -> tuple[
+    tuple[tuple[tuple[int, int], ...], ...],
+    tuple[tuple[int, ...], ...],
+]:
+    data_indices = tuple(
+        position - 1
+        for position in range(1, 72)
+        if position not in _EH_PARITY_POSITIONS
+    )
+    data_ordinal = {index: ordinal for ordinal, index in enumerate(data_indices)}
+    syndrome_rows: list[tuple[tuple[int, int], ...]] = []
+    data_rows: list[tuple[int, ...]] = []
+    for byte_ordinal in range(9):
+        syndrome_values: list[tuple[int, int]] = []
+        data_values: list[int] = []
+        for value in range(256):
+            hamming = overall = data = 0
+            for bit_ordinal in range(8):
+                if not value & (1 << (7 - bit_ordinal)):
+                    continue
+                index = byte_ordinal * 8 + bit_ordinal
+                overall ^= 1
+                if index < 71:
+                    hamming ^= index + 1
+                ordinal = data_ordinal.get(index)
+                if ordinal is not None:
+                    data |= 1 << (63 - ordinal)
+            syndrome_values.append((hamming, overall))
+            data_values.append(data)
+        syndrome_rows.append(tuple(syndrome_values))
+        data_rows.append(tuple(data_values))
+    return tuple(syndrome_rows), tuple(data_rows)
+
+
+_EH_SYNDROME_TABLE, _EH_DATA_TABLE = _eh72_syndrome_tables()
+
+
+def eh72_decode(observed: bytes, erasures: Iterable[int] = ()) -> Recovery:
+    """Exact bounded EH72 decoding via syndrome, with enumeration charge."""
+
+    if type(observed) is not bytes or len(observed) != 9:
+        raise CodecError("eh72-codeword-length")
+    erased = _eh_erasures(erasures)
+    erased_set = frozenset(erased)
+    source = int.from_bytes(observed, "big")
+    for index in erased:
+        source &= ~(1 << (71 - index))
+    maximum_changes = (3 - len(erased)) // 2
+    constructions = (1 << len(erased)) * (
+        1 + (72 - len(erased) if maximum_changes else 0)
+    )
+    candidates: set[bytes] = set()
+    for fill_mask in range(1 << len(erased)):
+        candidate = source
+        for ordinal, index in enumerate(erased):
+            if fill_mask >> ordinal & 1:
+                candidate |= 1 << (71 - index)
+        encoded = candidate.to_bytes(9, "big")
+        hamming = overall = 0
+        for byte_ordinal, value in enumerate(encoded):
+            contribution, parity = _EH_SYNDROME_TABLE[byte_ordinal][value]
+            hamming ^= contribution
+            overall ^= parity
+        if not hamming and not overall:
+            candidates.add(encoded)
+        elif maximum_changes and overall and hamming < 72:
+            changed = 71 if hamming == 0 else hamming - 1
+            if changed not in erased_set:
+                candidate ^= 1 << (71 - changed)
+                candidates.add(candidate.to_bytes(9, "big"))
+    if len(candidates) > 1:
+        raise CodecError("eh72-distance-invariant")
+    if not candidates:
+        return Recovery("corrupt", None, constructions)
+    encoded = next(iter(candidates))
+    data = 0
+    for byte_ordinal, value in enumerate(encoded):
+        data |= _EH_DATA_TABLE[byte_ordinal][value]
+    state = "verified" if not erased and encoded == observed else "recovered"
+    return Recovery(state, data.to_bytes(8, "big"), constructions)
 
 
 def eh72_encode_unit(common_block: bytes) -> bytes:
@@ -1608,15 +1690,24 @@ def _aggregate_replica_group(expected_profile_version, physical_replica_counts,
         repetition_bits: list[int] = []
         repetition_erasures: list[int] = []
         for bit_index in range(EH_UNIT_BYTES * 8):
-            known_mask = [0] * 5
-            one_mask = [0] * 5
-            for replica_index, lane in enumerate(normalized):
-                known = lane is not None and bit_index not in lane[1]
-                known_mask[replica_index] = int(known)
-                one_mask[replica_index] = int(
-                    known and lane[0][bit_index] == 1
-                )
-            known, value = repetition_symbol(factor, known_mask, one_mask)
+            # Lane shape and erased-zero values were admitted above.  Apply
+            # the same repetition count relation without rebuilding and
+            # revalidating five masks for every bit of every group.
+            known_zero_count = known_one_count = 0
+            for lane in normalized:
+                if lane is None or bit_index in lane[1]:
+                    continue
+                if lane[0][bit_index]:
+                    known_one_count += 1
+                else:
+                    known_zero_count += 1
+            erased_count = factor - known_zero_count - known_one_count
+            if 2 * known_one_count + erased_count < factor:
+                known, value = True, 0
+            elif 2 * known_zero_count + erased_count < factor:
+                known, value = True, 1
+            else:
+                known, value = False, 0
             repetition_bits.append(value)
             if not known:
                 repetition_erasures.append(bit_index)

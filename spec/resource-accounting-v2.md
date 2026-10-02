@@ -386,6 +386,9 @@ Square paths use the explicit active-profile selection in damage-oracle-v2.
 Distinct normalized result objects persist once by
 complete value. A view holds128 bytes per complete route descriptor; accepted
 hypotheses hold48 bytes each until observation end.
+Each route descriptor's reservation begins when that route completes discovery;
+it remains live while later routes in the same view are discovered and while
+the view's paths are processed. Release all view descriptors at view end.
 Discover the complete view's routes before processing paths in registry,
 width, sector order. Admit and retain each path's hypothesis immediately before
 its unit extraction, not while scanning later paths. Thus a later route does

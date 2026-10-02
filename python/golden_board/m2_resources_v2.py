@@ -10,7 +10,7 @@ from . import bootstrap
 from .m2_decoder import DecoderError, ResourceUsage
 from . import canonical_manifest
 
-RESOURCE_OWNER_SHA256 = 'afc4d29160a682e2e0ab44524371425844afce981165c50ac2c3831dc1edfce2'
+RESOURCE_OWNER_SHA256 = 'cf4867b1ca51a2364b0202c91338297b1f87fc2c91970f4c0307e16458dc9c05'
 _RESOURCE_KEYS = ('section_attempts','primitive_steps','peak_scratch_bytes')
 _ADAPTER_KEYS = ('calls','reference_input_units','peak_workspace_bytes')
 _OWNER_PATHS = ('spec/profile-policy-v2.toml','spec/profile-limits-v2.toml',

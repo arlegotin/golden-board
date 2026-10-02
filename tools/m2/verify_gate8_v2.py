@@ -545,9 +545,24 @@ def run_checked_v2(command,work,label,environment=None):
             for number,handler in previous.items():signal.signal(number,handler)
 
 
+def rust_build_environment_v2():
+    """Pin the compiler Cargo executes, independently of the host PATH."""
+    resolution=subprocess.run(['rustup','which','--toolchain','1.97.1','rustc'],
+        stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=10,check=False)
+    require(resolution.returncode==0 and 0<len(resolution.stdout)<=4096
+        and resolution.stdout.endswith(b'\n'),'rustc-resolution')
+    compiler=Path(resolution.stdout.decode('utf-8').strip())
+    require(compiler.is_absolute() and compiler.is_file(),'rustc-path')
+    version=subprocess.run([str(compiler),'--version'],stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,timeout=10,check=False)
+    require(version.returncode==0 and version.stdout.startswith(b'rustc 1.97.1 ')
+        and version.stdout.endswith(b'\n'),'rustc-version')
+    return dict(os.environ,RUSTC=str(compiler),CARGO_INCREMENTAL='0')
+
+
 def _build_native_binary(work):
     run_checked_v2(['rustup','run','1.97.1','cargo','build','-p','gb-bootstrap','--bin','gb-m2-gate8-v2',
-        '--release','--locked','--offline'],work,'rust-build')
+        '--release','--locked','--offline'],work,'rust-build',rust_build_environment_v2())
     binary=ROOT/'target/release/gb-m2-gate8-v2'
     identity=producer.executable_identity(binary,'rust')
     destination=work/'native-rust-executable'

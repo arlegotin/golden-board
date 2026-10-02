@@ -30,6 +30,13 @@ class QualificationV2Tests(unittest.TestCase):
     def setUpClass(cls):
         cls.policy=load_gate8_policy_v2((ROOT/'spec/gate8-policy-v2.toml').read_bytes())
 
+    def test_tracked_record_passes_release_shape_preflight(self):
+        from golden_board.m2_qualification_v2 import qualification_shape_v2
+        raw=(ROOT/'studies/m2/qualification-v2.json').read_bytes()
+        try:value=qualification_shape_v2(raw)
+        except ValueError as error:self.fail(f'tracked qualification rejected: {error}')
+        self.assertEqual(value['trial_id'],'20-open-technical-group')
+
     def test_record_binds_exact_current_bundle_files_and_rejects_mutation(self):
         from golden_board.m2_qualification_v2 import admit_qualification_v2, packet_files_digest_v2
         with tempfile.TemporaryDirectory(prefix='gb-m2-qualification-') as name:

@@ -68,6 +68,12 @@ The producer then generates `candidate/` through its own complete replay and
 proof, and `bundles/{technical-v2,learner-v2}/` through actual semantic kit
 construction. Each bundle root has its exact raw files plus
 `bundle-manifest.json`; the candidate gains `bundle-preimages.json`.
+An EH72 syndrome shortcut is an implementation of the same bounded
+fill/known-bit-change result and logical construction charge. It must reject
+an out-of-range syndrome bit position; it cannot accept an unverified word.
+After replica lanes pass their shape and erased-zero checks, the aggregator may
+apply the exact repetition count relation directly to their admitted bits;
+the public repetition adapter must retain its invalid-mask rejection.
 No losing Gate6/7 or invalid bundle emits a success receipt. Keep failed private
 evidence for diagnosis; a later gate stays unevaluated. On success, rehash every
 actual staged candidate file and verify its complete recursive set/modes and
@@ -108,6 +114,10 @@ The pair CLI uses ordered options
 `pair --kind native|linux --workers N --rust-binary ABS --work-root ABS`,
 followed only for Linux by `--native-receipts ABS`. Its successful private
 output includes `source.json` and `receipts/{two producer IDs}.json`.
+The host coordinator's release Rust build resolves `rustc` through
+`rustup which --toolchain 1.97.1 rustc`, verifies that compiler's exact
+version, and passes its absolute path as `RUSTC` to Cargo. The ambient PATH
+compiler or an inherited `RUSTC` cannot select a different version.
 The read-only `linux-input --native-receipts ABS` coordinator command admits
 the host's exact current transition/roadmap and both native receipts against
 its actual source, then prints only the64-hex source projection hash and LF.
@@ -224,3 +234,43 @@ archive before continuing. Apply the repaired source only after those stale
 outputs are absent. Fresh bootstrap and release must independently regenerate
 all producer, assembly and release evidence against the new frozen source.
 The archived success is history, and the failed release cannot enable handoff.
+
+The next Candidate-ready release exposed a second stale assertion in the same
+legacy ownership test: its v2 branch recomputed valid physical evidence but
+compared the witness totals to one obsolete geometry tuple. The owning
+formulas in `physical-evidence-v2.md` remain unchanged. The test now derives
+its independent eight-count expectation from the admitted static manifestation
+(side, shell width, physical units, factor group counts and inventory
+dependency count), and still requires zero violations in every predicate.
+This is a test repair, not a change to the candidate or Gate8 criteria.
+
+The exact preceding Candidate-ready tuple is preserved under
+`artifacts/history/m2-v2-before-physical-witness-test-repair-v1`. Its source
+projection SHA-256 is
+`8f29ec590511a8ebd141046412cce30a1a3c937368b172ab5b0c36be76920140`,
+its report SHA-256 is
+`7b950aa920fe32e58bb998912ca9dde63047cb67bc9201889893eba09869cdec`,
+and its archive manifest SHA-256 is
+`bc896f037c72ed8955f00c285698a699aa3b87ca1128b2c68ceb7fef40bab231`.
+The archive binds all 1018 source, candidate, Gate8, report and roadmap files,
+including the exact owned pending roadmap. It was verified before and after
+installation; the pending roadmap was restored before removing only the
+matching generated candidate, Gate8 tree and report. Fresh bootstrap and
+release must recompute against the repaired source before M2 completion.
+
+That fresh bootstrap passed on source projection SHA-256
+`6c96085b1947d6f9f73ba99ab65706c3db123685c72fead0d3185b431992fca4`
+and installed report SHA-256
+`b3127d5eaa86621916004b6b7d57382a005d2e2ca006ffd254fc9f313caac75f`.
+Release preflight then rejected the tracked qualification record because its
+`source_reconciliation.meaning` had an extra `test` word. The owning literal
+remains `nonsemantic-execution-and-qualification-only`; the technical and
+learner packet-file identities did not change. The exact passing tuple was
+archived under `artifacts/history/m2-v2-before-qualification-literal-repair-v1`.
+Its `archive-manifest.json` SHA-256 is
+`ff431c4dc2a9e4750736f956cf6ff6cd86000d0df8e0264f4d2ecdca9a23f653`
+and binds all 1018 source, candidate, Gate8, report and roadmap files. The
+pending roadmap was restored before removing only the matching generated
+outputs. The tracked record now uses the owning literal, and a component
+preflight test admits that actual record. Fresh bootstrap and release must
+recompute against this corrected source before M2 completion.

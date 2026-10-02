@@ -910,7 +910,18 @@ class M2ProductionDecoder(unittest.TestCase):
             with self.subTest(erasures=erasures):
                 self.assertEqual(
                     m2_decoder._eh72_decode_syndrome(observed, erasures),
-                    m2_codec.eh72_decode(observed, erasures),
+                    m2_codec._eh72_decode_exhaustive(observed, erasures),
+                )
+
+    def test_eh72_syndrome_rejects_invalid_bit_positions(self) -> None:
+        for observed, erasures in (
+            (bytes.fromhex("a90637ac206ac470ee"), (69,)),
+            (bytes.fromhex("7363b5854645922f60"), (61,)),
+        ):
+            with self.subTest(observed=observed.hex()):
+                self.assertEqual(
+                    m2_decoder._eh72_decode_syndrome(observed, erasures),
+                    m2_codec.Recovery("corrupt", None, 144),
                 )
 
     @unittest.skipUnless(

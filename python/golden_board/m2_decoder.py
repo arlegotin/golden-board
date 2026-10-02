@@ -418,7 +418,7 @@ def _eh72_decode_syndrome(
             continue
         if maximum_changes and overall:
             changed = 71 if hamming == 0 else hamming - 1
-            if changed not in erased_set:
+            if hamming < 72 and changed not in erased_set:
                 candidate ^= 1 << (71 - changed)
                 candidates.add(candidate.to_bytes(9, "big"))
     if len(candidates) > 1:
@@ -1484,6 +1484,9 @@ class ObservationDecoder:
             self._cache_store(self._route_cache, cache_key, result, 4_096)
         return result
 
+    def _route_discovery_progress(self, count: int) -> None:
+        """Revision-specific accounting for descriptors retained during discovery."""
+
     def _discover_routes(self, cells: _Cells) -> tuple[_Route, ...]:
         discovered: dict[
             tuple[
@@ -1514,6 +1517,7 @@ class ObservationDecoder:
                             route.sector_id,
                         )
                     ] = route
+                    self._route_discovery_progress(len(discovered))
         return tuple(
             discovered[key]
             for key in sorted(

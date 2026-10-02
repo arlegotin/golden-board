@@ -2,6 +2,7 @@
 from pathlib import Path
 from dataclasses import replace
 from collections import Counter
+from hashlib import sha256
 from unittest.mock import patch
 import json
 import os
@@ -101,6 +102,17 @@ class RevisedObservationDecoder(unittest.TestCase):
             if export:
                 (Path(export)/(case.case_id+'.result.json')).write_bytes(result)
                 (Path(export)/(case.case_id+'.resources.json')).write_bytes(resources)
+
+    def test_mapping_mutant_retains_discovered_routes_during_later_scans(self):
+        from golden_board.m2_damage_v2 import DamageCorpusV2
+        corpus=DamageCorpusV2(self.image,alternate_route_owner_raw=(ROOT/'spec/route-data-v0.json').read_bytes())
+        case=corpus.case('D7',0)
+        decoder=ObservationDecoderV2(*self.owner)
+        result=decoder.decode(case.channel,case.observation)
+        self.assertEqual(result.artifact_state,'failure')
+        self.assertEqual(result.resource.peak_scratch_bytes,6639351)
+        self.assertEqual(sha256(decoder.render_result(case.channel,result)).hexdigest(),
+            'd2dc22e32fa59655d67081c531904a31c0f0f2d4576fc9bbb59c10a32e6fd5a4')
 
     def test_missing_probe_preserves_both_streams_but_degrades_artifact(self):
         removed = {row.unit_id for row in self.expected if row.section_type == 6}

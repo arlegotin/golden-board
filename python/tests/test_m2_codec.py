@@ -6,7 +6,9 @@ from dataclasses import FrozenInstanceError
 from hashlib import sha256
 import json
 from pathlib import Path
+from random import Random
 import unittest
+from unittest.mock import patch
 
 from golden_board import bootstrap, m2_codec
 
@@ -31,6 +33,33 @@ def _common(version: int, payload: bytes = bytes(range(157))) -> bytes:
 
 
 class M2CandidateCodec(unittest.TestCase):
+    def test_eh72_public_decoder_avoids_exhaustive_candidate_scan(self) -> None:
+        encoded = bytes.fromhex("11121a2a9e26af36de")
+        original = m2_codec._eh_valid
+        calls = 0
+
+        def checked(bits):
+            nonlocal calls
+            calls += 1
+            return original(bits)
+
+        with patch.object(m2_codec, "_eh_valid", side_effect=checked):
+            result = m2_codec.eh72_decode(encoded)
+        self.assertEqual(result, m2_codec.Recovery(
+            "verified", bytes.fromhex("0123456789abcdef"), 73))
+        self.assertEqual(calls, 0)
+
+    def test_eh72_public_decoder_matches_exhaustive_on_corrupt_words(self) -> None:
+        random = Random(72026)
+        for ordinal in range(5000):
+            observed = random.randbytes(9)
+            erasures = tuple(sorted(random.sample(range(1, 73), ordinal % 4)))
+            self.assertEqual(
+                m2_codec.eh72_decode(observed, erasures),
+                m2_codec._eh72_decode_exhaustive(observed, erasures),
+                (ordinal, observed.hex(), erasures),
+            )
+
     def test_exact_six_profile_projection_and_owner_admission(self) -> None:
         profiles = m2_codec.load_candidate_profiles(
             _read("spec/profile-policy-v0.toml"),
@@ -463,6 +492,17 @@ class M2CandidateCodec(unittest.TestCase):
         )
         self.assertEqual(recovered.status, 6)
         self.assertIsNone(recovered.decoded)
+
+    def test_replica_aggregation_uses_admitted_lane_bits_without_public_mask_validation(self) -> None:
+        profile = m2_codec.r3_candidate_profile()
+        encoded = m2_codec.eh72_encode_unit(_common(7))
+        clean = m2_codec.CopyObservation(encoded)
+        for lanes in ((clean, None), (clean,) * 5):
+            with self.subTest(factor=len(lanes)):
+                expected = m2_codec.aggregate_replica_group(profile, lanes)
+                with patch.object(m2_codec, "repetition_symbol", side_effect=AssertionError("per-bit validation")):
+                    actual = m2_codec.aggregate_replica_group(profile, lanes)
+                self.assertEqual(actual, expected)
 
     def test_v7_registry_repetition_boundaries_and_group_aggregation(self) -> None:
         profile = m2_codec.r3_candidate_profile()
