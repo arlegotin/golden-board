@@ -229,7 +229,7 @@ python3.14 gb setup --offline
 
 ## License
 
-Golden Board's original message, images and documentation are free to share, study, modify, and build upon for noncommercial purposes, with attribution. Commercial use of this material requires prior written permission from the copyright holder.
+Golden Board's original message, images and documentation are free to share, study, modify, and build upon for noncommercial purposes, with attribution. Commercial use of this material requires prior written permission from the copyright holder (me).
 
 - **Code:** [MIT License](LICENSE), which permits commercial use.
 - **Message and content:** [Creative Commons Attribution-NonCommercial 4.0](LICENSE-CONTENT.md)
