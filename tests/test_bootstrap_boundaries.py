@@ -120,6 +120,17 @@ class BootstrapBoundaryTests(unittest.TestCase):
         self.assert_box(p,6,31,57,35)
         self.assert_box(p,6,54,57,58)
 
+    def test_checksum_verdicts_use_the_same_bounded_bits_as_equality_examples(self):
+        checks, truth = self.panel(14), self.panel(8)
+        for y, value, truth_y in ((12,1,12),(30,0,24),(48,1,48)):
+            with self.subTest(value=value, row=y):
+                self.assert_field(checks, value,1,56,y+4)
+                verdict = b''.join(checks[row*64+54:row*64+59]
+                                   for row in range(y+2,y+7))
+                equality = b''.join(truth[row*64+55:row*64+60]
+                                    for row in range(truth_y-2,truth_y+3))
+                self.assertEqual(verdict, equality)
+
     def test_reference_counts_increase_without_forward_references(self):
         p = self.panel(18)
         earlier = set()

@@ -77,7 +77,7 @@ def _draw(p, ordinal, used, section):
             _bounded(p,value,8,6,y)
             _bounded(p,crc32c(bytes([value])),32,19,y)
             _bounded(p,crc32c(bytes([stored])),32,19,y+7)
-            d._coded_cell(p,int(value == stored),55,y+3)
+            _bounded(p,int(value == stored),1,56,y+4)
     elif ordinal == 18:
         for top, ident, refs in ((7,6,()),(21,7,()),(35,8,(6,)),(49,9,(7,8))):
             _bounded(p,ident,8,5,top+4)
