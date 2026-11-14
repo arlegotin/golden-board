@@ -120,7 +120,7 @@ Since Golden Board includes only the moves, without player names, dates, or even
 The final anthology ([download PGN](inputs/anthology.pgn)) includes 64 games played between 1909 and 2021 by some of history's greatest chess players. Together, they contain 6,890 individual moves: 39 wins for White, 16 for Black, and 9 draws.
 
 <details>
-<summary>Players featured:</summary>
+<summary>List of featured players</summary>
 
 - Mikhail Botvinnik (9 games)
 - Vladimir Kramnik (8 games)
