@@ -54,19 +54,6 @@ result against the frozen release. Its report deliberately remains native and
 `release_ready:false`: automated generation does not reperform recipient trials.
 It never overwrites the canonical set.
 
-Use an explicit drawing profile to build and inspect the alternate bootstrap:
-
-```sh
-./gb build --bootstrap field-boundaries --output build/bounded-candidate
-python3.14 tools/render-guide-images.py --bootstrap field-boundaries \
-  --source build/bounded-candidate/GOLDEN-BOARD.bitplane \
-  --output build/bounded-candidate-images
-```
-
-This profile changes bootstrap panels while preserving the payload. The renderer
-checks the profile and payload before generating comparisons. Both commands require
-fresh output directories; canonical reproduction retains its default layout.
-
 Qualified foundation/anthology/source derivatives are required retained inputs,
 listed in [architecture](architecture.md). A reproduction from them is not a claim
 to recreate every earlier research result. Full original-SAN qualification is
@@ -113,6 +100,11 @@ The sheets enlarge each panel four times with white margins and gutters. They ad
 no corner digits or captions; all marks inside the original panels are preserved.
 The complete strip is enlarged eight times. The generator checks the source hash,
 uses the existing binary PNG renderer and refuses an existing output directory.
+It also writes `bootstrap-first-frames.png` and `golden-board-fragment.png`, the
+exact PNG crops used by the README. The five guide images belong in
+`docs/guide/images/bootstrap-clarity/`; the two crops belong in `assets/` under
+their underscore-separated README filenames. Regression checks compare every
+committed image with these generated views.
 
 ## Inspect and operate documents offline
 

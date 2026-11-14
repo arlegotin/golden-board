@@ -41,7 +41,7 @@ These bits form a square grid of 2048 × 2048 cells ([download PNG](artifacts/GO
 
 Here's is the fragment, which make up ≈1.5% of the entire message:
 <p align="center">
-  <img src="assets/golden_board_fragment.webp" alt="Golden Board fragment">
+  <img src="assets/golden_board_fragment.png" alt="Golden Board fragment">
 </p>
 
 It offers a glimpse of:
@@ -96,7 +96,7 @@ Golden Board begins with a chess-agnostic bootstrap: a visual guide of 32 frames
 Here are the first four frames, which teach counting, binary, and basic patterns:
 
 <p align="center">
-  <img src="assets/bootstrap_first_frames.webp">
+  <img src="assets/bootstrap_first_frames.png">
 </p>
 
 Once decoded, the message contains visual lessons teaching chess from scratch: the board, pieces, how they move, special rules, winning and drawing, and basic strategy.

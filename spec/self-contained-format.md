@@ -1,6 +1,6 @@
 # Current message grammar
 
-Engineering revision7 (final bootstrap layout), 2026-11-14. Revision numbers are external development
+Engineering revision8 (bounded bootstrap layout), 2026-11-14. Revision numbers are external development
 metadata; none is carried in the square. Supersedes current-use wire5/document1
 headers only. Historical specifications, vectors, candidates and claims remain.
 
@@ -40,7 +40,11 @@ The section is336B; its
 inventory section28B; concatenation364B. All three miniature glyphs are used.
 Section/inventory/header/CRC-scope drawings use these actual bytes. Panel7 carries
 only four quantities: side2048, start64, eight bits/byte and actual usedbytes,
-atx14 with16/16/16/32bit widths. The oldx8reader does not transfer. Glyph0/1are
+with16/16/16/32bit widths and a common right end at column47. Their starts are
+32/32/32/16; every field has explicit bounds. Panels11/13group XOR operands above
+their results; panel13aligns four output bytes with its four result bands.
+Panel18uses references6→[],7→[],8→[6],9→[7,8]. Single-bit fields, including
+panel14verdicts, use the same five-cell-square enclosure. Glyph0/1are
 defined together in22, assembled in23, updated in24; pages/outcomes/actions and
 passive routes occupy25–28. No payload-body or document/section grammar change
 accompanies this engineering revision.

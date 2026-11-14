@@ -74,12 +74,12 @@ def _mini():
     data=raw.miniature();section=encode_section(1,1,data);inventory=inventory_for({1:data})
     return section,encode_section(0,0,inventory),inventory
 
-def make_carrier(documents,*,bootstrap=raw):
+def make_carrier(documents):
     inventory=inventory_for(documents);sections={0:encode_section(0,0,inventory)}
     sections.update({i:encode_section(i,1,data) for i,data in sorted(documents.items())})
     stream=b''.join(sections.values());used=len(stream)
     if used>CAPACITY_BYTES:raise ValueError(f'Measured clean fit failure: {used}bytes > {CAPACITY_BYTES}.')
-    route=bootstrap.make_route(used,*_mini());symbols=bytearray(SIDE*SIDE)
+    route=raw.make_route(used,*_mini());symbols=bytearray(SIDE*SIDE)
     for y in range(raw.HEIGHT):symbols[y*SIDE:y*SIDE+raw.WIDTH]=route[y*raw.WIDTH:(y+1)*raw.WIDTH]
     symbols[START*SIDE:START*SIDE+used*8]=unpack_bits(stream)
     cursor=0;ledger={}
@@ -91,13 +91,13 @@ def make_carrier(documents,*,bootstrap=raw):
         'document_payload':sum(map(len,documents.values()))*8,'inventory_payload':len(inventory)*8,
         'integrity_framing':len(sections)*10*8,'alignment_padding':0,'trailing_reserve':(CAPACITY_BYTES-used)*8}
     assert sum(cells.values())==SIDE*SIDE and cursor==used
-    return bytes(symbols),{'wire_version':VERSION,'bootstrap_layout':bootstrap.LAYOUT_REVISION,'side':SIDE,'payload_capacity_bytes':CAPACITY_BYTES,
+    return bytes(symbols),{'wire_version':VERSION,'bootstrap_layout':raw.LAYOUT_REVISION,'side':SIDE,'payload_capacity_bytes':CAPACITY_BYTES,
         'used_payload_bytes':used,'reserve_bytes':CAPACITY_BYTES-used,'logical_sections':len(sections),
         'stored_sections':len(sections),'discovery_routes':1,'sections':ledger,'cell_ledger':cells,'recovery':'unsupported'}
 
-def _decode_normalized(symbols,bootstrap):
-    route=bootstrap.extract(symbols);used=bootstrap.parameters(route)
-    if route!=bootstrap.make_route(used,*_mini()):raise ValueError('Observed direct discovery route does not validate.')
+def _decode_normalized(symbols):
+    route=raw.extract(symbols);used=raw.parameters(route)
+    if route!=raw.make_route(used,*_mini()):raise ValueError('Observed direct discovery route does not validate.')
     if any(symbols[START*SIDE+used*8:]):raise ValueError('Nonzero final reserve.')
     stream=pack_bits(symbols[START*SIDE:START*SIDE+used*8]);reader=Reader(stream);sections={};previous=-1
     while reader.offset<used:
@@ -122,29 +122,29 @@ def _decode_normalized(symbols,bootstrap):
         'stored_sections':len(sections),'state':'checked_complete','wire_version':VERSION}
 
 @lru_cache(maxsize=1)
-def _signature(bootstrap):
-    route=bootstrap.make_route(1,*_mini())
+def _signature():
+    route=raw.make_route(1,*_mini())
     return tuple((r,c,route[r*raw.WIDTH+c]) for r in range(64) for c in range(64))
 
 def _coordinate(r,c,turn,mirror):
     if mirror:c=SIDE-1-c
     return ((r,c),(SIDE-1-c,r),(SIDE-1-r,SIDE-1-c),(c,SIDE-1-r))[turn]
 
-def decode_symbols(symbols,*,bootstrap=raw):
+def decode_symbols(symbols):
     if len(symbols)!=SIDE*SIDE or any(v>1 for v in symbols):raise ValueError('Require complete clean2048square binary observation.')
     accepted=[];diagnostics=[]
     for turn in range(4):
         for mirror in (False,True):
             for inverse in (False,True):
-                if any((symbols[(p:=_coordinate(r,c,turn,mirror))[0]*SIDE+p[1]]^inverse)!=v for r,c,v in _signature(bootstrap)):continue
+                if any((symbols[(p:=_coordinate(r,c,turn,mirror))[0]*SIDE+p[1]]^inverse)!=v for r,c,v in _signature()):continue
                 normalized=transform(symbols,turn,mirror,inverse)
-                try:result=_decode_normalized(normalized,bootstrap)
+                try:result=_decode_normalized(normalized)
                 except ValueError as error:diagnostics.append(str(error));continue
                 result['normalization']={'rotation':turn,'mirror':mirror,'inverse':inverse};accepted.append(result)
     if len(accepted)!=1:raise ValueError(f'Clean extraction needs one valid orientation; found{len(accepted)}. '+('; '.join(diagnostics) or 'Discovery calibration mismatch.'))
     accepted[0]['valid_orientations']=1;return accepted[0]
 
-def decode_serial(data,*,bootstrap=raw):
+def decode_serial(data):
     if data.endswith(b'\n'):data=data[:-1]
     if len(data)!=SIDE*SIDE or any(v not in (48,49) for v in data):raise ValueError('Require exact delimited clean0/1symbols with optional finalLF.')
-    return decode_symbols(data.translate(bytes.maketrans(b'01',b'\0\1')),bootstrap=bootstrap)
+    return decode_symbols(data.translate(bytes.maketrans(b'01',b'\0\1')))

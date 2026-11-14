@@ -1,29 +1,17 @@
-"""Candidate boundaries preserve literal bits, zero fields and strict extraction."""
-import importlib.util
+"""Current bootstrap boundaries preserve literal bits and strict extraction."""
 import hashlib
-import json
-from pathlib import Path
-import subprocess
-import sys
-import tempfile
 import unittest
 
-from golden_board import bootstrap_clarity as frozen, clean_carrier as carrier
+from golden_board import bootstrap_clarity as bootstrap, clean_carrier as carrier
 from golden_board import raw_draw as draw
 
 
-ROOT = Path(__file__).resolve().parents[1]
-
-
 class BootstrapBoundaryTests(unittest.TestCase):
-    def candidate(self):
-        self.assertIsNotNone(importlib.util.find_spec('golden_board.bootstrap_boundaries'),
-                             'The separately identified bounded candidate is missing')
-        from golden_board import bootstrap_boundaries
-        return bootstrap_boundaries
+    def authoring(self):
+        return bootstrap
 
     def panel(self, ordinal, used=506509):
-        route = self.candidate().make_route(used, *frozen.example())
+        route = self.authoring().make_route(used, *bootstrap.example())
         return draw.panel(route, ordinal-1, columns=32)
 
     def assert_box(self, panel, left, top, right, bottom):
@@ -64,9 +52,9 @@ class BootstrapBoundaryTests(unittest.TestCase):
             self.assert_field(p, value & 255, 8, 47, y)
 
     def test_parameter_fields_share_the_least_significant_bit_and_roundtrip_limits(self):
-        candidate = self.candidate()
+        candidate = self.authoring()
         for used in (1,364,506509,507904):
-            route = candidate.make_route(used, *frozen.example())
+            route = candidate.make_route(used, *bootstrap.example())
             p = draw.panel(route, 6, columns=32)
             for y, value, width, x in ((12,2048,16,32), (24,64,16,32),
                                        (36,8,16,32), (48,used,32,16)):
@@ -75,7 +63,7 @@ class BootstrapBoundaryTests(unittest.TestCase):
             self.assertEqual(candidate.parameters(route), used)
         for bad in (0,507905,True):
             with self.assertRaises(ValueError):
-                candidate.make_route(bad, *frozen.example())
+                candidate.make_route(bad, *bootstrap.example())
 
     def test_shift_examples_keep_a_visible_zero_discarded_bit(self):
         p = self.panel(9)
@@ -116,7 +104,7 @@ class BootstrapBoundaryTests(unittest.TestCase):
         self.assert_field(p, 0x576f0efc,32,19,12)
         self.assert_field(p, 0x576f0efc,32,19,19)
         p = self.panel(19)
-        self.assert_field(p, int.from_bytes(frozen.example()[0][-4:],'big'),32,16,45)
+        self.assert_field(p, int.from_bytes(bootstrap.example()[0][-4:],'big'),32,16,45)
         self.assert_box(p,6,31,57,35)
         self.assert_box(p,6,54,57,58)
 
@@ -154,78 +142,27 @@ class BootstrapBoundaryTests(unittest.TestCase):
         self.assert_field(p, 32,8,28,57)
         self.assertFalse(any(p[62*64:63*64]))
 
-    def test_other_panels_and_all_header_counters_stay_exact(self):
-        route = self.candidate().make_route(506509, *frozen.example())
-        canonical = frozen.make_route(506509, *frozen.example())
-        changed = {2,6,7,9,10,11,13,14,18,19,32}
+    def test_default_route_is_the_reviewed_bounded_layout(self):
+        route = self.authoring().make_route(506509, *bootstrap.example())
+        self.assertEqual(hashlib.sha256(carrier.pack_bits(route)).hexdigest(),
+                         '0e5788a715aa3236663480ca4a77f5e2e7749e7f71ab197842c9a5220919d12f')
         for ordinal in range(1,33):
-            p = draw.panel(route, ordinal-1, columns=32)
-            old = draw.panel(canonical, ordinal-1, columns=32)
-            self.assertEqual(p[:4*64], old[:4*64])
-            self.assertEqual(p[63*64:], b'\1'*64)
-            if ordinal not in changed:
-                self.assertEqual(p, old)
+            panel = draw.panel(route,ordinal-1,columns=32)
+            self.assertEqual(draw._read_number(panel,56,0,8),ordinal)
+            self.assertEqual(panel[63*64:],b'\1'*64)
 
-    def test_explicit_candidate_profile_decodes_without_changing_canonical_defaults(self):
-        candidate = self.candidate()
-        docs = {1:frozen.miniature()}
-        symbols, layout = carrier.make_carrier(docs, bootstrap=candidate)
-        canonical, _ = carrier.make_carrier(docs)
+    def test_default_carrier_uses_bounded_parameters_and_strict_extraction(self):
+        docs = {1:bootstrap.miniature()}
+        symbols, layout = carrier.make_carrier(docs)
         self.assertEqual(layout['bootstrap_layout'], 'bootstrap-field-boundaries-1')
-        self.assertEqual(symbols[64*2048:], canonical[64*2048:])
-        self.assertEqual(carrier.decode_symbols(symbols, bootstrap=candidate)['documents'], docs)
+        self.assertEqual(carrier.decode_symbols(symbols)['documents'], docs)
         serial = symbols.translate(bytes.maketrans(b'\0\1',b'01'))+b'\n'
-        self.assertEqual(carrier.decode_serial(serial, bootstrap=candidate)['documents'], docs)
-        with self.assertRaises(ValueError):
-            carrier.decode_symbols(symbols)
-        with self.assertRaises(ValueError):
-            carrier.decode_symbols(canonical, bootstrap=candidate)
-        for where in (6*64+12*2048+32, 6*64+10*2048+30, 64*2048+364*8):
+        self.assertEqual(carrier.decode_serial(serial)['documents'], docs)
+        for where in (6*64+12*2048+32,6*64+10*2048+30,64*2048+364*8):
             bad = bytearray(symbols)
             bad[where] ^= 1
             with self.assertRaises(ValueError):
-                carrier.decode_symbols(bytes(bad), bootstrap=candidate)
-
-    def test_candidate_build_profile_is_an_explicit_cli_option(self):
-        result = subprocess.run([str(ROOT/'gb'),'build','--help'],
-                                capture_output=True,text=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('--bootstrap', result.stdout)
-        self.assertIn('field-boundaries', result.stdout)
-
-    def test_candidate_renderer_checks_the_profile_and_preserves_existing_output(self):
-        canonical = (ROOT/'artifacts/GOLDEN-BOARD.bin').read_bytes()
-        route = self.candidate().make_route(506509, *frozen.example())
-        packed = carrier.pack_bits(route)+canonical[16384:]
-        with tempfile.TemporaryDirectory() as tmp:
-            source, output = Path(tmp)/'candidate.bin', Path(tmp)/'images'
-            source.write_bytes(packed)
-            command = [sys.executable,str(ROOT/'tools/render-guide-images.py'),
-                       '--source',str(source),'--output',str(output)]
-            # The frozen renderer must not silently treat another layout as canonical.
-            rejected = subprocess.run(command,capture_output=True,text=True)
-            self.assertNotEqual(rejected.returncode, 0)
-            self.assertFalse(output.exists())
-            accepted = subprocess.run(command+['--bootstrap','field-boundaries'],
-                                      capture_output=True,text=True)
-            self.assertEqual(accepted.returncode, 0, accepted.stderr)
-            identity = json.loads((output/'source.json').read_bytes())
-            self.assertEqual(identity['sha256'], hashlib.sha256(packed).hexdigest())
-            self.assertEqual(identity['bootstrap_layout'], 'bootstrap-field-boundaries-1')
-            for ordinal in (2,7,13,18,32):
-                self.assertTrue((output/f'bootstrap-{ordinal:02d}-comparison.png').is_file())
-            marker = output/'owner-file'
-            marker.write_bytes(b'preserve')
-            repeated = subprocess.run(command+['--bootstrap','field-boundaries'],
-                                      capture_output=True,text=True)
-            self.assertNotEqual(repeated.returncode, 0)
-            self.assertEqual(marker.read_bytes(), b'preserve')
-            source.write_bytes(canonical)
-            wrong_profile = subprocess.run(command+['--bootstrap','field-boundaries',
-                                                    '--output',str(Path(tmp)/'wrong')],
-                                           capture_output=True,text=True)
-            self.assertNotEqual(wrong_profile.returncode, 0)
-            self.assertFalse((Path(tmp)/'wrong').exists())
+                carrier.decode_symbols(bytes(bad))
 
 
 if __name__ == '__main__':

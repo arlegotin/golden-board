@@ -9,11 +9,11 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-FAST = ['document', 'self_contained_format', 'direct_stream', 'clean_content', 'artifacts', 'cli']
+FAST = ['document', 'self_contained_format', 'direct_stream', 'clean_content', 'artifacts', 'cli', 'bootstrap_boundaries', 'guide_images']
 CONTENT = ['clean_content', 'practical_course', 'advanced_state', 'advanced_course',
            'teaching_boundaries', 'history_segments', 'move_packing', 'anthology_schema', 'piece_glyphs']
 AREAS = {'source': ['source', 'anthology'], 'rules': ['rules'],
-         'content': CONTENT, 'carrier': ['bootstrap_clarity', 'bootstrap_boundaries', 'direct_stream'],
+         'content': CONTENT, 'carrier': ['bootstrap_clarity', 'bootstrap_boundaries', 'direct_stream', 'guide_images'],
          'player': ['document'], 'artifacts': ['artifacts']}
 JS = ['tests/'+name+'.test.mjs' for name in ('player','passive','catalog','catalog-relay')]
 
@@ -72,9 +72,6 @@ def main(argv=None):
     for name in ('build', 'reproduce'):
         command = commands.add_parser(name, help='Build into a fresh directory'+(' and compare frozen outputs' if name == 'reproduce' else ''))
         command.add_argument('--output', type=Path, required=True)
-        if name == 'build':
-            command.add_argument('--bootstrap', choices=('canonical','field-boundaries'),
-                                 default='canonical', help='Explicit bootstrap drawing profile')
     args = parser.parse_args(argv)
     try:
         # A clean source export starts with no generated directories.
@@ -107,14 +104,8 @@ def main(argv=None):
         elif args.command in ('build','reproduce'):
             from .clean_build import build_clean
             from .artifacts import verify_artifacts, png_packed
-            from . import direct_bootstrap
-            bootstrap = direct_bootstrap
-            if getattr(args,'bootstrap','canonical') == 'field-boundaries':
-                from . import bootstrap_boundaries
-                bootstrap = bootstrap_boundaries
-            report = build_clean(ROOT, args.output, bootstrap=bootstrap)
+            report = build_clean(ROOT, args.output)
             report = {'output': str(args.output.resolve()), 'artifact_sha256': report['artifact_sha256'],
-                      'bootstrap_layout': report['bootstrap_layout'],
                       'scope': report['scope'], 'release_ready': False}
             if args.command == 'reproduce':
                 verify_artifacts(ROOT)

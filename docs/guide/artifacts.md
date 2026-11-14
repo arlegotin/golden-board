@@ -8,13 +8,13 @@ are mechanical views; none is an independently authored replacement.
 |---|---:|---|
 | [GOLDEN-BOARD.bin](../../artifacts/GOLDEN-BOARD.bin) | 524,288 | Raw row-major packed bits, no file header |
 | [GOLDEN-BOARD.txt](../../artifacts/GOLDEN-BOARD.txt) | 4,194,305 | ASCII 0/1 for each cell, then LF |
-| [GOLDEN-BOARD.png](../../artifacts/GOLDEN-BOARD.png) | 126,525 | 2048², grayscale, one bit per pixel, black=1 |
+| [GOLDEN-BOARD.png](../../artifacts/GOLDEN-BOARD.png) | 126,990 | 2048², grayscale, one bit per pixel, black=1 |
 
 SHA-256 values are retained in [SHA256SUMS](../../artifacts/SHA256SUMS) and the
 [machine-readable manifest](../../artifacts/manifest.json). The binary hash is:
 
 ```text
-0116be5b721d72b8aed5f67265b290a506c818354f9f297b0618768db996b479
+fa74e8dc303d84365cc5f7dbc5c88c3fe304d1441c0202802be6cccbafe130d2
 ```
 
 ## Reference identity
@@ -58,7 +58,7 @@ new directory; the canonical files are never overwritten. The current renderer
 uses a deterministic one-bit PNG stream; byte identity is checked separately from
 pixel identity so compression differences cannot silently become content changes.
 
-A proposed future content change must be a separately identified artifact with
-new applicable evidence. Keep this final set unchanged. A working build report
+A future message change requires explicit authorization and matching artifact,
+reader, reproduction and documentation updates. A working build report
 is a native engineering result; it does not rerun or extend the historical model
 qualification. See [architecture](architecture.md), [build](build.md) and [trials](trials.md).

@@ -37,14 +37,20 @@ or unrun/superseded checkpoints. No total is invented here.
 | p44 presentation successor | Prospectively corrected source/template contract supported a composed finite interpretation; original errors remained | [Findings](../history/experiments.md#presentation-roles) |
 | p46 final glyphs | Verified actual role/mask bindings and current-content applications, with declared inherited numeric evidence | [Glyph analysis](../history/experiments.md#glyphs-and-grammar) |
 | p47 simplified grammar | Actual current-format reconstruction analyzed before final layout adoption | [Analysis](../history/experiments.md#glyphs-and-grammar) |
-| p48 final layout | Unchanged submitted decoder reproduced exact current bodies in all 16 clean presentations plus no-LF, refusing five invalid inputs | [Analysis](../history/experiments.md#raw-reconstruction), [conditions](../history/experiments.md#raw-reconstruction) |
+| p48 earlier layout | Unchanged submitted decoder reproduced the retained document bodies in all 16 clean presentations plus no-LF, refusing five invalid inputs | [Analysis](../history/experiments.md#raw-reconstruction), [conditions](../history/experiments.md#raw-reconstruction) |
 
 Old mixed p0023 was canceled by the clean-product scope change, never passed.
 The unrun p0037 guided checkpoint was superseded; it supplies no observed result.
 Successful later investigations do not erase failed hypotheses or old scores.
 [Origins](origins.md) places these branches in the complete development chronology.
 
-## Final raw reconstruction: what was actually checked
+## Historical raw reconstruction: what was actually checked
+
+These recipient results refer to the bootstrap observations used in those
+investigations. The current bounded-field revision preserves every document and
+payload byte while changing bootstrap drawings. Its construction, extraction and
+image checks are native verification; no recipient trial extends the historical
+results to the revised drawings.
 
 The p0048 reconstruction used an unchanged submitted decoder in fresh
 default-deny OS sandboxes,

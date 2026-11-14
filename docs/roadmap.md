@@ -1,6 +1,6 @@
 # Maintenance contract
 
-Golden Board is a finished, immutable binary message. Its canonical PNG, TXT and
+Golden Board is a finished binary message. Its canonical PNG, TXT and
 BIN are exact views of the same 2048 × 2048 cells. The complete budget includes
 the bootstrap, five document bodies, inventory, framing/checks and zero reserve.
 The message preserves 146 teaching obligations and all 64 complete games.
@@ -18,7 +18,9 @@ The exact practical profile and heuristic limits are in [chess](../spec/chess.md
 Preserve source bytes separately from editorial metadata and derived inputs.
 Never silently repair a move or update a qualification hash to hide changed data.
 Check critical intermediate states and run proportionate regressions. A changed
-message is a separately identified candidate, not a replacement of this final set.
+message requires explicit authorization before adoption. Adoption updates the
+canonical forms, manifest, reader, reproduction checks and documentation together;
+historical recipient evidence remains bound to its original observations.
 
 The [guide](guide/README.md) explains the architecture, history and supported
 commands. [Status](status.md) and the [verification summary](release/verification.json)

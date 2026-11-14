@@ -152,7 +152,7 @@ no added corner labels enter those crops or the canonical message.
 
 ## Raw reconstruction
 
-A submitted decoder was rerun unchanged with only each allowed observation and
+A submitted decoder for an earlier bootstrap layout was rerun unchanged with only each allowed observation and
 a generic runtime, with repository, donor, prior-output and network access denied.
 It recovered exact content in all 16 clean transform/polarity presentations and
 the no-final-line-feed case, and refused five specified invalid inputs.
