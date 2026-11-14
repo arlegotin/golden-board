@@ -4,7 +4,7 @@
 
 <h1 align="center">Golden Board</h1>
 
-<p align="center">Why and How to Teach Chess to Aliens</p>
+<p align="center"><i>Why and How to Teach Chess to Aliens</i></p>
 
 ## A Note to Human Readers
 
@@ -14,7 +14,7 @@ I encourage you to read [this illustrated guide](https://artemlegotin.com/golden
 
 Both the guide and this README were written by me, a person, for other people. So if you're one, they're a good place to start.
 
-That said, the project also has extensive technical documentation containing comprehensive details, better suited for AI-assisted analysis. Feel free to explore the [documentation index](#documentation-index).
+That said, the project also has detailed technical documentation containing comprehensive details, better suited for AI-assisted analysis. Feel free to explore the [documentation index](#documentation-index).
 
 Of course, a project this extensive wouldn't have been possible without relying heavily on AI-assisted development. But I can promise that every AI-generated token is backed by my own sweat and tears, with my careful attention at every step. The project took five months to complete, including multiple dead ends and countless redesigns.
 
@@ -246,7 +246,7 @@ Please credit [Artem Legotin](https://artemlegotin.com/) and link back to this p
 
 ## Documentation Index
 
-If you'd like to dive into the extensive technical documentation, start here:
+If you'd like to dive into the detailed technical documentation, start here:
 
 - [Entry point](docs/README.md)
 - [Guide](docs/guide/README.md)
@@ -267,6 +267,6 @@ If you'd like to dive into the extensive technical documentation, start here:
 
 ---
 
-<p style="text-align: center;">
+<p align="center">
   <img src="assets/decoration_small.webp">
 </p>
