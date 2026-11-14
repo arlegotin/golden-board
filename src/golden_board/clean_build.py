@@ -100,7 +100,7 @@ def build_clean(root:Path,destination:Path,*,piece_glyph_style=PIECE_STYLE):
         active=['clean_build','clean_carrier','direct_bootstrap','bootstrap_clarity','raw_draw','checksum','document','course_author','course_generic','course_foundation','course_practical','practical_cases','practical_state','course_advanced','advanced_cases','advanced_state','advanced_fixtures','history_segments','anthology_input','move_packing','course_move_packing','rehearsal_predicates','anthology_playback','authoring','rules','source','source_game','raster','piece_glyphs','message_cleanup','qualified_inputs','anthology','shared_anthology']
         paths=[root/'src/golden_board'/f'{n}.py' for n in active]+[root/'mechanism/player.mjs',root/'tools/audit-course.mjs',root/'content/coverage.toml',root/'inputs/lock.json',root/'inputs/dependencies/lock.json']
         paths += [presentation_source(root,name) for name in HISTORICAL_CODECS]
-        paths += [root/'inputs/qualified/manifest.json']
+        paths += [root/'inputs/qualified/manifest.json',root/'artifacts/manifest.json']
         paths += [root/name for name in ('inputs/anthology.pgn','tests/reference-anthology.mjs',
             'evidence/S03-selective-carrier/actual-rehearsal/documents/3.bin',
             'evidence/S03-shared-anthology/actual-document.bin','evidence/S03-shared-anthology/actual-summary.json',
@@ -113,7 +113,9 @@ def build_clean(root:Path,destination:Path,*,piece_glyph_style=PIECE_STYLE):
             'logical_sections':layout['logical_sections'],'stored_sections':layout['stored_sections'],
             'payload_capacity_bytes':CAPACITY_BYTES,'used_payload_bytes':layout['used_payload_bytes'],
             'reserve_bytes':layout['reserve_bytes'],'cell_ledger':layout['cell_ledger'],'unfinished_content_estimate':None,
-            'message_cleanup':cleanup,'canonical_exact':True,'serial_exact':True,'player':player,
+            'message_cleanup':cleanup,
+            'canonical_exact':digest==json.loads((root/'artifacts/manifest.json').read_bytes())['forms']['bin']['sha256'],
+            'serial_exact':True,'player':player,
             'piece_glyph_style':piece_glyph_style or 'baseline',
             'piece_glyph_palette_sha256':PALETTE_SHA256 if piece_glyph_style is not None else None,
             'inherited_evidence':{'anthology':'evidence/S03-shared-anthology/actual-summary.json','source':'evidence/S04-rules/actual-source.json.gz',

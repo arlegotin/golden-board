@@ -6,11 +6,11 @@ No older drawing route is needed by the current runtime.
 from . import raw_draw as d
 
 SIDE=2048
-VERSION=7 # External layout engineering revision, never carried in the message.
+VERSION=8 # External layout engineering revision, never carried in the message.
 START=64
 WIDTH,HEIGHT,COLUMNS=2048,64,32
 CAPACITY_BYTES=(SIDE-START)*SIDE//8
-LAYOUT_REVISION='bootstrap-clarity-1'
+LAYOUT_REVISION='bootstrap-field-boundaries-1'
 PARAMETER_PANEL=6
 
 def _counting(p):

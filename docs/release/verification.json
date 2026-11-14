@@ -8,14 +8,15 @@
   "checks": {
     "integration": {
       "command": "./gb check integration",
-      "python_tests": 144,
+      "python_tests": 156,
       "python_failures": 0,
       "python_errors": 0,
       "javascript_tests": 14,
       "javascript_failures": 0,
       "reference_package_smoke": {
-        "passed": true,
-        "e4_fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"
+        "e4_fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1",
+        "node": "v22.14.0",
+        "scope": "Pinned chess.js package/API smoke; source qualification is checked separately."
       }
     },
     "source": {
@@ -31,29 +32,39 @@
       "clean_presentations": 16
     },
     "reproduction": {
-      "command": "./gb reproduce --output build/qualified-final",
+      "command": "./gb reproduce --output build/reproduced-current",
       "exact_forms": [
         "bin",
         "txt",
         "png"
       ],
       "exact_document_bodies": 5
+    },
+    "fast": {
+      "command": "./gb check fast",
+      "python_tests": 48,
+      "javascript_exit": 0
+    },
+    "images": {
+      "command": "./gb check integration",
+      "exact_guide_pngs": 5,
+      "exact_readme_pngs": 2
     }
   },
   "canonical_forms": {
     "bin": {
       "bytes": 524288,
-      "sha256": "0116be5b721d72b8aed5f67265b290a506c818354f9f297b0618768db996b479",
+      "sha256": "fa74e8dc303d84365cc5f7dbc5c88c3fe304d1441c0202802be6cccbafe130d2",
       "path": "GOLDEN-BOARD.bin"
     },
     "txt": {
       "bytes": 4194305,
-      "sha256": "56132c1a92ddc29d10e0dd530a731485e1af4b35e5fe45996aa83edf64aa270f",
+      "sha256": "ee7d4b734bd6addbdf5e2c1ed5880ff544433428789256c3ce64d394860f0d63",
       "path": "GOLDEN-BOARD.txt"
     },
     "png": {
-      "bytes": 126525,
-      "sha256": "2d2cc7c390d96e9174cedb9e1598ba1853369da5f22be10a424bc885a3f1ef57",
+      "bytes": 126990,
+      "sha256": "56e3a0e079c565ddee9107d886d787e2ba92142ae12b56f3e51e57cf8d7b1c1c",
       "path": "GOLDEN-BOARD.png"
     }
   },
@@ -89,5 +100,7 @@
     "payload_bytes": 506509,
     "reserve_bytes": 1395
   },
-  "historical_limits": "Finite, prior-informed, source/own-work/template-assisted model demonstrations; original model/mode and complete outer history partly unverified; no causal or human learning claim."
+  "historical_limits": "Finite, prior-informed, source/own-work/template-assisted model demonstrations; original model/mode and complete outer history partly unverified; no causal or human learning claim. Recipient results refer to their original bootstrap observations. The bounded-field drawings have native verification only.",
+  "bootstrap_layout": "bootstrap-field-boundaries-1",
+  "engineering_revision": 8
 }

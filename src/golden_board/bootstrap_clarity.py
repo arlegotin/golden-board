@@ -1,15 +1,15 @@
 """Final bootstrap authoring.
 
-All message-specific examples use the existing inert grammar. Historical preview
-sources and the earlier qualified release remain retained under their identities.
+All message-specific examples use the existing inert grammar. Field bounds include every white zero cell, and
+all worked quantities come from the carried inert grammar.
 """
 from functools import lru_cache
 
-from . import direct_bootstrap as old, raw_draw as d
+from . import direct_bootstrap as carrier, raw_draw as d
 from .checksum import byte_trace, crc32c
 from .document import Reader, decode_document, encode_document
 
-LAYOUT_REVISION = 'bootstrap-clarity-1'
+LAYOUT_REVISION = 'bootstrap-field-boundaries-1'
 GROUPS = ((1, 2), (5, 6), (11, 12, 13), (19, 20, 21),
           (22, 23, 24), (25, 26, 27, 28), (29, 30, 31))
 LOCAL = {ordinal: i for group in GROUPS for i, ordinal in enumerate(group, 1)}
@@ -19,8 +19,6 @@ BYTE_EXAMPLES = (0x0001, 0x0100, 0x0180, 0x8001, 0x1234, 0x3412, 0x00a5, 0xa500)
 @lru_cache(maxsize=1)
 def miniature():
     model = d.miniature_model()
-    for ident, mask in ((0, 0), (1, 0xd4), (2, 0x28)):
-        model['records'][ident].update(rows=2, cols=3, mask=[mask])
     return encode_document(model['entries'], list(model['records'].values()))
 
 
@@ -137,6 +135,38 @@ def _header(p, ordinal):
     p[63*64:] = b'\1'*64
 
 
+def _bounded(p, value, width, x, y):
+    """Use the same two-cell inset as the existing bounded byte examples."""
+    if (not 1 <= width <= 48 or not 0 <= value < 1 << width or
+            x < 2 or x+width+1 >= 64 or y < 6 or y+2 >= 63):
+        raise ValueError('Bounded field exceeds its bits or panel.')
+    d._box(p,x-2,y-2,x+width+1,y+2)
+    d._number(p,value,width,x,y)
+
+def _word(p, value, y):
+    """Four eight-bit bands; the all-ones operand exposes every band boundary."""
+    d._box(p,8,y-2,55,y+2)
+    for x, byte in zip((10,22,34,46),value.to_bytes(4,'big')):
+        d._number(p,byte,8,x,y)
+
+def _calculation(p, *, final):
+    # The same operand grouping and result arrow in both XOR examples.
+    d._box(p,5,5,58,25)
+    _word(p,0xffffffff,10)
+    if final:
+        _word(p,byte_trace(53)[-1],20)
+        result = crc32c(b'5')
+    else:
+        _bounded(p,53,8,46,20)
+        result = 0xffffffff ^ 53
+    d._arrow(p,31,27,5,vertical=True)
+    _word(p,result,36)
+    if final:
+        d._arrow(p,31,41,8,vertical=True)
+        for x, byte in zip((10,22,34,46),result.to_bytes(4,'big')):
+            _bounded(p,byte,8,x,54)
+
+
 def _byte_expansion(p):
     for top, value in ((6, 53), (35, 11)):
         d._box(p, 2, top, 61, top+26)
@@ -151,7 +181,7 @@ def _byte_expansion(p):
 
 
 def _references(p):
-    for top, ident, refs in ((7,6,()), (21,7,()), (35,8,(6,7)), (49,9,(8,))):
+    for top, ident, refs in ((7,6,()), (21,7,()), (35,8,(6,)), (49,9,(7,8))):
         d._byte(p, ident, 5, top+4)
         d._byte(p, len(refs), 19, top+4)
         d._box(p, 32, top, 60, top+8)
@@ -165,8 +195,9 @@ def _scope(p, section):
     for y, values in ((33, (0,len(section)-4,len(section)-4)),
                       (56, (len(section)-4,4,len(section)))):
         d._write(p, 8, y, b''.join(d._bits(v,16) for v in values), 48)
+        d._box(p,6,y-2,57,y+2)
     d._arrow(p, 31, 37, 5, vertical=True)
-    d._number(p, crc32c(section[:-4]), 32, 16, 45)
+    _bounded(p,crc32c(section[:-4]),32,16,45)
 
 
 def _inventory(p, payload):
@@ -246,30 +277,30 @@ def _feedback(p):
 
 
 def make_route(used, mini_section, inventory_section, inventory_payload):
-    if type(used) is not int or not 1 <= used <= old.CAPACITY_BYTES:
+    if type(used) is not int or not 1 <= used <= carrier.CAPACITY_BYTES:
         raise ValueError('Direct used-byte count outside square.')
     panels = []
-    unchanged = {3:3,4:4,9:9,10:12,12:14}
+    unchanged = (3,4,12)
     for ordinal in range(1,33):
         p = bytearray(4096)
         if ordinal == 1:
-            old._counting(p)
+            carrier._counting(p)
         elif ordinal in unchanged:
-            d.draw_calibration(unchanged[ordinal], p, ())
+            d.draw_calibration(ordinal, p)
         elif ordinal == 2:
-            for bit in range(8):
-                d._number(p, 1<<bit, 8, 12, 12+bit*6)
-                d._number(p, bit+1, 4, 32, 12+bit*6)
+            for index in range(8):
+                _bounded(p,1 << index,8,20,12+index*6)
+                _bounded(p,index+1,4,40,12+index*6)
         elif ordinal == 5:
             _byte_expansion(p)
         elif ordinal == 6:
-            for y,value in zip(range(12,60,6),BYTE_EXAMPLES):
-                d._number(p,value,16,9,y)
-                d._number(p,value>>8,8,33,y)
-                d._number(p,value&255,8,47,y)
+            for y, value in zip(range(12,60,6),BYTE_EXAMPLES):
+                _bounded(p,value,16,9,y)
+                _bounded(p,value >> 8,8,33,y)
+                _bounded(p,value & 255,8,47,y)
         elif ordinal == 7:
-            for row,(value,width) in enumerate(((2048,16),(64,16),(8,16),(used,32))):
-                d._number(p,value,width,14,12+row*12)
+            for y, value, width in ((12,2048,16),(24,64,16),(36,8,16),(48,used,32)):
+                _bounded(p,value,width,48-width,y)
         elif ordinal == 8:
             for row,(a,b) in enumerate(((0,0),(0,1),(1,0),(1,1))):
                 for offset,result in ((0,a^b),(32,int(a==b))):
@@ -277,41 +308,40 @@ def make_route(used, mini_section, inventory_section, inventory_payload):
                     for x,value in ((7,a),(13,b),(23,result)):
                         d._box(p,x+offset,10+row*12,x+offset+4,14+row*12)
                         d._number(p,value,1,x+offset+2,12+row*12)
-        elif ordinal == 11:
-            for value,width,x,y in ((0xffffffff,32,16,14),(53,8,40,30),(0xffffffff^53,32,16,46)):
-                d._number(p,value,width,x,y)
-        elif ordinal == 13:
-            for value,y in ((0xffffffff,12),(byte_trace(53)[-1],26),(crc32c(b'5'),40)):
-                d._number(p,value,32,16,y)
-            for index,value in enumerate(crc32c(b'5').to_bytes(4,'big')):
-                d._number(p,value,8,10+index*12,54)
+        elif ordinal == 9:
+            for y, value in ((10,53),(28,2147483649),(46,2197175160)):
+                _bounded(p,value,32,9,y)
+                _bounded(p,value >> 1,32,9,y+7)
+                d._arrow(p,44,y,6)
+                _bounded(p,value & 1,1,53,y)
+        elif ordinal == 10:
+            for y, value, width in ((14,0xffffffff,32),(32,0x1edc6f41,32),
+                                    (50,0x11edc6f41,33)):
+                _bounded(p,value,width,48-width,y)
+        elif ordinal in (11, 13):
+            _calculation(p,final=ordinal == 13)
         elif ordinal == 14:
-            for y,value,stored in ((13,53,53),(31,52,53),(49,11,11)):
-                d._box(p,3,y-3,60,y+6)
-                d._number(p,value,8,6,y)
-                d._number(p,crc32c(bytes([value])),32,19,y)
-                d._number(p,crc32c(bytes([stored])),32,19,y+3)
-                d._coded_cell(p,int(value==stored),55,y)
+            for y, value, stored in ((12,53,53),(30,52,53),(48,11,11)):
+                d._box(p,2,y-4,61,y+11)
+                _bounded(p,value,8,6,y)
+                _bounded(p,crc32c(bytes([value])),32,19,y)
+                _bounded(p,crc32c(bytes([stored])),32,19,y+7)
+                _bounded(p,int(value == stored),1,56,y+4)
         elif ordinal == 15:
-            # Each whole component has the same start/length/exclusive-end roles.
-            # Actual header/check samples are taught with these ranges in19.
             end=len(mini_section)
             for y,values in zip((12,24,36,48),
                                 ((0,2,2),(2,4,6),(6,end-10,end-4),(end-4,4,end))):
                 d._box(p,5,y-3,58,y+3)
                 d._write(p,8,y,b''.join(d._bits(value,16) for value in values),48)
         elif ordinal == 16:
-            old._mapping(p,used)
+            carrier._mapping(p,used)
         elif ordinal == 17:
             d._matrices(p)
-            for left,top,cols in ((0,7,8),(33,7,5),(0,35,7),(33,35,8)):
-                width=cols*3-1;x=left+(31-(width+4))//2+2
-                for col in range(cols):p[(top+9)*64+x+3*col]=0
         elif ordinal == 18:
             _references(p)
         elif ordinal == 19:
             _scope(p,mini_section)
-        elif ordinal in (20,29):
+        elif ordinal in (20, 29):
             data = inventory_section if ordinal==20 else mini_section
             d._octets(p,data,y=4+(59-(len(data)*8+63)//64)//2)
         elif ordinal == 21:
@@ -340,19 +370,21 @@ def make_route(used, mini_section, inventory_section, inventory_payload):
             d._arrow(p,31,28,5,vertical=True)
             d._number(p,total-1,16,12,52);d._number(p,total,16,36,52)
         else:
-            for row,value in enumerate((0,used,old.CAPACITY_BYTES,old.CAPACITY_BYTES-used)):
-                d._number(p,value,32,9,10+row*10);d._write(p,51,10+row*10,b'\1'*(row+1),row+1)
-            d._box(p,13,49,50,59);d._number(p,0,32,16,52);d._number(p,32,8,28,56)
+            for row, value in enumerate((0,used,carrier.CAPACITY_BYTES,carrier.CAPACITY_BYTES-used)):
+                _bounded(p,value,32,9,10+row*10)
+                d._write(p,51,10+row*10,b'\1'*(row+1),row+1)
+            d._box(p,12,45,51,61)
+            _bounded(p,0,32,16,49)
+            _bounded(p,32,8,28,57)
         _header(p,ordinal)
         panels.append(bytes(p))
     return d.arrange_panels(panels,columns=32)
 
-
 def parameters(route):
-    """Native preview reader follows its authored origin, never an old decoder."""
+    """Read the carried right-aligned parameters at their bounded widths."""
     p = d.panel(route,6,columns=32)
-    values = [d._read_number(p,14,12+row*12,width)
+    values = [d._read_number(p,48-width,12+row*12,width)
               for row,width in enumerate((16,16,16,32))]
-    if values[:3] != [2048,64,8] or not 1 <= values[3] <= old.CAPACITY_BYTES:
+    if values[:3] != [2048,64,8] or not 1 <= values[3] <= carrier.CAPACITY_BYTES:
         raise ValueError('Invalid carried direct-stream parameters.')
     return values[3]

@@ -5,8 +5,9 @@ few cells, offer a response and follow a link. The player needs no chess rules t
 do any of those things.
 
 The message teaches one grammar. Development revision numbers live in project
-records; they are not fields the recipient has to decode. The current release uses this
-grammar; its raw reconstruction was checked with the submitted recipient decoder.
+records; they are not fields the recipient has to decode. Native checks validate
+the carried grammar and document identities; [verification scope](trials.md)
+distinguishes these checks from recipient evidence.
 
 ## Sections and inventory
 

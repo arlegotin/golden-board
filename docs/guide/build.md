@@ -100,6 +100,11 @@ The sheets enlarge each panel four times with white margins and gutters. They ad
 no corner digits or captions; all marks inside the original panels are preserved.
 The complete strip is enlarged eight times. The generator checks the source hash,
 uses the existing binary PNG renderer and refuses an existing output directory.
+It also writes `bootstrap-first-frames.png` and `golden-board-fragment.png`, the
+exact PNG crops used by the README. The five guide images belong in
+`docs/guide/images/bootstrap-clarity/`; the two crops belong in `assets/` under
+their underscore-separated README filenames. Regression checks compare every
+committed image with these generated views.
 
 ## Inspect and operate documents offline
 

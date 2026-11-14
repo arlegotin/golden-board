@@ -7,17 +7,17 @@
   "forms": {
     "bin": {
       "bytes": 524288,
-      "sha256": "0116be5b721d72b8aed5f67265b290a506c818354f9f297b0618768db996b479",
+      "sha256": "fa74e8dc303d84365cc5f7dbc5c88c3fe304d1441c0202802be6cccbafe130d2",
       "path": "GOLDEN-BOARD.bin"
     },
     "txt": {
       "bytes": 4194305,
-      "sha256": "56132c1a92ddc29d10e0dd530a731485e1af4b35e5fe45996aa83edf64aa270f",
+      "sha256": "ee7d4b734bd6addbdf5e2c1ed5880ff544433428789256c3ce64d394860f0d63",
       "path": "GOLDEN-BOARD.txt"
     },
     "png": {
-      "bytes": 126525,
-      "sha256": "2d2cc7c390d96e9174cedb9e1598ba1853369da5f22be10a424bc885a3f1ef57",
+      "bytes": 126990,
+      "sha256": "56e3a0e079c565ddee9107d886d787e2ba92142ae12b56f3e51e57cf8d7b1c1c",
       "path": "GOLDEN-BOARD.png"
     }
   },
@@ -42,5 +42,6 @@
       "bytes": 169171,
       "sha256": "333088321041d1b23235c6e7d9ee2d52d9e5b4667fe9cb3a06226a7d4b7f8cab"
     }
-  }
+  },
+  "bootstrap_layout": "bootstrap-field-boundaries-1"
 }

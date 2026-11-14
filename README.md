@@ -4,7 +4,7 @@
 
 <h1 align="center">Golden Board</h1>
 
-<p align="center">Why and How to Teach Chess to Aliens</p>
+<p align="center"><i>Why and How to Teach Chess to Aliens</i></p>
 
 ## A Note to Human Readers
 
@@ -14,7 +14,7 @@ I encourage you to read [this illustrated guide](https://artemlegotin.com/golden
 
 Both the guide and this README were written by me, a person, for other people. So if you're one, they're a good place to start.
 
-That said, the project also has extensive technical documentation containing comprehensive details, better suited for AI-assisted analysis. Feel free to explore the [documentation index](#documentation-index).
+That said, the project also has detailed technical documentation containing comprehensive details, better suited for AI-assisted analysis. Feel free to explore the [documentation index](#documentation-index).
 
 Of course, a project this extensive wouldn't have been possible without relying heavily on AI-assisted development. But I can promise that every AI-generated token is backed by my own sweat and tears, with my careful attention at every step. The project took five months to complete, including multiple dead ends and countless redesigns.
 
@@ -41,7 +41,7 @@ These bits form a square grid of 2048 × 2048 cells ([download PNG](artifacts/GO
 
 Here's is the fragment, which make up ≈1.5% of the entire message:
 <p align="center">
-  <img src="assets/golden_board_fragment.webp" alt="Golden Board fragment">
+  <img src="assets/golden_board_fragment.png" alt="Golden Board fragment">
 </p>
 
 It offers a glimpse of:
@@ -78,7 +78,7 @@ Each step builds on the previous one, until the message can explain the rules of
 
 ## How I Tested It
 
-I tested Golden Board through a series of detailed trials, using LLMs as a stand-in for an unknown recipient and carefully checking each part of the message separately.
+I tested Golden Board through a series of detailed trials (54 to be precise), using LLMs as a stand-in for an unknown recipient and carefully checking each part of the message separately.
 
 Some raw reconstruction trials began with fresh ChatGPT chats receiving raw bits, without being told they contained chess. Other checks used decoded content, continued context or source/template assistance. The trials tested decoding, interpretation and new applications under these different conditions.
 
@@ -89,14 +89,14 @@ I checked both their decoding and their answers, looking for evidence that they 
 
 ## What’s Inside
 
-If you really would like to understand how the Golden Board is read and decoded, I encourage you to read [this illustrated guide](https://artemlegotin.com/golden-board).
+If you really want to understand how the Golden Board is read and decoded, I encourage you to read [this illustrated guide](https://artemlegotin.com/golden-board).
 
 Golden Board begins with a chess-agnostic bootstrap: a visual guide of 32 frames that starts with counting and simple patterns, then teaches the recipient how to turn raw zeros and ones into meaningful information and read the rest of the message.
 
 Here are the first four frames, which teach counting, binary, and basic patterns:
 
 <p align="center">
-  <img src="assets/bootstrap_first_frames.webp">
+  <img src="assets/bootstrap_first_frames.png">
 </p>
 
 Once decoded, the message contains visual lessons teaching chess from scratch: the board, pieces, how they move, special rules, winning and drawing, and basic strategy.
@@ -120,7 +120,7 @@ Since Golden Board includes only the moves, without player names, dates, or even
 The final anthology ([download PGN](inputs/anthology.pgn)) includes 64 games played between 1909 and 2021 by some of history's greatest chess players. Together, they contain 6,890 individual moves: 39 wins for White, 16 for Black, and 9 draws.
 
 <details>
-<summary>Players featured:</summary>
+<summary>List of featured players</summary>
 
 - Mikhail Botvinnik (9 games)
 - Vladimir Kramnik (8 games)
@@ -229,7 +229,7 @@ python3.14 gb setup --offline
 
 ## License
 
-Golden Board's original message, images and documentation are free to share, study, modify, and build upon for noncommercial purposes, with attribution. Commercial use of this material requires prior written permission from the copyright holder.
+Golden Board's original message, images and documentation are free to share, study, modify, and build upon for noncommercial purposes, with attribution. Commercial use of this material requires prior written permission from the copyright holder (me).
 
 - **Code:** [MIT License](LICENSE), which permits commercial use.
 - **Message and content:** [Creative Commons Attribution-NonCommercial 4.0](LICENSE-CONTENT.md)
@@ -246,7 +246,7 @@ Please credit [Artem Legotin](https://artemlegotin.com/) and link back to this p
 
 ## Documentation Index
 
-If you'd like to dive into the extensive technical documentation, start here:
+If you'd like to dive into the detailed technical documentation, start here:
 
 - [Entry point](docs/README.md)
 - [Guide](docs/guide/README.md)
@@ -267,6 +267,6 @@ If you'd like to dive into the extensive technical documentation, start here:
 
 ---
 
-<p style="text-align: center;">
+<p align="center">
   <img src="assets/decoration_small.webp">
 </p>

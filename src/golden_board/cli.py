@@ -9,11 +9,11 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-FAST = ['document', 'self_contained_format', 'direct_stream', 'clean_content', 'artifacts', 'cli']
+FAST = ['document', 'self_contained_format', 'direct_stream', 'clean_content', 'artifacts', 'cli', 'bootstrap_boundaries', 'guide_images']
 CONTENT = ['clean_content', 'practical_course', 'advanced_state', 'advanced_course',
            'teaching_boundaries', 'history_segments', 'move_packing', 'anthology_schema', 'piece_glyphs']
 AREAS = {'source': ['source', 'anthology'], 'rules': ['rules'],
-         'content': CONTENT, 'carrier': ['bootstrap_clarity', 'direct_stream'],
+         'content': CONTENT, 'carrier': ['bootstrap_clarity', 'bootstrap_boundaries', 'direct_stream', 'guide_images'],
          'player': ['document'], 'artifacts': ['artifacts']}
 JS = ['tests/'+name+'.test.mjs' for name in ('player','passive','catalog','catalog-relay')]
 

@@ -33,6 +33,13 @@ def render(output: Path):
         name = f'bootstrap-{group * 8 + 1:02d}-{group * 8 + 8:02d}.png'
         write_binary_png(output / name, width, height, canvas, scale=4)
 
+    # README crops show the same exact cells, without guide margins.
+    full = bytes((byte >> bit) & 1 for byte in artifact[:32768] for bit in range(7,-1,-1))
+    first = b''.join(full[row*2048:row*2048+256] for row in range(64))
+    fragment = b''.join(full[row*2048:row*2048+512] for row in range(128))
+    write_binary_png(output/'bootstrap-first-frames.png',256,64,first,scale=2)
+    write_binary_png(output/'golden-board-fragment.png',512,128,fragment)
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

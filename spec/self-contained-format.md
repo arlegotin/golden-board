@@ -1,8 +1,7 @@
 # Current message grammar
 
-Engineering revision7 (final bootstrap layout), 2026-11-14. Revision numbers are external development
-metadata; none is carried in the square. Supersedes current-use wire5/document1
-headers only. Historical specifications, vectors, candidates and claims remain.
+Engineering revision8 (bounded bootstrap layout), 2026-11-14. Revision numbers are external development
+metadata; none is carried in the square.
 
 The square is2048×2048binary cells, MSB-first packed row-major into524288bytes.
 The32panels64×64 occupy rows0–63. Payload starts at packed offset16384; exactly
@@ -33,27 +32,27 @@ types, dimensions, padding, references and bounds remain strict. No format
 autodetection, hidden chess logic or guessed missing data.
 
 [Current326Bminiature](vectors/current-mini.hex) uses three2×3glyphs: blank000/000,
-pattern110/101 and contrast001/010. All non-glyph miniature records are unchanged.
-The [pre-clarity miniature](vectors/pre-clarity-mini.hex) remains a named
-historical fixture; it is not the miniature drawn in the final bootstrap.
+pattern110/101 and contrast001/010.
 The section is336B; its
 inventory section28B; concatenation364B. All three miniature glyphs are used.
 Section/inventory/header/CRC-scope drawings use these actual bytes. Panel7 carries
 only four quantities: side2048, start64, eight bits/byte and actual usedbytes,
-atx14 with16/16/16/32bit widths. The oldx8reader does not transfer. Glyph0/1are
+with16/16/16/32bit widths and a common right end at column47. Their starts are
+32/32/32/16; every field has explicit bounds. Panels11/13group XOR operands above
+their results; panel13aligns four output bytes with its four result bands.
+Panel18uses references6→[],7→[],8→[6],9→[7,8]. Single-bit fields, including
+panel14verdicts, use the same five-cell-square enclosure. Glyph0/1are
 defined together in22, assembled in23, updated in24; pages/outcomes/actions and
-passive routes occupy25–28. No payload-body or document/section grammar change
-accompanies this engineering revision.
+passive routes occupy25–28.
 
 Complete product pruning removes only glyph definitions unused by any frame or
 trace update in their local document. Numeric table values are not glyph refs.
-Visible glyph masks and all surviving IDs remain exact. Document5 table841 was
-an extra SHA fingerprint; its sole trace846 reference is removed too. CRC and
+Visible glyph masks and all surviving IDs remain exact. Authoring removes the
+extra SHA fingerprint table 841 from document 5 and its trace 846 reference. CRC and
 inventory integrity stay. Games directory columns, move/playback/schema tables,
 source proofs, response fields and semantic zero values remain.
 
-Historical input conversion is allowed only at two SHA-pinned authoring imports;
-it is not recipient reconstruction. Exact historical codec source is retained in
-`inputs/qualified/` for old qualification guards; current readers get
-new native parity and raw-recipient evidence. Developer revisions remain in
-reports/manifests so old candidates can be reproduced without carried labels.
+Input conversion is restricted to two SHA-pinned authoring imports, separate from
+recipient reconstruction. Exact codec-source bytes in `inputs/qualified/` bind
+their qualification checks. Native checks validate current readers and document
+identities. Developer revision labels occur only in reports and manifests.

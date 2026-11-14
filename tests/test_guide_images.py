@@ -65,16 +65,37 @@ class GuideImageTests(unittest.TestCase):
             self.assertEqual((out/'bootstrap-strip.png').read_bytes(),
                              (ROOT/'docs/guide/images/bootstrap-clarity/bootstrap-strip.png').read_bytes())
 
+    def test_readme_crops_preserve_every_current_artifact_cell(self):
+        artifact = (ROOT/'artifacts/GOLDEN-BOARD.bin').read_bytes()
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)/'views'
+            run = self.generate(out)
+            self.assertEqual(run.returncode,0,run.stderr)
+            for name,cols,rows,scale in (('bootstrap-first-frames.png',256,64,2),
+                                         ('golden-board-fragment.png',512,128,1)):
+                width,height,actual = pixels(out/name)
+                self.assertEqual((width,height),(cols*scale,rows*scale))
+                for row in range(rows):
+                    packed = artifact[row*256:row*256+cols//8]
+                    expected = bytes((byte >> bit)&1 for byte in packed
+                                     for bit in range(7,-1,-1) for _ in range(scale))
+                    for dy in range(scale):
+                        start = (row*scale+dy)*width
+                        self.assertEqual(actual[start:start+width],expected)
+
     def test_checked_in_views_are_current_and_existing_outputs_refused(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)/'views'
             run = self.generate(out)
             self.assertEqual(run.returncode, 0, run.stderr)
             before = {p.name: p.read_bytes() for p in out.iterdir()}
-            self.assertEqual(len(before), 5)
+            self.assertEqual(len(before), 7)
             for name, data in before.items():
-                self.assertEqual(data, (ROOT/'docs/guide/images/bootstrap-clarity'/name).read_bytes())
+                target = ({'bootstrap-first-frames.png': ROOT/'assets/bootstrap_first_frames.png',
+                           'golden-board-fragment.png': ROOT/'assets/golden_board_fragment.png'}
+                          .get(name,ROOT/'docs/guide/images/bootstrap-clarity'/name))
+                self.assertEqual(data,target.read_bytes())
             self.assertNotEqual(self.generate(out).returncode, 0)
             self.assertEqual(before, {p.name: p.read_bytes() for p in out.iterdir()})
         self.assertEqual(hashlib.sha256((ROOT/'artifacts/GOLDEN-BOARD.bin').read_bytes()).hexdigest(),
-                         '0116be5b721d72b8aed5f67265b290a506c818354f9f297b0618768db996b479')
+                         'fa74e8dc303d84365cc5f7dbc5c88c3fe304d1441c0202802be6cccbafe130d2')
