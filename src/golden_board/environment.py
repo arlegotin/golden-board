@@ -99,5 +99,5 @@ def reference_smoke(root: Path) -> dict:
     if report['e4_fen'] != expected:
         raise ValueError(f'chess.js e4 smoke mismatch: {report["e4_fen"]}')
     report['node'] = version.stdout.strip()
-    report['scope'] = 'independent package smoke only; full source replay pending S4'
+    report['scope'] = 'Pinned chess.js package/API smoke; source qualification is checked separately.'
     return report

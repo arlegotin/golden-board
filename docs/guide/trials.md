@@ -46,11 +46,9 @@ Successful later investigations do not erase failed hypotheses or old scores.
 
 ## Historical raw reconstruction: what was actually checked
 
-These recipient results refer to the bootstrap observations used in those
-investigations. The current bounded-field revision preserves every document and
-payload byte while changing bootstrap drawings. Its construction, extraction and
-image checks are native verification; no recipient trial extends the historical
-results to the revised drawings.
+Recipient results refer to their recorded observations. The current bootstrap's
+construction, extraction and image checks are native verification; they do not
+establish recipient comprehension.
 
 The p0048 reconstruction used an unchanged submitted decoder in fresh
 default-deny OS sandboxes,
