@@ -78,7 +78,7 @@ Each step builds on the previous one, until the message can explain the rules of
 
 ## How I Tested It
 
-I tested Golden Board through a series of detailed trials, using LLMs as a stand-in for an unknown recipient and carefully checking each part of the message separately.
+I tested Golden Board through a series of detailed trials (54 to be precise), using LLMs as a stand-in for an unknown recipient and carefully checking each part of the message separately.
 
 Some raw reconstruction trials began with fresh ChatGPT chats receiving raw bits, without being told they contained chess. Other checks used decoded content, continued context or source/template assistance. The trials tested decoding, interpretation and new applications under these different conditions.
 
@@ -89,7 +89,7 @@ I checked both their decoding and their answers, looking for evidence that they 
 
 ## What’s Inside
 
-If you really would like to understand how the Golden Board is read and decoded, I encourage you to read [this illustrated guide](https://artemlegotin.com/golden-board).
+If you really want to understand how the Golden Board is read and decoded, I encourage you to read [this illustrated guide](https://artemlegotin.com/golden-board).
 
 Golden Board begins with a chess-agnostic bootstrap: a visual guide of 32 frames that starts with counting and simple patterns, then teaches the recipient how to turn raw zeros and ones into meaningful information and read the rest of the message.
 
