@@ -54,8 +54,7 @@ result against the frozen release. Its report deliberately remains native and
 `release_ready:false`: automated generation does not reperform recipient trials.
 It never overwrites the canonical set.
 
-The separately identified [field-boundary candidate](bootstrap-candidate.md) uses
-the same pipeline with an explicit drawing profile:
+Use an explicit drawing profile to build and inspect the alternate bootstrap:
 
 ```sh
 ./gb build --bootstrap field-boundaries --output build/bounded-candidate
@@ -64,10 +63,9 @@ python3.14 tools/render-guide-images.py --bootstrap field-boundaries \
   --output build/bounded-candidate-images
 ```
 
-This candidate preserves the complete payload while changing selected bootstrap
-panels. The renderer checks the explicit profile and frozen payload before writing
-exact-cell sheets and canonical/candidate comparisons. Default construction and
-canonical reproduction retain the frozen layout. No recipient trial is launched.
+This profile changes bootstrap panels while preserving the payload. The renderer
+checks the profile and payload before generating comparisons. Both commands require
+fresh output directories; canonical reproduction retains its default layout.
 
 Qualified foundation/anthology/source derivatives are required retained inputs,
 listed in [architecture](architecture.md). A reproduction from them is not a claim
