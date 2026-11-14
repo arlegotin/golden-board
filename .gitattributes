@@ -1,0 +1,9 @@
+# Immutable artifacts, locked inputs and historical source pins use exact bytes.
+* -text
+*.png binary
+*.bin binary
+*.gz binary
+*.tgz binary
+*.whl binary
+# Upstream notices are retained verbatim, including their original whitespace.
+licenses/** -whitespace

@@ -1,0 +1,93 @@
+{
+  "scope": "Current automated conformance, original-source checks and deterministic reproduction. Historical model demonstrations are summarized separately.",
+  "result": "passed",
+  "host": {
+    "python": "Python 3.14.6",
+    "node": "v22.14.0"
+  },
+  "checks": {
+    "integration": {
+      "command": "./gb check integration",
+      "python_tests": 144,
+      "python_failures": 0,
+      "python_errors": 0,
+      "javascript_tests": 14,
+      "javascript_failures": 0,
+      "reference_package_smoke": {
+        "passed": true,
+        "e4_fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"
+      }
+    },
+    "source": {
+      "command": "./gb check focused source",
+      "python_tests": 18,
+      "qualified": true,
+      "records": 64,
+      "plies_compared": 6890,
+      "literal_playback_states": 6954
+    },
+    "artifacts": {
+      "command": "./gb verify --transforms",
+      "clean_presentations": 16
+    },
+    "reproduction": {
+      "command": "./gb reproduce --output build/qualified-final",
+      "exact_forms": [
+        "bin",
+        "txt",
+        "png"
+      ],
+      "exact_document_bodies": 5
+    }
+  },
+  "canonical_forms": {
+    "bin": {
+      "bytes": 524288,
+      "sha256": "0116be5b721d72b8aed5f67265b290a506c818354f9f297b0618768db996b479",
+      "path": "GOLDEN-BOARD.bin"
+    },
+    "txt": {
+      "bytes": 4194305,
+      "sha256": "56132c1a92ddc29d10e0dd530a731485e1af4b35e5fe45996aa83edf64aa270f",
+      "path": "GOLDEN-BOARD.txt"
+    },
+    "png": {
+      "bytes": 126525,
+      "sha256": "2d2cc7c390d96e9174cedb9e1598ba1853369da5f22be10a424bc885a3f1ef57",
+      "path": "GOLDEN-BOARD.png"
+    }
+  },
+  "documents": {
+    "1": {
+      "bytes": 13245,
+      "sha256": "7daf1b687c18826243ae21772debb863056fa02cda285037ce20cfddac401f4a"
+    },
+    "2": {
+      "bytes": 93017,
+      "sha256": "2cfaf5ab439a840be07a52885e37af9fc04ea141877a658495ce31197d1178fd"
+    },
+    "3": {
+      "bytes": 35296,
+      "sha256": "dbef46b9c9032161962a8434e81e327f6e3e30b824cd37b107c83d001bf7615b"
+    },
+    "4": {
+      "bytes": 195452,
+      "sha256": "7de2e936af0488a140aa60232e97378e859d529a35f744239d305d4571bb79e4"
+    },
+    "5": {
+      "bytes": 169171,
+      "sha256": "333088321041d1b23235c6e7d9ee2d52d9e5b4667fe9cb3a06226a7d4b7f8cab"
+    }
+  },
+  "content": {
+    "side": 2048,
+    "cells": 4194304,
+    "obligations": 146,
+    "games": 64,
+    "plies": 6890,
+    "anthology_states": 6954,
+    "payload_bytes": 506509,
+    "reserve_bytes": 1395
+  },
+  "historical_limits": "Finite, prior-informed, source/own-work/template-assisted model demonstrations; original model/mode and complete outer history partly unverified; no causal or human learning claim."
+}

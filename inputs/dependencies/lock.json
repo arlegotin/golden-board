@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "filename": "chess-1.11.2.tar.gz",
+      "url": "https://files.pythonhosted.org/packages/93/09/7d04d7581ae3bb8b598017941781bceb7959dd1b13e3ebf7b6a2cd843bc9/chess-1.11.2.tar.gz",
+      "metadata_url": "https://pypi.org/pypi/chess/1.11.2/json",
+      "publisher_hash": {
+        "algorithm": "sha256",
+        "hex": "a8b43e5678fdb3000695bdaa573117ad683761e5ca38e591c4826eba6d25bb39"
+      },
+      "sha256": "a8b43e5678fdb3000695bdaa573117ad683761e5ca38e591c4826eba6d25bb39",
+      "bytes": 6131385
+    },
+    {
+      "filename": "setuptools-80.9.0-py3-none-any.whl",
+      "url": "https://files.pythonhosted.org/packages/a3/dc/17031897dae0efacfea57dfd3a82fdd2a2aeb58e0ff71b77b87e44edc772/setuptools-80.9.0-py3-none-any.whl",
+      "metadata_url": "https://pypi.org/pypi/setuptools/80.9.0/json",
+      "publisher_hash": {
+        "algorithm": "sha256",
+        "hex": "062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922"
+      },
+      "sha256": "062d34222ad13e0cc312a4c02d73f059e86a4acbfbdea8f8f76b28c99f306922",
+      "bytes": 1201486
+    },
+    {
+      "filename": "chess.js-1.4.0.tgz",
+      "url": "https://registry.npmjs.org/chess.js/-/chess.js-1.4.0.tgz",
+      "metadata_url": "https://registry.npmjs.org/chess.js/1.4.0",
+      "publisher_hash": {
+        "algorithm": "sha512",
+        "hex": "041260aebb4a40ecc52e89d1d25fa4eb803df0d2de98fc0db02b24c1bfb6f5b470a1b51ae224e6e7513593018f6d65c071f7436b5f2769deafa4f3ca3d66abab"
+      },
+      "sha256": "dce92e280439d7a16f645be94f22e6da50e579a1f3011d0a2381755bfe2c2ef7",
+      "bytes": 150018
+    }
+  ]
+}

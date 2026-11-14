@@ -1,0 +1,25 @@
+{
+  "scope": "Frozen historical presentation dependencies. Original receipt keys are preserved; these sources are identity evidence, never imported as runtime.",
+  "files": {
+    "src/golden_board/document.py": {
+      "path": "presentation/document-v1.py",
+      "sha256": "e29a1a1ff102e3bb8b5537c748c75078fa3c6a2f1325082ec0bb90565a581930"
+    },
+    "viewer/player.mjs": {
+      "path": "presentation/player-v1.mjs",
+      "sha256": "7daae7d539b15c5941b82c0edde1332cf23f26ca3e72561876067dc669065cf6"
+    },
+    "src/golden_board/authoring.py": {
+      "path": "presentation/authoring.py",
+      "sha256": "3bb143c06e1deb0a093ee8d913dd5c1627cc83e4ad9c52662e4f2a2b652a9fcd"
+    },
+    "src/golden_board/anthology_playback.py": {
+      "path": "presentation/anthology_playback.py",
+      "sha256": "3f4b9a506a0175d810d9ab80612757e75e37e9584859dd15390986d1f7e17a49"
+    },
+    "src/golden_board/shared_anthology.py": {
+      "path": "presentation/shared_anthology.py",
+      "sha256": "0de9fbdc4bfd9b93294d316aed70d0e30ee261c395bf2afe8b05d4613cccd469"
+    }
+  }
+}

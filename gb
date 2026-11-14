@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+"""Run local authoring commands with the project environment when available."""
+import os
+from pathlib import Path
+import sys
+
+root = Path(__file__).resolve().parent
+python = root / '.venv/bin/python'
+if python.is_file() and Path(sys.prefix) != root / '.venv':
+    os.execv(str(python), [str(python), str(Path(__file__).resolve()), *sys.argv[1:]])
+sys.path.insert(0, str(root / 'src'))
+from golden_board.cli import main
+
+raise SystemExit(main())

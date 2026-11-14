@@ -1,0 +1,1187 @@
+# Teaching coverage inventory; emitted bindings are verified by the builder.
+blueprint_version = 2
+authority = "docs/roadmap.md"
+predicate_catalog = "spec/predicates.md"
+binding_state = "carried_complete_native"
+binding_rule = "The builder checks every critical stratum against the emitted document, actual truth, finite feedback and complete passive route."
+
+[[family]]
+id = "T0"
+outcome = "Generic representation and navigation"
+status = "authored"
+prerequisites = []
+predicates = ["G1", "G2", "G3", "G4"]
+critical_strata = ["count_equality_order", "ordered_sequence_vs_set", "matrix_rows_columns_addresses", "value_count_address_role_separation", "before_after_and_partial_update", "record_length_boundary_and_reference", "select_commit_reset_retry", "empty_commit_vs_no_submission"]
+rival_prediction = "Position/proximity supplies the association; selecting commits; a patch replaces the whole frame."
+heldout_generation = "New nonchess matrices/records and independently varied field roles, response modes."
+required_intermediates = ["glyph_role_bindings", "field_and_record_spans", "complete_intermediate_frames", "action_and_commit_log"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T1"
+outcome = "Board, sides, identity, setup and turn"
+status = "authored"
+prerequisites = ["T0"]
+predicates = ["G1", "C1"]
+critical_strata = ["eight_by_eight_orientation", "stable_unfamiliar_piece_and_side_glyphs", "empty_vs_occupied", "standard_setup_all_six_types_both_sides", "first_side_and_alternation", "turn_not_query_mode"]
+rival_prediction = "Familiar symbols or arbitrary color identify turn/mode; a rotated frame swaps roles."
+heldout_generation = "New legal prefixes and orientations with unchanged actual glyph mapping; vary query role separately from turn."
+required_intermediates = ["actual_glyph_masks", "role_mapping", "board_orientation", "source_and_turn_fields"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T2"
+outcome = "All six movement and capture families"
+status = "authored"
+prerequisites = ["T1"]
+predicates = ["G1", "C2", "C3"]
+critical_strata = ["king_step_and_boundary", "queen_ray_and_block", "rook_ray_and_block", "bishop_ray_and_block", "knight_jump_and_boundary", "pawn_forward_not_capture", "pawn_diagonal_capture_not_forward", "pawn_initial_double_clear_path", "pawn_double_blocked_or_moved", "friendly_occupancy_vs_defense", "ordinary_capture_removal", "both_sides_pawn_directions"]
+rival_prediction = "Controlled means movable; friendly targets can be captured; pawn moves like it captures; knight is blocked by intervening pieces."
+heldout_generation = "Structurally different legal positions, both sides/edge cells, new blocker placements and occupied/friendly/empty target contrasts."
+required_intermediates = ["origin_piece_role", "complete_candidate_domain", "legal_move_or_control_set", "before_after_occupancy"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T3"
+outcome = "Control, check and legal movement"
+status = "authored"
+prerequisites = ["T2"]
+predicates = ["G1", "C2", "C3", "R1", "R2"]
+critical_strata = ["pinned_controller_still_controls", "geometric_move_exposes_own_king", "king_capture_opens_slider_line", "pawn_king_friendly_defense_control", "complete_check_evasions_king_capture_block", "no_king_capture_as_game_end"]
+rival_prediction = "Every controlled target is a legal destination; only king moves answer check; captured defender remains in safety overlay."
+heldout_generation = "New absolute pin rays, opposite-side controllers and king-capture line openings; nonking capture/block evasions."
+required_intermediates = ["mode_query_binding", "complete_control_and_legal_sets", "fully_updated_capture_occupancy", "all_evasions_and_excluded_candidates"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T4"
+outcome = "Checkmate and stalemate"
+status = "authored"
+prerequisites = ["T3"]
+predicates = ["G1", "C2", "C3", "C4"]
+critical_strata = ["no_moves_with_check_mate", "no_moves_without_check_stalemate", "check_with_evasion_not_mate", "matched_check_status_contrast", "all_relevant_replies", "post_terminal_rejection"]
+rival_prediction = "No move always means mate; check means mate; a concluded score proves a board ending."
+heldout_generation = "New legal histories ending in matched terminal/nonterminal states with different escape/block/capture geometry."
+required_intermediates = ["coherent_replay_origin", "check_status", "complete_legal_reply_set", "closure_score", "rejected_postgame_state"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T5"
+outcome = "Castling"
+status = "authored"
+prerequisites = ["T3"]
+predicates = ["G1", "C1", "C2", "C3"]
+critical_strata = ["first_short", "first_long", "second_short", "second_long", "king_moved_then_returned", "rook_moved_then_returned", "rook_captured_right_lost", "promoted_replacement_no_right_restore", "king_rook_path_empty_including_b_file", "origin_attacked", "transit_attacked_after_king_vacates", "destination_attacked_after_both_move", "attacked_rook_or_b_file_allowed", "correct_rook_update"]
+rival_prediction = "Only the destination matters; rook attack forbids castle; king/rook returning or a replacement rook restores rights; b-file occupation is irrelevant."
+heldout_generation = "New coherent histories with rights changes and different rays on each king-path square; both colors/flanks."
+required_intermediates = ["rights_from_history", "origin_transit_destination_occupancies", "attack_sources", "king_and_rook_updates"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T6"
+outcome = "En passant"
+status = "authored"
+prerequisites = ["T3"]
+predicates = ["G1", "C1", "C2", "C3"]
+critical_strata = ["immediate_double_move_opportunity", "declined_opportunity_expires", "captured_pawn_removed_off_destination", "self_check_discovered_line_reject", "both_sides_direction", "same_occupancy_different_timing"]
+rival_prediction = "Adjacent pawns always allow EP; captured pawn stays; a pseudo-legal EP target proves legality."
+heldout_generation = "New double-pawn histories, off-destination removal, declined opportunity and different discovered self-check rays."
+required_intermediates = ["last_move_history", "candidate_and_captured_cells", "complete_after_occupancy", "king_line_before_after"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T7"
+outcome = "Promotion"
+status = "authored"
+prerequisites = ["T3"]
+predicates = ["G1", "C1", "C2", "C3"]
+critical_strata = ["first_queen", "first_rook", "first_bishop", "first_knight", "second_queen", "second_rook", "second_bishop", "second_knight", "explicit_mandatory_choice", "capture_promotion", "immediate_new_piece_control", "missing_or_invalid_choice_reject"]
+rival_prediction = "Destination specifies promotion; default queen is implicit; pawn persists for one turn; all new-piece effects are the same."
+heldout_generation = "New legal promotion prefixes/targets and explicit underpromotion effect contrasts in both sides."
+required_intermediates = ["promotion_field_binding", "origin_destination_choice_tuple", "captured_piece_and_new_type", "immediate_control_or_legal_effect"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T8"
+outcome = "Position versus history"
+status = "authored"
+prerequisites = ["T5", "T6"]
+predicates = ["G1", "C1", "C5"]
+critical_strata = ["same_board_different_side", "same_board_lost_rights", "legal_ep_key_difference", "unusable_ep_ignored", "pinned_ep_ignored", "initial_occurrence_one", "current_key_count_not_elapsed_plies", "coherent_occupancy_clock_and_history"]
+rival_prediction = "Same occupancy means same repetition state; any FEN EP target counts; clocks or elapsed moves count repetitions."
+heldout_generation = "New coherent paired histories differing only in relevant rights/side/legalEP/current recurrence; vary irrelevant clocks separately."
+required_intermediates = ["full_legal_prefix", "typed_repetition_key", "legal_EP_witness_or_rejection", "occurrence_indices_and_current_count"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T9"
+outcome = "Practical endings and scores"
+status = "authored"
+prerequisites = ["T4", "T8"]
+predicates = ["G1", "C1", "C4", "C5", "C6"]
+critical_strata = ["current_third_occurrence_not_prospective", "halfmoves99_100", "pawn_and_capture_reset", "eligibility_not_automatic_closure", "excluded_fivefold_75move", "claimant_side_and_active_state", "resignation_either_side", "agreement_two_consents_after_both_move", "invalid_declarations_atomic", "KK_KBK_KNK_both_colors", "other_material_outside_profile", "mate_stalemate_dead_closure_priority", "recorded_score_unspecified_cause", "scope_exclusions"]
+rival_prediction = "Opportunity ends the record automatically; either side may claim; one consent suffices; any low material is not-dead/dead; a win proves mate."
+heldout_generation = "New histories at thresholds and in-check opportunities, new invalid actor/consent contrasts and unclassified material diagrams."
+required_intermediates = ["current_counts_and_clock_resets", "claim_or_consent_actor", "accepted_event_vs_eligibility", "closure_outcome_and_unchanged_rejections", "record_score_without_cause"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T10"
+outcome = "Move and game reading"
+status = "authored"
+prerequisites = ["T0", "T1", "T7", "T9"]
+predicates = ["G1", "G3", "C7"]
+critical_strata = ["origin_destination_and_explicit_promotion", "record_order_and_length_boundary", "standard_start_full_replay", "every_intermediate_turn_and_board", "minimal_score_no_cause", "partial_prefix_not_complete_game"]
+rival_prediction = "Recognized anthology supplies omitted moves; update replaces board; correct final board excuses an earlier error; readable prefix is complete."
+heldout_generation = "New canonical-format records outside training/anthology recognition, including promotion/special effects and incomplete dependency contrast."
+required_intermediates = ["actual_recovered_document_hash", "raw_record_spans_and_move_table", "every_ply_frame", "score_field"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T11"
+outcome = "Exact tactical relations"
+status = "authored"
+prerequisites = ["T3"]
+predicates = ["G1", "C2", "C3", "R1", "R2", "R3", "R4"]
+critical_strata = ["attacked_enemy_vs_defended_friendly", "absolute_pin_vs_relative_line", "pinned_piece_can_move_along_ray", "one_piece_geometric_fork_distinct_targets", "fork_not_guaranteed_profitable_or_legal_capture", "discovered_attack_stationary_slider", "discovered_check_vs_direct_check", "escape_square_safety_with_capture_occupancy"]
+rival_prediction = "A pin forbids every move; two attackers on one target are a fork; any new attack is discovered; defended targets make all captures legal."
+heldout_generation = "Different rays/piece roles/side, defended/pinned fork counterexamples, new legal discovered attacks and king escape captures."
+required_intermediates = ["attacker_target_piece_pairs", "king_blocker_pinner_ray", "complete_fork_target_set", "before_after_discovered_ray", "legal_escape_or_refutation"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T12"
+outcome = "Exact pawn and file relations"
+status = "authored"
+prerequisites = ["T4", "T7"]
+predicates = ["G1", "C4", "R5", "F1"]
+critical_strata = ["passed_no_enemy_same_or_adjacent_file_ahead", "edge_file_passed", "same_rank_not_ahead", "own_pawn_and_nonpawn_do_not_change_predicate", "open_no_pawns", "semiopen_side_specific_excludes_open", "finite_scheduled_promotion_race", "tempo_capture_king_interference_scope", "first_promotion_not_forced_win"]
+rival_prediction = "Passed means no blocker immediately ahead; open means no pieces; one promotion proves a game win; king alternatives may be silently ignored."
+heldout_generation = "New pawn placements/files/both sides and schedule variations; relevant king/capture alternative as explicit limitation contrast."
+required_intermediates = ["pawn_coordinates_and_forward_direction", "opposing_pawn_exclusions", "file_pawn_inventory", "complete_shown_schedule", "first_promotion_event_and_limited_scope"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T13"
+outcome = "Elementary mating geometry"
+status = "authored"
+prerequisites = ["T4", "T9", "T11"]
+predicates = ["G1", "C2", "C3", "C4", "C5", "C6", "F1", "F2"]
+critical_strata = ["KQK_legal_worked_sequence", "KRK_legal_worked_sequence", "king_coordination_and_escape_control", "avoid_stalemate", "at_least_one_assessed_complete_reply_family", "all_defender_moves_and_current_draw_claims", "terminal_mate_leaves_for_forced_claim", "cooperative_path_not_forced_proof"]
+rival_prediction = "One cooperative line proves force; queen/rook alone supplies every safe king step; any no-move leaf is mate."
+heldout_generation = "Structurally new positions in the chosen bounded mating family; alternative legal replies and stalemate/active-leaf contrasts."
+required_intermediates = ["coherent_prefix", "all_relevant_reply_sets", "king_and_major_piece_occupancy", "escape_control", "finite_tree_and_terminal_leaf_outcomes"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T14"
+outcome = "Limited strategic guidance"
+status = "authored"
+prerequisites = ["T2", "T11", "T12"]
+predicates = ["G1", "C1", "C2", "C3", "R5", "R6", "R7", "F1"]
+critical_strata = ["material_inventory", "rough_scale1_3_3_5_9_not_advantage", "minor_development_observable_departures", "center_occupancy_control", "king_safety_facts_and_limits", "activity_geometric_vs_legal_count", "open_lines", "restriction_observable_changes", "pawn_ideas", "legal_alternative_not_automatically_bad", "shown_finite_comparison_only"]
+rival_prediction = "Higher material/mobility guarantees advantage; development or centralization chooses one best move; another legal alternative is wrong."
+heldout_generation = "New fact comparisons, material-leading side under mate threat, and explicit finite alternatives where the heuristic alone is insufficient."
+required_intermediates = ["typed_piece_inventory", "declared_scale", "observable_before_after_facts", "scope_or_limitation_binding", "complete_exposed_accepted_alternatives"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T15"
+outcome = "Practical move-check routine"
+status = "authored"
+prerequisites = ["T9", "T11", "T14"]
+predicates = ["G1", "C1", "C2", "C3", "C4", "C5", "C6", "R1", "R7", "F1"]
+critical_strata = ["active_state_and_side", "king_safety_and_current_claims", "complete_legal_choices", "inspect_checks_captures_one_move_effects", "compare_only_shown_finite_continuations", "finite_authored_responses_no_opponent_engine", "closure_and_postgame_rejection"]
+rival_prediction = "Routine picks a best move or generates an opponent; geometric move or current draw opportunity bypasses active/side checks."
+heldout_generation = "New finite integrated scenario with a special effect, legal evasion/choice and an explicit ending/declaration contrast."
+required_intermediates = ["ordered_check_routine", "legal_choice_and_one_move_effects", "explicit_finite_branches", "claim_or_closure_state", "invalid_action_unchanged_state"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[family]]
+id = "T16"
+outcome = "Anthology exploration"
+status = "authored"
+prerequisites = ["T10", "T15"]
+predicates = ["G1", "G4", "C7"]
+critical_strata = ["all_selected_game_ordinals_reachable", "every_ply_and_minimal_score_reachable", "canonical_order_not_historical_metadata", "seek_backward_forward_equivalence", "no_descriptions_evaluations_or_inferred_cause"]
+rival_prediction = "Ordinal implies chronology/quality; explorer may fill missing moves or add analysis; reachable first frames prove complete navigation."
+heldout_generation = "New seek sequences across all selected games with boundary/reverse seek; metadata noninterference."
+required_intermediates = ["actual_recovered_collection_identity", "complete_ordinal_ply_inventory", "seek_action_frames", "score_binding"]
+authoring_obligations = ["worked", "prediction_or_completion", "discriminating_contrast", "finite_practice_exact_feedback", "complete_passive_route"]
+assessment_obligations = ["positive", "negative_or_counterfactual", "structurally_new_transfer", "artifact_binding", "material_rival", "separate_predicate_per_stratum"]
+
+[[authored_stratum]]
+family = "T0"
+stratum = "count_equality_order"
+state = "authored"
+section = 1
+document_sha256 = "a66e82231a2201327996f521068a286cd7bf4e7719a0e303c2d321c2e1688b4e"
+bindings_file = "evidence/clean-migration/content/generic/bindings.json"
+bindings_key = "count_equality_order"
+query_keys = ["grouped-calibration/count", "grouped-calibration/equal", "finite-data/count", "finite-data/equal", "finite-data/order"]
+truth_file = "evidence/clean-migration/content/generic/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T0"
+stratum = "ordered_sequence_vs_set"
+state = "authored"
+section = 1
+document_sha256 = "a66e82231a2201327996f521068a286cd7bf4e7719a0e303c2d321c2e1688b4e"
+bindings_file = "evidence/clean-migration/content/generic/bindings.json"
+bindings_key = "ordered_sequence_vs_set"
+query_keys = ["set-toggle/set-toggle", "ordered-repeat/ordered-repeat"]
+truth_file = "evidence/clean-migration/content/generic/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T0"
+stratum = "matrix_rows_columns_addresses"
+state = "authored"
+section = 1
+document_sha256 = "a66e82231a2201327996f521068a286cd7bf4e7719a0e303c2d321c2e1688b4e"
+bindings_file = "evidence/clean-migration/content/generic/bindings.json"
+bindings_key = "matrix_rows_columns_addresses"
+query_keys = ["finite-data/row", "finite-data/column", "finite-data/address"]
+truth_file = "evidence/clean-migration/content/generic/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T0"
+stratum = "value_count_address_role_separation"
+state = "authored"
+section = 1
+document_sha256 = "a66e82231a2201327996f521068a286cd7bf4e7719a0e303c2d321c2e1688b4e"
+bindings_file = "evidence/clean-migration/content/generic/bindings.json"
+bindings_key = "value_count_address_role_separation"
+query_keys = ["finite-data/roles"]
+truth_file = "evidence/clean-migration/content/generic/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T0"
+stratum = "before_after_and_partial_update"
+state = "authored"
+section = 1
+document_sha256 = "a66e82231a2201327996f521068a286cd7bf4e7719a0e303c2d321c2e1688b4e"
+bindings_file = "evidence/clean-migration/content/generic/bindings.json"
+bindings_key = "before_after_and_partial_update"
+query_keys = ["updates-records/updates"]
+truth_file = "evidence/clean-migration/content/generic/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T0"
+stratum = "record_length_boundary_and_reference"
+state = "authored"
+section = 1
+document_sha256 = "a66e82231a2201327996f521068a286cd7bf4e7719a0e303c2d321c2e1688b4e"
+bindings_file = "evidence/clean-migration/content/generic/bindings.json"
+bindings_key = "record_length_boundary_and_reference"
+query_keys = ["updates-records/records"]
+truth_file = "evidence/clean-migration/content/generic/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T0"
+stratum = "select_commit_reset_retry"
+state = "authored"
+section = 1
+document_sha256 = "a66e82231a2201327996f521068a286cd7bf4e7719a0e303c2d321c2e1688b4e"
+bindings_file = "evidence/clean-migration/content/generic/bindings.json"
+bindings_key = "select_commit_reset_retry"
+query_keys = ["single-replace/single-replace", "set-toggle/set-toggle", "ordered-repeat/ordered-repeat", "empty-commit/empty-commit"]
+truth_file = "evidence/clean-migration/content/generic/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T0"
+stratum = "empty_commit_vs_no_submission"
+state = "authored"
+section = 1
+document_sha256 = "a66e82231a2201327996f521068a286cd7bf4e7719a0e303c2d321c2e1688b4e"
+bindings_file = "evidence/clean-migration/content/generic/bindings.json"
+bindings_key = "empty_commit_vs_no_submission"
+query_keys = ["empty-commit/empty-commit"]
+truth_file = "evidence/clean-migration/content/generic/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T1"
+stratum = "eight_by_eight_orientation"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "eight_by_eight_orientation"
+query_keys = ["board-identity-1/board-address"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T1"
+stratum = "stable_unfamiliar_piece_and_side_glyphs"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "stable_unfamiliar_piece_and_side_glyphs"
+query_keys = ["board-identity-1/identity-0-1", "board-identity-1/identity-0-2", "board-identity-1/identity-0-3", "board-identity-1/identity-0-4", "board-identity-1/identity-0-5", "board-identity-1/identity-0-6", "board-identity-1/identity-1-1", "board-identity-2/identity-1-2", "board-identity-2/identity-1-3", "board-identity-2/identity-1-4", "board-identity-2/identity-1-5", "board-identity-2/identity-1-6"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T1"
+stratum = "empty_vs_occupied"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "empty_vs_occupied"
+query_keys = ["board-identity-2/empty-and-occupied"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T1"
+stratum = "standard_setup_all_six_types_both_sides"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "standard_setup_all_six_types_both_sides"
+query_keys = ["board-identity-1/identity-0-1", "board-identity-1/identity-0-2", "board-identity-1/identity-0-3", "board-identity-1/identity-0-4", "board-identity-1/identity-0-5", "board-identity-1/identity-0-6", "board-identity-1/identity-1-1", "board-identity-2/identity-1-2", "board-identity-2/identity-1-3", "board-identity-2/identity-1-4", "board-identity-2/identity-1-5", "board-identity-2/identity-1-6"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T1"
+stratum = "first_side_and_alternation"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "first_side_and_alternation"
+query_keys = ["board-identity-2/turn-mode-8", "board-identity-2/turn-mode-9"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T1"
+stratum = "turn_not_query_mode"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "turn_not_query_mode"
+query_keys = ["board-identity-2/turn-mode-8", "board-identity-2/turn-mode-9"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T2"
+stratum = "king_step_and_boundary"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "king_step_and_boundary"
+query_keys = ["movement-1/king", "control-and-check/king-control"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T2"
+stratum = "queen_ray_and_block"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "queen_ray_and_block"
+query_keys = ["movement-1/queen"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T2"
+stratum = "rook_ray_and_block"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "rook_ray_and_block"
+query_keys = ["movement-1/rook"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T2"
+stratum = "bishop_ray_and_block"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "bishop_ray_and_block"
+query_keys = ["movement-1/bishop"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T2"
+stratum = "knight_jump_and_boundary"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "knight_jump_and_boundary"
+query_keys = ["movement-1/knight"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T2"
+stratum = "pawn_forward_not_capture"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "pawn_forward_not_capture"
+query_keys = ["movement-1/pawn-forward"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T2"
+stratum = "pawn_diagonal_capture_not_forward"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "pawn_diagonal_capture_not_forward"
+query_keys = ["movement-1/pawn-capture"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T2"
+stratum = "pawn_initial_double_clear_path"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "pawn_initial_double_clear_path"
+query_keys = ["movement-1/pawn-forward"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T2"
+stratum = "pawn_double_blocked_or_moved"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "pawn_double_blocked_or_moved"
+query_keys = ["movement-1/pawn-double-blocked", "movement-2/pawn-moved"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T2"
+stratum = "friendly_occupancy_vs_defense"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "friendly_occupancy_vs_defense"
+query_keys = ["movement-1/knight"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T2"
+stratum = "ordinary_capture_removal"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "ordinary_capture_removal"
+query_keys = ["movement-2/capture-removal"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T2"
+stratum = "both_sides_pawn_directions"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "both_sides_pawn_directions"
+query_keys = ["movement-1/pawn-forward", "movement-1/pawn-capture"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T3"
+stratum = "pinned_controller_still_controls"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "pinned_controller_still_controls"
+query_keys = ["control-and-check/pinned-control"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T3"
+stratum = "geometric_move_exposes_own_king"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "geometric_move_exposes_own_king"
+query_keys = ["control-and-check/pinned-control", "control-and-check/pinned-legality"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T3"
+stratum = "king_capture_opens_slider_line"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "king_capture_opens_slider_line"
+query_keys = ["control-and-check/capture-opens-line"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T3"
+stratum = "pawn_king_friendly_defense_control"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "pawn_king_friendly_defense_control"
+query_keys = ["control-and-check/pawn-control", "control-and-check/king-control"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T3"
+stratum = "complete_check_evasions_king_capture_block"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "complete_check_evasions_king_capture_block"
+query_keys = ["control-and-check/all-evasions"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T3"
+stratum = "no_king_capture_as_game_end"
+state = "authored"
+section = 3
+document_sha256 = "2c9a5b855362b173aba532e51e13a4f14aa410e4d128f255dad803404987208d"
+bindings_file = "evidence/clean-closure-repair/content/foundation/bindings.json"
+bindings_key = "no_king_capture_as_game_end"
+query_keys = ["control-and-check/king-retention", "control-and-check/prior-closure"]
+truth_file = "evidence/clean-closure-repair/content/foundation/truth.json"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T11"
+stratum = "attacked_enemy_vs_defended_friendly"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "attacked_enemy_vs_defended_friendly"
+query_keys = ["T11-1/attacked_enemy_vs_defended_friendly"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T11"
+stratum = "absolute_pin_vs_relative_line"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "absolute_pin_vs_relative_line"
+query_keys = ["T11-1/absolute_pin_vs_relative_line"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T11"
+stratum = "pinned_piece_can_move_along_ray"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "pinned_piece_can_move_along_ray"
+query_keys = ["T11-1/pinned_piece_can_move_along_ray"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T11"
+stratum = "one_piece_geometric_fork_distinct_targets"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "one_piece_geometric_fork_distinct_targets"
+query_keys = ["T11-1/one_piece_geometric_fork_distinct_targets"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T11"
+stratum = "fork_not_guaranteed_profitable_or_legal_capture"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "fork_not_guaranteed_profitable_or_legal_capture"
+query_keys = ["T11-1/fork_not_guaranteed_profitable_or_legal_capture"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T11"
+stratum = "discovered_attack_stationary_slider"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "discovered_attack_stationary_slider"
+query_keys = ["T11-1/discovered_attack_stationary_slider"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T11"
+stratum = "discovered_check_vs_direct_check"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "discovered_check_vs_direct_check"
+query_keys = ["T11-1/discovered_check_vs_direct_check"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T11"
+stratum = "escape_square_safety_with_capture_occupancy"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "escape_square_safety_with_capture_occupancy"
+query_keys = ["T11-1/escape_square_safety_with_capture_occupancy"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T12"
+stratum = "passed_no_enemy_same_or_adjacent_file_ahead"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "passed_no_enemy_same_or_adjacent_file_ahead"
+query_keys = ["T12-1/passed_no_enemy_same_or_adjacent_file_ahead"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T12"
+stratum = "edge_file_passed"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "edge_file_passed"
+query_keys = ["T12-1/edge_file_passed"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T12"
+stratum = "same_rank_not_ahead"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "same_rank_not_ahead"
+query_keys = ["T12-1/same_rank_not_ahead"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T12"
+stratum = "own_pawn_and_nonpawn_do_not_change_predicate"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "own_pawn_and_nonpawn_do_not_change_predicate"
+query_keys = ["T12-1/own_pawn_and_nonpawn_do_not_change_predicate"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T12"
+stratum = "open_no_pawns"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "open_no_pawns"
+query_keys = ["T12-1/open_no_pawns"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T12"
+stratum = "semiopen_side_specific_excludes_open"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "semiopen_side_specific_excludes_open"
+query_keys = ["T12-1/semiopen_side_specific_excludes_open"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T12"
+stratum = "finite_scheduled_promotion_race"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "finite_scheduled_promotion_race"
+query_keys = ["T12-1/finite_scheduled_promotion_race"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T12"
+stratum = "tempo_capture_king_interference_scope"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "tempo_capture_king_interference_scope"
+query_keys = ["T12-1/tempo_capture_king_interference_scope"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T12"
+stratum = "first_promotion_not_forced_win"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "first_promotion_not_forced_win"
+query_keys = ["T12-2/first_promotion_not_forced_win"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T13"
+stratum = "KQK_legal_worked_sequence"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "KQK_legal_worked_sequence"
+query_keys = ["T13-1/KQK_legal_worked_sequence"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T13"
+stratum = "KRK_legal_worked_sequence"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "KRK_legal_worked_sequence"
+query_keys = ["T13-1/KRK_legal_worked_sequence"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T13"
+stratum = "king_coordination_and_escape_control"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "king_coordination_and_escape_control"
+query_keys = ["T13-1/king_coordination_and_escape_control"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T13"
+stratum = "avoid_stalemate"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "avoid_stalemate"
+query_keys = ["T13-1/avoid_stalemate"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T13"
+stratum = "at_least_one_assessed_complete_reply_family"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "at_least_one_assessed_complete_reply_family"
+query_keys = ["T13-1/at_least_one_assessed_complete_reply_family"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T13"
+stratum = "all_defender_moves_and_current_draw_claims"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "all_defender_moves_and_current_draw_claims"
+query_keys = ["T13-1/all_defender_moves_and_current_draw_claims"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T13"
+stratum = "terminal_mate_leaves_for_forced_claim"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "terminal_mate_leaves_for_forced_claim"
+query_keys = ["T13-1/terminal_mate_leaves_for_forced_claim"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T13"
+stratum = "cooperative_path_not_forced_proof"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "cooperative_path_not_forced_proof"
+query_keys = ["T13-1/cooperative_path_not_forced_proof"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T14"
+stratum = "material_inventory"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "material_inventory"
+query_keys = ["T14-1/material_inventory"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T14"
+stratum = "rough_scale1_3_3_5_9_not_advantage"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "rough_scale1_3_3_5_9_not_advantage"
+query_keys = ["T14-1/rough_scale1_3_3_5_9_not_advantage"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T14"
+stratum = "minor_development_observable_departures"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "minor_development_observable_departures"
+query_keys = ["T14-1/minor_development_observable_departures"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T14"
+stratum = "center_occupancy_control"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "center_occupancy_control"
+query_keys = ["T14-1/center_occupancy_control"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T14"
+stratum = "king_safety_facts_and_limits"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "king_safety_facts_and_limits"
+query_keys = ["T14-1/king_safety_facts_and_limits"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T14"
+stratum = "activity_geometric_vs_legal_count"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "activity_geometric_vs_legal_count"
+query_keys = ["T14-1/activity_geometric_vs_legal_count"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T14"
+stratum = "open_lines"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "open_lines"
+query_keys = ["T14-1/open_lines"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T14"
+stratum = "restriction_observable_changes"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "restriction_observable_changes"
+query_keys = ["T14-1/restriction_observable_changes"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T14"
+stratum = "pawn_ideas"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "pawn_ideas"
+query_keys = ["T14-2/pawn_ideas"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T14"
+stratum = "legal_alternative_not_automatically_bad"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "legal_alternative_not_automatically_bad"
+query_keys = ["T14-2/legal_alternative_not_automatically_bad"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T14"
+stratum = "shown_finite_comparison_only"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "shown_finite_comparison_only"
+query_keys = ["T14-2/shown_finite_comparison_only"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T15"
+stratum = "active_state_and_side"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "active_state_and_side"
+query_keys = ["T15-1/active_state_and_side"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T15"
+stratum = "king_safety_and_current_claims"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "king_safety_and_current_claims"
+query_keys = ["T15-1/king_safety_and_current_claims"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T15"
+stratum = "complete_legal_choices"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "complete_legal_choices"
+query_keys = ["T15-1/complete_legal_choices"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T15"
+stratum = "inspect_checks_captures_one_move_effects"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "inspect_checks_captures_one_move_effects"
+query_keys = ["T15-1/inspect_checks_captures_one_move_effects"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T15"
+stratum = "compare_only_shown_finite_continuations"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "compare_only_shown_finite_continuations"
+query_keys = ["T15-1/compare_only_shown_finite_continuations"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T15"
+stratum = "finite_authored_responses_no_opponent_engine"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "finite_authored_responses_no_opponent_engine"
+query_keys = ["T15-1/finite_authored_responses_no_opponent_engine"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T15"
+stratum = "closure_and_postgame_rejection"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "closure_and_postgame_rejection"
+query_keys = ["T15-1/closure_and_postgame_rejection"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T16"
+stratum = "all_selected_game_ordinals_reachable"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "all_selected_game_ordinals_reachable"
+query_keys = ["T16-1/all_selected_game_ordinals_reachable"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T16"
+stratum = "every_ply_and_minimal_score_reachable"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "every_ply_and_minimal_score_reachable"
+query_keys = ["T16-1/every_ply_and_minimal_score_reachable"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T16"
+stratum = "canonical_order_not_historical_metadata"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "canonical_order_not_historical_metadata"
+query_keys = ["T16-1/canonical_order_not_historical_metadata"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T16"
+stratum = "seek_backward_forward_equivalence"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "seek_backward_forward_equivalence"
+query_keys = ["T16-1/seek_backward_forward_equivalence"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false
+
+[[authored_stratum]]
+family = "T16"
+stratum = "no_descriptions_evaluations_or_inferred_cause"
+state = "authored"
+section = 5
+document_sha256 = "a9d2542867a2d496370fd2cb20ff72f5cc6fd32e924313247f617bae44d0c744"
+bindings_file = "evidence/shared-king-attempt/native-001/bindings.json"
+bindings_key = "no_descriptions_evaluations_or_inferred_cause"
+query_keys = ["T16-1/no_descriptions_evaluations_or_inferred_cause"]
+truth_file = "evidence/shared-king-attempt/native-001/advanced-groups.json.gz"
+recipient_demonstrated = false

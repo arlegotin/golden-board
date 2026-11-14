@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "path": "inputs/anthology.pgn",
+  "sha256": "66adf881bde2f41ead03fdc77ddfb1c4485cdc56beaeced01d3e89162cf5aa71",
+  "bytes": 51491,
+  "expected_records": 64,
+  "provenance": "Anthology source input; exact bytes and record order are pinned here."
+}
