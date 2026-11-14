@@ -14,6 +14,7 @@ from .message_cleanup import clean_document
 from .qualified_inputs import HISTORICAL_CODECS,presentation_source
 from .raster import write_binary_png
 from .piece_glyphs import apply_piece_glyphs,REVISION as PIECE_STYLE,PALETTE_SHA256
+from . import direct_bootstrap
 
 
 def sha(data):return hashlib.sha256(data).hexdigest()
@@ -27,7 +28,7 @@ def _audit(root,tool,request,destination):
     return json.loads(run.stdout)
 
 
-def build_clean(root:Path,destination:Path,*,piece_glyph_style=PIECE_STYLE):
+def build_clean(root:Path,destination:Path,*,piece_glyph_style=PIECE_STYLE,bootstrap=direct_bootstrap):
     if piece_glyph_style not in (None,PIECE_STYLE):
         raise ValueError('Unknown piece glyph style.')
     root,destination=root.resolve(),destination.resolve()
@@ -76,12 +77,13 @@ def build_clean(root:Path,destination:Path,*,piece_glyph_style=PIECE_STYLE):
             'required_payload_bytes':required_bytes,'payload_capacity_bytes':CAPACITY_BYTES,'fit':required_bytes<=CAPACITY_BYTES,
             'required_cells':SIDE*START+required_bytes*8,'available_cells':SIDE*SIDE,
             'excess_cells':max(0,required_bytes-CAPACITY_BYTES)*8,'game_count':64,'authored_strata':len(expected)})
-        symbols,layout=make_carrier(documents);artifact=pack_bits(symbols)
+        symbols,layout=make_carrier(documents,bootstrap=bootstrap);artifact=pack_bits(symbols)
         serial=symbols.translate(bytes.maketrans(b'\0\1',b'01'))+b'\n'
         (destination/'GOLDEN-BOARD.bitplane').write_bytes(artifact);(destination/'serial.txt').write_bytes(serial)
         write_binary_png(destination/'GOLDEN-BOARD.png',SIDE,SIDE,unpack_bits(artifact))
         write_json(destination/'layout.json',layout)
-        for condition,result in (('physical',decode_symbols(symbols)),('serial',decode_serial(serial))):
+        for condition,result in (('physical',decode_symbols(symbols,bootstrap=bootstrap)),
+                                 ('serial',decode_serial(serial,bootstrap=bootstrap))):
             if result['documents']!=documents:raise ValueError('Connected '+condition+' bytes differ.')
         digest=sha(artifact);bindings={}
         for product,section in ((generic,1),(foundation,3),(practical,4),(advanced,5)):
@@ -99,6 +101,9 @@ def build_clean(root:Path,destination:Path,*,piece_glyph_style=PIECE_STYLE):
         pending=sum(len(f['critical_strata']) for f in families)-len(bindings)
         active=['clean_build','clean_carrier','direct_bootstrap','bootstrap_clarity','raw_draw','checksum','document','course_author','course_generic','course_foundation','course_practical','practical_cases','practical_state','course_advanced','advanced_cases','advanced_state','advanced_fixtures','history_segments','anthology_input','move_packing','course_move_packing','rehearsal_predicates','anthology_playback','authoring','rules','source','source_game','raster','piece_glyphs','message_cleanup','qualified_inputs','anthology','shared_anthology']
         paths=[root/'src/golden_board'/f'{n}.py' for n in active]+[root/'mechanism/player.mjs',root/'tools/audit-course.mjs',root/'content/coverage.toml',root/'inputs/lock.json',root/'inputs/dependencies/lock.json']
+        if bootstrap is not direct_bootstrap:
+            paths.append(root/'src/golden_board'/f'{bootstrap.__name__.rsplit(".",1)[-1]}.py')
+        paths.append(root/'artifacts/manifest.json')
         paths += [presentation_source(root,name) for name in HISTORICAL_CODECS]
         paths += [root/'inputs/qualified/manifest.json']
         paths += [root/name for name in ('inputs/anthology.pgn','tests/reference-anthology.mjs',
@@ -113,7 +118,9 @@ def build_clean(root:Path,destination:Path,*,piece_glyph_style=PIECE_STYLE):
             'logical_sections':layout['logical_sections'],'stored_sections':layout['stored_sections'],
             'payload_capacity_bytes':CAPACITY_BYTES,'used_payload_bytes':layout['used_payload_bytes'],
             'reserve_bytes':layout['reserve_bytes'],'cell_ledger':layout['cell_ledger'],'unfinished_content_estimate':None,
-            'message_cleanup':cleanup,'canonical_exact':True,'serial_exact':True,'player':player,
+            'message_cleanup':cleanup,
+            'canonical_exact':digest==json.loads((root/'artifacts/manifest.json').read_bytes())['forms']['bin']['sha256'],
+            'serial_exact':True,'player':player,
             'piece_glyph_style':piece_glyph_style or 'baseline',
             'piece_glyph_palette_sha256':PALETTE_SHA256 if piece_glyph_style is not None else None,
             'inherited_evidence':{'anthology':'evidence/S03-shared-anthology/actual-summary.json','source':'evidence/S04-rules/actual-source.json.gz',

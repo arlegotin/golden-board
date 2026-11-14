@@ -5,6 +5,25 @@ from golden_board.clean_carrier import decode_serial
 ROOT=Path(__file__).resolve().parents[1]
 
 class CleanBuildTests(unittest.TestCase):
+    def test_bounded_candidate_preserves_all_frozen_payload_bytes(self):
+        from golden_board import bootstrap_boundaries
+        with tempfile.TemporaryDirectory(dir=ROOT/'build') as tmp:
+            dest=Path(tmp)/'candidate'
+            report=build_clean(ROOT,dest,bootstrap=bootstrap_boundaries)
+            packed=(dest/'GOLDEN-BOARD.bitplane').read_bytes()
+            canonical=(ROOT/'artifacts/GOLDEN-BOARD.bin').read_bytes()
+            self.assertNotEqual(packed[:16384],canonical[:16384])
+            self.assertEqual(packed[16384:],canonical[16384:])
+            self.assertEqual(report['bootstrap_layout'],'bootstrap-field-boundaries-1')
+            self.assertFalse(report['canonical_exact'])
+            self.assertFalse(report['release_ready'])
+            self.assertEqual((report['game_count'],report['authored_strata']),(64,146))
+            self.assertIn('src/golden_board/bootstrap_boundaries.py',report['input_files'])
+            recovered=decode_serial((dest/'serial.txt').read_bytes(),bootstrap=bootstrap_boundaries)
+            expected=json.loads((ROOT/'artifacts/manifest.json').read_bytes())['documents']
+            for ident,body in recovered['documents'].items():
+                self.assertEqual(hashlib.sha256(body).hexdigest(),expected[str(ident)]['sha256'])
+
     def test_actual_complete_content_retains146_and64_with_exact_player_routes(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'build') as tmp:
             from golden_board.piece_glyphs import REVISION, PALETTE_SHA256

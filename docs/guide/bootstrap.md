@@ -18,6 +18,10 @@ The images contain the artifact's exact 64 × 64 panels with white gutters betwe
 them. No corner digits or other guide labels are added. The tables below identify
 the panels; the unary and binary counts within each panel belong to the message.
 
+A separate [field-boundary candidate](bootstrap-candidate.md) adds explicit bounds
+and revises several teaching layouts. Its comparisons are separate from the
+canonical panels shown here.
+
 ## 1–8: quantities become fields
 
 ![Bootstrap panels 1–8, in two rows of four](images/bootstrap-clarity/bootstrap-01-08.png)

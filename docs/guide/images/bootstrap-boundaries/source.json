@@ -1,0 +1,24 @@
+{
+  "bootstrap_layout": "bootstrap-field-boundaries-1",
+  "sha256": "5acf2dff79354c751fb36a16d2d26ec7da62ae7733109d0fbba4dff21f9fedd1",
+  "canonical_sha256": "0116be5b721d72b8aed5f67265b290a506c818354f9f297b0618768db996b479",
+  "canonical_payload_exact": true,
+  "changed_panels": [
+    2,
+    6,
+    7,
+    9,
+    10,
+    11,
+    13,
+    14,
+    18,
+    19,
+    32
+  ],
+  "comparison_order": [
+    "canonical",
+    "candidate"
+  ],
+  "scope": "Exact candidate cells; native conformance, no recipient trial."
+}
