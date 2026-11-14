@@ -101,8 +101,8 @@ file. Panel 18 keeps each object and its whole reference list together. Panels
 Glyph 1 is `110 / 101`; contrast glyph 2 is `001 / 010`. The contrast's white
 first column is part of its width, even though its black pixels look narrower.
 The small example in panel 32 separately boxes a row of 32 zero bits and the
-eight-bit number `00100000` beneath it. That lone central data cell labels the
-example's width; its own box identifies the complete eight-bit field.
+eight-bit number `00100000` beneath it. The number labels the example's width;
+its own box identifies the complete eight-bit field.
 
 The miniature is a complete 326-byte document about a six-cell picture. Its three
 glyphs, frames, updates, table, exercise and feedback are all present. The reader
