@@ -8,13 +8,13 @@ are mechanical views; none is an independently authored replacement.
 |---|---:|---|
 | [GOLDEN-BOARD.bin](../../artifacts/GOLDEN-BOARD.bin) | 524,288 | Raw row-major packed bits, no file header |
 | [GOLDEN-BOARD.txt](../../artifacts/GOLDEN-BOARD.txt) | 4,194,305 | ASCII 0/1 for each cell, then LF |
-| [GOLDEN-BOARD.png](../../artifacts/GOLDEN-BOARD.png) | 126,990 | 2048², grayscale, one bit per pixel, black=1 |
+| [GOLDEN-BOARD.png](../../artifacts/GOLDEN-BOARD.png) | 127,045 | 2048², grayscale, one bit per pixel, black=1 |
 
 SHA-256 values are retained in [SHA256SUMS](../../artifacts/SHA256SUMS) and the
 [machine-readable manifest](../../artifacts/manifest.json). The binary hash is:
 
 ```text
-fa74e8dc303d84365cc5f7dbc5c88c3fe304d1441c0202802be6cccbafe130d2
+79af0160d24c033962322b9ecdbb4749e201ea65141e932b0aae212f1fefe68d
 ```
 
 ## Reference identity

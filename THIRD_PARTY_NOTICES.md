@@ -11,8 +11,12 @@ Original archive notices remain authoritative.
 - `setuptools-80.9.0-py3-none-any.whl`: MIT and bundled notices;
   [extracted notices](licenses/third-party/setuptools/).
 
-The Python builder imports chess. The project's MIT notice does not replace
-applicable GPL terms for that dependency or a combined distribution.
+The Python builder imports chess. The project's
+[noncommercial software licence](LICENSE) does not replace its GPL terms and
+is not GPL-compatible. Distribution of a combined work requires separate
+permissions that resolve this incompatibility; retaining the GPL notice or
+obtaining the project author's commercial permission alone does not resolve it.
+The retained third-party archives and licence texts keep their original terms.
 
 The anthology is retained as [PGN](inputs/anthology.pgn), with exact source identity
 in [inputs/lock.json](inputs/lock.json). Technical legality and replay checks do not

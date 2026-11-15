@@ -9,7 +9,7 @@ from . import direct_bootstrap as carrier, raw_draw as d
 from .checksum import byte_trace, crc32c
 from .document import Reader, decode_document, encode_document
 
-LAYOUT_REVISION = 'bootstrap-field-boundaries-1'
+LAYOUT_REVISION = 'bootstrap-field-boundaries-2'
 GROUPS = ((1, 2), (5, 6), (11, 12, 13), (19, 20, 21),
           (22, 23, 24), (25, 26, 27, 28), (29, 30, 31))
 LOCAL = {ordinal: i for group in GROUPS for i, ordinal in enumerate(group, 1)}
@@ -151,16 +151,17 @@ def _word(p, value, y):
 
 def _calculation(p, *, final):
     # The same operand grouping and result arrow in both XOR examples.
-    d._box(p,5,5,58,25)
-    _word(p,0xffffffff,10)
+    offset = 0 if final else 12
+    d._box(p,5,5+offset,58,25+offset)
+    _word(p,0xffffffff,10+offset)
     if final:
         _word(p,byte_trace(53)[-1],20)
         result = crc32c(b'5')
     else:
-        _bounded(p,53,8,46,20)
+        _bounded(p,53,8,46,20+offset)
         result = 0xffffffff ^ 53
-    d._arrow(p,31,27,5,vertical=True)
-    _word(p,result,36)
+    d._arrow(p,31,27+offset,5,vertical=True)
+    _word(p,result,36+offset)
     if final:
         d._arrow(p,31,41,8,vertical=True)
         for x, byte in zip((10,22,34,46),result.to_bytes(4,'big')):
@@ -306,8 +307,8 @@ def make_route(used, mini_section, inventory_section, inventory_payload):
                 for offset,result in ((0,a^b),(32,int(a==b))):
                     # Bounded fields expose zero-valued entries at normal bit scale.
                     for x,value in ((7,a),(13,b),(23,result)):
-                        d._box(p,x+offset,10+row*12,x+offset+4,14+row*12)
-                        d._number(p,value,1,x+offset+2,12+row*12)
+                        d._box(p,x+offset,13+row*12,x+offset+4,17+row*12)
+                        d._number(p,value,1,x+offset+2,15+row*12)
         elif ordinal == 9:
             for y, value in ((10,53),(28,2147483649),(46,2197175160)):
                 _bounded(p,value,32,9,y)

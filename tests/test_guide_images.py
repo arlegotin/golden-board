@@ -98,4 +98,4 @@ class GuideImageTests(unittest.TestCase):
             self.assertNotEqual(self.generate(out).returncode, 0)
             self.assertEqual(before, {p.name: p.read_bytes() for p in out.iterdir()})
         self.assertEqual(hashlib.sha256((ROOT/'artifacts/GOLDEN-BOARD.bin').read_bytes()).hexdigest(),
-                         'fa74e8dc303d84365cc5f7dbc5c88c3fe304d1441c0202802be6cccbafe130d2')
+                         '79af0160d24c033962322b9ecdbb4749e201ea65141e932b0aae212f1fefe68d')

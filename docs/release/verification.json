@@ -8,7 +8,7 @@
   "checks": {
     "integration": {
       "command": "./gb check integration",
-      "python_tests": 156,
+      "python_tests": 158,
       "python_failures": 0,
       "python_errors": 0,
       "javascript_tests": 14,
@@ -32,7 +32,7 @@
       "clean_presentations": 16
     },
     "reproduction": {
-      "command": "./gb reproduce --output build/reproduced-current",
+      "command": "./gb reproduce --output build/reproduced",
       "exact_forms": [
         "bin",
         "txt",
@@ -42,7 +42,7 @@
     },
     "fast": {
       "command": "./gb check fast",
-      "python_tests": 48,
+      "python_tests": 50,
       "javascript_exit": 0
     },
     "images": {
@@ -54,17 +54,17 @@
   "canonical_forms": {
     "bin": {
       "bytes": 524288,
-      "sha256": "fa74e8dc303d84365cc5f7dbc5c88c3fe304d1441c0202802be6cccbafe130d2",
+      "sha256": "79af0160d24c033962322b9ecdbb4749e201ea65141e932b0aae212f1fefe68d",
       "path": "GOLDEN-BOARD.bin"
     },
     "txt": {
       "bytes": 4194305,
-      "sha256": "ee7d4b734bd6addbdf5e2c1ed5880ff544433428789256c3ce64d394860f0d63",
+      "sha256": "02867a2ae6cc57e01e82ec1db4a456db388fcee06983dbfcfa8ee77cb82433af",
       "path": "GOLDEN-BOARD.txt"
     },
     "png": {
-      "bytes": 126990,
-      "sha256": "56e3a0e079c565ddee9107d886d787e2ba92142ae12b56f3e51e57cf8d7b1c1c",
+      "bytes": 127045,
+      "sha256": "49734c5118c85201dc4a4fc862716922ca9d75eaa3ae897bf0d96277ea78a30a",
       "path": "GOLDEN-BOARD.png"
     }
   },
@@ -101,6 +101,6 @@
     "reserve_bytes": 1395
   },
   "historical_limits": "Finite, prior-informed, source/own-work/template-assisted model demonstrations; original model/mode and complete outer history partly unverified; no causal or human learning claim. Recipient results refer to their original bootstrap observations. The bounded-field drawings have native verification only.",
-  "bootstrap_layout": "bootstrap-field-boundaries-1",
-  "engineering_revision": 8
+  "bootstrap_layout": "bootstrap-field-boundaries-2",
+  "engineering_revision": 9
 }

@@ -51,6 +51,20 @@ class BootstrapBoundaryTests(unittest.TestCase):
             self.assert_field(p, value >> 8, 8, 33, y)
             self.assert_field(p, value & 255, 8, 47, y)
 
+    def test_matrix_dimensions_end_at_the_right_edge_of_the_matrix(self):
+        p = self.panel(3)
+        matrix_right = max(x for y in range(12,23) for x in range(8,28) if p[y*64+x])
+        for y, value in ((38,3),(48,5)):
+            self.assertEqual(draw._read_number(p,matrix_right-7,y,8),value)
+            self.assertEqual(max(x for x in range(64) if p[y*64+x]),matrix_right)
+
+    def test_truth_table_and_initial_xor_are_vertically_centered(self):
+        for ordinal in (8,11):
+            with self.subTest(panel=ordinal):
+                p = self.panel(ordinal)
+                rows = [y for y in range(4,63) if any(p[y*64:(y+1)*64])]
+                self.assertLessEqual(abs((min(rows)-4)-(62-max(rows))),1)
+
     def test_parameter_fields_share_the_least_significant_bit_and_roundtrip_limits(self):
         candidate = self.authoring()
         for used in (1,364,506509,507904):
@@ -82,10 +96,10 @@ class BootstrapBoundaryTests(unittest.TestCase):
 
     def test_crc_input_combines_a_bounded_byte_with_the_low_end_of_the_word(self):
         p = self.panel(11)
-        self.assert_box(p, 5,5,58,25)
-        self.assertEqual(self.word(p, 10), b'\xff\xff\xff\xff')
-        self.assert_field(p, 53, 8, 46,20)
-        self.assertEqual(self.word(p, 36), b'\xff\xff\xff\xca')
+        self.assert_box(p, 5,17,58,37)
+        self.assertEqual(self.word(p, 22), b'\xff\xff\xff\xff')
+        self.assert_field(p, 53, 8, 46,32)
+        self.assertEqual(self.word(p, 48), b'\xff\xff\xff\xca')
 
     def test_final_xor_result_and_four_output_bytes_have_the_same_ordered_bits(self):
         p = self.panel(13)
@@ -110,7 +124,7 @@ class BootstrapBoundaryTests(unittest.TestCase):
 
     def test_checksum_verdicts_use_the_same_bounded_bits_as_equality_examples(self):
         checks, truth = self.panel(14), self.panel(8)
-        for y, value, truth_y in ((12,1,12),(30,0,24),(48,1,48)):
+        for y, value, truth_y in ((12,1,15),(30,0,27),(48,1,51)):
             with self.subTest(value=value, row=y):
                 self.assert_field(checks, value,1,56,y+4)
                 verdict = b''.join(checks[row*64+54:row*64+59]
@@ -145,7 +159,7 @@ class BootstrapBoundaryTests(unittest.TestCase):
     def test_default_route_is_the_reviewed_bounded_layout(self):
         route = self.authoring().make_route(506509, *bootstrap.example())
         self.assertEqual(hashlib.sha256(carrier.pack_bits(route)).hexdigest(),
-                         '0e5788a715aa3236663480ca4a77f5e2e7749e7f71ab197842c9a5220919d12f')
+                         '5a890825784fce37d5bd2d6999d3a51b278a9e2b3d9ece4c875fef4dff48e518')
         for ordinal in range(1,33):
             panel = draw.panel(route,ordinal-1,columns=32)
             self.assertEqual(draw._read_number(panel,56,0,8),ordinal)
@@ -154,7 +168,7 @@ class BootstrapBoundaryTests(unittest.TestCase):
     def test_default_carrier_uses_bounded_parameters_and_strict_extraction(self):
         docs = {1:bootstrap.miniature()}
         symbols, layout = carrier.make_carrier(docs)
-        self.assertEqual(layout['bootstrap_layout'], 'bootstrap-field-boundaries-1')
+        self.assertEqual(layout['bootstrap_layout'], 'bootstrap-field-boundaries-2')
         self.assertEqual(carrier.decode_symbols(symbols)['documents'], docs)
         serial = symbols.translate(bytes.maketrans(b'\0\1',b'01'))+b'\n'
         self.assertEqual(carrier.decode_serial(serial)['documents'], docs)

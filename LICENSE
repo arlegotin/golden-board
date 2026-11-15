@@ -1,21 +1,67 @@
-MIT License
+Golden Board Noncommercial Software License 1.0
 
 Copyright (c) 2026 Artem Legotin
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Scope
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+This license applies to the original Golden Board software offered under it
+(the "Software"), including source code, scripts, tests, the headless mechanism
+and original qualified source snapshots. Third-party materials retain their own
+licenses. The original message, explanatory documentation and illustrations are
+covered separately by LICENSE-CONTENT.md.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. Noncommercial permission
+
+Subject to these terms, the copyright holder grants you a worldwide,
+nonexclusive, royalty-free license to use, study, copy, modify, merge, build
+upon and distribute the Software, in source or binary form, for noncommercial
+purposes only. This permission includes modified versions and incorporation
+into other software, subject to the same restrictions on the covered Software.
+
+Noncommercial means not primarily intended for or directed toward commercial
+advantage or monetary compensation. The purpose of the use determines whether
+it is noncommercial; an organization's name, status or source of funding does
+not by itself grant an exception.
+
+3. Commercial permission
+
+Commercial use of the Software, in whole or in part, requires prior written
+permission from Artem Legotin under a separate agreement. This includes
+commercial use of modified versions or of the Software within another product
+or service. Use primarily directed toward commercial advantage requires that
+permission even if no fee is charged to users. This license grants no
+commercial-use permission.
+
+4. Notices and recipients
+
+All copies or substantial portions of the Software, including modified and
+binary distributions, must retain the copyright notice and this license.
+When sharing a modified version, identify that you changed it and retain
+existing notices. Do not imply endorsement by the copyright holder.
+
+Each recipient receives permission to use the covered Software directly from
+the copyright holder under this license. You may license your own original
+contributions separately, but may not remove these terms from the covered
+Software or grant commercial rights to it without the copyright holder's
+prior written permission.
+
+5. Third-party materials and other rights
+
+This license does not replace or restrict permissions under third-party
+licenses. Combinations with third-party software must satisfy all applicable
+licenses; this license grants no exception to their requirements. See
+THIRD_PARTY_NOTICES.md and docs/guide/distribution.md.
+
+No trademark or patent rights are granted. Nothing in this license restricts
+uses permitted by applicable copyright exceptions, limitations or other law,
+or changes permissions already granted under another license. Rights not
+expressly granted here are reserved by the copyright holder.
+
+6. Disclaimer
+
+TO THE EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE IS PROVIDED "AS IS",
+WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM OR IN CONNECTION WITH THE
+SOFTWARE OR ITS USE.
