@@ -91,6 +91,17 @@ I checked both their decoding and their answers, looking for evidence that they 
 
 If you really want to understand how the Golden Board is read and decoded, I encourage you to read [this illustrated guide](https://artemlegotin.com/golden-board).
 
+Here's how the message's bits are used:
+
+| Part | Bits | Approx. share |
+|---|---:|---:|
+| Bootstrap | 131,072 | 3.1% |
+| Lessons and exercises | 3,305,312 | 78.8% |
+| 64 complete games | 744,136 | 17.7% |
+| Index and checks | 2,624 | 0.1% |
+| Unused space | 11,160 | 0.3% |
+| **Total** | **4,194,304** | **100%** |
+
 Golden Board begins with a chess-agnostic bootstrap: a visual guide of 32 frames that starts with counting and simple patterns, then teaches the recipient how to turn raw zeros and ones into meaningful information and read the rest of the message.
 
 Here are the first four frames, which teach counting, binary, and basic patterns:
