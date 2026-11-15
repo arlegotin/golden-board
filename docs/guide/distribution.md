@@ -1,13 +1,17 @@
 # Distribution and licences
 
-Project code uses [MIT](../../LICENSE). The original message, explanatory content
-and original illustrations use [CC BY-NC 4.0](../../LICENSE-CONTENT.md). Third-party
-materials keep their own terms.
+Original project code uses the
+[Golden Board Noncommercial Software License](../../LICENSE). The original
+message, explanatory content and original illustrations use
+[CC BY-NC 4.0](../../LICENSE-CONTENT.md). Third-party materials keep their own terms.
 
-The original content may be shared and adapted for noncommercial purposes with
-attribution. Commercial use of that content requires separate written permission
-from the copyright holder identified in the [README](../../README.md). The code's
-MIT licence permits commercial use of the software.
+Original code and content may be shared, studied, modified and built upon for
+noncommercial purposes, with attribution and the required licence notices.
+Commercial use of either requires prior written permission from Artem Legotin
+under a separate agreement. Noncommercial status depends on the purpose of the
+use, not simply whether access is free or the user is a nonprofit. Applicable
+copyright exceptions and permissions already granted under another licence
+remain unaffected.
 
 | Component | Included material and terms |
 |---|---|
@@ -17,9 +21,13 @@ MIT licence permits commercial use of the software.
 | Anthology | One PGN input, its source metadata and exact-byte lock |
 
 [Third-party notices](../../THIRD_PARTY_NOTICES.md) link the archives and accessible
-licence text. The Python construction pipeline imports chess; its GPL terms remain
-applicable. No chess dependency is embedded in the generic JavaScript mechanism.
-The project licence does not relicense dependencies.
+licence text. The Python construction pipeline imports chess. The noncommercial
+software licence is not GPL-compatible: distributing a combined work requires
+separate permissions that resolve that incompatibility. Preserving a GPL notice
+or obtaining the project author's commercial permission alone is insufficient.
+The retained third-party archives keep their original terms. No chess dependency
+is embedded in the generic JavaScript mechanism. The project licence does not
+relicense dependencies or establish rights to third-party material.
 
 ## Source provenance
 

@@ -109,8 +109,8 @@ def draw_calibration(ordinal, p):
         cells = [0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1]
         _shape(p, cells, 3, 5, 8, 12, 4)
         _shape(p, [1 - bit for bit in cells], 3, 5, 36, 12, 4)
-        _number(p, 3, 8, 8, 38)
-        _number(p, 5, 8, 8, 48)
+        _number(p, 3, 8, 19, 38)
+        _number(p, 5, 8, 19, 48)
     elif ordinal == 4:
         for index in range(6):
             _number(p, index + 1, 4, 14 + index % 3 * 16, 14 + index // 3 * 12)

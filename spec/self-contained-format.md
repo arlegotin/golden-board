@@ -1,6 +1,6 @@
 # Current message grammar
 
-Engineering revision8 (bounded bootstrap layout), 2026-11-14. Revision numbers are external development
+Engineering revision9 (bounded bootstrap layout), 2026-11-15. Revision numbers are external development
 metadata; none is carried in the square.
 
 The square is2048×2048binary cells, MSB-first packed row-major into524288bytes.

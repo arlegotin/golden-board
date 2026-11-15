@@ -14,9 +14,9 @@ I encourage you to read [this illustrated guide](https://artemlegotin.com/golden
 
 Both the guide and this README were written by me, a person, for other people. So if you're one, they're a good place to start.
 
-That said, the project also has detailed technical documentation containing comprehensive details, better suited for AI-assisted analysis. Feel free to explore the [documentation index](#documentation-index).
+That said, the project also has detailed technical documentation containing comprehensive details. Feel free to explore the [documentation index](#documentation-index).
 
-Of course, a project this extensive wouldn't have been possible without relying heavily on AI-assisted development. But I can promise that every AI-generated token is backed by my own sweat and tears, with my careful attention at every step. The project took five months to complete, including multiple dead ends and countless redesigns.
+Of course, a project this extensive wouldn't have been possible without relying heavily on AI-assisted development. But I can promise that every AI-generated token is backed by my own sweat and tears, with my careful attention at every step. The project took four months to complete, including multiple dead ends and countless redesigns.
 
 I hope you enjoy it.
 
@@ -33,7 +33,7 @@ The recipient only needs to recognize it as a deliberate message, understand bas
 
 Someone with the knowledge and computing tools available to humanity in the 1950s could figure it out.
 
-## How It Looks Like
+## What It Looks Like
 
 In a nutshell, Golden Board is a sequence of 4,194,304 ones and zeros – 2^22 bits, or 512 KiB ([download TXT](artifacts/GOLDEN-BOARD.txt) or [binary](artifacts/GOLDEN-BOARD.bin)).
 
@@ -109,13 +109,15 @@ Here's an example of a lesson featuring a pawn capture. While it may look simple
   <img src="assets/lesson_example.webp">
 </p>
 
-## Which Games Did I Include
+## How I Chose the Games
+
+With the message's size limited, I could fit only 64 games.
 
 No set of 64 games is complete.
 
 Chess is full of remarkable games. Every game included meant I had to leave out hundreds of other worthy ones.
 
-Since Golden Board includes only the moves, without player names, dates, or events, I chose games for the chess itself: brilliant attacks, surprising sacrifices, clever defenses, quiet strategy, and beautiful endings.
+Since Golden Board records only the moves, without player names, dates, or events, I chose games for the chess itself: brilliant attacks, surprising sacrifices, clever defenses, quiet strategy, and beautiful endings.
 
 The final anthology ([download PGN](inputs/anthology.pgn)) includes 64 games played between 1909 and 2021 by some of history's greatest chess players. Together, they contain 6,890 individual moves: 39 wins for White, 16 for Black, and 9 draws.
 
@@ -229,12 +231,12 @@ python3.14 gb setup --offline
 
 ## License
 
-Golden Board's original message, images and documentation are free to share, study, modify, and build upon for noncommercial purposes, with attribution. Commercial use of this material requires prior written permission from the copyright holder (me).
+Golden Board's original code, message, images and documentation are free to share, study, modify, and build upon for noncommercial purposes, with attribution and the required license notices. Commercial use of any of this material requires prior written permission from the copyright holder (me).
 
-- **Code:** [MIT License](LICENSE), which permits commercial use.
+- **Code:** [Golden Board Noncommercial Software License](LICENSE).
 - **Message and content:** [Creative Commons Attribution-NonCommercial 4.0](LICENSE-CONTENT.md)
 
-Please credit [Artem Legotin](https://artemlegotin.com/) and link back to this project when sharing or adapting it.
+Please credit [Artem Legotin](https://artemlegotin.com/) and link back to this project when sharing or adapting it:
 
 ```bibtex
 @misc{golden_board,
@@ -243,6 +245,8 @@ Please credit [Artem Legotin](https://artemlegotin.com/) and link back to this p
   url = {https://github.com/arlegotin/golden-board}
 }
 ```
+
+Third-party materials retain their own licenses; see [third-party notices](THIRD_PARTY_NOTICES.md) and [distribution](docs/guide/distribution.md) for their terms and compatibility limits. Permissions already granted under another license remain unaffected.
 
 ## Documentation Index
 

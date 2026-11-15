@@ -25,7 +25,7 @@ class DirectStreamTests(unittest.TestCase):
     def test_direct_midrow_sections_exact_ledger_and_one_placement(self):
         docs={1:miniature()};symbols,layout=c.make_carrier(docs);packed=c.pack_bits(symbols)
         inventory=c.encode_section(0,0,c.inventory_for(docs));document=c.encode_section(1,1,docs[1])
-        self.assertEqual(layout['wire_version'],8)
+        self.assertEqual(layout['wire_version'],9)
         self.assertEqual((layout['stored_sections'],layout['logical_sections']),(2,2))
         self.assertEqual(layout['used_payload_bytes'],364);self.assertEqual(layout['payload_capacity_bytes'],507904)
         self.assertEqual(packed[16384:16384+364],inventory+document)
